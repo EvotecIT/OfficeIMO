@@ -55,7 +55,7 @@ public sealed class PdfInlineFormLineMetricsTests {
     }
 
     private static byte[] Render(string frame, bool exactSpacing, bool field) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 300, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10,
             MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30
         };
@@ -86,7 +86,7 @@ public sealed class PdfInlineFormLineMetricsTests {
                 PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null }));
         else {
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 10, lineSpacing: spacing) });
-            var tableStyle = TableStyles.Minimal();
+            var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 10;
             tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
             document.Table(new[] { new[] { cell } }, style: tableStyle);

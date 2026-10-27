@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 using Xunit;
 using Path = System.IO.Path;

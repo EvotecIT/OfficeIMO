@@ -10,7 +10,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_PrefetchesSelectedWorksheetWithoutChangingRows() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 EnableWorksheetPrefetch = true,
                 SheetName = "Data"
             };
@@ -34,7 +34,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_DisposesUnconsumedWorksheetPrefetch() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions { EnableWorksheetPrefetch = true };
+            var options = new ExcelReaderOptions { EnableWorksheetPrefetch = true };
             using XlsxTabularWorkbook workbook = XlsxTabularWorkbook.Open(path, options);
             Assert.Equal(new[] { "Data" }, workbook.TableNames);
         } finally {
@@ -46,7 +46,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_ReadsCanonicalPackageWithoutSdkProjection() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             using var workbook = XlsxTabularWorkbook.Open(path, options);
 
             Assert.Equal(new[] { "Data" }, workbook.TableNames);
@@ -68,7 +68,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_InfersSchemaAndReplaysAnExplicitRange() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 A1Range = "A1:A3",
                 InferSchema = true,
                 SchemaSampleRows = 1
@@ -97,7 +97,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_EnforcesTheSchemaSampleRowLimit() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 InferSchema = true,
                 SchemaSampleRows = 2,
                 MaxDataReaderSchemaSampleRows = 1
@@ -117,7 +117,7 @@ public partial class Excel {
     public void XlsxTabularWorkbook_ChargesOnlyRowsActuallyBufferedForSchema() {
         string path = CreateCompactFastPathWorkbook();
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 A1Range = "A1:A3",
                 InferSchema = true,
                 SchemaSampleRows = 1024,
@@ -154,7 +154,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 InferSchema = true,
                 SchemaSampleRows = 1
             };
@@ -201,14 +201,14 @@ public partial class Excel {
                 "<f>CONCAT(\"Cache\",\"d\")</f>");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
 
-            using (DbDataReader cached = ExcelDocument.OpenDataReader(path)) {
+            using (DbDataReader cached = ExcelDocument.OpenReader(path)) {
                 Assert.True(cached.Read());
                 Assert.Equal("Cached", cached.GetString(0));
             }
 
-            using (DbDataReader formula = ExcelDocument.OpenDataReader(
+            using (DbDataReader formula = ExcelDocument.OpenReader(
                        path,
-                       new ExcelReadOptions { UseCachedFormulaResult = false })) {
+                       new ExcelReaderOptions { UseCachedFormulaResult = false })) {
                 Assert.True(formula.Read());
                 Assert.Equal("CONCAT(\"Cache\",\"d\")", formula.GetString(0));
             }

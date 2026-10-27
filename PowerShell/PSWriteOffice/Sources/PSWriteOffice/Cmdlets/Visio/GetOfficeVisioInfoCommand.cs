@@ -37,7 +37,7 @@ public sealed class GetOfficeVisioInfoCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = VisioCommandUtilities.ResolveDocument(this, Document, Path);
-        var snapshot = document.CreateInspectionSnapshot();
+        var snapshot = document.Inspect();
         WriteObject(AsText.IsPresent ? snapshot.ToText() : snapshot);
     }
 }

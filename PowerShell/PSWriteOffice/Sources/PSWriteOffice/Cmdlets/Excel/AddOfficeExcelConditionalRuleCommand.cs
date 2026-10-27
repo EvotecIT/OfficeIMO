@@ -32,7 +32,7 @@ public sealed class AddOfficeExcelConditionalRuleCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range to apply the rule to.</summary>
+    /// <summary>ExcelA1 range to apply the rule to.</summary>
     [Parameter(Position = 0)]
     public string? Range { get; set; }
 

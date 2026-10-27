@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class TableDetector {
-    private static bool LooksLikeCompactHeaderRow(StructuredTable table) {
+    private static bool LooksLikeCompactHeaderRow(PdfStructuredTable table) {
         if (table.Rows.Count == 0 || !LooksLikeHeaderRow(table.Rows[0])) return false;
         double occupiedWidthInFontSizes = 0D;
         for (int columnIndex = 0; columnIndex < table.Rows[0].Length; columnIndex++) {
@@ -19,7 +19,7 @@ internal static partial class TableDetector {
                table.Rows[0].Length * MaximumAverageCompactCellWidthInFontSizes * 4D / 3D;
     }
 
-    private static bool HasValidatedRows(StructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+    private static bool HasValidatedRows(PdfStructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
         int columnCount = table.Columns.Count;
         if (columnCount < 2 || table.Rows.Count < 2) return false;
 
@@ -48,7 +48,7 @@ internal static partial class TableDetector {
                    HasStableColumnAnchors(table, sourceLines)));
     }
 
-    private static bool HasNarrativeColumnEvidence(StructuredTable table) {
+    private static bool HasNarrativeColumnEvidence(PdfStructuredTable table) {
         if (table.Columns.Count != 2 || table.SourceRuns.Count < 2) return false;
         int sentenceCells = table.Rows.Sum(row => row.Count(value =>
             ContentStructureExtractor.EndsWithSentenceTerminal(value.Trim())));
@@ -68,7 +68,7 @@ internal static partial class TableDetector {
             occupiedWidth > populatedCells * fontSize * MaximumAverageCompactCellWidthInFontSizes);
     }
 
-    private static bool LooksLikeSparseFormGrid(StructuredTable table) {
+    private static bool LooksLikeSparseFormGrid(PdfStructuredTable table) {
         if (table.Rows.Count < 3 ||
             !LooksLikeCompactHeaderRow(table)) return false;
 
@@ -147,7 +147,7 @@ internal static partial class TableDetector {
     }
 
     private static bool TryGetOccupiedCellWidthInFontSizes(
-        StructuredTable table,
+        PdfStructuredTable table,
         int rowIndex,
         int columnIndex,
         out double compactness) {
@@ -156,7 +156,7 @@ internal static partial class TableDetector {
             rowIndex < 0 || rowIndex >= table.SourceLines.Count ||
             columnIndex < 0 || columnIndex >= table.Columns.Count) return false;
 
-        StructuredTableColumn column = table.Columns[columnIndex];
+        PdfStructuredTableColumn column = table.Columns[columnIndex];
         double columnLeft = Math.Min(column.From, column.To) - 0.5D;
         double columnRight = Math.Max(column.From, column.To) + 0.5D;
         TextLayoutEngine.TextLine line = table.SourceLines[rowIndex];
@@ -178,14 +178,14 @@ internal static partial class TableDetector {
     }
 
     private static bool HasStrongTwoRowEvidence(
-        StructuredTable table,
+        PdfStructuredTable table,
         List<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count != 2 || sourceLines.Count != 2) return false;
         return HasStrongHeaderAndBodyEvidence(table, sourceLines);
     }
 
     private static bool HasStrongHeaderAndBodyEvidence(
-        StructuredTable table,
+        PdfStructuredTable table,
         List<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count < 2 || sourceLines.Count < 2) return false;
         if (!LooksLikeHeaderRow(table.Rows[0])) return false;
@@ -193,7 +193,7 @@ internal static partial class TableDetector {
                (HasStableColumnAnchors(table, sourceLines) && HasEmphasizedHeader(sourceLines));
     }
 
-    private static bool HasCompactCellGrid(StructuredTable table) {
+    private static bool HasCompactCellGrid(PdfStructuredTable table) {
         if (table.Rows.Count < 2 || !LooksLikeHeaderRow(table.Rows[0])) return false;
         int populatedCells = 0;
         double occupiedWidthInFontSizes = 0D;
@@ -218,11 +218,11 @@ internal static partial class TableDetector {
     }
 
     private static bool HasStableColumnAnchors(
-        StructuredTable table,
+        PdfStructuredTable table,
         IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count < 2 || !LooksLikeHeaderRow(table.Rows[0])) return false;
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
-            StructuredTableColumn column = table.Columns[columnIndex];
+            PdfStructuredTableColumn column = table.Columns[columnIndex];
             double left = Math.Min(column.From, column.To) - 0.5D;
             double right = Math.Max(column.From, column.To) + 0.5D;
             var leftAnchors = new List<double>();

@@ -8,11 +8,20 @@ namespace OfficeIMO.Word.Markdown;
 /// <summary>One structured diagnostic from a Word/Markdown conversion.</summary>
 public sealed class WordMarkdownConversionDiagnostic {
     /// <summary>Creates a diagnostic.</summary>
-    public WordMarkdownConversionDiagnostic(string code, string message, OfficeConversionLossKind lossKind) {
+    public WordMarkdownConversionDiagnostic(string code, string message, OfficeConversionLossKind lossKind,
+        OfficeDiagnosticSeverity severity = OfficeDiagnosticSeverity.Warning, string? location = null, string? format = null) {
         Code = string.IsNullOrWhiteSpace(code) ? throw new ArgumentException("A diagnostic code is required.", nameof(code)) : code;
         Message = message ?? throw new ArgumentNullException(nameof(message));
         LossKind = lossKind;
+        Severity = severity; Location = location; Format = format;
     }
+
+    /// <summary>Finding severity, independent of fidelity loss.</summary>
+    public OfficeDiagnosticSeverity Severity { get; }
+    /// <summary>Source part, block or element location.</summary>
+    public string? Location { get; }
+    /// <summary>Format or stage that emitted the finding.</summary>
+    public string? Format { get; }
 
     /// <summary>Stable diagnostic code.</summary>
     public string Code { get; }
@@ -89,8 +98,8 @@ public abstract class WordMarkdownConversionResult<T> : OfficeConversionResult<T
 }
 
 /// <summary>Typed Markdown document plus the Word-to-Markdown fidelity report.</summary>
-public sealed class WordToMarkdownResult : WordMarkdownConversionResult<MarkdownDoc> {
-    internal WordToMarkdownResult(MarkdownDoc value, WordMarkdownConversionReport report) : base(value, report) { }
+public sealed class WordToMarkdownResult : WordMarkdownConversionResult<MarkdownDocument> {
+    internal WordToMarkdownResult(MarkdownDocument value, WordMarkdownConversionReport report) : base(value, report) { }
 }
 
 /// <summary>Native Word document plus the Markdown-to-Word fidelity report.</summary>

@@ -171,11 +171,11 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
                 localReference = "$" + (firstRow + 1).ToString(CultureInfo.InvariantCulture)
                     + ":$" + (lastRow + 1).ToString(CultureInfo.InvariantCulture);
             } else if (isArea && firstRow == 0 && lastRow == 1_048_575) {
-                localReference = "$" + A1.ColumnIndexToLetters(firstColumn + 1)
-                    + ":$" + A1.ColumnIndexToLetters(lastColumn + 1);
+                localReference = "$" + ExcelA1.ColumnIndexToLetters(firstColumn + 1)
+                    + ":$" + ExcelA1.ColumnIndexToLetters(lastColumn + 1);
             } else {
-                string first = A1.AbsoluteCellReference(checked((int)firstRow + 1), firstColumn + 1);
-                string last = A1.AbsoluteCellReference(checked((int)lastRow + 1), lastColumn + 1);
+                string first = ExcelA1.AbsoluteCellReference(checked((int)firstRow + 1), firstColumn + 1);
+                string last = ExcelA1.AbsoluteCellReference(checked((int)lastRow + 1), lastColumn + 1);
                 localReference = !isArea || string.Equals(first, last, StringComparison.Ordinal)
                     ? first
                     : first + ":" + last;

@@ -82,9 +82,9 @@ public sealed class PdfInlineRuleFontResourceTests {
     private static PdfTextRun Rule(PdfTextRun style, double? maximumWidth = 30D) =>
         PdfTextRun.Inline(new PdfInlineRule(.5D, PdfColor.Black, maximumWidth: maximumWidth), style);
 
-    private static PdfOptions Options() {
+    private static PdfCreateOptions Options() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', '.', 'A', 'B');
-        return new PdfOptions {
+        return new PdfCreateOptions {
             PageWidth = 140D, PageHeight = 160D, MarginLeft = 20D, MarginRight = 20D,
             MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 10D, DefaultFont = PdfStandardFont.Helvetica
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(Family, font, bold: font));

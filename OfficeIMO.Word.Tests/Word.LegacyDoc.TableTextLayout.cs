@@ -33,7 +33,7 @@ public partial class Word {
         if (setting == "fit") cell.FitText = true;
         if (setting == "noWrap") cell.WrapText = false;
         if (setting == "hide") cell.HideMark = true;
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] stream = compound!.Streams["WordDocument"];
         bool newerFormat = setting != "none";

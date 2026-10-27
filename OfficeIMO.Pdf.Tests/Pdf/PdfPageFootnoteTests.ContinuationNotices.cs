@@ -121,7 +121,7 @@ public partial class PdfPageFootnoteTests {
 
     [Fact]
     public void ImpossibleContinuationNoticeFailsWithoutGeneratingUnboundedPages() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.MaxGeneratedPages = 2;
         PdfDocument document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {

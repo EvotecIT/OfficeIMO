@@ -693,17 +693,17 @@ public sealed class PackageDependencyGuardrailTests {
     public static IEnumerable<object[]> OpenDocumentPdfAdapters() {
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
-            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" },
+            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf", "OfficeIMO.Pdf.Word" },
             new[] { "OfficeIMO.Excel", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
-            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" },
+            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf", "OfficeIMO.Pdf.Excel" },
             new[] { "OfficeIMO.Word", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
-            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" },
+            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf", "OfficeIMO.Pdf.PowerPoint" },
             new[] { "OfficeIMO.Word", "OfficeIMO.Excel" }
         };
     }

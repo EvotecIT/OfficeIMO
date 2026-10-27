@@ -46,7 +46,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range to search. Defaults to each selected worksheet's used range.</summary>
+    /// <summary>ExcelA1 range to search. Defaults to each selected worksheet's used range.</summary>
     [Parameter]
     public string? Range { get; set; }
 
@@ -92,7 +92,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
     private static PSObject CreateRecord(string sheetName, int row, int column, object? value) {
         var record = new PSObject();
         record.Properties.Add(new PSNoteProperty("Sheet", sheetName));
-        record.Properties.Add(new PSNoteProperty("Address", A1.CellReference(row, column)));
+        record.Properties.Add(new PSNoteProperty("Address", ExcelA1.CellReference(row, column)));
         record.Properties.Add(new PSNoteProperty("Row", row));
         record.Properties.Add(new PSNoteProperty("Column", column));
         record.Properties.Add(new PSNoteProperty("Value", value));

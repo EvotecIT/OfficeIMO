@@ -353,7 +353,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
         var pipelineOptions = new PdfUnderstandingPipelineOptions();
         PdfDocumentReadResult native = PdfDocumentReadEngine.Read(
             source,
-            new PdfReadOptions {
+            new PdfLoadOptions {
                 Profile = PdfReadProfile.Structured,
                 LayoutOptions = layoutOptions,
                 Pipeline = pipelineOptions
@@ -381,7 +381,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
             });
         }
 
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -401,7 +401,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
     }
 
     private static byte[] BuildSlashPaginationTablePdf() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 500,
             PageHeight = 320,
             MarginLeft = 30,
@@ -443,7 +443,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
     }
 
     private static byte[] BuildNativeTableThenBlankPagePdf() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -476,7 +476,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
         double firstColumnWidth = 120D,
         double secondColumnWidth = 100D,
         double pageWidth = 320D) =>
-        PdfDocument.Create(new PdfOptions {
+        PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 220,
                 MarginLeft = marginLeft,

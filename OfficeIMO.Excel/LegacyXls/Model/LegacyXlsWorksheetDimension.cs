@@ -49,8 +49,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                     return "A1:A1";
                 }
 
-                string start = A1.CellReference(FirstRow!.Value, FirstColumn!.Value);
-                string end = A1.CellReference(LastRow!.Value, LastColumn!.Value);
+                string start = ExcelA1.CellReference(FirstRow!.Value, FirstColumn!.Value);
+                string end = ExcelA1.CellReference(LastRow!.Value, LastColumn!.Value);
                 return start == end ? start + ":" + start : start + ":" + end;
             }
         }

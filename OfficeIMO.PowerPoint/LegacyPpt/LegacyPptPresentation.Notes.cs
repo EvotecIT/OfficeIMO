@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptRecord atom in list.Children.Where(record =>
                          record.Type == RecordSlidePersistAtom)) {
                 if (atom.PayloadLength != 20) {
-                    AddDiagnostic("PPT-NOTES-PERSIST-LENGTH",
+                    AddDiagnostic("ppt-notes-persist-length",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"A NotesPersistAtom has {atom.PayloadLength} payload bytes instead of 20 and remains preserve-only.",
                         atom.Offset);
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 uint flags = atom.ReadUInt32(4);
                 uint notesId = atom.ReadUInt32(12);
                 if (persistId == 0 || notesId == 0 || result.ContainsKey(notesId)) {
-                    AddDiagnostic("PPT-NOTES-PERSIST-REFERENCE",
+                    AddDiagnostic("ppt-notes-persist-reference",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A NotesPersistAtom has a null or duplicate notes/persist identifier and remains preserve-only.",
                         atom.Offset);
@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (options.ReportUnsupportedContent
                     && ((flags & ~0x00000004U) != 0 || atom.ReadUInt32(8) != 0
                         || atom.ReadUInt32(16) != 0)) {
-                    AddDiagnostic("PPT-NOTES-PERSIST-RESERVED",
+                    AddDiagnostic("ppt-notes-persist-reserved",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A NotesPersistAtom uses reserved fields; those values remain preserved only.",
                         atom.Offset);
@@ -51,13 +51,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (slide.NotesId == 0) return;
             if (!notesDirectory.TryGetValue(slide.NotesId,
                     out LegacyPptNotesDirectoryEntry directoryEntry)) {
-                AddDiagnostic("PPT-NOTES-ID-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-notes-id-missing", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} references missing notes id {slide.NotesId}.",
                     offset: null);
                 return;
             }
             if (!persistOffsets.TryGetValue(directoryEntry.PersistId, out uint notesOffset)) {
-                AddDiagnostic("PPT-NOTES-PERSIST-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-notes-persist-missing", LegacyPptDiagnosticSeverity.Warning,
                     $"Notes id {slide.NotesId} references missing persist object {directoryEntry.PersistId}.",
                     offset: null);
                 return;
@@ -68,7 +68,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ToBoundedOffset(notesOffset, documentStream.Length,
                         "notes persist object"), options, _recordBudget);
                 if (notes.Type != RecordNotes) {
-                    AddDiagnostic("PPT-NOTES-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-notes-type", LegacyPptDiagnosticSeverity.Warning,
                         $"Notes id {slide.NotesId} points to record 0x{notes.Type:X4} instead of a NotesContainer.",
                         notes.Offset);
                     return;
@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptRecord? atom = notes.Children.FirstOrDefault(record =>
                     record.Type == RecordNotesAtom);
                 if (atom == null || atom.PayloadLength != 8) {
-                    AddDiagnostic("PPT-NOTES-ATOM-LENGTH", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-notes-atom-length", LegacyPptDiagnosticSeverity.Warning,
                         "A notes page has no complete 8-byte NotesAtom and remains preserve-only.",
                         atom?.Offset ?? notes.Offset);
                     return;
@@ -94,14 +94,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         $"notes page {slide.NotesId}", options)
                 };
                 if (referencedSlideId != slide.SlideId) {
-                    AddDiagnostic("PPT-NOTES-SLIDE-MISMATCH",
+                    AddDiagnostic("ppt-notes-slide-mismatch",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Notes id {slide.NotesId} references slide {referencedSlideId} instead of {slide.SlideId}.",
                         atom.Offset);
                 }
                 if (options.ReportUnsupportedContent
                     && ((flags & 0xFFF8) != 0 || atom.ReadUInt16(6) != 0)) {
-                    AddDiagnostic("PPT-NOTES-ATOM-RESERVED",
+                    AddDiagnostic("ppt-notes-atom-reserved",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A NotesAtom uses reserved bits; those values remain preserved only.",
                         atom.Offset);
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 slide.NotesPage = page;
                 slide.NotesText = page.Text;
             } catch (InvalidDataException exception) {
-                AddDiagnostic("PPT-NOTES-READ", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-notes-read", LegacyPptDiagnosticSeverity.Warning,
                     $"Speaker notes could not be decoded: {exception.Message}", notesOffset);
             }
         }

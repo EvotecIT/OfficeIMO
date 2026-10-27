@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for default text styling applied to page content.</summary>
 public sealed class PdfTextStyleBuilder {
-    private readonly PdfOptions _opts;
-    internal PdfTextStyleBuilder(PdfOptions opts) { _opts = opts; }
+    private readonly PdfCreateOptions _opts;
+    internal PdfTextStyleBuilder(PdfCreateOptions opts) { _opts = opts; }
     /// <summary>Sets the default font size (points).</summary>
     public PdfTextStyleBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.DefaultFontSize = size; return this; }
     /// <summary>Sets the default text color.</summary>

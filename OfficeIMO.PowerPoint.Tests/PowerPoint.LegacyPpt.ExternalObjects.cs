@@ -49,11 +49,11 @@ namespace OfficeIMO.Tests {
             Assert.Same(linked, sourceShape.LinkedOleObject);
             Assert.Equal(source.Slides[0].SlideId, linked.SlideId);
             Assert.Contains(source.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-OLE-LINK-PRESERVED");
+                diagnostic.Code == "ppt-ole-link-preserved");
 
             LegacyPptImportReport report = source.CreateImportReport();
             Assert.Contains(report.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "PPT-OLE-LINK-PRESERVED" &&
+                diagnostic.Code == "ppt-ole-link-preserved" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(1, report.LinkedOleObjectCount);
             Assert.Equal(storageBytes.Length,
@@ -78,16 +78,14 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.False(exactPreflight.CanWrite);
                 Assert.Contains(exactPreflight.Findings, item =>
-                    item.Code == "PPT-WRITE-PRESERVED-LINKED-OLE");
+                    item.Code == "ppt-write-preserved-linked-ole");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
-                Assert.Equal(sourceBytes, imported.ToBytes(
-                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                Assert.Equal(sourceBytes, imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 textBox.Text = "Edited companion";
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -126,11 +124,11 @@ namespace OfficeIMO.Tests {
             Assert.Same(control, sourceShape.ActiveXControl);
             Assert.Equal(source.Slides[0].SlideId, control.SlideId);
             Assert.Contains(source.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ACTIVEX-PRESERVED");
+                diagnostic.Code == "ppt-activex-preserved");
 
             LegacyPptImportReport report = source.CreateImportReport();
             Assert.Contains(report.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ACTIVEX-PRESERVED" &&
+                diagnostic.Code == "ppt-activex-preserved" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(1, report.ActiveXControlCount);
             Assert.Equal(storageBytes.Length,
@@ -155,16 +153,14 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.False(exactPreflight.CanWrite);
                 Assert.Contains(exactPreflight.Findings, item =>
-                    item.Code == "PPT-WRITE-PRESERVED-ACTIVEX");
+                    item.Code == "ppt-write-preserved-activex");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
-                Assert.Equal(sourceBytes, imported.ToBytes(
-                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                Assert.Equal(sourceBytes, imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     }));
                 textBox.Text = "Edited companion";
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -214,9 +210,9 @@ namespace OfficeIMO.Tests {
                 sourceBytes);
             Assert.Empty(neutral.LinkedOleObjects);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-OLE-LINK-IDENTITY");
+                diagnostic.Code == "ppt-ole-link-identity");
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-OLE-SHAPE-TARGET");
+                diagnostic.Code == "ppt-ole-shape-target");
             Assert.True(neutral.CreateImportReport().HasConversionLoss);
 
             using var input = new MemoryStream(sourceBytes);
@@ -224,16 +220,15 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Load(input);
             Assert.Contains(projected.LegacyPptImportDiagnostics,
                 diagnostic => diagnostic.Code ==
-                    "PPT-OLE-LINK-IDENTITY");
+                    "ppt-ole-link-identity");
             LegacyPptWritePreflightReport preflight = projected
                 .AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-PRESERVED-LINKED-OLE");
+                finding.Code == "ppt-write-preserved-linked-ole");
             Assert.Throws<NotSupportedException>(() =>
-                projected.ToBytes(PowerPointFileFormat.Ppt));
-            Assert.Equal(sourceBytes, projected.ToBytes(
-                PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+            Assert.Equal(sourceBytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
@@ -280,7 +275,7 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 slide.AddOleObject(storage, "Package");
-                embeddedBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                embeddedBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             if (compressed) {
                 embeddedBytes = ConvertOleStorageToCompressed(

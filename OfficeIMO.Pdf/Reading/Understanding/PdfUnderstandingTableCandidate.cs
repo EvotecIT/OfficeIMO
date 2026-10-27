@@ -160,7 +160,7 @@ public sealed class PdfUnderstandingTableCandidate {
             Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns);
 
     internal static PdfUnderstandingTableCandidate FromStructured(
-        StructuredTable table,
+        PdfStructuredTable table,
         IReadOnlyList<PdfUnderstandingLine> sourceLines,
         double confidence,
         IEnumerable<PdfInferenceEvidence> evidence,
@@ -170,7 +170,7 @@ public sealed class PdfUnderstandingTableCandidate {
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
             cancellationCheck();
             consumeWork(1);
-            StructuredTableColumn column = table.Columns[columnIndex];
+            PdfStructuredTableColumn column = table.Columns[columnIndex];
             columns[columnIndex] = new PdfUnderstandingTableColumn(column.From, column.To);
         }
         var rows = new IReadOnlyList<string>[table.Rows.Count];
@@ -256,10 +256,10 @@ public sealed class PdfUnderstandingTableCandidate {
                 ?? Array.Empty<PdfTextSpan>());
     }
 
-    internal StructuredTable ToStructuredTable(PdfReadPage page, Action<long>? consumeWork = null, Action? cancellationCheck = null) {
+    internal PdfStructuredTable ToStructuredTable(PdfReadPage page, Action<long>? consumeWork = null, Action? cancellationCheck = null) {
         cancellationCheck?.Invoke();
         consumeWork?.Invoke(1);
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             Kind = DetectionKind,
             YTop = YTop,
             YBottom = YBottom,
@@ -278,7 +278,7 @@ public sealed class PdfUnderstandingTableCandidate {
             PdfLogicalVisualBounds? visual = column.VisualBounds;
             PdfVisualBounds user = visual is null ? default : page.TransformVisualBoundsToUser(
                 visual.Left, visual.Top, visual.Right, visual.Bottom);
-            table.Columns.Add(new StructuredTableColumn {
+            table.Columns.Add(new PdfStructuredTableColumn {
                 From = visual is null ? column.From : user.Left,
                 To = visual is null ? column.To : user.Right,
                 VisualBounds = visual

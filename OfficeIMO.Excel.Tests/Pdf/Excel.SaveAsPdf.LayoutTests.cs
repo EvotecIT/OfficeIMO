@@ -19,7 +19,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfColumnWidths.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Widths")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Widths" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ARef");
             sheet.Cell(1, 2, "WideColumn");
@@ -29,7 +29,7 @@ public partial class Excel {
             sheet.SetColumnWidth(3, 8);
             sheet.SetPageSetup(scale: 50);
 
-            IReadOnlyList<ExcelColumnSnapshot> columns = sheet.GetColumnDefinitions();
+            IReadOnlyList<ExcelColumnInfo> columns = sheet.GetColumnDefinitions();
             Assert.Equal(3, columns.Count);
             Assert.Equal(32, columns[1].Width);
             Assert.True(columns[1].CustomWidth);
@@ -37,12 +37,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(360, 220),
+                Margins = PdfCore.PdfPageMargins.Uniform(24)
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -66,26 +66,26 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfRowHeights.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Heights")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Heights" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "TopRow");
             sheet.Cell(2, 1, "TallRow");
             sheet.Cell(3, 1, "AfterTall");
             sheet.SetRowHeight(2, 60);
 
-            ExcelRowSnapshot row = Assert.Single(sheet.GetRowDefinitions());
+            ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
             Assert.Equal(2, row.Index);
             Assert.Equal(60, row.Height);
             Assert.True(row.CustomHeight);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(260, 260),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(260, 260),
+                Margins = PdfCore.PdfPageMargins.Uniform(24)
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -109,7 +109,7 @@ public partial class Excel {
 
         byte[] authoredBytes;
         byte[] uniformBytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dimensions")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dimensions" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "A1");
             sheet.Cell(1, 2, "B1");
@@ -120,17 +120,17 @@ public partial class Excel {
             sheet.SetRowHeight(2, 60);
             document.Save();
 
-            var commonOptions = new ExcelToPdfOptions {
+            var commonOptions = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(600, 500),
-                Margins = PdfCore.PageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(600, 500),
+                Margins = PdfCore.PdfPageMargins.Uniform(24)
             };
-            authoredBytes = document.ToPdfBytes(commonOptions);
+            authoredBytes = document.ToPdf(commonOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             commonOptions.UseWorksheetColumnWidths = false;
             commonOptions.UseWorksheetRowHeights = false;
-            uniformBytes = document.ToPdfBytes(commonOptions);
+            uniformBytes = document.ToPdf(commonOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument authoredPdf = PdfPigDocument.Open(new MemoryStream(authoredBytes));
@@ -161,7 +161,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHiddenRowsColumns.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "VisibleOnly")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "VisibleOnly" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "VisibleHeader");
             sheet.Cell(1, 2, "HiddenColumnValue");
@@ -170,23 +170,23 @@ public partial class Excel {
             sheet.SetColumnHidden(2, true);
             sheet.SetRowHidden(2, true);
 
-            ExcelColumnSnapshot column = Assert.Single(sheet.GetColumnDefinitions());
+            ExcelColumnInfo column = Assert.Single(sheet.GetColumnDefinitions());
             Assert.Equal(2, column.StartIndex);
             Assert.Equal(2, column.EndIndex);
             Assert.True(column.Hidden);
 
-            ExcelRowSnapshot row = Assert.Single(sheet.GetRowDefinitions());
+            ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
             Assert.Equal(2, row.Index);
             Assert.True(row.Hidden);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(320, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(320, 220),
+                Margins = PdfCore.PdfPageMargins.Uniform(24)
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -202,7 +202,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMergedCells.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Merged")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Merged" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "MergedTitle");
             sheet.Cell(1, 3, "TailCell");
@@ -211,7 +211,7 @@ public partial class Excel {
             sheet.Cell(2, 3, "ColumnC");
             sheet.MergeRange("A1:B1");
 
-            ExcelMergedRangeSnapshot mergedRange = Assert.Single(sheet.GetMergedRanges());
+            ExcelMergedRangeInfo mergedRange = Assert.Single(sheet.GetMergedRanges());
             Assert.Equal("A1:B1", mergedRange.A1Range);
             Assert.Equal(1, mergedRange.StartRow);
             Assert.Equal(1, mergedRange.StartColumn);
@@ -220,12 +220,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(360, 220),
+                Margins = PdfCore.PdfPageMargins.Uniform(24)
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));

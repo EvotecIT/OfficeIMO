@@ -157,7 +157,7 @@ internal sealed partial class PdfWorkspace {
 
     private static PdfPageRegion CreatePageRegion(PdfDocument document, PdfEditorSelection selection) {
         PdfLogicalPage page = document
-            .Read(new PdfReadOptions { Profile = PdfReadProfile.Fast })
+            .Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast })
             .Pages.Single(candidate => candidate.PageNumber == selection.PageNumber);
         PdfEditorVisualBounds visual = selection.Bounds;
         PdfPageRectangle mapped = page.MapVisualRectangleToUserSpace(visual.Left, visual.Top, visual.Right, visual.Bottom);

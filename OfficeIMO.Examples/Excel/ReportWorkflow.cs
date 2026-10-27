@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Excel {
             string previewPath = Path.Combine(folderPath, "ExcelReportWorkflow.png");
             string diagnosticsPath = Path.Combine(folderPath, "ExcelReportWorkflow.preflight.txt");
 
-            using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
                 ExcelSheet sheet = document.Sheets[0];
 
                 WriteTitleBand(sheet);
@@ -99,11 +99,11 @@ namespace OfficeIMO.Examples.Excel {
                     return;
                 }
 
-                document.SaveAsPdf(pdfPath, new ExcelToPdfOptions {
+                document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,
-                    PageSize = new PdfCore.PageSize(560, 520),
-                    Margins = PdfCore.PageMargins.Uniform(24)
+                    PageSize = new PdfCore.PdfPageSize(560, 520),
+                    Margins = PdfCore.PdfPageMargins.Uniform(24)
                 });
 
                 if (openExcel) {

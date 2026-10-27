@@ -9,7 +9,7 @@ internal static partial class VisioPdfConversionEngine {
         VisioDrawingOptions drawingOptions = options.DrawingOptions?.Clone() ?? new VisioDrawingOptions();
         if (options.SourceName != null) drawingOptions.SourceName = options.SourceName;
         var report = new PdfConversionReport();
-        PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
+        PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.ReportDiagnosticsTo(report, "OfficeIMO.Visio.Pdf");
         var profile = new OfficeRenderingProfile(
             "visio-diagram-pages",

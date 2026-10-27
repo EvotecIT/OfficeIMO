@@ -2028,7 +2028,7 @@ namespace OfficeIMO.Tests {
             WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
             Cell cell = worksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == cellReference);
             Assert.NotNull(cell.StyleIndex);
-            (int rowIndex, _) = A1.ParseCellRef(cellReference);
+            (int rowIndex, _) = ExcelA1.ParseCellRef(cellReference);
             Row row = worksheetPart.Worksheet.Descendants<Row>().Single(item => item.RowIndex?.Value == (uint)rowIndex);
             row.StyleIndex = cell.StyleIndex!.Value;
             row.CustomFormat = true;

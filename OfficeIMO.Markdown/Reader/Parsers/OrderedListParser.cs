@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class OrderedListParser : IMarkdownBlockParser {
-        private static bool TryStripTaskMarker(string? content, MarkdownReaderOptions options, out bool isTask, out bool done, out string stripped) {
+        private static bool TryStripTaskMarker(string? content, MarkdownLoadOptions options, out bool isTask, out bool done, out string stripped) {
             isTask = false;
             done = false;
             stripped = content ?? string.Empty;
@@ -16,7 +16,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.OrderedLists) return false;
             if (!IsOrderedListLine(lines[i], options, out int lvl0Abs, out int startNum, out var firstContent, out var firstMarkerStyle)) return false;
             if (!TryGetOrderedListMarkerInfo(lines[i], options, out int firstMarkerIndent, out _, out _, out char firstDelimiter, out _)) return false;

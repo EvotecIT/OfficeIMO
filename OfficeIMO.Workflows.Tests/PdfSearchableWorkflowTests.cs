@@ -26,7 +26,7 @@ public sealed class PdfSearchableWorkflowTests {
             bool recognized = false;
             bool guardCalled = false;
             var request = new PdfSearchableWorkflowRequest {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 InputStream = mode == "stream-source-replaced" ? new("source.pdf", _ => Task.FromResult<Stream>(File.OpenRead(source))) : null,
                 PublicationGuard = new Guard(() => {
                     Assert.True(recognized);
@@ -110,7 +110,7 @@ public sealed class PdfSearchableWorkflowTests {
             byte[] bytes = [];
             var recoveryStore = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             var request = new PdfSearchableWorkflowRequest {
-                InputPath = source, OutputPath = "content://documents/output", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = "content://documents/output", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputStream = new("searchable.pdf", _ => Task.FromResult<Stream>(new MemoryStream(bytes)), _ => {
                     if (failWrite) throw new IOException("Provider unavailable during publication.");
                     return Task.FromResult<Stream>(new DestinationStream(result => bytes = result));
@@ -151,7 +151,7 @@ public sealed class PdfSearchableWorkflowTests {
         }]
     };
 
-    private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => new(check());
+    private sealed class Guard(Func<bool> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => Task.FromResult(check());
     }
 }

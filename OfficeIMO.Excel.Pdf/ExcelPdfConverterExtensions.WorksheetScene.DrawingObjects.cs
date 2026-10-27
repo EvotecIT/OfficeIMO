@@ -5,14 +5,14 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static IReadOnlyList<ExcelWorksheetDrawingObjectInfo> ReadWorksheetDrawingObjects(
-            ExcelSheet? sheet, ExcelToPdfOptions options, string sheetName,
+            ExcelSheet? sheet, ExcelPdfExportOptions options, string sheetName,
             ISet<string>? exportedCells, bool filterToExportedCells) {
             if (sheet == null || !options.UseWorksheetImages) return Array.Empty<ExcelWorksheetDrawingObjectInfo>();
             var result = new List<ExcelWorksheetDrawingObjectInfo>();
             foreach (var drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(sheet.WorksheetPart)) {
                 if (filterToExportedCells && (drawing.CellReference == null || exportedCells?.Contains(drawing.CellReference) != true)) continue;
                 if (!drawing.IsRenderable || options.WorksheetLayout != ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
-                    AddWarning(options, sheetName, "WorksheetDrawingObject",
+                    AddWarning(options, sheetName, "worksheet-drawing-object",
                         $"Worksheet drawing '{drawing.Name}' was not exported: {drawing.UnsupportedReason ?? "drawing shapes require worksheet-canvas layout"}.");
                     continue;
                 }

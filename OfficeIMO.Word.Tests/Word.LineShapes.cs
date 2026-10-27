@@ -1,6 +1,6 @@
 using System.IO;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {

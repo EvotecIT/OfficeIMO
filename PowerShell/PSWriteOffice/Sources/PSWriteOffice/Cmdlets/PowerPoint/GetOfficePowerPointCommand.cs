@@ -34,7 +34,7 @@ public class GetOfficePowerPointCommand : PSCmdlet {
             var presentation = PowerPointDocumentService.LoadPresentation(resolvedPath, Password);
             WriteObject(presentation);
         } catch (FileNotFoundException ex) {
-            WriteError(new ErrorRecord(ex, "FileNotFound", ErrorCategory.ObjectNotFound, Path));
+            WriteError(new ErrorRecord(ex, global::OfficeIMO.OfficeDiagnosticCodes.FileNotFound, ErrorCategory.ObjectNotFound, Path));
         } catch (Exception ex) {
             WriteError(new ErrorRecord(ex, "PowerPointLoadFailed", ErrorCategory.InvalidOperation, Path));
         }

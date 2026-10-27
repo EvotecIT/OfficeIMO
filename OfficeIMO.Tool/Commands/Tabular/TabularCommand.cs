@@ -91,9 +91,9 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         TextWriter output,
         CancellationToken cancellationToken) {
         EnsureExcelPath(options.InputPath, "sheets");
-        IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
-            options.InputPath,
-            new ExcelReadOptions { CancellationToken = cancellationToken });
+        using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(options.InputPath,
+            new ExcelReaderOptions(), cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<string> sheetNames = reader.SheetNames;
         foreach (string sheetName in sheetNames) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(EscapeOutputField(sheetName)).ConfigureAwait(false);
@@ -182,7 +182,7 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 ExcelDocument.WriteDataReader(
                     stream,
                     reader,
-                    new ExcelTabularWriteOptions {
+                    new ExcelWriterOptions {
                         IncludeHeaders = options.HasHeaderRow,
                         CreateTable = false,
                         UseSharedStrings = false
@@ -211,9 +211,10 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
             await CopyFileAsync(options.InputPath, temporaryPath, cancellationToken).ConfigureAwait(false);
             return;
         }
-        await ExcelDocument.ConvertAsync(
+        await OfficeConverter.ConvertAsync(
             options.InputPath,
             temporaryPath,
+            new OfficeConversionOptions { FailOnLoss = true },
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
@@ -258,9 +259,9 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         }
 
         EnsureExcelPath(options.InputPath, "read");
-        return ExcelDocument.OpenDataReader(
+        return ExcelDocument.OpenReader(
             options.InputPath,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 SheetName = options.SheetName,
                 SheetIndex = options.SheetIndex,
                 HasHeaderRow = options.HasHeaderRow,

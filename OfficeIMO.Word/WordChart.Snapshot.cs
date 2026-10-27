@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Tries to create a dependency-free chart snapshot from cached Word chart data.
         /// </summary>
-        public bool TryGetSnapshot(out WordChartSnapshot snapshot) {
+        public bool TryGetSnapshot(out WordChartInfo snapshot) {
             snapshot = null!;
             try {
                 C.Chart? chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
@@ -93,8 +93,8 @@ namespace OfficeIMO.Word {
                 || element is C.DoughnutChart;
         }
 
-        private WordChartSnapshot CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {
-            return new WordChartSnapshot(
+        private WordChartInfo CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {
+            return new WordChartInfo(
                 ReadDrawingName(),
                 ReadTitle(chart),
                 kind,
@@ -122,19 +122,19 @@ namespace OfficeIMO.Word {
         private static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container) =>
             OfficeOpenXmlChartCacheReader.ReadCachedStrings(container, (int)MaxCachedChartPoints);
         private string ReadDrawingName() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.Name
                 : string.Empty;
         }
 
         private double GetWidthPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.WidthPoints
                 : 450D;
         }
 
         private double GetHeightPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.HeightPoints
                 : 300D;
         }

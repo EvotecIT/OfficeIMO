@@ -13,10 +13,10 @@ public sealed class WordRunTableBackgroundTests {
     [InlineData(true)]
     public void WrappedTableRowsAndCellsRetainInheritedRunPaint(bool highlight) {
         using WordDocument document = CreateTableBackground("first-row", highlight);
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
-        using (PdfPigDocument plain = PdfPigDocument.Open(document.ToPdfBytes(options)))
+        using (PdfPigDocument plain = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })))
             Assert.Equal((0D, 0D, 1D), PaintAt(plain.GetPage(1), "BACKGROUND"));
 
         Table table = document.Tables.Single()._table;
@@ -25,7 +25,7 @@ public sealed class WordRunTableBackgroundTests {
         row.ReplaceChild(new SdtCell(new SdtContentCell((TableCell)cell.CloneNode(true))), cell);
         table.ReplaceChild(new SdtRow(new SdtContentRow((TableRow)row.CloneNode(true))), row);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument wrapped = PdfPigDocument.Open(loaded.ToPdfBytes(options));
+        using PdfPigDocument wrapped = PdfPigDocument.Open(loaded.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal((0D, 0D, 1D), PaintAt(wrapped.GetPage(1), "BACKGROUND"));
         Assert.Single(loaded.Tables.Single().Rows);
         Assert.Single(loaded.Tables.Single().Rows[0].Cells);
@@ -59,9 +59,9 @@ public sealed class WordRunTableBackgroundTests {
         Assert.Equal(tableBefore, table.OuterXml);
         Assert.Equal(stylesBefore, loaded.MainDocumentPartRoot.StyleDefinitionsPart.Styles.OuterXml);
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         Assert.Contains("BACKGROUND", page.Text, StringComparison.Ordinal);
         var firstLetter = page.Letters.First(letter => letter.Value == "B");
@@ -143,9 +143,9 @@ public sealed class WordRunTableBackgroundTests {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[vertical ? 0 : 1].Cells[vertical ? 1 : 0].Paragraphs[0].Text = "SECOND";
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using var pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal((1D, 1D, 0D), PaintAt(pdf.GetPage(1), "FIRST"));
         Assert.Equal((0D, 0D, 1D), PaintAt(pdf.GetPage(1), "SECOND"));
     }
@@ -269,14 +269,14 @@ public sealed class WordRunTableBackgroundTests {
         using WordDocument document = CreateTableBackground("first-row", highlight: true);
         WordTable table = document.Tables[0];
         table.AddRow(1).Cells[0].Paragraphs[0].Text = "SECOND";
-        var options = new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
-        using (var before = PdfPigDocument.Open(document.ToPdfBytes(options))) {
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        using (var before = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Equal((0D, 0D, 1D), PaintAt(before.GetPage(1), "BACKGROUND"));
             Assert.Equal((1D, 1D, 0D), PaintAt(before.GetPage(1), "SECOND"));
         }
         TableRow first = table._table.Elements<TableRow>().First();
         first.Remove(); table._table.Append(first);
-        using var after = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var after = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal((1D, 1D, 0D), PaintAt(after.GetPage(1), "BACKGROUND"));
         Assert.Equal((0D, 0D, 1D), PaintAt(after.GetPage(1), "SECOND"));
     }

@@ -206,7 +206,7 @@ namespace OfficeIMO.Word {
                 .ToList();
             string kind = group ? "shape-group" : "shape";
             string geometryText = presets.Count == 0 ? "custom" : string.Join(",", presets);
-            WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutSnapshot? layout);
+            WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutInfo? layout);
             string size = layout == null
                 ? "unknown"
                 : layout.WidthPoints.ToString("0.###", CultureInfo.InvariantCulture) + "x" +
@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
             return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(clone.OuterXml)));
         }
 
-        private static string GetShapeLayoutFingerprint(WordDrawing drawing, WordDrawingLayoutSnapshot? layout, bool compareGeneratedIds) {
+        private static string GetShapeLayoutFingerprint(WordDrawing drawing, WordDrawingLayoutInfo? layout, bool compareGeneratedIds) {
             string generated = string.Empty;
             if (compareGeneratedIds) {
                 DW.DocProperties? properties = drawing.Descendants<DW.DocProperties>().FirstOrDefault();

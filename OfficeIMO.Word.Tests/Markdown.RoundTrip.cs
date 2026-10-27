@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             });
             paragraph.AddText(" confirmed").SetItalic();
 
-            string markdown = document.ToMarkdown();
+            string markdown = ((document.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("Due 2020-01-02", markdown);
             Assert.Contains("*confirmed*", markdown);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             table.Rows[0].Cells[0].Paragraphs[0].AddText("Combined");
             table.Rows[0].Cells[0].MergeHorizontally(1);
 
-            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult result = document.ConvertToMarkdownWithEvidence();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
@@ -44,13 +44,13 @@ namespace OfficeIMO.Tests {
             cell.Paragraphs[0].AddText("Value");
             cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders();
 
-            WordToMarkdownResult emptyBorders = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult emptyBorders = document.ConvertToMarkdownWithEvidence();
             Assert.False(emptyBorders.Report.HasLoss);
             emptyBorders.Report.RequireNoLoss();
 
             cell._tableCell.TableCellProperties.TableCellBorders.Append(
                 new TopBorder { Val = BorderValues.None });
-            WordToMarkdownResult authoredBorder = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult authoredBorder = document.ConvertToMarkdownWithEvidence();
             Assert.Contains(authoredBorder.Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
             Assert.True(authoredBorder.Report.HasLoss);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders(
                 new TopBorder { Val = BorderValues.None });
 
-            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult result = document.ConvertToMarkdownWithEvidence();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             direct.Rows[0].Cells[0].Paragraphs[0].Text = "Direct";
             direct._tableProperties!.TableBorders = new TableBorders(
                 new TopBorder { Val = BorderValues.Single });
-            WordToMarkdownResult directResult = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult directResult = document.ConvertToMarkdownWithEvidence();
             Assert.Contains(directResult.Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     Type = StyleValues.Table,
                     StyleId = "InheritedGrid"
                 });
-            WordToMarkdownResult inheritedResult = document.ToMarkdownDocumentResult();
+            WordToMarkdownResult inheritedResult = document.ConvertToMarkdownWithEvidence();
             Assert.Contains(inheritedResult.Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
         }
@@ -109,11 +109,11 @@ namespace OfficeIMO.Tests {
                 new Style(conditional) { Type = StyleValues.Table, StyleId = "ConditionalOnly" });
 
             table.ConditionalFormattingFirstRow = false;
-            Assert.DoesNotContain(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(document.ConvertToMarkdownWithEvidence().Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
 
             table.ConditionalFormattingFirstRow = true;
-            Assert.Contains(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+            Assert.Contains(document.ConvertToMarkdownWithEvidence().Report.Diagnostics, diagnostic =>
                 diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
         }
 
@@ -134,8 +134,8 @@ namespace OfficeIMO.Tests {
                 "Here is a ref[^1].\n\n" +
                 "[^1]: Footnote body.";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
-            var md2 = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
+            var md2 = (doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true })).ToMarkdown();
 
             Assert.Contains("# Report", md2);
             Assert.Contains("**bold**", md2);
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 .Paragraph(p => p.Bold("B").Text(" ").Italic("I").Text(" ").Underline("U").Text(" ").Strike("S").Text(" ").Code("C"))
                 .Table(t => t.Headers("Name", "Score").Row("Alice", "98.5").Row("Bob", "91.0"));
 
-            var md = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+            var md = (doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true })).ToMarkdown();
             Assert.Contains("# Title", md);
             Assert.Contains("Hello world", md);
             Assert.Contains("- One", md);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("`C`", md);
             Assert.Contains("| Name | Score |", md);
 
-            using var doc2 = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
+            using var doc2 = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
             // Verify checkbox restored
             var checkboxParagraph = doc2.Paragraphs.FirstOrDefault(p => p.IsCheckBox);
             Assert.NotNull(checkboxParagraph);

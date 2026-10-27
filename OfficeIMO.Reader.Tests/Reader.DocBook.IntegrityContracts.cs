@@ -18,7 +18,7 @@ public sealed class ReaderDocBookIntegrityContractsTests {
         document.AddParagraph(text);
         var chunk = Assert.Single(DocBookReaderAdapter.Read(document));
         Assert.Equal(text, chunk.Text);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(chunk.Markdown!).Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(chunk.Markdown!).Blocks));
         Assert.Equal(text, string.Concat(paragraph.Inlines.Nodes.Cast<MarkdownTextRun>().Select(run => run.Text)));
     }
 
@@ -30,7 +30,7 @@ public sealed class ReaderDocBookIntegrityContractsTests {
         var chunks = DocBookReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 1 }).ToArray();
         Assert.All(chunks, chunk => Assert.True(chunk.Markdown!.Length <= 2)); // A surrogate pair stays intact.
         Assert.Equal(text, string.Concat(chunks.Select(chunk => chunk.Text)));
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown))).Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown))).Blocks));
         Assert.Equal(text, string.Concat(paragraph.Inlines.Nodes.Cast<MarkdownTextRun>().Select(run => run.Text)));
     }
 
@@ -39,7 +39,7 @@ public sealed class ReaderDocBookIntegrityContractsTests {
         const string xml = "<article xmlns='http://docbook.org/ns/docbook' version='5.2'><para>plain <emphasis>italic</emphasis><emphasis role='bold'>bold</emphasis> <literal>*code*</literal></para></article>";
         var chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(xml)).ToArray();
         Assert.Equal("plain italicbold *code*", string.Concat(chunks.Select(chunk => chunk.Text)));
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown))).Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown))).Blocks));
         Assert.Contains(paragraph.Inlines.Nodes, node => node is ItalicSequenceInline || node is ItalicInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is BoldSequenceInline || node is BoldInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is CodeSpanInline code && code.Text == "*code*");
@@ -71,8 +71,8 @@ public sealed class ReaderDocBookIntegrityContractsTests {
         string xml = "<article xmlns='http://docbook.org/ns/docbook' xmlns:xlink='http://www.w3.org/1999/xlink' version='5.2'><para><emphasis" +
             (bold ? " role='bold'" : "") + ">" + content + "</emphasis></para></article>";
         var chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(xml), readerOptions: new ReaderOptions { MaxChars = maxChars }).ToArray();
-        var markdown = MarkdownReader.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown)));
-        string html = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var markdown = MarkdownDocument.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown)));
+        string html = markdown.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         var paragraph = System.Xml.Linq.XElement.Parse(html.Trim());
 
         Assert.Equal(string.Concat(chunks.Select(chunk => chunk.Text)), paragraph.Value);

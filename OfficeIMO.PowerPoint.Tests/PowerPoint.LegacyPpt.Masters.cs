@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide();
 
             LegacyPptDocumentSettings settings = Assert.IsType<LegacyPptDocumentSettings>(
-                LegacyPptPresentation.Load(presentation.ToBytes(PowerPointFileFormat.Ppt))
+                LegacyPptPresentation.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }))
                     .DocumentSettings);
 
             Assert.Equal(LegacyPptSlideSizeType.A4Paper, settings.SlideSizeType);
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
             });
             presentation.AddSlide();
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             LegacyPptMaster master = Assert.Single(binary.Masters);
             LegacyPptColorScheme scheme = Assert.IsType<LegacyPptColorScheme>(
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, target.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.Count());
-            byte[] bytes = target.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = target.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             Assert.Equal(2, binary.Masters.Count);
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             Assert.Equal(masterCount, binary.Masters.Count);
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptMaster master = Assert.Single(
                 LegacyPptPresentation.Load(bytes).Masters);
 
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptMaster binaryMaster = Assert.Single(
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             LegacyPptMaster binaryMaster = Assert.Single(binary.Masters);
             Assert.Equal(3, binaryMaster.TextMasterStyles.Count);
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-MASTER-TEXT-STYLE");
+                finding.Code == "ppt-write-master-text-style");
         }
 
         [Fact]
@@ -632,7 +632,7 @@ namespace OfficeIMO.Tests {
                 new P.BackgroundProperties(new A.NoFill()));
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             Assert.Collection(binary.Slides,
@@ -694,7 +694,7 @@ namespace OfficeIMO.Tests {
                     new A.SolidFill(new A.RgbColorModelHex { Val = "8899AA" })));
             PowerPointSlide materialized = presentation.AddSlide(0, blankIndex);
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             LegacyPptMaster master = Assert.Single(binary.Masters);
             Assert.Equal("0A0B0C",
@@ -733,8 +733,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] binaryBytes = presentation.ToBytes(
-                PowerPointFileFormat.Ppt);
+            byte[] binaryBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(
                 binaryBytes);
 
@@ -775,7 +774,7 @@ namespace OfficeIMO.Tests {
                     new A.SolidFill(new A.RgbColorModelHex { Val = "445566" })));
             presentation.AddSlide();
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             Assert.Equal("445566", Assert.IsType<LegacyPptBackground>(
                 Assert.IsType<LegacyPptSpecialMaster>(binary.NotesMaster)
@@ -902,7 +901,7 @@ namespace OfficeIMO.Tests {
                 Assert.All(backgrounds,
                     background => Assert.True(background.HasProjectableFill));
                 Assert.DoesNotContain(legacy.Diagnostics,
-                    diagnostic => diagnostic.Code == "PPT-BACKGROUND-PARTIAL");
+                    diagnostic => diagnostic.Code == "ppt-background-partial");
             }
         }
 

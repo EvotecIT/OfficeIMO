@@ -345,7 +345,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         cell.NumberFormatName = style.Name;
 
         using ExcelDocument target = source.ToExcelDocumentResult().Value;
-        ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo converted = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.Equal("#,##0.000%", converted.Style!.NumberFormatCode);
     }
@@ -359,7 +359,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         cell.NumberFormatName = style.Name;
 
         using ExcelDocument target = source.ToExcelDocumentResult().Value;
-        ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo converted = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.Equal("\"EUR\" #,##0.0", converted.Style!.NumberFormatCode);
     }

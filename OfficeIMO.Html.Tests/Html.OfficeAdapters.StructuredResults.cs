@@ -25,7 +25,7 @@ public class HtmlOfficeAdaptersStructuredResults {
 
         Assert.True(excelResult.Succeeded);
         Assert.True(powerPointResult.Succeeded);
-        Assert.True(Assert.Single(workbook.Sheets).TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
+        Assert.True(Assert.Single(workbook.Sheets).TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
         Assert.Equal("42", value!.Text);
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Prepared slide");
         Assert.Throws<InvalidOperationException>(() => workbook.Save());

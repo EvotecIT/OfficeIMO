@@ -21,7 +21,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     /// <summary>Zero-based column index within the row.</summary>
     public int ColumnIndex { get; internal set; } = -1;
     /// <summary>Optional cell-level horizontal alignment override.</summary>
-    public ColumnAlignment Alignment { get; set; } = ColumnAlignment.None;
+    public MarkdownColumnAlignment Alignment { get; set; } = MarkdownColumnAlignment.None;
     /// <summary>Optional CSS-compatible cell background color token.</summary>
     public string? BackgroundColor { get; set; }
     /// <summary>Optional CSS-compatible cell text color token.</summary>

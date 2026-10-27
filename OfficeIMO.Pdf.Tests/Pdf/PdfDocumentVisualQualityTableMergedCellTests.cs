@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_LinkedColumnSpanRendersAnnotationAcrossCombinedCellWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.ColumnWidthPoints = new List<double?> { 70, 70, 60 };
@@ -53,7 +53,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_LinkedColumnSpanRendersAnnotationAcrossCombinedCellWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -63,7 +63,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.ColumnWidthPoints = new List<double?> { 50, 50, 40 };
@@ -96,7 +96,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_LinkedRowSpanRendersAnnotationAcrossCombinedCellHeight() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 240,
             MarginLeft = 30,
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -138,7 +138,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_LinkedRowSpanRendersAnnotationAcrossCombinedCellHeight() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 260,
             MarginLeft = 30,
@@ -148,7 +148,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -185,7 +185,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RectangularMergedCellUsesCombinedBoxForFillBorderAndLink() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 340,
             PageHeight = 250,
             MarginLeft = 30,
@@ -195,7 +195,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -244,7 +244,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RectangularMergedCellUsesCombinedBoxForFillBorderAndLink() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 260,
             MarginLeft = 30,
@@ -254,7 +254,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -308,7 +308,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RectangularMergedCellSkipsInternalVerticalGridOnContinuationRow() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 340,
             PageHeight = 250,
             MarginLeft = 30,
@@ -318,7 +318,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
@@ -353,7 +353,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RectangularMergedCellSkipsInternalVerticalGridOnContinuationRow() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 260,
             MarginLeft = 30,
@@ -363,7 +363,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
@@ -403,7 +403,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RectangularMergedCellAlignsTextInsideCombinedBox() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 340,
             PageHeight = 250,
             MarginLeft = 30,
@@ -413,7 +413,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -447,7 +447,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RectangularMergedCellAlignsTextInsideCombinedBox() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 260,
             MarginLeft = 30,
@@ -457,7 +457,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;

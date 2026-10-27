@@ -13,17 +13,17 @@ public sealed class Markdown_LiteralBackslash_Review_Tests {
         var table = new TableBlock();
         table.Headers.Add("Value");
         table.Rows.Add(new[] { value });
-        string markdown = MarkdownDoc.Create().P(value).Add(table).ToMarkdown(
-            new MarkdownWriteOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash });
+        string markdown = MarkdownDocument.Create().P(value).Add(table).ToMarkdown(
+            new MarkdownSaveOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash });
         string html = Markdig.Markdown.ToHtml(markdown, Pipeline());
         Assert.DoesNotContain("<ins>", html);
         Assert.DoesNotContain("<sup>", html);
         Assert.Equal(2, Regex.Matches(PlainText(html), Regex.Escape(value)).Count);
         Assert.Contains("A+B", markdown);
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Inserted = true;
         options.Superscript = true;
-        string ownHtml = MarkdownReader.Parse(markdown, options).ToHtmlFragment();
+        string ownHtml = MarkdownDocument.Parse(markdown, options).ToHtml();
         Assert.DoesNotContain("<ins>", ownHtml);
         Assert.DoesNotContain("<sup>", ownHtml);
         Assert.Equal(2, Regex.Matches(PlainText(ownHtml), Regex.Escape(value)).Count);
@@ -32,8 +32,8 @@ public sealed class Markdown_LiteralBackslash_Review_Tests {
     [Fact]
     public void LiteralTextPreservesLongAmpersandRunsAndNonEntitySuffixes() {
         string value = new string('&', 100_000) + " " + "&" + new string('x', 33) + ";";
-        string markdown = MarkdownDoc.Create().P(value).ToMarkdown(
-            new MarkdownWriteOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash });
+        string markdown = MarkdownDocument.Create().P(value).ToMarkdown(
+            new MarkdownSaveOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash });
         Assert.Equal(value, markdown.Trim());
     }
 

@@ -110,7 +110,7 @@ public sealed class StudioOcrReviewTests {
                 await running;
                 Assert.False(model.HasReview);
                 Assert.True(model.HasOutput, model.ErrorMessage);
-                var saved = PdfReadDocument.Open(File.ReadAllBytes(output));
+                var saved = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output)));
                 Assert.Contains("Corrected searchable text", saved.Pages[0].ExtractText());
                 Assert.DoesNotContain("Selected searchable text", saved.ExtractText());
                 Assert.DoesNotContain("Excluded after review", saved.ExtractText());

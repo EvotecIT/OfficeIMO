@@ -134,8 +134,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
-        /// <param name="color">The <see cref="OfficeIMO.Drawing.OfficeColor"/> to convert to a hex value.</param>
-        public void CellBackground(int row, int column, OfficeIMO.Drawing.OfficeColor color) {
+        /// <param name="color">The <see cref="OfficeIMO.OfficeColor"/> to convert to a hex value.</param>
+        public void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
             var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
             CellBackground(row, column, argb);
         }
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to inspect.</param>
         /// <param name="snapshot">When this method returns, contains the cell value metadata if successful; otherwise, <see langword="null"/>.</param>
         /// <returns><see langword="true"/> when the cell exists and carries a value, inline string, or formula.</returns>
-        public bool TryGetCellValueSnapshot(int row, int column, out ExcelCellValueSnapshot? snapshot) {
+        public bool TryGetCellValueSnapshot(int row, int column, out ExcelNativeCellValueInfo? snapshot) {
             snapshot = null;
             try {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
+                snapshot = new ExcelNativeCellValueInfo(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
                 return true;
             } catch {
                 return false;

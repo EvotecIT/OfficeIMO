@@ -30,10 +30,10 @@ public partial class Word {
             padded.StyleDetails!.MarginDefaultLeftWidth = 1000;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 500),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(400, 500),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -65,10 +65,10 @@ public partial class Word {
             padded.Rows[0].Cells[0].MarginTopWidth = 320;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 500),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(400, 500),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -97,7 +97,7 @@ public partial class Word {
             spaced.LineSpacingBeforePoints = 5D;
             spaced.LineSpacingAfterPoints = 5D;
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -121,7 +121,7 @@ public partial class Word {
                 first.LineSpacingAfterPoints = variant == 0 ? 0D : 5D;
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "SecondRow";
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
             }
 
             using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -151,10 +151,10 @@ public partial class Word {
             spaced.StyleDetails!.CellSpacing = 240;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 500),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(420, 500),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -197,10 +197,10 @@ public partial class Word {
             spaced._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedSpacedTable" };
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 500),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(420, 500),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -247,10 +247,10 @@ public partial class Word {
             padded.ConditionalFormattingFirstColumn = true;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(520, 360),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(520, 360),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 

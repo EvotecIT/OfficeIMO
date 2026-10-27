@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class Sections {
@@ -36,14 +36,14 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
+                paragraph.Color = OfficeIMO.OfficeColor.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetHighlight(WordHighlightColor.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
+                paragraph.Color = OfficeIMO.OfficeColor.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetHighlight(WordHighlightColor.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);

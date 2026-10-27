@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Markdown {
             document.AddParagraph("Paragraph two").AddFootNote("Second footnote");
 
             document.Save(filePath);
-            string markdown = document.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = (document.ToMarkdown(new WordMarkdownExportOptions())).ToMarkdown();
             Console.WriteLine(markdown);
 
             if (openWord) {

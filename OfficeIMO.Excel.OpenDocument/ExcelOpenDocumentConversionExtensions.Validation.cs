@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateOdsValidationCondition(
-        ExcelDataValidationSnapshot validation,
+        ExcelDataValidationInspectionInfo validation,
         ExcelDateSystem dateSystem,
         out OdsValidationConditionSyntax? condition) {
         condition = null;

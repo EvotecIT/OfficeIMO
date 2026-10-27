@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_TableAndToc_Tests {
         [Fact]
         public void HeaderTransform_Pretty_Uppercases_Acronyms() {
-            System.Func<string,string> transform = HeaderTransforms.Pretty;
+            System.Func<string,string> transform = MarkdownHeaderTransforms.Pretty;
             Assert.Equal("DMARC Policy", transform("DmarcPolicy"));
             Assert.Equal("TLS Grade", transform("TlsGrade"));
             Assert.Equal("SPF Aligned", transform("SpfAligned"));
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void HeaderTransform_CustomAcronyms() {
-            var transform = HeaderTransforms.PrettyWithAcronyms(new [] { "ABC" });
+            var transform = MarkdownHeaderTransforms.PrettyWithAcronyms(new [] { "ABC" });
             Assert.Equal("ABC Count", transform("AbcCount"));
         }
 
@@ -28,8 +28,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 new { Name = "Alice", Score = 10 },
                 new { Name = "Bob", Score = 15 }
             };
-            var md = MarkdownDoc.Create()
-                .Table(t => t.FromAny(rows).Align(ColumnAlignment.Left, ColumnAlignment.Right));
+            var md = MarkdownDocument.Create()
+                .Table(t => t.FromAny(rows).Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right));
             var text = md.ToMarkdown();
             // Alignment row should contain :--- and ---:
             Assert.Contains("| :--- | ---: |", text.Replace("\r", ""));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 new { Host = "example.com", SPF = true, Score = 91.2 },
                 new { Host = "evotec.xyz", SPF = false, Score = 88.0 }
             };
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .Table(t => t.FromSequence(rows,
                         ("Host", x => x.Host),
                         ("SPF", x => x.SPF ? "yes" : "no"),
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Table_FromSequence_Truncates_And_Counts_Skipped_Rows() {
             var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
 
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .TableFrom(rows,
                     ("Index", x => x.Index),
                     ("Label", x => x.Label));
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
             var limited = new LimitedCollection<(int Index, string Label)>(rows.Select(r => (r.Index, r.Label)), 10005);
 
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .TableFrom(limited,
                     ("Index", x => x.Index),
                     ("Label", x => x.Label));
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Select(i => ($"H{i}", (Func<WideRow, object?>)(x => x.Values[i])))
                 .ToArray();
 
-            var doc = MarkdownDoc.Create().TableFrom(new[] { wideRow }, columns);
+            var doc = MarkdownDocument.Create().TableFrom(new[] { wideRow }, columns);
 
             var table = Assert.IsType<TableBlock>(doc.Blocks.Single());
             Assert.Equal(100, table.Headers.Count);
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                     new { Date = "01/02/2025", Amount = "$12.50" },
                     new { Date = "02/03/2025", Amount = "$100.00" },
                 };
-                var md = MarkdownDoc.Create()
+                var md = MarkdownDocument.Create()
                     .Table(t => t.FromAny(rows).AlignDatesCenter().AlignNumericRight());
                 var text = md.ToMarkdown().Replace("\r", "");
                 // Center for Date, Right for Amount
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Toc_Generates_On_Render() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Doc")
                 .H2("Install").P("...")
                 .H2("Usage").P("...")
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void TableFromAny_With_Options_Order_Rename_Formatters() {
             var obj = new { DmarcPolicy = "p=none", Score = 91.2345, Notes = "ok" };
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .Table(t => t.FromAny(obj, o => {
                     o.Include.UnionWith(new[] { "Score", "DmarcPolicy" });
                     o.Order.AddRange(new[] { "DmarcPolicy", "Score" });
@@ -149,20 +149,23 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void ToHtml_Adds_Heading_Ids() {
-            var md = MarkdownDoc.Create().H2("Install");
-            var html = md.ToHtmlFragment();
+            var md = MarkdownDocument.Create().H2("Install");
+            var html = md.ToHtml();
             Assert.Contains("<h2 id=\"install\">Install</h2>", html);
         }
 
         [Fact]
         public void ToHtml_Can_Render_Heading_Anchors_And_BackToTop_From_Block_Context() {
-            var md = MarkdownDoc.Create().H2("Install");
+            var md = MarkdownDocument.Create().H2("Install");
 
-            var html = md.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Clean,
+            var html = md.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Clean,
                 IncludeAnchorLinks = true,
                 BackToTopLinks = true,
-                BackToTopMinLevel = 2
+                BackToTopMinLevel = 2,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("class=\"heading-anchor\"", html);
@@ -172,7 +175,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void TocHere_And_TocForSection_Work() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Doc")
                 .H2("Intro").P("...")
                 .TocHere(o => { o.MinLevel = 2; o.MaxLevel = 2; })
@@ -185,7 +188,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void TocForPreviousHeading_Markdown_Uses_Same_Scope_Rules_As_Html_Rendering() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Doc")
                 .H2("Intro")
                 .H3("Intro Child")
@@ -205,7 +208,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 new { Date = "2025-01-02", Amount = "12.50" },
                 new { Date = "2025-01-03", Amount = "100.00" },
             };
-            var md = MarkdownDoc.Create().TableFromAuto(rows);
+            var md = MarkdownDocument.Create().TableFromAuto(rows);
             var text = md.ToMarkdown().Replace("\r", "");
             Assert.Contains("| :---: | ---: |", text);
         }
@@ -217,7 +220,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 ["Beta"] = "two",
             });
 
-            var md = MarkdownDoc.Create().Table(t => t.FromAny(data));
+            var md = MarkdownDocument.Create().Table(t => t.FromAny(data));
             var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
             Assert.Contains("| Key | Value |", lines);
@@ -232,7 +235,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 new KeyValuePair<string, object?>("Two", new [] { "x", "y" }),
             };
 
-            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var md = MarkdownDocument.Create().Table(t => t.FromAny(rows));
             var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
             Assert.Contains("| Key | Value |", lines);
@@ -247,7 +250,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 new Dictionary<string, object?> { ["Name"] = "Bob", ["Age"] = 42 }
             };
 
-            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var md = MarkdownDocument.Create().Table(t => t.FromAny(rows));
             var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
             Assert.Contains("| Name | Score | Age |", lines);
@@ -266,7 +269,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var rows = new List<ExpandoObject> { first, second };
 
-            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var md = MarkdownDocument.Create().Table(t => t.FromAny(rows));
             var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
             Assert.Contains("| Name | City | Country |", lines);

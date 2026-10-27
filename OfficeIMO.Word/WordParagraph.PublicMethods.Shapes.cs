@@ -24,9 +24,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Add a rectangle shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Add a rectangle shape to the paragraph using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public WordShape AddShape(double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
+        public WordShape AddShape(double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor) {
             return AddShape(widthPt, heightPt, fillColor.ToRgbHex());
         }
 
@@ -67,10 +67,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a basic shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
+        /// Adds a basic shape to the paragraph using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
         public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
 
@@ -113,9 +113,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Add a line shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Add a line shape to the paragraph using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.OfficeColor color, double strokeWeightPt = 1) {
             return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToRgbHex(), strokeWeightPt);
         }
     }

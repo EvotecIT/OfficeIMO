@@ -32,9 +32,9 @@ public partial class Word {
             body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             if (footer) for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
-            WordToPdfOptions options = EmptyRunningOptions();
+            WordPdfExportOptions options = EmptyRunningOptions();
             if (configure) {
-                options.PdfOptions = new PdfOptions();
+                options.PdfOptions = new PdfCreateOptions();
                 if (footer) {
                     if (setting == "alignment") options.PdfOptions.FooterAlign = PdfAlign.Right;
                     else if (setting == "font") options.PdfOptions.FooterFont = PdfStandardFont.Courier;
@@ -51,7 +51,7 @@ public partial class Word {
                     else options.PdfOptions.HeaderTextColor = PdfColor.FromRgb(255, 0, 0);
                 }
             }
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
             return (letters[0].StartBaseLine.Y, letters.Length);
         }
@@ -77,11 +77,11 @@ public partial class Word {
             body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
-        WordToPdfOptions options = EmptyRunningOptions();
-        options.PdfOptions = new PdfOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
+        options.PdfOptions = new PdfCreateOptions();
         if (footer) options.PdfOptions.FooterOffsetY = 24D;
         else options.PdfOptions.HeaderOffsetY = 24D;
-        using var withImplicit = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, withImplicit.NumberOfPages);
         for (int index = 0; index < 3; index++) {
             if (index == emptyVariant) Assert.DoesNotContain("STORY", withImplicit.GetPage(index + 1).Text);
@@ -95,7 +95,7 @@ public partial class Word {
             footer ? element is W.FooterReference f && f.Type?.Value == kind
                 : element is W.HeaderReference h && h.Type?.Value == kind).ToArray()) reference.Remove();
         using WordDocument withoutDocument = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using var withoutImplicit = PdfPigDocument.Open(withoutDocument.ToPdfBytes(options));
+        using var withoutImplicit = PdfPigDocument.Open(withoutDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, withoutImplicit.NumberOfPages);
         for (int index = 0; index < 3; index++) {
             if (index == emptyVariant) {
@@ -145,10 +145,10 @@ public partial class Word {
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             body._paragraph.ParagraphProperties!.ParagraphStyleId = new W.ParagraphStyleId { Val = "IndependentBody" };
             if (footer) for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
-            WordToPdfOptions options = EmptyRunningOptions();
-            options.PdfOptions = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            WordPdfExportOptions options = EmptyRunningOptions();
+            options.PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 family, CreateFontWithLineMetrics(1200, -300, ' ')));
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
             return (letters[0].StartBaseLine.Y, letters.Length);
         }
@@ -184,7 +184,7 @@ public partial class Word {
         body._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
             new W.ParagraphMarkRunProperties(new W.Vanish { Val = false });
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double baseline = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A").StartBaseLine.Y;
         Assert.Equal(expectedShift, EmptyRunningHeaderBaseline("absent", 720) - baseline, 3);
     }
@@ -208,7 +208,7 @@ public partial class Word {
         body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
         body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double baseline = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A").StartBaseLine.Y;
         Assert.Equal(56D, EmptyRunningHeaderBaseline("absent", 720) - baseline, 3);
     }
@@ -225,7 +225,7 @@ public partial class Word {
         body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
         body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
         for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedFirstPageLines, pdf.GetPage(1).Letters.Count(letter => letter.Value == "A"));
         Assert.Equal(40, pdf.GetPages().Sum(page => page.Letters.Count(letter => letter.Value == "A")));
     }
@@ -257,7 +257,7 @@ public partial class Word {
         Assert.Null(document.Header!.Default);
         Assert.NotNull(document.Header.First);
         Assert.NotNull(document.Header.Even);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         double[] baselines = pdf.GetPages().Select(page =>
             Assert.Single(page.Letters, letter => letter.Value == "A").StartBaseLine.Y).ToArray();
@@ -272,7 +272,7 @@ public partial class Word {
         body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
         body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
         string before = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.FirstOrDefault()?.Header.OuterXml ?? "";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart!.HeaderParts.FirstOrDefault()?.Header.OuterXml ?? "");
         Assert.Equal(1, pdf.NumberOfPages);
         return Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A").StartBaseLine.Y;
@@ -310,7 +310,7 @@ public partial class Word {
         return WordDocument.Load(new MemoryStream(source.ToBytes()));
     }
 
-    private static WordToPdfOptions EmptyRunningOptions() => new() {
+    private static WordPdfExportOptions EmptyRunningOptions() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
 }

@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Excel;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -39,7 +40,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
             sourceGridRecoveryQualified = false
         }));
 
-        Artifact artifact = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact artifact = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true,
             AutoFitColumns = false,
             PreserveColumnProportions = true
@@ -66,7 +67,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
             Assert.Equal(table.Columns[0].To, column.To, 6);
         });
 
-        Artifact artifact = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact artifact = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true,
             AutoFitColumns = false,
             PreserveColumnProportions = true
@@ -83,8 +84,8 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     public void AutoFitSuppliesTotalBudgetBeforeDetectedProportionsDetermineWidths(string route) {
         Fixture fixture = ReadFixture("ruled-ledger-0");
         PdfDocumentReadResult source = Read(fixture);
-        Artifact fitted = RoundTrip(source, route, new PdfTablesToExcelOptions { UseFirstRowAsHeader = true });
-        Artifact mapped = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact fitted = RoundTrip(source, route, new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
+        Artifact mapped = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true,
             PreserveColumnProportions = true
         });
@@ -105,10 +106,10 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     public void DefaultOptionRetainsExistingAutoFitAndDefaultWidthPolicies(string route, bool autoFit) {
         Fixture fixture = ReadFixture("ruled-ledger-0");
         PdfDocumentReadResult source = Read(fixture);
-        Artifact defaults = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact defaults = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit
         });
-        Artifact disabled = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact disabled = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit, PreserveColumnProportions = false
         });
 
@@ -129,14 +130,14 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
         Fixture fixture = ReadFixture("ruled-ledger-0");
         var pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.TableDetection = new IncompleteGeometryTableStage();
-        PdfDocumentReadResult source = PdfDocument.Load(fixture.Pdf).Read(new PdfReadOptions {
+        PdfDocumentReadResult source = PdfDocument.Load(new System.IO.MemoryStream(fixture.Pdf)).Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Structured, Pipeline = pipeline
         });
         Assert.Equal(0D, Assert.Single(source.Tables).Columns[1].To - source.Tables[0].Columns[1].From);
-        Artifact baseline = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact baseline = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit
         });
-        Artifact fallback = RoundTrip(source, route, new PdfTablesToExcelOptions {
+        Artifact fallback = RoundTrip(source, route, new ExcelPdfImportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit, PreserveColumnProportions = true
         });
 
@@ -146,7 +147,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     }
 
     private static PdfDocumentReadResult Read(Fixture fixture) =>
-        PdfDocument.Load(fixture.Pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocument.Load(new System.IO.MemoryStream(fixture.Pdf)).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
 
     private static double[] DetectedShares(PdfLogicalTable table, bool vertical = false) {
         // Page /Rotate leaves the ledger's native content coordinates unchanged.
@@ -197,12 +198,15 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     private static double MaximumError(double[] expected, double[] actual) =>
         expected.Zip(actual, (left, right) => Math.Abs(left - right)).Max();
 
-    private static Artifact RoundTrip(PdfDocumentReadResult source, string route, PdfTablesToExcelOptions options) =>
+    private static Artifact RoundTrip(PdfDocumentReadResult source, string route, ExcelPdfImportOptions options) =>
         route == "xlsx" ? RoundTripXlsx(source, options) : RoundTripOds(source, options);
 
-    private static Artifact RoundTripXlsx(PdfDocumentReadResult source, PdfTablesToExcelOptions options) {
+    private static Artifact RoundTripXlsx(PdfDocumentReadResult source, ExcelPdfImportOptions options) {
         using var bytes = new MemoryStream();
-        PdfExcelTableImportReport report = source.SaveTablesAsExcel(bytes, options).RequireSuccess().Report!;
+        var conversion = source.ConvertToExcelWithEvidence(options);
+        using var convertedWorkbook = conversion.Value;
+        convertedWorkbook.Save(bytes);
+        PdfExcelTableImportReport report = conversion.Report;
         PdfExcelTableImportEntry entry = Assert.Single(report.Entries);
         bytes.Position = 0;
         using SpreadsheetDocument reopened = SpreadsheetDocument.Open(bytes, false);
@@ -224,7 +228,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
         return new Artifact(widths, entry, text, numbers);
     }
 
-    private static Artifact RoundTripOds(PdfDocumentReadResult source, PdfTablesToExcelOptions options) {
+    private static Artifact RoundTripOds(PdfDocumentReadResult source, ExcelPdfImportOptions options) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
         PdfExcelTableImportEntry entry = Assert.Single(result.Report.PdfReport.Entries);
         using var bytes = new MemoryStream(result.Value.ToBytes());

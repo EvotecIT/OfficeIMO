@@ -487,7 +487,7 @@ public class RtfContinuousRunningStoryTests {
 
     private static Converted Convert(RtfDocument source, string artifactName) {
         string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         byte[] bytes = result.ToBytes();

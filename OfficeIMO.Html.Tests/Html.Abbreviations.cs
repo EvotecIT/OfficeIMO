@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrBecomesFootnoteAndRoundsTrip() {
             const string html = "<abbr title=\"desc\">text</abbr>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             Assert.True(doc.Paragraphs.Count >= 1);
             Assert.Equal("text", doc.Paragraphs[0].Text);
             var footNotes = doc.FootNotes;
@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(footNotes!);
             Assert.Equal("desc", footNotes![0].Paragraphs![1].Text);
 
-            string roundTrip = doc.ToHtml(new WordToHtmlOptions { ExportFootnotes = true });
+            string roundTrip = doc.ToHtml(new WordHtmlExportOptions { ExportFootnotes = true });
             Assert.Contains("<abbr", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("title=\"desc\"", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">text</abbr>", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrTitleLinksProtocolRelativeUrl() {
             const string html = "<abbr title=\"//example.com/source\">text</abbr>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrCanUseEndnotes() {
             const string html = "<abbr title=\"desc\">text</abbr>";
-            var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
+            var options = new WordHtmlImportOptions { NoteReferenceType = WordHtmlNoteReferenceType.Endnote };
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
             Assert.True(doc.Paragraphs.Count >= 1);
             Assert.Equal("text", doc.Paragraphs[0].Text);
             var endNotes = doc.EndNotes;
@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrEndnoteRoundTripsAsAbbrTitle() {
             const string html = "<abbr title=\"desc\">text</abbr>";
-            var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
+            var options = new WordHtmlImportOptions { NoteReferenceType = WordHtmlNoteReferenceType.Endnote };
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
 
-            string roundTrip = doc.ToHtml(new WordToHtmlOptions { ExportEndnotes = true });
+            string roundTrip = doc.ToHtml(new WordHtmlExportOptions { ExportEndnotes = true });
 
             Assert.Contains("<abbr", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("title=\"desc\"", roundTrip, StringComparison.OrdinalIgnoreCase);

@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                var snapshot = document.CreateInspectionSnapshot();
+                var snapshot = document.Inspect();
                 var worksheet = Assert.Single(snapshot.Worksheets);
                 var threadedComment = Assert.Single(worksheet.ThreadedComments);
 
@@ -640,9 +640,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets.First();
-                ExcelColumnSnapshot column = Assert.Single(sheet.GetColumnDefinitions());
-                ExcelRowSnapshot row = Assert.Single(sheet.GetRowDefinitions());
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelColumnInfo column = Assert.Single(sheet.GetColumnDefinitions());
+                ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
 
                 Assert.Equal((byte?)1, column.OutlineLevel);
                 Assert.True(column.Collapsed);
@@ -674,7 +674,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.Equal("FF336699", worksheet.TabColorArgb);
             }
 
@@ -787,7 +787,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(100U, view.ZoomScaleNormal);
                 Assert.Equal("pageLayout", view.View);
 
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.False(worksheet.ShowGridlines);
                 Assert.True(worksheet.RightToLeft);
                 Assert.Equal(125U, worksheet.ZoomScale);
@@ -857,7 +857,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.ActiveWorksheetIndex);
                 Assert.Equal("Details", snapshot.ActiveWorksheetName);
                 Assert.False(snapshot.Worksheets[0].IsActive);
@@ -991,9 +991,9 @@ namespace OfficeIMO.Tests {
                 sheet.SetOutlineSummary(summaryBelow: true, summaryRight: true);
                 sheet.GroupRows(2, 3, outlineLevel: 1, collapsed: true);
                 sheet.GroupColumns(2, 3, outlineLevel: 1, collapsed: true);
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows, A1.MaxRows, outlineLevel: 1, collapsed: true));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows + 1, A1.MaxRows + 1));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(A1.MaxColumns + 1, A1.MaxColumns + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(ExcelA1.MaxRows, ExcelA1.MaxRows, outlineLevel: 1, collapsed: true));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(ExcelA1.MaxRows + 1, ExcelA1.MaxRows + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(ExcelA1.MaxColumns + 1, ExcelA1.MaxColumns + 1));
                 document.Save();
             }
 
@@ -1023,18 +1023,18 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.True(worksheet.OutlineSummaryBelow);
                 Assert.True(worksheet.OutlineSummaryRight);
 
-                ExcelRowSnapshot row2 = Assert.Single(worksheet.Rows, row => row.Index == 2);
-                ExcelRowSnapshot row4 = Assert.Single(worksheet.Rows, row => row.Index == 4);
+                ExcelRowInfo row2 = Assert.Single(worksheet.Rows, row => row.Index == 2);
+                ExcelRowInfo row4 = Assert.Single(worksheet.Rows, row => row.Index == 4);
                 Assert.Equal((byte)1, row2.OutlineLevel.GetValueOrDefault());
                 Assert.True(row2.Hidden);
                 Assert.True(row4.Collapsed);
 
-                ExcelColumnSnapshot column2 = Assert.Single(worksheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
-                ExcelColumnSnapshot column4 = Assert.Single(worksheet.Columns, column => column.StartIndex == 4 && column.EndIndex == 4);
+                ExcelColumnInfo column2 = Assert.Single(worksheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
+                ExcelColumnInfo column4 = Assert.Single(worksheet.Columns, column => column.StartIndex == 4 && column.EndIndex == 4);
                 Assert.Equal((byte)1, column2.OutlineLevel.GetValueOrDefault());
                 Assert.True(column2.Hidden);
                 Assert.True(column4.Collapsed);

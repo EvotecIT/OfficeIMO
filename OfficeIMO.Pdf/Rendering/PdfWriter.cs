@@ -5,14 +5,14 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts, string? title, string? author, string? subject, string? keywords) {
         return Write(doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None);
     }
 
     internal static byte[] Write(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
     internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
         return (bytes, complianceEvidence);
     }
 
-    public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts, string? title, string? author, string? subject, string? keywords) {
         return Write(destination, doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None, out _, out _);
     }
 
@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
         Stream destination,
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
     private static byte[]? WriteCore(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -166,15 +166,15 @@ internal static partial class PdfWriter {
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
         var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
-        var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
-        var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
-        var printColorTransforms = new Dictionary<PdfOptions, PdfPrintColorTransform?>();
-        var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfOptions Options)>();
-        var pendingFontOptions = new Dictionary<int, List<PdfOptions>>();
-        var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfOptions Options)>();
+        var namedFontObjectIds = new Dictionary<PdfCreateOptions, Dictionary<PdfNamedFontFace, int>>();
+        var formHelveticaFontIds = new Dictionary<PdfCreateOptions, int>();
+        var printColorTransforms = new Dictionary<PdfCreateOptions, PdfPrintColorTransform?>();
+        var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfCreateOptions Options)>();
+        var pendingFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
+        var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfCreateOptions Options)>();
         bool requiresPdf16FileVersion = false;
 
-        int GetShapingContextId(PdfOptions fontOptions) {
+        int GetShapingContextId(PdfCreateOptions fontOptions) {
             for (int index = 0; index < shapingContexts.Count; index++) {
                 var context = shapingContexts[index];
                 if (context.Mode == fontOptions.TextShapingModeSnapshot &&
@@ -193,7 +193,7 @@ internal static partial class PdfWriter {
             return shapingContexts.Count;
         }
 
-        PdfPrintColorTransform? GetPrintColorTransform(PdfOptions colorOptions) {
+        PdfPrintColorTransform? GetPrintColorTransform(PdfCreateOptions colorOptions) {
             if (!printColorTransforms.TryGetValue(colorOptions, out PdfPrintColorTransform? transform)) {
                 transform = PdfPrintColorTransform.Create(colorOptions);
                 printColorTransforms[colorOptions] = transform;
@@ -202,7 +202,7 @@ internal static partial class PdfWriter {
             return transform;
         }
 
-        int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
+        int EnsureFont(PdfStandardFont font, PdfCreateOptions fontOptions) {
             fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont);
             var key = (
                 font,
@@ -213,14 +213,14 @@ internal static partial class PdfWriter {
                 id = ReserveObject(objects);
                 fontObjectIds[key] = id;
                 pendingFontObjects.Add((id, font, fontOptions));
-                pendingFontOptions[id] = new List<PdfOptions> { fontOptions };
+                pendingFontOptions[id] = new List<PdfCreateOptions> { fontOptions };
             } else if (!pendingFontOptions[id].Contains(fontOptions)) {
                 pendingFontOptions[id].Add(fontOptions);
             }
             return id;
         }
 
-        int EnsureNamedFont(PdfNamedFontFace font, PdfOptions fontOptions) {
+        int EnsureNamedFont(PdfNamedFontFace font, PdfCreateOptions fontOptions) {
             if (!namedFontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfNamedFontFace, int>? optionFontObjectIds)) {
                 optionFontObjectIds = new Dictionary<PdfNamedFontFace, int>();
                 namedFontObjectIds[fontOptions] = optionFontObjectIds;
@@ -241,7 +241,7 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
-                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                    foreach (PdfCreateOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
                         if (ReferenceEquals(otherOptions, pendingFont.Options) ||
                             !otherOptions.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out _, out PdfTrueTypeFontProgram? otherProgram) ||
                             otherProgram == null ||
@@ -268,7 +268,7 @@ internal static partial class PdfWriter {
                     MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.SubsetFontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
-                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                    foreach (PdfCreateOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
                         if (ReferenceEquals(otherOptions, pendingFont.Options) ||
                             !otherOptions.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out _, out PdfOpenTypeCffFontProgram? otherProgram) ||
                             otherProgram == null ||
@@ -339,7 +339,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        int EnsureFormHelveticaFont(PdfOptions formOptions) {
+        int EnsureFormHelveticaFont(PdfCreateOptions formOptions) {
             if (!formHelveticaFontIds.TryGetValue(formOptions, out int formHelveticaFontId)) {
                 formHelveticaFontId = ShouldUseEmbeddedFormHelveticaFont(formOptions)
                     ? EnsureFont(PdfStandardFont.Helvetica, formOptions)
@@ -350,7 +350,7 @@ internal static partial class PdfWriter {
             return formHelveticaFontId;
         }
 
-        bool ShouldUseEmbeddedFormHelveticaFont(PdfOptions formOptions) =>
+        bool ShouldUseEmbeddedFormHelveticaFont(PdfCreateOptions formOptions) =>
             (formOptions.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) ||
             (formOptions.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
@@ -1369,7 +1369,7 @@ internal static partial class PdfWriter {
     private static PdfSerializationReport CreateSerializationReport(
         LayoutResult layout,
         PdfFileAssemblyBufferEvidence bufferEvidence,
-        PdfOptions options,
+        PdfCreateOptions options,
         int pageCount,
         long bytesWritten,
         bool finalArtifactBuffered) =>
@@ -1536,7 +1536,7 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
+    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
         var sb = new StringBuilder();
         if (options.BackgroundColor.HasValue) {
             var backgroundColor = new StringBuilder();
@@ -1685,7 +1685,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static void AppendPageBorder(StringBuilder sb, PdfOptions options, PdfPageBorder border, string? graphicsStateName) {
+    private static void AppendPageBorder(StringBuilder sb, PdfCreateOptions options, PdfPageBorder border, string? graphicsStateName) {
         double inset = border.Inset;
         double pathX = inset;
         double pathY = inset;
@@ -1711,7 +1711,7 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
-    private static void AddPageBackgroundImage(LayoutResult.Page page, PdfOptions options, PdfPageBackgroundImage image) {
+    private static void AddPageBackgroundImage(LayoutResult.Page page, PdfCreateOptions options, PdfPageBackgroundImage image) {
         double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth;
         double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight;
         OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
@@ -1740,7 +1740,7 @@ internal static partial class PdfWriter {
         });
     }
 
-    private static void AddImageWatermark(LayoutResult.Page page, PdfOptions options, PdfImageWatermark watermark) {
+    private static void AddImageWatermark(LayoutResult.Page page, PdfCreateOptions options, PdfImageWatermark watermark) {
         double x = (options.PageWidth - watermark.Width) / 2D;
         double y = (options.PageHeight - watermark.Height) / 2D;
         string? stateName = watermark.Opacity < 1D
@@ -1762,7 +1762,7 @@ internal static partial class PdfWriter {
         });
     }
 
-    private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {
+    private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfCreateOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         PdfStandardFont normalFont = ChooseNormal(options.DefaultFont);
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
@@ -1772,7 +1772,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AppendTextWatermark(StringBuilder sb, PdfOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
+    private static void AppendTextWatermark(StringBuilder sb, PdfCreateOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
         double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
@@ -1817,7 +1817,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfOptions options) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfCreateOptions options) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         var run = new PdfTextRun(
             watermark.Text,
@@ -1831,7 +1831,7 @@ internal static partial class PdfWriter {
         return NormalizeFallbackRuns(new[] { run }, baseFont, options);
     }
 
-    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions options) {
+    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         double width = 0D;
         foreach (PdfTextRun run in runs) {
             width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);

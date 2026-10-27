@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 && !string.IsNullOrEmpty(run.Text)
                 && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",
+                "powerpoint-character-spacing-approximated",
                 "Shared text rendering uses default character spacing; authored spacing is retained in the presentation.",
                 DescribeShape(textBox), OfficeConversionLossKind.Approximation));
         }

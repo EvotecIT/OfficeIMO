@@ -54,14 +54,14 @@ public partial class Word {
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
         paragraph.LineSpacingBeforePoints = 0;
         paragraph.LineSpacingAfterPoints = 0;
-        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
             CreateSelectionMetricFont(4, useTypo, 78, 1100, 400, 700, -250, 50), "OfficeIMO-Portable-Regular");
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PageSize(300, 300), Margins = PageMargins.Uniform(30)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages());
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");

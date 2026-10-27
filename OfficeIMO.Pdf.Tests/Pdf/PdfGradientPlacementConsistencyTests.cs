@@ -16,7 +16,7 @@ public class PdfGradientPlacementConsistencyTests {
         shape.FillGradient = OfficeLinearGradient.DiagonalDown(OfficeColor.Red, OfficeColor.Blue);
         shape.StrokeWidth = 0;
         if (transformed) shape.Transform = OfficeTransform.RotateDegrees(17, 100, 50);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 500, PageHeight = 700,
                 MarginLeft = 50, MarginRight = 50, MarginTop = 150, MarginBottom = 150
             })

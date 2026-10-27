@@ -141,7 +141,7 @@ public sealed class PdfBarTabTests {
 
     [Fact]
     public void PageFragmentsPaintOnlyTheirOwnedLinesAndTerminalAfterSpacing() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 120;
         options.MarginTop = options.MarginBottom = 20;
         byte[] Render(bool bar) {
@@ -195,7 +195,7 @@ public sealed class PdfBarTabTests {
     [Fact]
     public void WidowCarriedFloatSideRulesReturnToTheDestinationParagraphAnchor() {
         byte[] Render(bool bar) {
-            PdfOptions options = Options();
+            PdfCreateOptions options = Options();
             options.PageWidth = 400;
             options.PageHeight = 240;
             options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40;
@@ -257,7 +257,7 @@ public sealed class PdfBarTabTests {
 
     [Fact]
     public void NoteContinuationRetainsBarAnchorsAndOnlyTheLastAfterExtent() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 160;
         options.MarginTop = options.MarginBottom = 20;
         byte[] Render(bool bar) {
@@ -351,7 +351,7 @@ public sealed class PdfBarTabTests {
             PdfTableCell[][] rows = { new[] { cell } };
             if (route == "canvas") content.Canvas(canvas => canvas.Table(rows, 30, 30, 60, 36, table));
             else content.Table(rows, style: table);
-        }), Options()).ToBytes();
+        }), Options()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var actual = PdfPigDocument.Open(bytes);
         PdfPigPage page = Assert.Single(actual.GetPages());
@@ -392,7 +392,7 @@ public sealed class PdfBarTabTests {
         FixedRowHeights = new System.Collections.Generic.List<double?> { height }
     };
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
         MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 12, CompressContentStreams = false

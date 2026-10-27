@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 0.1D);
                 sheet.SetRowHeight(1, 1.23D);
                 sheet.SetColumnWidth(1, 16.25D);
-                ExcelCellSnapshot cell = Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Worksheets).Cells);
+                ExcelCellInfo cell = Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells);
                 Assert.Equal("0.10000000000000001", Assert.IsType<double>(cell.Value).ToString("G17", CultureInfo.InvariantCulture));
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {

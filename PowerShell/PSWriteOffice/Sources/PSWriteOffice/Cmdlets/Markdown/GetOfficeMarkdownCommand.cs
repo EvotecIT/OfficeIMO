@@ -7,7 +7,7 @@ using PSWriteOffice.Services.Markdown;
 namespace PSWriteOffice.Cmdlets.Markdown;
 
 /// <summary>Parses Markdown text or files into a Markdown document model.</summary>
-/// <para>Returns an <see cref="MarkdownDoc"/> for inspection or further rendering.</para>
+/// <para>Returns an <see cref="MarkdownDocument"/> for inspection or further rendering.</para>
 /// <example>
 ///   <summary>Parse a Markdown file.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Parses Markdown text directly into a document model.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdown", DefaultParameterSetName = ParameterSetPath)]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class GetOfficeMarkdownCommand : PSCmdlet
     , IMarkdownReaderOptionSource {
     private const string ParameterSetPath = "Path";
@@ -39,11 +39,11 @@ public sealed class GetOfficeMarkdownCommand : PSCmdlet
     /// <summary>Optional reader options.</summary>
     [Parameter]
     [Alias("ReaderOptions")]
-    public MarkdownReaderOptions? Options { get; set; }
+    public MarkdownLoadOptions? Options { get; set; }
 
     /// <summary>Named reader profile used when <see cref="Options"/> is not supplied.</summary>
     [Parameter]
-    public MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; set; }
+    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
 
     /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
     [Parameter]
@@ -81,22 +81,22 @@ public sealed class GetOfficeMarkdownCommand : PSCmdlet
     [Parameter]
     public string[]? AllowedUrlScheme { get; set; }
 
-    MarkdownReaderOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
+    MarkdownLoadOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var options = MarkdownOptionUtilities.BuildReaderOptions(this);
 
-        MarkdownDoc document;
+        MarkdownDocument document;
         if (ParameterSetName == ParameterSetPath) {
             var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(resolvedPath)) {
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }
 
-            document = MarkdownDoc.Load(resolvedPath, options);
+            document = MarkdownDocument.Load(resolvedPath, options);
         } else {
-            document = MarkdownReader.Parse(Text ?? string.Empty, options);
+            document = MarkdownDocument.Parse(Text ?? string.Empty, options);
         }
 
         WriteObject(document);

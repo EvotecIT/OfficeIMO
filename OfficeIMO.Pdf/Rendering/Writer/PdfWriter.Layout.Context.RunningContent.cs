@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
         private readonly RunningContentImageAssets runningAssets;
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
-        private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
+        private readonly Dictionary<(PdfCreateOptions Source, double Top, double Bottom), PdfCreateOptions> runningFrameOptions = new();
         private double? runningFirstBodyHeight;
         private bool runningFirstBodyAllowsFooterOverlap;
         private bool runningFirstBodyAllowsExactOverflow;
@@ -51,9 +51,9 @@ internal static partial class PdfWriter {
             currentOpts.MarginBottom > currentPageBaseOptions.MarginBottom + .001D &&
             height <= GetCurrentFramePageStartY() - currentPageBaseOptions.MarginBottom + .001D;
 
-        private PdfOptions GetRunningFrameOptions(PdfOptions source, double top, double bottom) {
+        private PdfCreateOptions GetRunningFrameOptions(PdfCreateOptions source, double top, double bottom) {
             var key = (source, top, bottom);
-            if (!runningFrameOptions.TryGetValue(key, out PdfOptions? frame)) {
+            if (!runningFrameOptions.TryGetValue(key, out PdfCreateOptions? frame)) {
                 frame = source.CreateRunningContentFrame(top, bottom);
                 runningFrameOptions.Add(key, frame);
             }
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
             PdfRunningContent? header = currentOpts.GetRunningContentForPage(variant, isHeader: true);
             PdfRunningContent? footer = currentOpts.GetRunningContentForPage(variant, isHeader: false);
             if (header == null && footer == null) return;
-            PdfOptions source = currentOpts;
+            PdfCreateOptions source = currentOpts;
             IReadOnlyList<IPdfBlock>? headerBlocks = header == null ? null : MaterializeRunningContent(header, context);
             IReadOnlyList<IPdfBlock>? footerBlocks = footer == null ? null : MaterializeRunningContent(footer, context);
             bool usesPageContext = header?.UsesPageContext == true || footer?.UsesPageContext == true;
@@ -180,7 +180,7 @@ internal static partial class PdfWriter {
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
-        private double MeasureRunningContentFirstBodyHeight(PdfOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
+        private double MeasureRunningContentFirstBodyHeight(PdfCreateOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
             double? firstVisualFooterOverlapHeight = null;
             bool firstVisualAllowsExactOverflow = false;
             footerOverlapHeight = null;
@@ -244,7 +244,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
+        private double? MeasureRunningContent(PdfCreateOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
             bool isHeader, out bool hasNonFlowTablePaint) {
             hasNonFlowTablePaint = false;
             if (blocks.Count == 0) return 0D;
@@ -253,7 +253,7 @@ internal static partial class PdfWriter {
                 if (definition.AllowTextFallback) return null;
                 throw new InvalidOperationException("Running PDF content starts outside the page.");
             }
-            PdfOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
+            PdfCreateOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
                 drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
@@ -280,14 +280,14 @@ internal static partial class PdfWriter {
             return reservedHeight;
         }
 
-        private void RenderRunningContent(PdfOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
+        private void RenderRunningContent(PdfCreateOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
             bool isHeader, bool hasNonFlowTablePaint) {
             // Match the existing continuation tolerance: exact sums can differ by a
             // floating-point ulp when the final paragraph is tested for available room.
             // Overlay tables paint below the unchanged flow cursor. Let that
             // paint use the physical page while the final y check still enforces
             // the measured flow reservation. Ordinary stories keep their frame.
-            PdfOptions frame = GetRunningFrameOptions(source, source.PageHeight - start,
+            PdfCreateOptions frame = GetRunningFrameOptions(source, source.PageHeight - start,
                 hasNonFlowTablePaint ? 0D : Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,

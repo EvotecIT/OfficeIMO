@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet summary = document.AddWorksheet("Summary");
             var source = new DataReference {
                 Sheet = "Data",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             summary.WorksheetPart.Worksheet.Append(
                 new DataConsolidate(
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 () => data.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", source.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", source.Reference!.Value);
         }
 
         [Fact]

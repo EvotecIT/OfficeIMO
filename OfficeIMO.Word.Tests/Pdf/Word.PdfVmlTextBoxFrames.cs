@@ -38,7 +38,7 @@ public partial class Word {
         document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(new Picture(shape)))));
         document.AddParagraph("Body");
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         Assert.Contains("Visible textbox", page.Text);
         var frames = page.Paths.Where(path => (path.IsStroked || path.IsFilled) &&
@@ -118,7 +118,7 @@ public partial class Word {
         document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(picture))));
         document.AddParagraph("Body");
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         Assert.Contains("Inherited frame", page.Text);
         var frames = page.Paths.Where(path => (path.IsStroked || path.IsFilled) &&

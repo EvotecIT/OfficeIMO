@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -14,10 +15,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePdfToPowerPointOptions")]
 [Alias("New-OfficePdfPowerPointImportOptions")]
-[OutputType(typeof(PdfToPowerPointOptions))]
+[OutputType(typeof(PowerPointPdfImportOptions))]
 public sealed class NewOfficePdfToPowerPointOptionsCommand : PSCmdlet {
     /// <summary>Visual, editable-table, hybrid, editable-content, or automatic import mode.</summary>
-    [Parameter] public PdfPowerPointImportMode? Mode { get; set; }
+    [Parameter] public PowerPointPdfImportMode? Mode { get; set; }
     /// <summary>Optional one-based page ranges such as 1-3,5.</summary>
     [Parameter] public string? PageRange { get; set; }
     /// <summary>Raster resolution used by visual import.</summary>
@@ -59,11 +60,11 @@ public sealed class NewOfficePdfToPowerPointOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PdfToPowerPointOptions();
+        var options = new PowerPointPdfImportOptions();
         if (Mode.HasValue) options.Mode = Mode.Value;
         if (!string.IsNullOrWhiteSpace(PageRange))
         {
-            options.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
+            options.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
         }
         if (Dpi.HasValue) options.Dpi = Dpi.Value;
         if (MaxPages.HasValue) options.MaxPages = MaxPages.Value;

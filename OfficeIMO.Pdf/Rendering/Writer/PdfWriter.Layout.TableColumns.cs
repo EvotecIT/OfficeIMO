@@ -214,7 +214,7 @@ internal static partial class PdfWriter {
         return fixedColumns.Select((fixedColumn, column) => fixedColumn ? columnWidths[column] : 0D).Sum();
     }
 
-    private static TableColumnLayout ResolveTableColumnLayout(TableBlock table, PdfOptions options, PdfTableStyle style, int columns, double frameWidth, double fontSize, int headerRowCount, int footerStartRowIndex) {
+    private static TableColumnLayout ResolveTableColumnLayout(TableBlock table, PdfCreateOptions options, PdfTableStyle style, int columns, double frameWidth, double fontSize, int headerRowCount, int footerStartRowIndex) {
         AutoFitTableMeasurements? autoFit = style.AutoFitColumns
             ? MeasureAutoFitTableColumns(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
             : null;

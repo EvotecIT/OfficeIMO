@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
 
             private ExcelTabularStylePlan.DeclaredStyle? ResolveDeclaredStyle(string? name) {
                 if (name == null) return null;
-                if (_declaredStyles == null) throw new KeyNotFoundException("Declare named styles in ExcelTabularWriteOptions.Styles before selecting a style.");
+                if (_declaredStyles == null) throw new KeyNotFoundException("Declare named styles in ExcelWriterOptions.Styles before selecting a style.");
                 return _declaredStyles.Resolve(name);
             }
 

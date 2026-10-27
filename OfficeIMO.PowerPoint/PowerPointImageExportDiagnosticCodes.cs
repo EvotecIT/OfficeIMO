@@ -31,6 +31,6 @@ namespace OfficeIMO.PowerPoint {
         public const string BaselinePercentApproximated = "baseline-percent-approximation";
 
         /// <summary>A native chart family without a shared renderer, such as a 3-D chart, was drawn as a flat 2-D projection.</summary>
-        public const string ChartProjected = "chart-projected";
+        public const string ChartProjected = "chart-flattened";
     }
 }

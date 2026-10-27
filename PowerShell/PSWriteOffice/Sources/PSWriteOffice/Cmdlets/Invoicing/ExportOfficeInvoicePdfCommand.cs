@@ -35,7 +35,7 @@ public sealed class ExportOfficeInvoicePdfCommand : PSCmdlet {
 
     /// <summary>Optional existing PDF rendering options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Replace an existing destination.</summary>
     [Parameter]

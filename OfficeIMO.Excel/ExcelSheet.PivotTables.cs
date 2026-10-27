@@ -248,11 +248,11 @@ namespace OfficeIMO.Excel {
             int? valuesAxisPosition = options?.ValuesAxisPosition;
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
-            if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
+            if (!ExcelA1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
                 throw new ArgumentException($"Invalid A1 range '{sourceRange}'.", nameof(sourceRange));
             }
 
-            var (destRow, destCol) = A1.ParseCellRef(destinationCell);
+            var (destRow, destCol) = ExcelA1.ParseCellRef(destinationCell);
             if (destRow <= 0 || destCol <= 0) {
                 throw new ArgumentException($"Invalid destination cell '{destinationCell}'.", nameof(destinationCell));
             }
@@ -664,8 +664,8 @@ namespace OfficeIMO.Excel {
             int width = Math.Max(1, columnCount);
             int endColumn = startColumn + width - 1;
             int endRow = startRow + 1; // header + at least one data row
-            string start = A1.CellReference(startRow, startColumn);
-            string end = A1.CellReference(endRow, endColumn);
+            string start = ExcelA1.CellReference(startRow, startColumn);
+            string end = ExcelA1.CellReference(endRow, endColumn);
             return $"{start}:{end}";
         }
 

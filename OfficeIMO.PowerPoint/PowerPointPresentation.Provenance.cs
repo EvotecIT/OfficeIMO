@@ -5,11 +5,11 @@ namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
     /// <summary>Validates and inspects encoded presentation bytes without accessing the filesystem.</summary>
-    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "presentation.pptx", OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "presentation.pptx", OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML presentation and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes an Open XML presentation.</summary>

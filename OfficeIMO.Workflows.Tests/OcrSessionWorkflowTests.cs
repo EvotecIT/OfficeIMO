@@ -15,7 +15,7 @@ public sealed class OcrSessionWorkflowTests {
             int writes = 0;
             var recovery = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             OfficeOcrSessionRequest Request(int index) => new(index.ToString(), new ImageOcrWorkflowRequest {
-                InputPath = source, OutputPath = "content://folder/selected", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = "content://folder/selected", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputStream = new(index + ".txt", _ => Task.FromResult<Stream>(new MemoryStream(stored)), _ => {
                     writes++;
                     return Task.FromResult<Stream>(new Destination(bytes => stored = bytes));
@@ -105,7 +105,7 @@ public sealed class OcrSessionWorkflowTests {
             byte[] source = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
             File.WriteAllBytes(first, source); File.WriteAllBytes(second, source);
             var results = await new OfficeWorkflowRunner().RunOcrSessionAsync([
-                new("first", new PdfSearchableWorkflowRequest { InputPath = first, OutputPath = second, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace }),
+                new("first", new PdfSearchableWorkflowRequest { InputPath = first, OutputPath = second, ConflictPolicy = OfficePublicationPolicy.Replace }),
                 new("second", new PdfSearchableWorkflowRequest { InputPath = second, OutputPath = Path.Combine(root, "result.pdf") })
             ], Engine());
             Assert.Equal(OfficeWorkflowStatus.Failed, results[0].Status);
@@ -117,7 +117,7 @@ public sealed class OcrSessionWorkflowTests {
                 return Task.FromResult<Stream>(File.OpenRead(second));
             }) : null;
             var retry = await new OfficeWorkflowRunner().RunOcrSessionAsync([
-                new("first", new PdfSearchableWorkflowRequest { InputPath = first, OutputPath = second, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace })
+                new("first", new PdfSearchableWorkflowRequest { InputPath = first, OutputPath = second, ConflictPolicy = OfficePublicationPolicy.Replace })
             ], Engine(), protectedOutputPaths: [results[1].OutputPath!], protectedInputs: [new(second, access)]);
             Assert.Equal(OfficeWorkflowStatus.Failed, Assert.Single(retry).Status);
             Assert.Equal(source, File.ReadAllBytes(second));

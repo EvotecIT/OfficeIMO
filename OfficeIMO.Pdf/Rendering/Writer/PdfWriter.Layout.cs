@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
 
     private static LayoutResult LayoutBlocks(
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();

@@ -438,7 +438,7 @@ public sealed class ReaderPageLocationTests {
 
     [Fact]
     public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,

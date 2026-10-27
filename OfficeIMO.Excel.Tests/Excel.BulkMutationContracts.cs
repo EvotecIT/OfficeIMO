@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
             });
             document.Save(stream);
             using var reopened = ExcelDocument.Load(stream);
-            ExcelCellStyleSnapshot applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
+            ExcelCellStyleInfo applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
             Assert.True(applied.Italic);
             Assert.False(applied.Bold);
             Assert.True(applied.WrapText);

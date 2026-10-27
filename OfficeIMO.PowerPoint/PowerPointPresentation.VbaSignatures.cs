@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
     /// <summary>Inspects legacy, agile, and V3 VBA signature profiles in a saved PPTM/POTM/PPSM package.</summary>
-    public static OfficeVbaSignatureInfo InspectVbaSignatures(
+    internal static OfficeVbaSignatureInfo InspectVbaSignatures(
         string filePath,
         OfficeVbaSignatureInspectionOptions? options = null) =>
         OfficeVbaSignatureService.Inspect(filePath, options);

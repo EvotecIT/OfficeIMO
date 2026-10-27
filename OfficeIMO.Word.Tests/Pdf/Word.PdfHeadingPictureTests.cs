@@ -28,7 +28,7 @@ public partial class Word {
         byte[] expected = ConvertHeadingPictureDocument(reference, $"image-Normal-{content}");
 
         AssertHeadingPictureFramesMatch(bytes, expected, content == "anchor" ? 2 : 1);
-        Assert.Empty(PdfCore.PdfReadDocument.Open(bytes).Outlines);
+        Assert.Empty(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Outlines);
         Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).FormFields);
     }
 
@@ -40,7 +40,7 @@ public partial class Word {
         using WordDocument reference = CreateHeadingPictureDocument("Normal", "inline", atDocumentStart: true);
         byte[] bytes = ConvertHeadingPictureDocument(source, $"initial-{style}");
         AssertHeadingPictureFramesMatch(bytes, ConvertHeadingPictureDocument(reference, "initial-Normal"), 1);
-        Assert.Empty(PdfCore.PdfReadDocument.Open(bytes).Outlines);
+        Assert.Empty(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Outlines);
     }
 
     [Theory]
@@ -139,9 +139,9 @@ public partial class Word {
             Assert.True(errors.Length == 0, string.Join("\n", errors.Select(error => error.Description + " @ " + error.Path?.XPath)));
         }
         using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
-        byte[] pdf = loaded.ToPdfBytes(new WordToPdfOptions {
+        byte[] pdf = loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_HEADING_PICTURE_OUTPUT");
         if (!string.IsNullOrWhiteSpace(output)) {
             Directory.CreateDirectory(output);

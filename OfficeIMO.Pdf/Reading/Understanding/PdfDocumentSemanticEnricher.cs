@@ -120,11 +120,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
             IReadOnlyList<PdfInferenceEvidence> evidence = captionRejected
                 ? imageRegion.Evidence.Where(static item =>
-                    !string.Equals(item.Code, "image-region.caption-proximity", StringComparison.Ordinal) &&
-                    !string.Equals(item.Code, "image-region.paint-order", StringComparison.Ordinal)).ToArray()
+                    !string.Equals(item.Code, "image-region-caption-proximity", StringComparison.Ordinal) &&
+                    !string.Equals(item.Code, "image-region-paint-order", StringComparison.Ordinal)).ToArray()
                 : imageRegion.Evidence;
             bool taggedFigure = evidence.Any(static item =>
-                string.Equals(item.Code, "image-region.tagged-figure", StringComparison.Ordinal));
+                string.Equals(item.Code, "image-region-tagged-figure", StringComparison.Ordinal));
             double confidence = captionRejected && !taggedFigure
                 ? Math.Min(imageRegion.Confidence, imageRegion.Placement.MarkedContentId.HasValue ? 0.9D : 0.75D)
                 : imageRegion.Confidence;
@@ -215,7 +215,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 kind,
                 Math.Max(current.Confidence, 0.94D),
                 new PdfInferenceEvidence(
-                    candidate.Edge == PageEdge.Header ? "semantic.repeated-header" : "semantic.repeated-footer",
+                    candidate.Edge == PageEdge.Header ? "semantic-repeated-header" : "semantic-repeated-footer",
                     "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
                     0.95D));
         }
@@ -366,7 +366,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
                 usedLines.Add(candidate.Key);
                 var evidence = new PdfInferenceEvidence(
-                    "semantic.outline-heading",
+                    "semantic-outline-heading",
                     "A page-targeted outline title matches this line at outline level " + outline.Level + ".",
                     0.98D);
                 if (candidate.Element.Region.Lines.Count == 1) {
@@ -514,7 +514,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                     Math.Max(region.Confidence, 0.96D),
                     region.Evidence.Concat(new[] {
                         new PdfInferenceEvidence(
-                            "image-region.tagged-figure",
+                            "image-region-tagged-figure",
                             "A tagged-PDF Figure structure element owns the image marked content.",
                             0.98D)
                     }),
@@ -624,7 +624,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 updated ??= source.ToArray();
                 updated[tableIndex] = candidate.WithAdditionalEvidence(
                     new PdfInferenceEvidence(
-                        "table.tagged-header-row",
+                        "table-tagged-header-row",
                         "Tagged-PDF THead or top-row TH structure identifies the first table row as column headers.",
                         0.99D),
                     0.98D);
@@ -698,10 +698,10 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         IEnumerable<PdfInferenceEvidence> evidence = source.Evidence;
         if (!source.Evidence.Any(static item =>
-                string.Equals(item.Code, "semantic.list-marker", StringComparison.Ordinal))) {
+                string.Equals(item.Code, "semantic-list-marker", StringComparison.Ordinal))) {
             evidence = evidence.Concat(new[] {
                 new PdfInferenceEvidence(
-                    "semantic.list-marker",
+                    "semantic-list-marker",
                     "The split line begins with a bullet or numbered marker.",
                     0.4D)
             });
@@ -778,7 +778,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 current.Kind,
                 current.Confidence,
                 new PdfInferenceEvidence(
-                    "semantic.document-heading-font-tier",
+                    "semantic-document-heading-font-tier",
                     "The heading level was ranked from document-wide heading font tiers.",
                     0.8D),
                 level);
@@ -854,7 +854,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             match.Role.Kind,
             Math.Max(current.Confidence, 0.96D),
             new PdfInferenceEvidence(
-                "semantic.tagged-pdf-role",
+                "semantic-tagged-pdf-role",
                 "Tagged-PDF role " + match.Role.Name + " owns marked content " +
                     string.Join(", ", match.MarkedContent.Select(static item => item.Format())) + ".",
                 0.98D),

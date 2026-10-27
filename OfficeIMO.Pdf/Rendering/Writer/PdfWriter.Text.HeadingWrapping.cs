@@ -4,7 +4,7 @@ internal static partial class PdfWriter {
     /// <summary>Wraps a heading and retains its complete source policy before physical line slicing.</summary>
     private static (List<List<RichSeg>> Lines, List<double> LineHeights) WrapRichHeadingRuns(
         IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont,
-        double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options,
+        double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options,
         PdfHeadingStyle? style, PdfAlign alignment,
         Func<int, double, double, double, RichTextRowFrame>? rowLayout = null) {
         var wrapped = WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight,

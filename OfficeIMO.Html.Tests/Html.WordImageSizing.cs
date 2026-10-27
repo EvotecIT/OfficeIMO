@@ -12,7 +12,7 @@ public partial class HtmlWordGapClosure {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1600, 600));
         string html = $"<p>Before</p><img src='data:image/png;base64,{image}' alt='Wide photo'><p>After</p>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         WordImage drawing = Assert.Single(document.Images);
         WordSection section = document.Sections[0];
@@ -34,7 +34,7 @@ public partial class HtmlWordGapClosure {
             <p><img src="data:image/png;base64,{ValidPng}" width="200" height="100" alt="Large"></p>
             """;
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         WordImage[] images = document.Images.ToArray();
 
@@ -54,11 +54,11 @@ public partial class HtmlWordGapClosure {
             <img src="data:image/png;base64,{ValidPng}" width="200" alt="Scaled">
             <img src="data:image/png;base64,{ValidPng}" alt="Intrinsic">
             """;
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             MaxTotalImageBytes = Convert.FromBase64String(ValidPng).LongLength
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument document = result.Value;
         WordImage[] images = document.Images.ToArray();
 
@@ -70,6 +70,6 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(1D, images[2].Width!.Value, precision: 2);
         Assert.Equal(1D, images[2].Height!.Value, precision: 2);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "ImageResourceBudgetExceeded");
+            diagnostic.Code == "image-resource-budget-exceeded");
     }
 }

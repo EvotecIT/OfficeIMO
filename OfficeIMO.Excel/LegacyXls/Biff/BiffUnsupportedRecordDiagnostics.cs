@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 : $" The FilePass record declares {encryptionTypeName} password-to-open protection.";
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook,
-                "XLS-BIFF-FILEPASS-UNSUPPORTED",
+                "xls-biff-filepass-unsupported",
                 "The workbook contains a FilePass record, which means password-to-open encryption is present, but it could not be decrypted with the supplied import options." + encryptionDescription,
                 recordOffset: record.Offset,
                 recordType: record.Type,
@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string substreamDetailName = GetBofSubstreamDetailName(substreamType);
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion,
-                "XLS-BIFF-VERSION-UNSUPPORTED",
+                "xls-biff-version-unsupported",
                 $"The workbook contains a {versionName} {substreamName} substream. This legacy XLS import phase supports BIFF8 only.",
                 sheetName: sheetName,
                 recordOffset: offset,
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 detailCode = "PivotTable:" + GetBiffRecordName(type);
             } else if (IsExternalReferenceRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.ExternalReference;
-                code = "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED";
+                code = "xls-biff-feature-external-reference-unsupported";
                 message = "External reference records are present but external link import is not implemented in this phase.";
                 detailCode = "ExternalReference:" + GetBiffRecordName(type);
             } else if (IsAutoFilterCriteriaRecord(type)) {
@@ -237,7 +237,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string target = string.IsNullOrWhiteSpace(reference.Target) ? string.Empty : $" Target: {reference.Target}.";
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.ExternalReference,
-                "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED",
+                "xls-biff-feature-external-reference-unsupported",
                 $"The workbook contains a {description}. External link import is not implemented in this phase.{target}",
                 recordOffset: record.Offset,
                 recordType: record.Type,
@@ -673,7 +673,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsUnsupportedSheet unsupportedSheet) {
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.DialogSheet,
-                "XLS-BIFF-FEATURE-DIALOG-SHEET-UNSUPPORTED",
+                "xls-biff-feature-dialog-sheet-unsupported",
                 "The workbook contains a dialog sheet entry. This legacy XLS import phase imports worksheet sheets only.",
                 sheetName: unsupportedSheet.Name,
                 recordOffset: offset,

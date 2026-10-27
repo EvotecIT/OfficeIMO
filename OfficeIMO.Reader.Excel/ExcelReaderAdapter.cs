@@ -32,7 +32,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -56,7 +56,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -81,7 +81,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { capabilityId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }

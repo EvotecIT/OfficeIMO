@@ -24,7 +24,7 @@ public sealed class WordPdfFinalTableOfContentsPagesTests {
         heading.Style = WordParagraphStyles.Heading1;
         if (paragraphPath) heading.Spacing = 20;
         document.AddParagraph("Numbered body marker");
-        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         var loaded = PdfDocument.Load(bytes);
         Assert.Contains("Numbered findings", loaded.Reader.TextByPage()[0]);
         Assert.NotEmpty(loaded.Read().GetLinksByDestinationName("officeimo-heading-numbered-findings"));
@@ -45,7 +45,7 @@ public sealed class WordPdfFinalTableOfContentsPagesTests {
         }
         document.AddParagraph("Final findings").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Final body marker");
-        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         var pages = PdfDocument.Load(bytes).Reader.TextByPage();
         string contents = pages[1];
         int findingsPage = Enumerable.Range(2, pages.Count - 2).Single(index => pages[index].Contains("Final body marker")) + 1;

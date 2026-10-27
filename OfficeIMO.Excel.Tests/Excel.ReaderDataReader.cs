@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.AddWorksheet("Data").CellValue(1, 1, "Header");
             }
-            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReadOptions {
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReaderOptions {
                 MaxDataReaderBufferedCells = 2
             });
 
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
                 reader.GetSheet("Data").ReadRangeAsDataReader("A1:C2"));
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
-            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), exception.LimitName);
+            Assert.Contains(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using var reader = ExcelDocumentReader.Open(reordered.ToArray(), new ExcelReadOptions {
+            using var reader = ExcelDocumentReader.Open(reordered.ToArray(), new ExcelReaderOptions {
                 MaxDataReaderBufferedCells = 4
             });
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() => {
@@ -136,8 +136,8 @@ namespace OfficeIMO.Tests {
                 while (dataReader.Read()) { }
             });
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
-            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), exception.LimitName);
+            Assert.Contains(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -155,15 +155,15 @@ namespace OfficeIMO.Tests {
 
             using var reader = ExcelDocumentReader.Open(
                 memory.ToArray(),
-                new ExcelReadOptions { MaxDataReaderBufferedCells = 999 });
+                new ExcelReaderOptions { MaxDataReaderBufferedCells = 999 });
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadUsedRangeAsDataReader());
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), exception.LimitName);
             Assert.Contains(
-                nameof(ExcelReadOptions.MaxDataReaderBufferedCells),
+                nameof(ExcelReaderOptions.MaxDataReaderBufferedCells),
                 exception.Message,
                 StringComparison.Ordinal);
         }
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = ExcelDocumentReader.Open(
                 memory.ToArray(),
-                new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+                new ExcelReaderOptions { TreatDatesUsingNumberFormat = true });
             using var dataReader = reader.GetSheet("Data").ReadUsedRangeAsDataReader();
 
             Assert.True(dataReader.Read());
@@ -428,7 +428,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Line 1\nLine 2", dataReader.GetString(7));
             }
 
-            using (var reader = ExcelDocumentReader.Open(workbook, new ExcelReadOptions { UseCachedFormulaResult = false }))
+            using (var reader = ExcelDocumentReader.Open(workbook, new ExcelReaderOptions { UseCachedFormulaResult = false }))
             using (var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:H4098", schemaSampleRows: 0)) {
                 Assert.True(dataReader.Read());
                 Assert.Equal("1+2", dataReader.GetString(4));

@@ -13,7 +13,7 @@ internal static partial class RtfPdfConverter {
         foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().Diagnostics) {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
-        PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        PdfCore.PdfCreateOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfCreateOptions();
         // RTF leaves pair kerning disabled unless a run supplies a positive threshold.
         pdfOptions.TextKerning = false;
         if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
@@ -26,7 +26,7 @@ internal static partial class RtfPdfConverter {
             pdfOptions,
             normalized);
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
-        PdfCore.PdfOptions documentDefaults = pdfOptions.Clone();
+        PdfCore.PdfCreateOptions documentDefaults = pdfOptions.Clone();
         RtfPageSetup firstPageSetup = document.PageSetup;
         if (document.Sections.Count > 0) {
             firstPageSetup = document.GetPageSetup(document.Sections[0]);
@@ -49,13 +49,13 @@ internal static partial class RtfPdfConverter {
         return pdf;
     }
 
-    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfOptions pdfOptions) {
+    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfCreateOptions pdfOptions) {
         if (document.Sections.Count == 0) {
             RenderBlocks(document, document.Blocks, pdf, options, state);
             return;
         }
 
-        PdfCore.PdfOptions currentPageOptions = pdf.Options.Clone();
+        PdfCore.PdfCreateOptions currentPageOptions = pdf.Options.Clone();
         RtfSection currentPageSection = document.Sections[0];
         options.CancellationToken.ThrowIfCancellationRequested();
         bool canContinueRunningStories = SupportsContinuousRunningStoryDocument(document);
@@ -85,7 +85,7 @@ internal static partial class RtfPdfConverter {
                 ApplySectionHeaderFooters(document, section, page, pdf, options, state);
                 currentPageOptions = page.Options.Clone();
                 currentPageSection = section;
-                PdfCore.PdfOptions previousFontOptions = state.FontOptions;
+                PdfCore.PdfCreateOptions previousFontOptions = state.FontOptions;
                 state.FontOptions = page.Options;
                 try {
                     RenderSectionBlocks(document, section, pdf, options, state);

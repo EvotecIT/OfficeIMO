@@ -79,7 +79,7 @@ internal static partial class PdfPageEditor {
                     prefixObjectNumber,
                     suffixObjectNumber)
             };
-            AddNormalizedProductionBoxes(pageOverrides, readPage.GetGeometry(), new PageSize(width, height));
+            AddNormalizedProductionBoxes(pageOverrides, readPage.GetGeometry(), new PdfPageSize(width, height));
             overrides[readPage.ObjectNumber] = pageOverrides;
         }
 

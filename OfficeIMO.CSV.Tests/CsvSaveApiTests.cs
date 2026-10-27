@@ -21,7 +21,7 @@ public class CsvSaveApiTests
 
         using var stream = new MemoryStream();
         document.Save(stream, options);
-        using MemoryStream encoded = document.ToStream(options);
+        using MemoryStream encoded = new System.IO.MemoryStream(document.ToBytes(options));
 
         Assert.Equal(expected, stream.ToArray());
         Assert.Equal(expected, encoded.ToArray());

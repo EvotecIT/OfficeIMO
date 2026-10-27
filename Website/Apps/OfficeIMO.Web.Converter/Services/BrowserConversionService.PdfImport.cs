@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -62,8 +65,8 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToWord(SelectedDocument file) {
-        PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResult();
+        using PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        PdfWordConversionResult conversion = pdf.ConvertToWordWithEvidence();
         using var document = conversion.Value;
         byte[] bytes = document.ToBytes();
         return new PdfImportPayload(
@@ -80,21 +83,21 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToExcel(SelectedDocument file) {
-        PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult();
+        using PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        PdfExcelTableImportResult conversion = pdf.ConvertToExcelWithEvidence();
         using var document = conversion.Value;
         byte[] bytes = document.ToBytes();
         var warnings = new List<PdfConversionWarning>();
         if (conversion.HasOmittedPageContent) {
             warnings.Add(new PdfConversionWarning(
-                "OfficeIMO.Excel.Pdf",
+                "OfficeIMO.Pdf.Excel",
                 "PdfTablesOnly",
                 "document",
                 "Excel import includes detected tables; other page content remains outside this table-only route."));
         }
         if (conversion.HasLoss) {
             warnings.Add(new PdfConversionWarning(
-                "OfficeIMO.Excel.Pdf",
+                "OfficeIMO.Pdf.Excel",
                 "PdfTableRowsTruncated",
                 "document",
                 "One or more detected tables exceeded the configured import limit."));
@@ -115,19 +118,19 @@ public sealed partial class BrowserConversionService {
     private static PdfImportPayload ConvertPdfToPowerPoint(
         SelectedDocument file,
         string? profileId) {
-        PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        using PdfDocument pdf = BrowserPdfPolicy.Open(file);
         BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(profileId);
-        PdfPowerPointImportMode mode = profile.Mode;
-        var options = new PdfToPowerPointOptions {
+        PowerPointPdfImportMode mode = profile.Mode;
+        var options = new PowerPointPdfImportOptions {
             Mode = profile.Mode,
             RenderFonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
             TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance
         };
-        PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(options);
+        PdfPowerPointConversionResult conversion = pdf.ConvertToPowerPointWithEvidence(options);
         using var presentation = conversion.Value;
         byte[] bytes = presentation.ToBytes();
         // A loop, not lambdas: cached lambdas share one compiler-generated class with every other route, and a
-        // field typed with an OfficeIMO.PowerPoint.Pdf type there would make every conversion load that assembly.
+        // field typed with an OfficeIMO.Pdf.PowerPoint type there would make every conversion load that assembly.
         int textBoxes = 0, shapes = 0, images = 0;
         foreach (var page in conversion.Report.EditablePages) {
             textBoxes += page.TextBoxCount;
@@ -135,11 +138,11 @@ public sealed partial class BrowserConversionService {
             images += page.ImageCount;
         }
         string summary = profile.Mode switch {
-            PdfPowerPointImportMode.VisualPages =>
+            PowerPointPdfImportMode.VisualPages =>
                 $"Visual PPTX generated: {FormatBytes(bytes.Length)}. Each slide contains one page image; its text, shapes, charts, and tables are not editable.",
-            PdfPowerPointImportMode.HybridVisualAndEditableTables =>
+            PowerPointPdfImportMode.HybridVisualAndEditableTables =>
                 $"Hybrid PPTX generated: {FormatBytes(bytes.Length)}. Page images preserve appearance and {conversion.Report.TableEntries.Count} detected table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")} remain editable.",
-            PdfPowerPointImportMode.EditableTables =>
+            PowerPointPdfImportMode.EditableTables =>
                 $"Tables-only PPTX generated with {conversion.Report.TableEntries.Count} editable table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}.",
             _ =>
                 $"Editable-content PPTX generated with {textBoxes} text box{(textBoxes == 1 ? string.Empty : "es")}, {conversion.Report.TableEntries.Count} table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}, {shapes} shape{(shapes == 1 ? string.Empty : "s")}, and {images} separate image{(images == 1 ? string.Empty : "s")}.",
@@ -158,7 +161,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
-        PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        using PdfDocument pdf = BrowserPdfPolicy.Open(file);
         PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true,
@@ -179,7 +182,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToPng(SelectedDocument file) {
-        PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        using PdfDocument pdf = BrowserPdfPolicy.Open(file);
         int pageCount = pdf.Inspect().PageCount;
         if (pageCount == 0) {
             throw new InvalidOperationException("The PDF did not contain a renderable page.");

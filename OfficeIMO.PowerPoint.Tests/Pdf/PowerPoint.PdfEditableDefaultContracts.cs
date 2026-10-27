@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
@@ -13,14 +14,14 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "BT /F1 12 Tf 72 720 Td (Visible text) Tj 3 Tr 0 -24 Td (Hidden OCR text) Tj 0 Tr ET");
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
-        Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.Mode);
         PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
         Assert.True(page.OmittedTextCount >= 1);
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning =>
-            warning.Code == "PdfTextNotReconstructed" &&
+            warning.Code == "pdf-text-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -42,7 +43,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "BT /F1 12 Tf 72 720 Td (Visible text) Tj 650 0 Td (Off-page secret) Tj ET");
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -53,7 +54,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             .ToArray();
         Assert.Contains(text, value => value.Contains("Visible text", StringComparison.Ordinal));
         Assert.DoesNotContain(text, value => value.Contains("Off-page secret", StringComparison.Ordinal));
-        Assert.Contains(result.Warnings, warning => warning.Code == "PdfTextNotReconstructed");
+        Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             includeTransparentState: true);
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -88,11 +89,11 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         }));
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
-        Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.Mode);
         Assert.True(result.HasLoss);
-        Assert.Contains(result.Warnings, warning => warning.Code == "PdfTextNotReconstructed");
+        Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
 
         using var presentation = new MemoryStream();
@@ -120,7 +121,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         }));
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -148,10 +149,10 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         }));
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
         Assert.True(result.HasLoss);
-        Assert.Contains(result.Warnings, warning => warning.Code == "PdfTextNotReconstructed");
+        Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
 
         using var presentation = new MemoryStream();
@@ -173,12 +174,12 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             .ToBytes();
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
-            .ToPowerPointPresentationResult();
+            .ConvertToPowerPointWithEvidence();
 
         Assert.True(result.Report.HasOmittedPageContent);
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning =>
-            warning.Code == "PdfFormsNotReconstructed" &&
+            warning.Code == "pdf-forms-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -187,7 +188,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
 
     [Fact]
     public void LogicalPdfAutoProfileResolvesToEditableTablesForNullAndDefaultOptions() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -211,12 +212,12 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             pdf,
             new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true });
 
-        PdfPowerPointConversionResult implicitResult = logical.ToPowerPointPresentationResult();
-        PdfPowerPointConversionResult explicitDefaultResult = logical.ToPowerPointPresentationResult(
-            new PdfToPowerPointOptions());
+        PdfPowerPointConversionResult implicitResult = logical.ConvertToPowerPointWithEvidence();
+        PdfPowerPointConversionResult explicitDefaultResult = logical.ConvertToPowerPointWithEvidence(
+            new PowerPointPdfImportOptions());
 
-        Assert.Equal(PdfPowerPointImportMode.EditableTables, implicitResult.Report.Mode);
-        Assert.Equal(PdfPowerPointImportMode.EditableTables, explicitDefaultResult.Report.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableTables, implicitResult.Report.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableTables, explicitDefaultResult.Report.Mode);
         Assert.Single(implicitResult.Report.TableEntries);
         Assert.Single(explicitDefaultResult.Report.TableEntries);
         implicitResult.Value.Dispose();

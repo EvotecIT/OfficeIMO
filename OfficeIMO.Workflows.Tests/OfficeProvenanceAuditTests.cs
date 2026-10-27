@@ -110,10 +110,10 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
         }
     }
     [Theory]
-    [InlineData(OfficeWorkflowConflictPolicy.Fail)]
-    [InlineData(OfficeWorkflowConflictPolicy.Replace)]
-    [InlineData(OfficeWorkflowConflictPolicy.Rename)]
-    public async Task PublicationGuardProtectsOwnedDestinations(OfficeWorkflowConflictPolicy policy) {
+    [InlineData(OfficePublicationPolicy.Fail)]
+    [InlineData(OfficePublicationPolicy.Replace)]
+    [InlineData(OfficePublicationPolicy.Rename)]
+    public async Task PublicationGuardProtectsOwnedDestinations(OfficePublicationPolicy policy) {
         string input = Write("page.html", "<html><body>before</body></html>");
         string output = Path.Combine(_root, "copy.html");
         var guard = new DestinationGuard(output);
@@ -121,12 +121,12 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
             Operation = OfficeProvenanceWorkflowOperation.Remove, OutputPath = output, ConflictPolicy = policy, PublicationGuard = guard });
         Assert.False(File.Exists(output));
         Assert.True(guard.Calls > 0);
-        if (policy == OfficeWorkflowConflictPolicy.Rename) { Assert.True(result.Succeeded, result.Summary); Assert.NotEqual(output, result.OutputPath); Assert.True(File.Exists(result.OutputPath)); }
+        if (policy == OfficePublicationPolicy.Rename) { Assert.True(result.Succeeded, result.Summary); Assert.NotEqual(output, result.OutputPath); Assert.True(File.Exists(result.OutputPath)); }
         else Assert.False(result.Succeeded);
     }
-    private sealed class DestinationGuard(string owned) : IOfficeWorkflowPublicationGuard {
+    private sealed class DestinationGuard(string owned) : IOfficePublicationGuard {
         internal int Calls;
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) { Calls++; return ValueTask.FromResult(!string.Equals(path, owned, StringComparison.Ordinal)); }
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) { Calls++; return Task.FromResult(!string.Equals(path, owned, StringComparison.Ordinal)); }
     }
     [Fact]
     public async Task ChangedReviewedFileCannotProduceAnArtifactAndSarifContainsFailures() {

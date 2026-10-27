@@ -192,7 +192,7 @@ public sealed class StudioOcrSessionTests {
             byte[] visualSource = PdfDocument.Create(document => document.Page(page => page.Size(360, 480).Canvas(canvas =>
                 canvas.Text([new PdfTextRun("Invoice 4827")], 30, 60, 280, 30, fontSize: 24)
                     .Text([new PdfTextRun("Reviewed searchable statement")], 30, 120, 300, 25, fontSize: 16)))).ToBytes();
-            byte[] png = PdfDocument.Load(visualSource).Render.Pages(PdfPageSelection.From(1),
+            byte[] png = PdfDocument.Load(new System.IO.MemoryStream(visualSource)).Render.Pages(PdfPageSelection.From(1),
                 new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72 }).Single().Bytes!;
             File.WriteAllBytes(image, png);
             byte[] originalPdf = PdfDocument.Create(document => document.Page(page => page.Size(360, 480))).ToBytes();
@@ -264,7 +264,7 @@ public sealed class StudioOcrSessionTests {
                 Assert.Equal(firstOutput, File.ReadAllBytes(textOutput));
                 Assert.Equal(png, File.ReadAllBytes(image));
                 Assert.Equal(originalPdf, File.ReadAllBytes(pdf));
-                Assert.Contains("Reviewed text", PdfReadDocument.Open(File.ReadAllBytes(model.Items[1].OutputPath!)).ExtractText());
+                Assert.Contains("Reviewed text", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(model.Items[1].OutputPath!))).ExtractText());
                 Assert.Equal(0, services.Jobs.ActiveCount);
                 Capture(window, $"ocr-session-completed-{width}-{dark}");
             } finally { window.Close(); }

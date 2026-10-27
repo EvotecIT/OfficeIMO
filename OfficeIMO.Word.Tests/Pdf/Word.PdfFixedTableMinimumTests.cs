@@ -25,11 +25,11 @@ public partial class Word {
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
         table.Width = 60;
         if (!separate) table._tableProperties.TableCellSpacing = null;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
         foreach (WordTableCell cell in table.Rows[0].Cells)
             cell.MarginLeftWidth = cell.MarginRightWidth = margin;
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
         double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
@@ -47,11 +47,11 @@ public partial class Word {
     public void SaveAsPdf_AbsoluteZeroSpacingRetainsTheSeparateBorderBaseline(int border) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.Drawing.OfficeColor.Black);
-        using var separate = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
+        using var separate = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double separateBaseline = Assert.Single(separate.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
         table._tableProperties.TableCellSpacing = null;
-        using var collapsed = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var collapsed = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double collapsedBaseline = Assert.Single(collapsed.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
         Assert.Equal(border / 8D, collapsedBaseline - separateBaseline, 3);
     }
@@ -68,7 +68,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
         table.Width = 60;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8U, OfficeIMO.OfficeColor.Black);
         W.TableWidthUnitValues spacingUnit = unit == "dxa" ? W.TableWidthUnitValues.Dxa
             : unit == "auto" ? W.TableWidthUnitValues.Auto : W.TableWidthUnitValues.Pct;
         var spacing = new W.TableCellSpacing { Type = spacingUnit, Width = "0" };
@@ -80,7 +80,7 @@ public partial class Word {
         } else {
             table._tableProperties.TableCellSpacing = spacing;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
         double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
@@ -108,7 +108,7 @@ public partial class Word {
             new W.InsideVerticalBorder { Val = value, Size = (uint)border });
         foreach (WordTableCell cell in table.Rows[0].Cells)
             cell.MarginLeftWidth = cell.MarginRightWidth = margin;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
         double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
@@ -130,7 +130,7 @@ public partial class Word {
         merged.MarginLeftWidth = merged.MarginRightWidth = 400;
         merged.Paragraphs[0].Text = "Span";
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
         double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
@@ -156,7 +156,7 @@ public partial class Word {
         merged.Width = 4500;
         merged.MarginLeftWidth = merged.MarginRightWidth = mergedMargin;
         merged.Paragraphs[0].Text = "S";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double x = Assert.Single(letters, letter => letter.Value == "S").StartBaseLine.X;
         Assert.Equal(72D + mergedMargin / 20D + spacing / 10D, x, 3);
@@ -188,8 +188,8 @@ public partial class Word {
         return table;
     }
 
-    private static WordToPdfOptions UnequalFixedMinimumOptions() => new() {
+    private static WordPdfExportOptions UnequalFixedMinimumOptions() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = new PageSize(600, 400), Margins = PageMargins.Uniform(72)
+        PageSize = new PdfPageSize(600, 400), Margins = PdfPageMargins.Uniform(72)
     };
 }

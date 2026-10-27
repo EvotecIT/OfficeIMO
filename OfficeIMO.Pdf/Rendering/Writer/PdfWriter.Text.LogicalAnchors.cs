@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static ContentStreamBuilder WriteLogicalTextAnchor(StringBuilder sb, PdfOptions options, PdfStandardFont font, string fontResource, double anchorX, double anchorY,
+    private static ContentStreamBuilder WriteLogicalTextAnchor(StringBuilder sb, PdfCreateOptions options, PdfStandardFont font, string fontResource, double anchorX, double anchorY,
         string actualText, double width, double height) {
         bool hasBounds = width > 0D && height > 0D;
         double fontSize = hasBounds ? height : 1D;
@@ -29,7 +29,7 @@ internal static partial class PdfWriter {
         return content.EndText();
     }
 
-    private static PdfTextShowCommand EncodeBoundedLogicalTextAnchor(PdfStandardFont font, PdfOptions options, int count) {
+    private static PdfTextShowCommand EncodeBoundedLogicalTextAnchor(PdfStandardFont font, PdfCreateOptions options, int count) {
         PdfTextShowCommand anchor = EncodeActualTextAnchor(font, options, count);
         // Font positioning styles painted glyphs, not the caller's explicit
         // semantic rectangle. Emit one nominal run so its first text-show

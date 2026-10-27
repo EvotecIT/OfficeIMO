@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(validation.HasSignatures);
             Assert.Equal(WordSignatureValidationState.NotPresent, validation.PackageStructureStatus);
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "PackageByteLimitExceeded");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "package-byte-limit-exceeded");
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
                 Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
                 Assert.Contains(validation.Findings, finding => finding.Contains("digest did not match", System.StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignerCertificateMissing");
+                Assert.Contains(validation.Diagnostics, finding => finding.Code == "signer-certificate-missing");
                 Assert.Contains(validation.Findings, finding => finding.Contains("package-part references resolve", System.StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
                     timestamp.Value == xadesTimestampValue &&
                     timestamp.Format == null);
                 Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
-                Assert.Contains(validation.Diagnostics, finding => finding.Code == "ClaimedSigningTimeNotTrusted");
+                Assert.Contains(validation.Diagnostics, finding => finding.Code == "claimed-signing-time-not-trusted");
                 Assert.Contains(validation.SignatureInfo.Details, detail => detail.Contains("Signature timestamp", System.StringComparison.OrdinalIgnoreCase));
             }
         }
@@ -641,7 +641,7 @@ namespace OfficeIMO.Tests {
             WordSignaturePartInfo part = Assert.Single(validation.SignatureInfo.SignatureParts);
             Assert.True(part.HasParseError);
             Assert.Contains(part.UnsupportedDetails, detail => detail.Contains("more than 1 authenticated references", System.StringComparison.Ordinal));
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -777,7 +777,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions { MaxSignatureBytes = 256 });
 
             Assert.False(validation.IsValidUnderPolicy);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -794,7 +794,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(validation.IsValidUnderPolicy);
             Assert.Empty(validation.SignatureInfo.SignatureParts);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.DoesNotContain(validation.Findings, finding => finding.Contains("could not be parsed", System.StringComparison.OrdinalIgnoreCase));
         }
 
@@ -814,7 +814,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Empty(validation.SignatureInfo.SignatureParts);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
 
             WordSignatureValidationReport permissive = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions {
                 MaxPackageParts = 10000
@@ -999,7 +999,7 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions { MaxCertificates = 1 });
 
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.Contains("certificate limit", Assert.Single(validation.SignatureInfo.SignatureParts).ParseError!, System.StringComparison.OrdinalIgnoreCase);
         }
 
@@ -1015,7 +1015,7 @@ namespace OfficeIMO.Tests {
             using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions { MaxCertificateBytes = 16 });
 
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.Contains("byte limit", Assert.Single(validation.SignatureInfo.SignatureParts).ParseError!, System.StringComparison.OrdinalIgnoreCase);
         }
 
@@ -1038,7 +1038,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalCertificateBytes = certificateBytes.LongLength + 1
             });
 
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.Contains(validation.SignatureInfo.SignatureParts, part =>
                 part.ParseError?.Contains("aggregate certificate limit", System.StringComparison.OrdinalIgnoreCase) == true);
         }
@@ -1062,7 +1062,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, new WordSignatureValidationOptions { MaxCertificates = 1 });
 
             Assert.Null(Assert.Single(validation.SignatureInfo.SignatureParts).ParseError);
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -1184,9 +1184,9 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Throws<WordSignatureSavePolicyException>(() => document.ToStream());
-                using MemoryStream stream = document.ToStream(options:
-                    new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                Assert.Throws<WordSignatureSavePolicyException>(() => new System.IO.MemoryStream(document.ToBytes()));
+                using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes(options:
+                    new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation }));
 
                 Assert.True(stream.Length > 0);
             }
@@ -1359,10 +1359,10 @@ namespace OfficeIMO.Tests {
             Assert.False(repeatedValidation.IsValidUnderPolicy);
             Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
 
-            using MemoryStream saved = loaded.ToStream(
+            using MemoryStream saved = new System.IO.MemoryStream(loaded.ToBytes(
                 options: new WordSaveOptions {
                     SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
-                });
+                }));
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Contains(reopened.Paragraphs, paragraph =>
                 paragraph.Text == "Second unsaved mutation after validation");
@@ -1412,7 +1412,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider);
 
             Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "UnsupportedSignedInfoTransform");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "unsupported-signed-info-transform");
         }
 
         [Fact]
@@ -1433,7 +1433,7 @@ namespace OfficeIMO.Tests {
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider);
 
             Assert.Equal(WordSignatureValidationState.Unsupported, validation.CryptographicStatus);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "UnsupportedSignedInfoCanonicalizationMethod");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "unsupported-signed-info-canonicalization-method");
         }
 
         [Fact]
@@ -1686,7 +1686,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
             Assert.False(validation.IsValidUnderPolicy);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "timestamp-malformed");
         }
 
         [Fact]
@@ -1712,7 +1712,7 @@ namespace OfficeIMO.Tests {
             Assert.False(validation.IsValidUnderPolicy);
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
             Assert.Equal(WordSignatureValidationState.Failed, validation.TimestampStatus);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "timestamp-resource-limit-exceeded");
         }
 
         [Fact]
@@ -1737,7 +1737,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
             Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "timestamp-malformed");
         }
 
         [Fact]
@@ -1762,7 +1762,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
             Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampMalformed");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "timestamp-malformed");
         }
 
         [Fact]
@@ -1828,8 +1828,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
             Assert.Equal(WordSignatureValidationState.Unsupported, validation.TimestampStatus);
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "TimestampCanonicalizationUnsupported");
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "TimestampValidationFailed");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "timestamp-canonicalization-unsupported");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "timestamp-validation-failed");
         }
 
         [Fact]

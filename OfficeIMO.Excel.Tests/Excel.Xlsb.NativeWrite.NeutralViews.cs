@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
 
             byte[] bytes;
             if (route == 0) {
-                bytes = document.ToBytes(ExcelFileFormat.Xlsb);
+                bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             } else {
                 using var output = new MemoryStream();
                 if (route == 1) document.Save(output, ExcelFileFormat.Xlsb);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(2, reader.FieldCount);
             Assert.Equal("Label", reader.GetName(0));
             Assert.Equal("Count", reader.GetName(1));

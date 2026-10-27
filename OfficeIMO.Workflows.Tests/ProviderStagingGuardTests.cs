@@ -22,7 +22,7 @@ namespace OfficeIMO.Workflows.Tests {
                 InputPath = source,
                 Operation = OfficeWorkflowOperation.Optimize,
                 OutputPath = providerLocation,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = guard,
                 OutputStream = new OfficeWorkflowStreamOutput("selected.pdf",
                     _ => Task.FromResult<Stream>(new MemoryStream(destination)),
@@ -70,22 +70,22 @@ namespace OfficeIMO.Workflows.Tests {
         }
 
         private sealed class DestinationGuard(string allowedLocalRoot, string providerLocation, bool allowPublication)
-            : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
+            : IOfficePublicationGuard, IOfficeStagingGuard {
             internal string AllowedLocalRoot { get; } = allowedLocalRoot;
             internal int PublicationChecks { get; private set; }
 
-            public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
+            public Task EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(Path.GetFullPath(directory), Path.GetFullPath(AllowedLocalRoot), StringComparison.Ordinal)) {
                     throw new UnauthorizedAccessException("Only the configured local output root is admitted for destination staging.");
                 }
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+            public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PublicationChecks++;
-                return ValueTask.FromResult(allowPublication && string.Equals(path, providerLocation, StringComparison.Ordinal));
+                return Task.FromResult(allowPublication && string.Equals(path, providerLocation, StringComparison.Ordinal));
             }
         }
 

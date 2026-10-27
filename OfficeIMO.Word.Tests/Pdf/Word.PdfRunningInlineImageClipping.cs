@@ -29,7 +29,7 @@ public partial class Word {
         string originalBody = main.Document.OuterXml;
         string originalHeader = header.OuterXml;
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfImagePlacement image = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));
         Assert.Equal(24D, image.Width, 3);
         Assert.Equal(12D, image.Height, 3);
@@ -120,7 +120,7 @@ public partial class Word {
             ? Assert.Single(document._wordprocessingDocument.MainDocumentPart.FooterParts).Footer.OuterXml
             : Assert.Single(document._wordprocessingDocument.MainDocumentPart.HeaderParts).Header.OuterXml;
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());
         var words = page.GetWords().ToArray();

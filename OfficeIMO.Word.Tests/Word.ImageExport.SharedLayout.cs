@@ -21,7 +21,7 @@ public sealed class WordSharedPageLayoutTests {
     [InlineData("native-word-report.docx", OfficeImageExportFormat.Svg)]
     public void NativeFixturesUseExactlyThePdfPageScenes(string fixture, OfficeImageExportFormat format) {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "WordLayoutFixtures", fixture));
-        var expected = document.ToPdfDocumentResult().ExportImages(format, new PdfImageExportOptions { Scale = .25D });
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .25D });
         var actual = document.ExportImages(format, new WordImageExportOptions { Scale = .25D });
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < actual.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
@@ -34,7 +34,7 @@ public sealed class WordSharedPageLayoutTests {
     public void WordImagesMatchPdfPagesIncludingStylesTablesAndOverflow(OfficeImageExportFormat format) {
         using WordDocument document = CreateDocument();
         var imageOptions = new WordImageExportOptions { Scale = .5D };
-        var expected = document.ToPdfDocumentResult().ExportImages(format, new PdfImageExportOptions { Scale = .5D });
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .5D });
         var actual = document.ExportImages(format, imageOptions);
         Assert.True(actual.Count > 1);
         Assert.Equal(expected.Count, actual.Count);
@@ -43,7 +43,7 @@ public sealed class WordSharedPageLayoutTests {
             Assert.Equal(expected[index].Height, actual[index].Height);
             Assert.Equal(expected[index].Bytes, actual[index].Bytes);
         }
-        using var pdf = new MemoryStream(document.ToPdfBytes());
+        using var pdf = new MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var read = PdfReadDocument.Open(pdf);
         var snapshots = document.CreateVisualSnapshots();
         Assert.Equal(read.Pages.Count, document.GetEstimatedImagePageCount());
@@ -83,11 +83,11 @@ public sealed class WordSharedPageLayoutTests {
     public void SharedLayoutHonorsConversionSettingsAndClonesThem() {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions {
-            LayoutOptions = new WordToPdfOptions { PageSize = new OfficeIMO.Pdf.PageSize(400, 500), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
+            LayoutOptions = new WordPdfExportOptions { PageSize = new OfficeIMO.Pdf.PdfPageSize(400, 500), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
         };
         WordImageExportOptions clone = options.Clone();
-        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PageSize(700, 800);
-        var expected = document.ToPdfDocumentResult(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
+        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PdfPageSize(700, 800);
+        var expected = document.ConvertToPdfWithEvidence(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
         var actual = document.ExportImages(OfficeImageExportFormat.Svg, clone);
         Assert.Equal(expected.Select(page => page.Bytes), actual.Select(page => page.Bytes), ByteArrayComparer.Instance);
         Assert.Equal(400D, document.CreateVisualSnapshot(clone).Width);
@@ -100,8 +100,8 @@ public sealed class WordSharedPageLayoutTests {
         var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" },
             new[] { new OfficeChartSeries("Values", new[] { 1D }) }));
         chart.ChartPart!.ChartSpace!.RemoveAllChildren();
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported"
+        var conversion = document.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "native-body-chart-unsupported"
             && warning.LossKind == OfficeConversionLossKind.Omission);
         var options = new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
         Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Png, options));

@@ -1,12 +1,12 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Composes HTML fragments/documents from a MarkdownDoc with options.
+/// Composes HTML fragments/documents from a MarkdownDocument with options.
 /// </summary>
 internal static class HtmlRenderer {
-    internal static string Render(MarkdownDoc doc, HtmlOptions options) {
+    internal static string Render(MarkdownDocument doc, MarkdownHtmlExportOptions options) {
         var parts = RenderParts(doc, options);
-        if (options.Kind == HtmlKind.Fragment) {
+        if (options.Kind == MarkdownHtmlKind.Fragment) {
             return parts.Body; // Body already wrapped if requested
         }
         // Full document
@@ -22,7 +22,7 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
+    internal static MarkdownHtmlParts RenderParts(MarkdownDocument doc, MarkdownHtmlExportOptions options) {
         var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs(options.HeadingIdentifierStyle);
         var footnoteState = options.GitHubFootnoteHtml
             ? HtmlFootnoteRenderState.Create(realizedBlocks)
@@ -58,7 +58,7 @@ internal static class HtmlRenderer {
         } catch { /* best-effort */ }
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
-        if (options.AssetMode == AssetMode.Online) {
+        if (options.AssetMode == MarkdownAssetMode.Online) {
             foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
                 head.Append($"<script src=\"{HtmlAttributeUrlEncoder.Encode(js, options)}\"></script>\n");
             }
@@ -69,14 +69,14 @@ internal static class HtmlRenderer {
             }
         }
 
-        var parts = new HtmlRenderParts();
+        var parts = new MarkdownHtmlParts();
 
         // Prism assets (manifest + optional emission)
         if (options.Prism?.Enabled == true) {
             // For Prism in Online mode, prefer link-based CSS for GithubAuto theme to expose media attributes
             // so hosts can dedupe/merge correctly (tests expect media queries present in <link> tags).
-            var prismCssDelivery = (options.AssetMode == AssetMode.Online && options.Prism.Theme == PrismTheme.GithubAuto)
-                ? CssDelivery.LinkHref
+            var prismCssDelivery = (options.AssetMode == MarkdownAssetMode.Online && options.Prism.Theme == MarkdownPrismTheme.GithubAuto)
+                ? MarkdownCssDelivery.LinkHref
                 : options.CssDelivery;
             var assets = AssetFactory.PrismAssets(
                 options.Prism,
@@ -85,14 +85,14 @@ internal static class HtmlRenderer {
                 options.CssScopeSelector,
                 options.ExternalTextResolver);
             foreach (var a in assets) parts.Assets.Add(a);
-            if (options.EmitMode == AssetEmitMode.Emit) {
+            if (options.EmitMode == MarkdownAssetEmitMode.Emit) {
                 foreach (var a in parts.Assets) {
-                    if (a.Kind == HtmlAssetKind.Css) {
+                    if (a.Kind == MarkdownHtmlAssetKind.Css) {
                         if (!string.IsNullOrEmpty(a.Href)) {
                             var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{HtmlTextEncoder.Encode(a.Media, options)}\"";
                             head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{HtmlTextEncoder.Encode(a.Id, options)}\" href=\"{HtmlAttributeUrlEncoder.Encode(a.Href, options)}\"{media}>\n");
                         } else if (!string.IsNullOrEmpty(a.Inline)) {
-                            if (options.CssDelivery == CssDelivery.ExternalFile) {
+                            if (options.CssDelivery == MarkdownCssDelivery.ExternalFile) {
                                 // When writing CSS to a sidecar file, ensure Prism inline CSS is included there too.
                                 options._externalCssContentToWrite = (options._externalCssContentToWrite?.Length > 0 ? (options._externalCssContentToWrite + "\n") : (options._externalCssContentToWrite ?? string.Empty)) + a.Inline;
                             } else {
@@ -115,7 +115,7 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(MarkdownDoc document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
+    private static string RenderBody(MarkdownDocument document, System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, MarkdownHtmlExportOptions options, MarkdownHeadingCatalog headingCatalog) {
         var context = new MarkdownBodyRenderContext(document, blocks, options, headingCatalog);
         using var _inlineContext = HtmlRenderContext.PushBodyContext(context);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
@@ -310,14 +310,14 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<HtmlStyle, string> _unscopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<HtmlStyle, string>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string> _unscopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string>();
 
-    private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
+    private static string? BuildCss(MarkdownHtmlExportOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
         // Only cache the finite built-in style set. Caller-controlled scope selectors are
         // deliberately rendered on demand so unique request values cannot grow static state.
         MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
-        HtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
+        MarkdownHtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
         string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
             static style => HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
         string baseCss = ScopeCss(rawBaseCss, options.CssScopeSelector);
@@ -326,9 +326,9 @@ internal static class HtmlRenderer {
         StringBuilder headLinks = new StringBuilder();
 
         // Primary stylesheet selection
-        if (options.CssDelivery == CssDelivery.None) {
+        if (options.CssDelivery == MarkdownCssDelivery.None) {
             // Still emit links for additional CSS if Online
-            if (options.AssetMode == AssetMode.Online) {
+            if (options.AssetMode == MarkdownAssetMode.Online) {
                 foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
                     headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             }
@@ -338,7 +338,7 @@ internal static class HtmlRenderer {
         }
 
         bool linkPrimary = false;
-        if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Online) {
+        if (options.CssDelivery == MarkdownCssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == MarkdownAssetMode.Online) {
             linkPrimary = true;
             cssLinkTag = $"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(options.CssHref, options)}\">\n";
             foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
@@ -351,14 +351,14 @@ internal static class HtmlRenderer {
         var cssBuilder = new StringBuilder();
         if (!linkPrimary && !string.IsNullOrEmpty(baseCss)) cssBuilder.Append(baseCss).Append('\n');
 
-        if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Offline) {
+        if (options.CssDelivery == MarkdownCssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == MarkdownAssetMode.Offline) {
             // Attempt to download provided CSS and inline
             var downloaded = ResolveExternalText(options.CssHref!, options.ExternalTextResolver);
             if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
         }
         // Additional CSS URLs
         foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
-            if (options.AssetMode == AssetMode.Online && options.CssDelivery == CssDelivery.LinkHref) {
+            if (options.AssetMode == MarkdownAssetMode.Online && options.CssDelivery == MarkdownCssDelivery.LinkHref) {
                 headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             } else {
                 var downloaded = ResolveExternalText(href, options.ExternalTextResolver);
@@ -371,7 +371,7 @@ internal static class HtmlRenderer {
         var overrides = BuildThemeOverrides(options, effectiveVisualTheme);
         if (!string.IsNullOrEmpty(overrides)) cssBuilder.Append(overrides);
         var aggregatedCss = cssBuilder.ToString();
-        if (options.CssDelivery == CssDelivery.ExternalFile) {
+        if (options.CssDelivery == MarkdownCssDelivery.ExternalFile) {
             // Renderer expects caller to write this CSS; return empty inline CSS but set writable content
             cssToWrite = aggregatedCss;
             var fileName = options.ExternalCssOutputPath != null ? System.IO.Path.GetFileName(options.ExternalCssOutputPath) : "styles.css";
@@ -382,38 +382,38 @@ internal static class HtmlRenderer {
         return aggregatedCss;
     }
 
-    private static MarkdownVisualTheme? ResolveVisualTheme(HtmlOptions options) {
+    private static MarkdownVisualTheme? ResolveVisualTheme(MarkdownHtmlExportOptions options) {
         if (options.Theme != null) {
             return options.Theme.Clone();
         }
 
         bool useDefaultTheme = options.ApplyDefaultTheme
-            && (options.Style == HtmlStyle.Clean || options.Style == HtmlStyle.Word);
+            && (options.Style == MarkdownHtmlStyle.Clean || options.Style == MarkdownHtmlStyle.Word);
         return MarkdownVisualTheme.ResolveOrDefault(null, useDefaultTheme);
     }
 
-    private static HtmlStyle GetEffectiveStyle(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
-        if (visualTheme != null && options.Style == HtmlStyle.Clean) {
+    private static MarkdownHtmlStyle GetEffectiveStyle(MarkdownHtmlExportOptions options, MarkdownVisualTheme? visualTheme) {
+        if (visualTheme != null && options.Style == MarkdownHtmlStyle.Clean) {
             return visualTheme.HtmlStyle;
         }
 
         return options.Style;
     }
 
-    private static HtmlStyle NormalizeHtmlStyle(HtmlStyle style) => style switch {
-        HtmlStyle.Plain => style,
-        HtmlStyle.Clean => style,
-        HtmlStyle.GithubLight => style,
-        HtmlStyle.GithubDark => style,
-        HtmlStyle.GithubAuto => style,
-        HtmlStyle.ChatLight => style,
-        HtmlStyle.ChatDark => style,
-        HtmlStyle.ChatAuto => style,
-        HtmlStyle.Word => style,
-        _ => HtmlStyle.Clean
+    private static MarkdownHtmlStyle NormalizeHtmlStyle(MarkdownHtmlStyle style) => style switch {
+        MarkdownHtmlStyle.Plain => style,
+        MarkdownHtmlStyle.Clean => style,
+        MarkdownHtmlStyle.GithubLight => style,
+        MarkdownHtmlStyle.GithubDark => style,
+        MarkdownHtmlStyle.GithubAuto => style,
+        MarkdownHtmlStyle.ChatLight => style,
+        MarkdownHtmlStyle.ChatDark => style,
+        MarkdownHtmlStyle.ChatAuto => style,
+        MarkdownHtmlStyle.Word => style,
+        _ => MarkdownHtmlStyle.Clean
     };
 
-    private static string BuildThemeOverrides(HtmlOptions options, MarkdownVisualTheme? theme) {
+    private static string BuildThemeOverrides(MarkdownHtmlExportOptions options, MarkdownVisualTheme? theme) {
         MarkdownHtmlColorOverrides t = BuildEffectiveThemeColors(options, theme);
         bool any = theme != null
                  || !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
@@ -479,7 +479,7 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static MarkdownHtmlColorOverrides BuildEffectiveThemeColors(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
+    private static MarkdownHtmlColorOverrides BuildEffectiveThemeColors(MarkdownHtmlExportOptions options, MarkdownVisualTheme? visualTheme) {
         var colors = new MarkdownHtmlColorOverrides();
         if (visualTheme != null) {
             MarkdownVisualPalette palette = visualTheme.PaletteSnapshot;

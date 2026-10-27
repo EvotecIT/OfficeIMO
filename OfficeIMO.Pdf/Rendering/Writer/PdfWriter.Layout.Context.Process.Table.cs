@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
-            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
                 throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true, PdfTableStyle? preparedPairedStyle = null, StringBuilder? deferredPairedBorders = null) {
-            PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             if (HasContainedCellBlocks(tb)) {
                 if (skipInitialHeaderRows || bodyRowOffset != 0 || !logicalTopBoundary || !logicalBottomBoundary || !restoreVerticalFlow)
                     throw new NotSupportedException("Ordered cell content requires an eager inline table.");

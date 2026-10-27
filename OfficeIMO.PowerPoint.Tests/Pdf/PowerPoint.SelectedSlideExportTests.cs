@@ -27,7 +27,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         Assert.Equal(3, images.Count);
         Assert.True(OfficePngReader.TryDecode(images[1].Bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.FromRgb(18, 52, 86), image!.GetPixel(5, 5));
-        Assert.Single(images[1].Diagnostics.Where(diagnostic => diagnostic.Code == "embedded-image-limit"));
+        Assert.Single(images[1].Diagnostics, diagnostic => diagnostic.Code == "embedded-image-limit");
     }
 
     [Fact]

@@ -43,7 +43,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     public string Fidelity => UsesRasterPages || SupportsIWorkOptions && IWorkMode == OfficeIMO.IWork.IWorkConversionMode.VisualOnly ? T("VisualFidelity", "Visual page images · review rendering and editability limits") : Route.Fidelity;
     public string KnownLimitations => Route.KnownLimitations;
 
-    public OfficeWorkflowOutputProfile OutputProfile { get; internal set; } = OfficeWorkflowOutputProfile.Faithful;
+    public OfficeConversionProfile OutputProfile { get; internal set; } = OfficeConversionProfile.Faithful;
 
     [ObservableProperty]
     private string _status = string.Empty;

@@ -12,7 +12,7 @@ public sealed class PdfSignedParagraphTabTests {
             LeftIndent = 36D, FirstLineIndent = -36D, DefaultTabStopWidth = 36D, SpacingAfter = 0D
         };
         style.AddTabStop(position);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 300D, PageHeight = 180D, MarginLeft = 30D, MarginRight = 30D,
             MarginTop = 30D, MarginBottom = 30D, DefaultFontSize = 10D
         }).Paragraph(paragraph => paragraph.Text("1.\tFIELD\nX\tLATER"), style: style).ToBytes();

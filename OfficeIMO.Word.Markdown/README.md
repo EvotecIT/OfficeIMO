@@ -21,8 +21,9 @@ using OfficeIMO.Word.Markdown;
 using var document = WordDocument.Create();
 document.AddParagraph("Hello");
 
-string markdown = document.ToMarkdown();
-using var fromMarkdown = MarkdownReader.Parse("# Title\n\nBody").ToWordDocument();
+using MarkdownDocument model = document.ToMarkdown();
+string markdown = model.ToMarkdown();
+using var fromMarkdown = MarkdownDocument.Parse("# Title\n\nBody").ToWord();
 ```
 
 ## AST-first conversion
@@ -32,13 +33,14 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Markdown;
 
-MarkdownDoc markdownDocument = "<table><tr><td><p>Line 1</p><p>Line 2</p></td></tr></table>"
-    .ToMarkdownDocument();
+using MarkdownDocument markdownDocument = OfficeIMO.Html.HtmlConversionDocument
+    .Parse("<table><tr><td><p>Line 1</p><p>Line 2</p></td></tr></table>")
+    .ToMarkdown();
 
-using var wordDocument = markdownDocument.ToWordDocument();
+using var wordDocument = markdownDocument.ToWord();
 ```
 
-Use `MarkdownDoc.ToWordDocument()` when you already have a typed AST and want to avoid flattening back to Markdown text before Word conversion.
+Use `MarkdownDocument.ToWord()` when you already have a typed AST and want to avoid flattening back to Markdown text before Word conversion.
 
 ## What it maps
 
@@ -49,70 +51,81 @@ Use `MarkdownDoc.ToWordDocument()` when you already have a typed AST and want to
 
 ## HTML via Markdown
 
+Convert Word into a Markdown model, then render it with Markdown's HTML options:
+
 ```csharp
 using OfficeIMO.Markdown;
-var html = doc.ToHtmlViaMarkdown();           // full HTML document (defaults to HtmlStyle.Word)
-var fragment = doc.ToHtmlFragmentViaMarkdown();
-doc.SaveAsHtmlViaMarkdown("report.html");     // defaults to HtmlStyle.Word
+using OfficeIMO.Word.Markdown;
 
-// Override style if desired:
-doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.GithubAuto });
+using var source = OfficeIMO.Word.WordDocument.Load("report.docx");
+using var markdown = source.ToMarkdown();
+string html = markdown.ToHtml(new MarkdownHtmlExportOptions {
+    Kind = MarkdownHtmlKind.Document,
+    Style = MarkdownHtmlStyle.Word
+});
+markdown.SaveAsHtml("report.html", new MarkdownHtmlExportOptions {
+    Kind = MarkdownHtmlKind.Document,
+    Style = MarkdownHtmlStyle.GithubAuto
+});
 ```
 
-Use `ToWordDocumentViaMarkdown()` when your source is HTML but you want the AST-first Markdown bridge instead of flattening HTML into Markdown text first.
+For HTML input, add `OfficeIMO.Markdown.Html`, parse with `HtmlConversionDocument.Parse(html)`, then call `ToMarkdown().ToWord()`. `OfficeIMO.Word.Markdown` has no dependency on the HTML engine. The `OfficeIMO` front door wires optional raw-HTML handling; a focused adapter reports unsupported raw blocks through its conversion diagnostics.
 
 ## Notes
 
-- Default styling: ToHtmlViaMarkdown/SaveAsHtmlViaMarkdown use HtmlStyle.Word for a document‑like look.
+- Select `MarkdownHtmlStyle.Word` explicitly for document-like HTML styling.
 - TOC markers: `[TOC]`, `[[TOC]]`, `{:toc}`, and `<!-- TOC -->` are recognized. Markdown -> Word creates a native Word table of contents, and Word -> Markdown exports native TOCs back as `[TOC ...]` markers.
   Parameterized form: `[TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]`.
 - Table cells: inline markdown (code/links/emphasis/images) is supported and `<br>` becomes a real line break in HTML.
-- Native Markdown tables cannot express merged Word cells or cell borders. Word-to-Markdown keeps their text in a flat table and reports the formatting loss through `ToMarkdownDocumentResult()`.
+- Native Markdown tables cannot express merged Word cells or cell borders. Word-to-Markdown keeps their text in a flat table and reports the formatting loss through `ToMarkdown(options, out report)`.
 - AST-preserved inline HTML wrappers such as `<u>`, `<sub>`, and `<sup>` map to real Word run formatting during Markdown -> Word conversion.
 - Inline tags without a native Word run equivalent degrade intentionally on the Word leg: `<ins>` is treated as underline semantics and `<q>` roundtrips as literal quoted text.
 
 ## Markdown -> Word image layout options
 
 ```csharp
-var options = new MarkdownToWordOptions {
+using OfficeIMO.Markdown;
+var options = new WordMarkdownImportOptions {
     AllowLocalImages = true,
     FitImagesToPageContentWidth = true,           // page width minus margins
     MaxImageWidthPercentOfContent = 85            // optional percent-based cap
 };
 
-using var doc = MarkdownReader.Parse(markdown).ToWordDocument(options);
+using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
-- Typed contract is available via `MarkdownToWordOptions.ImageLayout`.
+- Typed contract is available via `WordMarkdownImportOptions.ImageLayout`.
 - `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
 - `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
 
 ## Word -> Markdown layout and visual fallback options
 
 ```csharp
-var options = new WordToMarkdownOptions {
-    PageBreakMode = MarkdownPageBreakMode.SemanticBlock,
-    UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder,
-    VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile
+using OfficeIMO.Markdown;
+var options = new WordMarkdownExportOptions {
+    PageBreakMode = WordMarkdownPageBreakMode.SemanticBlock,
+    UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder,
+    VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgFile
 };
 
 doc.SaveAsMarkdown("report.md", options);
 ```
 
 - `PageBreakMode.SemanticBlock` writes page breaks as fenced semantic blocks so Markdown -> Word can restore real Word page breaks.
-- Headers, footers, and native Word table-of-contents fields are exported as semantic Markdown blocks/markers and restored on import where possible.
+- Set `IncludeHeadersAndFootersAsSemanticBlocks = true` to export running content as semantic Markdown blocks. Omitted running content and explicit page breaks remain visible as omission diagnostics, including when the selected policy suppresses warning text. Native Word table-of-contents fields use semantic markers where supported.
 - `VisualFallbackMode.SvgDataUri` embeds supported Word chart snapshots directly in Markdown as SVG images.
-- `VisualFallbackMode.SvgFile` writes supported chart snapshots into a sidecar `*.assets` directory next to the Markdown file and links to those files.
+- `VisualFallbackMode.SvgFile` writes supported chart snapshots into a sidecar `*.assets` directory next to the Markdown file and links to those files. File images and SVG sidecars are staged until loss acceptance; `FailOnLoss` leaves existing Markdown and assets unchanged when the report is rejected.
 - Chart SVG fallbacks use the shared Word chart projection. They preserve supported cached values, numeric X coordinates, bubble sizes, category combinations and secondary-axis assignments, dimensions, native plotting order, series and point styles, radial geometry, basic label content, surfaces, axes, and resolved fonts. Secondary scales are automatic; unsupported native settings remain semantic placeholders when `UnsupportedContentMode.Placeholder` is enabled.
 
 ## Explicit IntelligenceX transcript contract
 
 ```csharp
+using OfficeIMO.Markdown;
 var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
     allowedImageDirectories: new[] { @"C:\Exports\Images" },
     visualMaxWidthPx: 760);
 
-using var doc = MarkdownReader.Parse(markdown).ToWordDocument(options);
+using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
 - `MarkdownToWordPresets.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.

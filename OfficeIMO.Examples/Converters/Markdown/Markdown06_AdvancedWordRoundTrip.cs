@@ -21,23 +21,23 @@ namespace OfficeIMO.Examples.Word.Converters {
             document.Save();
 
             var warnings = new List<string>();
-            var exportOptions = new WordToMarkdownOptions {
+            var exportOptions = new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true,
-                PageBreakMode = MarkdownPageBreakMode.SemanticBlock,
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder,
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile,
+                PageBreakMode = WordMarkdownPageBreakMode.SemanticBlock,
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder,
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgFile,
                 OnWarning = warnings.Add
             };
 
             document.SaveAsMarkdown(markdownPath, exportOptions);
 
             string markdown = ResolveSidecarResourceLinks(File.ReadAllText(markdownPath), markdownPath, resourcesPath);
-            var importOptions = new MarkdownToWordOptions {
+            var importOptions = new WordMarkdownImportOptions {
                 FontFamily = "Calibri",
                 AllowLocalImages = true
             };
             importOptions.AllowedImageDirectories.Add(Path.GetFullPath(resourcesPath));
-            using var roundTrip = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(importOptions);
+            using var roundTrip = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(importOptions);
             roundTrip.Save(roundTripPath);
 
             Console.WriteLine($"  Source Word:      {sourcePath}");

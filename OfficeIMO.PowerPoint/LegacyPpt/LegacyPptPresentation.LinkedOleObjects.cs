@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     if (_hyperlinksById.ContainsKey(linked.Id)
                         || _oleObjectsById.ContainsKey(linked.Id)
                         || _linkedOleObjectsById.ContainsKey(linked.Id)) {
-                        AddDiagnostic("PPT-OLE-LINK-ID-DUPLICATE",
+                        AddDiagnostic("ppt-ole-link-id-duplicate",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"Linked OLE identifier {linked.Id} occurs more than once or collides with another object; later objects remain preserve-only.",
                             container.Offset);
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord container, LegacyPptPackage package,
             LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-OLE-LINK-CONTAINER",
+                AddDiagnostic("ppt-ole-link-container",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ExOleLinkContainer has an invalid record header and remains preserve-only.",
                     container.Offset);
@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || objects[0].Instance != 0
                 || objects[0].PayloadLength != 24
                 || metafiles.Length > 1) {
-                AddDiagnostic("PPT-OLE-LINK-ATOM",
+                AddDiagnostic("ppt-ole-link-atom",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A linked OLE object has malformed identifying atoms and remains preserve-only.",
                     container.Offset);
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (type != 1 || id == 0 || persistId == 0
                 || !IsOleDrawAspect(drawAspectValue)
                 || updateMode is not 1 and not 3) {
-                AddDiagnostic("PPT-OLE-LINK-IDENTITY",
+                AddDiagnostic("ppt-ole-link-identity",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A linked OLE object uses an invalid type, identifier, persist reference, view aspect, or update mode.",
                     obj.Offset);
@@ -92,14 +92,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || !TryReadOleString(container, 2, out string? progId)
                 || !TryReadOleString(container, 3,
                     out string? clipboardName)) {
-                AddDiagnostic("PPT-OLE-LINK-STRING",
+                AddDiagnostic("ppt-ole-link-string",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Linked OLE identifier {id} has duplicate or malformed names and remains preserve-only.",
                     container.Offset);
                 return null;
             }
             if (!TryReadExternalObjectStorage(package, options, id,
-                    persistId, "PPT-OLE-LINK-STORAGE", "Linked OLE",
+                    persistId, "ppt-ole-link-storage", "Linked OLE",
                     obj.Offset, out byte[] storageBytes,
                     out bool compressed)) {
                 return null;

@@ -28,7 +28,7 @@ public sealed class ProviderPageOutputTests {
                     opened++;
                     return Task.FromResult<Stream>(new ReadStream(bytes, () => closed++));
                 }),
-                OutputDirectory = output, MaximumDimension = 64, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputDirectory = output, MaximumDimension = 64, ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = new CallbackGuard(() => {
                     if (failureMode == 1) bytes = CreatePdf(3);
                     if (failureMode == 2) denied = true;
@@ -63,7 +63,7 @@ public sealed class ProviderPageOutputTests {
         try {
             var result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(new() {
                 InputPath = input, InputStream = new("source.pdf", _ => Task.FromResult<Stream>(File.OpenRead(input))),
-                OutputDirectory = root, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                OutputDirectory = root, ConflictPolicy = OfficePublicationPolicy.Replace
             });
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             Assert.Equal(bytes, File.ReadAllBytes(input));
@@ -97,7 +97,7 @@ public sealed class ProviderPageOutputTests {
     [Fact]
     public void OpenedDocumentPlanningPreservesAuthenticatedPrintingRestrictions() {
         byte[] bytes = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             })).ToBytes();
         var document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "reader" });
@@ -111,10 +111,10 @@ public sealed class ProviderPageOutputTests {
         for (int index = 0; index < count; index++) compose.Page(page => page.Size(300, 400));
     }).ToBytes();
 
-    private sealed class CallbackGuard(Action callback) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class CallbackGuard(Action callback) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             callback();
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 

@@ -33,7 +33,7 @@ public class RtfParsedParagraphStateTests {
         Assert.Equal(240, effective.LineSpacingTwips);
         Assert.True(effective.LineSpacingMultiple);
         Assert.Empty(effective.TabStops);
-        PdfCore.RichParagraphBlock block = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(source.ToPdfDocument().Blocks));
+        PdfCore.RichParagraphBlock block = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(source.ToPdf().Blocks));
         PdfCore.PdfParagraphStyle pdfStyle = Assert.IsType<PdfCore.PdfParagraphStyle>(block.Style);
         PdfCore.PdfLineSpacing pdfSpacing = Assert.IsType<PdfCore.PdfLineSpacing>(pdfStyle.LineSpacing);
         Assert.Equal(PdfCore.PdfLineSpacingRule.Multiple, pdfSpacing.Rule);

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             WordParagraph source = document.AddParagraph("Reference");
             if (footnote) source.AddFootNote(new string('x', 16_384));
             else source.AddEndNote(new string('x', 16_384));
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096,
                 ExportFootnotes = true,
@@ -26,9 +26,9 @@ namespace OfficeIMO.Tests {
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith(footnote ? "Footnote:" : "Endnote:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             WordParagraph note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() :
                 reference.EndNote!.Paragraphs!.Skip(1).First();
             note.AddInsertedText(new string('x', 16_384), "Reviewer");
-            var result = document.ToHtmlResult(new WordToHtmlOptions {
+            var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096,
                 ExportFootnotes = true,
@@ -59,18 +59,18 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OriginalViewExcludesInsertedRevisionTextFromOutputBudget() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Visible content").AddInsertedText(new string('x', 16_384), "Reviewer");
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 MaxOutputCharacters = 4096,
                 TrackedChangePolicy = WordTrackedChangeExportPolicy.Original
             };
 
-            HtmlTextConversionResult result = document.ToHtmlResult(options);
+            HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(options);
 
             Assert.True(result.Succeeded);
             Assert.Contains("Visible content", result.RequireValue(), StringComparison.Ordinal);
             Assert.DoesNotContain(new string('x', 256), result.RequireValue(), StringComparison.Ordinal);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionsProjected" &&
+                diagnostic.Code == "tracked-revisions-projected" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
 
@@ -80,15 +80,15 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < 1024; index++) {
                 document.AddParagraph();
             }
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 512
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("GeneratedElement:p", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -100,15 +100,15 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < 500; index++) {
                 document.AddParagraph();
             }
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -117,15 +117,15 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetCountsHtmlEscapingBeforeDomConstruction() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph(new string('&', 1024));
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4500
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Contains("document.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -137,17 +137,17 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < 64; index++) {
                 paragraph.AddText("x").SetFontSize(12);
             }
-            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+            string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false
             }).RequireValue();
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = expected.Length - 1
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("RunFormatting:font-size", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -159,10 +159,10 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph()._paragraph.Append(
                     new Run(new Text(" value ") { Space = SpaceProcessingModeValues.Preserve }));
             }
-            var unboundedOptions = new WordToHtmlOptions { IncludeDefaultCss = false };
-            string expected = document.ToHtmlResult(unboundedOptions).RequireValue();
+            var unboundedOptions = new WordHtmlExportOptions { IncludeDefaultCss = false };
+            string expected = document.ConvertToHtmlWithEvidence(unboundedOptions).RequireValue();
 
-            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult bounded = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = expected.Length
             });
@@ -188,13 +188,13 @@ namespace OfficeIMO.Tests {
             }
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     IncludeParagraphClasses = false,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("CodeBlockSeparators", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -206,12 +206,12 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Visible content");
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4500
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("DocumentMetadata:title", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -220,16 +220,16 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetReservesCompleteAttributeSyntaxBeforeDomAssignment() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Visible content");
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 2500
             };
             options.AdditionalMetaTags.Add((new string('x', 4096), string.Empty));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(options));
+                document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("AdditionalMeta:name", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -250,23 +250,23 @@ namespace OfficeIMO.Tests {
                 section.Margins.Left = 1080;
             }
 
-            string withoutMetadata = document.ToHtmlResult(new WordToHtmlOptions {
+            string withoutMetadata = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false
             }).RequireValue();
-            string withMetadata = document.ToHtmlResult(new WordToHtmlOptions {
+            string withMetadata = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 IncludeSectionMetadata = true
             }).RequireValue();
             long limit = withoutMetadata.Length + ((withMetadata.Length - withoutMetadata.Length) / 2L);
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     IncludeSectionMetadata = true,
                     MaxOutputCharacters = limit
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("SectionMetadata:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -285,13 +285,13 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Styled content").SetStyleId(styleId);
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     IncludeParagraphClasses = true,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("GeneratedStyleCss", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -304,12 +304,12 @@ namespace OfficeIMO.Tests {
                 new Uri("https://example.test/" + new string('a', 8192), UriKind.Absolute));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("Hyperlink:href", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -324,15 +324,15 @@ namespace OfficeIMO.Tests {
             }
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = imageDataUriCharacters + 4096L
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -342,15 +342,15 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph().AddDropDownList(
                 Enumerable.Range(0, 256).Select(index => "Item" + index).ToArray());
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("DropDownOption:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -367,12 +367,12 @@ namespace OfficeIMO.Tests {
             item.DisplayText = new string('&', 1024);
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("DropDownOption:display-text", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -388,7 +388,7 @@ namespace OfficeIMO.Tests {
             item.Value = "internal-id";
             item.DisplayText = "Visible label";
 
-            string html = document.ToHtmlResult(new WordToHtmlOptions {
+            string html = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false
             }).RequireValue();
 
@@ -405,19 +405,19 @@ namespace OfficeIMO.Tests {
                 list.Numbering.Levels[0].IndentationLeft = 720 + index;
                 list.AddItem("Item " + index);
             }
-            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+            string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 IncludeListDefinitions = true
             }).RequireValue();
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     IncludeListDefinitions = true,
                     MaxOutputCharacters = expected.Length - 1
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("GeneratedListDefinitionCss", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -434,12 +434,12 @@ namespace OfficeIMO.Tests {
             item.DisplayText = new string('&', 1024);
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
             }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("ComboBoxOption:value", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -455,13 +455,13 @@ namespace OfficeIMO.Tests {
                 10);
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     EmbedImagesAsBase64 = false,
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 6_000
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("Image:src", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -477,13 +477,13 @@ namespace OfficeIMO.Tests {
             }
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     ExportComments = true,
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("CommentReference:title", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -493,10 +493,10 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
             for (int index = 0; index < 200; index++) paragraph.AddBreak();
-            var unboundedOptions = new WordToHtmlOptions { IncludeDefaultCss = false };
-            string expected = document.ToHtmlResult(unboundedOptions).RequireValue();
+            var unboundedOptions = new WordHtmlExportOptions { IncludeDefaultCss = false };
+            string expected = document.ConvertToHtmlWithEvidence(unboundedOptions).RequireValue();
 
-            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult bounded = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = expected.Length + 16
             });
@@ -518,7 +518,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph()._paragraph.Append(
                 new SimpleField(new Run(new Text("Simple cached result"))) { Instruction = largeInstruction });
 
-            HtmlTextConversionResult result = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = 4096
             });
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
                 new RunProperties(new RunFonts { Ascii = new string('x', 8192) }),
                 new Text("Visible content")));
 
-            HtmlTextConversionResult result = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 IncludeFontStyles = false,
                 MaxOutputCharacters = 4096
@@ -556,7 +556,7 @@ namespace OfficeIMO.Tests {
                     new RunProperties(new Bold()),
                     new Text("x")));
             }
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 FontFamily = new string('F', 512),
                 IncludeDefaultCss = false,
                 IncludeFontStyles = true,
@@ -564,9 +564,9 @@ namespace OfficeIMO.Tests {
             };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-                () => document.ToHtmlResult(options));
+                () => document.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("RunFontStyle", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -591,13 +591,13 @@ namespace OfficeIMO.Tests {
             }
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     ExportHeadersAndFooters = true,
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 5_000
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("HeaderFooter:header:default:section-", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -626,14 +626,14 @@ namespace OfficeIMO.Tests {
             }
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     ExportHeadersAndFooters = true,
                     IncludeDefaultCss = false,
                     IncludeFontStyles = true,
                     MaxOutputCharacters = 5_000
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("RunFontStyle", exception.LimitSource);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -645,12 +645,12 @@ namespace OfficeIMO.Tests {
                 new M.OfficeMath(new M.Run(new M.Text(new string('&', 4096)))));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 4096
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal("EquationAriaLabel", exception.LimitSource);
             Assert.Equal(4096, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
@@ -667,11 +667,11 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(cachedResult)),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
-            string expected = document.ToHtmlResult(new WordToHtmlOptions {
+            string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false
             }).RequireValue();
 
-            HtmlTextConversionResult bounded = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult bounded = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false,
                 MaxOutputCharacters = expected.Length + 512
             });
@@ -693,13 +693,13 @@ namespace OfficeIMO.Tests {
             }
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-                document.ToHtmlResult(new WordToHtmlOptions {
+                document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                     ExportFootnotes = true,
                     IncludeDefaultCss = false,
                     MaxOutputCharacters = 10_000
                 }));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.True(
                 exception.LimitSource.StartsWith("FootnoteReference:", StringComparison.Ordinal) ||
                 exception.LimitSource is "GeneratedElement:sup" or "GeneratedElement:a",

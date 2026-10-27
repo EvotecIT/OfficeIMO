@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RowSpanSkipsContinuationRowStripeFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -51,7 +51,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsContinuationRowStripeFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -62,7 +62,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -92,7 +92,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
             new PdfColor(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -134,7 +134,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -148,7 +148,7 @@ public partial class PdfDocumentVisualQualityTests {
             new PdfColor(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -181,7 +181,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_ColumnSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -196,7 +196,7 @@ public partial class PdfDocumentVisualQualityTests {
             new PdfColor(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -220,7 +220,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_ColumnSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -235,7 +235,7 @@ public partial class PdfDocumentVisualQualityTests {
             new PdfColor(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -264,7 +264,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsInternalRowSeparatorAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.HeaderFill = null;
@@ -276,7 +276,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -302,7 +302,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsInternalRowSeparatorAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.HeaderFill = null;
@@ -314,7 +314,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -345,7 +345,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
@@ -357,7 +357,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -388,7 +388,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
@@ -400,7 +400,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 180,
                 MarginLeft = 30,

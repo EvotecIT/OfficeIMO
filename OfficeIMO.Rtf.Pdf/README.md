@@ -20,9 +20,9 @@ PDF export distinguishes minimum, exact, and multiple line spacing using the [RT
 
 Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `RequireNoLoss()` rejects both diagnostics.
 
-RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
+RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfCreateOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
 
-By default, borderless zero-gap RTF tables do not acquire a PDF grid or convenience cell padding. A nonnegative row half-gap supplies left/right cell padding when no explicit cell or row padding applies. Explicit cell padding, including zero, overrides row padding and the half-gap. A caller-selected `PdfOptions.DefaultTableStyle` supplies fallback padding instead of the half-gap; explicit source padding and borders still apply.
+By default, borderless zero-gap RTF tables do not acquire a PDF grid or convenience cell padding. A nonnegative row half-gap supplies left/right cell padding when no explicit cell or row padding applies. Explicit cell padding, including zero, overrides row padding and the half-gap. A caller-selected `PdfCreateOptions.DefaultTableStyle` supplies fallback padding instead of the half-gap; explicit source padding and borders still apply.
 
 When the selected font programs and resolved run sizes provide usable line metrics, automatic, minimum, and multiple spacing use those metrics. Otherwise, the shared PDF spacing policy remains in effect. Exact spacing keeps the requested advance. Font substitution can change line heights and page breaks; this supported metric profile does not establish identical native Word layout for arbitrary documents.
 
@@ -38,7 +38,7 @@ Ordinary inline RTF pictures retain their full authored frame on exact-height ru
 
 Explicit header/footer font, alignment, color or offset presentation settings select the existing plain-text projection for that side. Images omitted by this projection report `ImageSkipped`. `IncludeHeaderFooters = false` skips source stories. `IncludeImages = false` uses the existing image omission policy within supported rich stories.
 
-Rich running stories are PDF pagination artifacts. Read them with `PdfReadDocument.Open(bytes, new PdfLoadOptions { IncludeArtifactText = true })` when inspecting header/footer text. The logical reader otherwise excludes artifact text by default.
+Rich running stories are PDF pagination artifacts. Read them with `PdfDocument.Load(stream, new PdfLoadOptions { IncludeArtifactText = true }).Read()` when inspecting header/footer text. The logical reader otherwise excludes artifact text by default.
 
 In continuous, single-column paragraph flow, a change between existing ordinary default headers retains the current physical page's header and selects the resolved replacement on the next physical page. The new header uses its source fonts and reserves its own measured body space. This profile requires unchanged page geometry, running-story distances, page numbering and footer, without active line numbering, first/even variants, notes, tables, paragraph frames or complex body/story content. Other continuous-story changes retain the reported approximation path.
 
@@ -54,7 +54,7 @@ using OfficeIMO.Rtf.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("source.pdf");
 PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfToRtfOptions {
-    ReadOptions = new PdfReadOptions {
+    ReadOptions = new PdfLoadOptions {
         PageSelection = PdfPageSelection.Parse("1-10"),
         Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }
     }
@@ -79,17 +79,15 @@ using OfficeIMO.Pdf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf");
 var options = new RtfToPdfOptions();
-PdfDocumentConversionResult result = rtf.ToPdfDocumentResult(options);
-
-result.Report.RequireNoErrorWarnings();
-result.Save("output.pdf");
+OfficeIMO.OfficeConversionReport report = rtf.SaveAsPdf("output.pdf", options);
+report.ThrowIfLoss();
 ```
 
 `RtfToPdfOptions.TextFallbacks` defaults to `PdfTextFallbackFeatures.Default`, including installed multilingual fonts. Fallback faces supply characters missing from authored fonts. Set it to `None` for exact document-font output.
 
 All PDF adapters expose the same `PdfResourcePolicy`. RTF conversion uses the balanced default: it may discover and embed installed fonts, but it does not allow arbitrary local-file or remote-resource reads. Use `PdfResourcePolicy.CreatePortableDeterministic()` when conversion must not inspect host fonts. RTF reads document content only from the typed model, so `CreateTrustedHost()` adds no access unless a format-specific resolver is explicitly configured.
 
-For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdfBytes()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
+Load or parse raw RTF with `RtfDocument` first, then use `ToPdf()` or destination-only `SaveAsPdf()` on that source document.
 
 PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfToPdfOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
 

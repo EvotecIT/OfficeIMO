@@ -7,7 +7,7 @@
 
 ## Inspection without image copies
 
-`CreateInspectionSnapshot(includeImageBytes: false, cancellationToken)` keeps the
+`Inspect(includeImageBytes: false, cancellationToken)` keeps the
 native semantic document and image descriptors while leaving their `Bytes` null.
 The ordinary parameterless snapshot still includes embedded image bytes.
 `WordLoadOptions.AllowLegacyProjection = false` rejects binary DOC before its
@@ -280,7 +280,7 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Creates, loads, edits, saves, and appends `.docx` documents.
 - Opens supported Word 97-2003 `.doc` files through the normal `WordDocument.Load(...)` path and projects them into the regular OfficeIMO Word model.
 - Writes native `.doc` files for the currently supported simple-document subset, with preflight checks that block unsupported content before saving.
-- Converts supported `.doc` and `.docx` files with `WordDocument.Convert(...)`, using the same import diagnostics and save preflight as normal load/save workflows.
+- Converts supported `.doc` and `.docx` files with `OfficeIMO.OfficeConverter.Convert(...)`, using the same import diagnostics and save preflight as normal load/save workflows.
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
@@ -487,7 +487,7 @@ merge.AddField(new WordFieldBuilder(WordFieldType.MergeField)
 
 var totalField = new WordFieldBuilder(WordFieldType.MergeField)
     .AddInstruction("OrderTotal")
-    .SetFormat(WordFieldFormat.Numeric);
+    .SetFormat(WordFieldFormat.Arabic);
 merge.AddField(totalField);
 ```
 
@@ -523,7 +523,7 @@ WordSignatureValidationReport validation = signed.ValidateSignatures(
 OPC package signing does not sign VBA code. `WordSigningCapabilities.Package` and
 `WordSigningCapabilities.MacroProject` report the two surfaces independently. `InspectSignatures()` remains available
 without `OfficeIMO.Security`; it projects the shared bounded OPC inspector and does not claim digest, signature, or
-certificate trust. The cross-host `InspectPackageSignatures(...)`, `ValidatePackageSignatures(...)`,
+certificate trust. The cross-host `OfficeDocument.Inspect(path, options).PackageSignatures`, `ValidatePackageSignatures(...)`,
 `SignPackageSignature(...)`, and `TrySignPackageSignature(...)` APIs expose the same result types used by Excel,
 PowerPoint, and Visio. The established `ValidateSignatures(...)` API additionally retains Word-specific timestamp and
 diagnostic evidence.
@@ -535,7 +535,9 @@ supported platform without executing VBA:
 
 ```csharp
 WordMacroProjectSignatureInfo signatures =
-    WordDocument.InspectMacroProjectSignatures("automation.docm");
+    OfficeIMO.OfficeDocument.Inspect("automation.docm", new OfficeIMO.OfficeInspectOptions {
+        IncludeContent = false, WordMacroSignatures = new WordMacroProjectSignatureInspectionOptions()
+    }).WordMacroSignatures!;
 ```
 
 Managed VBA signing and content-binding validation work on every supported
@@ -640,15 +642,14 @@ if (assessment.IsSupported) {
     document.Save("legacy-output.doc");
 }
 
-WordDocument.Convert("legacy-input.doc", "converted-output.docx");
-WordDocument.Convert("openxml-input.docx", "legacy-output.doc");
+OfficeIMO.OfficeConverter.Convert("legacy-input.doc", "converted-output.docx");
+OfficeIMO.OfficeConverter.Convert("openxml-input.docx", "legacy-output.doc");
 
-using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("legacy-input.doc");
-if (result.HasDocument) {
-    result.EnsureNoConversionLoss();
-    result.Document.Save("converted-output.docx");
-    string report = result.CreateAdvancedImportReport().ToMarkdown();
-}
+using WordDocument imported = WordDocument.Load("legacy-input.doc", new WordLoadOptions { FailOnLoss = true },
+    out OfficeIMO.OfficeConversionReport importReport);
+imported.Save("converted-output.docx");
+foreach (OfficeIMO.OfficeDiagnostic diagnostic in importReport.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
 Legacy `.doc` support is first-party and dependency-free at runtime. The reader
@@ -744,15 +745,16 @@ survive, or explicitly choose an editable projection without them.
 
 ### Convert Word content
 
-PDF export is included in `OfficeIMO.Word` through the first-party managed PDF engine. HTML and Markdown conversion use their adjacent adapter packages.
+PDF export lives in `OfficeIMO.Word.Pdf` and uses the first-party managed PDF engine. HTML and Markdown conversion use their adjacent adapter packages.
 
 ```csharp
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Pdf;
 
-string html = document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
-string markdown = document.ToMarkdown(new WordToMarkdownOptions());
+string html = document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
+using var markdownDocument = document.ToMarkdown(new WordMarkdownExportOptions());
+string markdown = markdownDocument.ToMarkdown();
 document.SaveAsPdf("report.pdf");
 ```
 
@@ -871,7 +873,7 @@ WordChart chart = document.AddChart("Status", roundedCorners: false, width: 360,
 chart.AddDoughnut("Pass", 8).AddDoughnut("Could not evaluate", 2).AddDoughnut("Fail", 1);
 chart.SetDataPointStyle(0, 1,
     new OfficeIMO.Drawing.OfficeChartPointStyle(noFill: true,
-        outlineColor: OfficeIMO.Drawing.OfficeColor.Black, outlineWidth: 2));
+        outlineColor: OfficeIMO.OfficeColor.Black, outlineWidth: 2));
 ```
 
 ## Individual chart point styles
@@ -926,7 +928,7 @@ document.ToImage()
     .Save("page-1.jpg");
 ```
 
-Image export shares Word-to-PDF pagination, line breaks, fonts, headings and table borders. Paragraphs and cells flow across pages without preview ellipsis. `WordImageExportOptions.LayoutOptions` accepts the same `WordToPdfOptions` as PDF conversion. For PDF and images from one conversion, use the [page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
+Image export shares Word-to-PDF pagination, line breaks, fonts, headings and table borders. Paragraphs and cells flow across pages without preview ellipsis. `WordImageExportOptions.LayoutOptions` accepts the same `WordPdfExportOptions` as PDF conversion. For PDF and images from one conversion, use the [page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
 
 `OfficeIMO.Word` owns the Word page adapter and references the first-party managed `OfficeIMO.Pdf` layout and page renderer. No Office installation or external conversion executable is required. `CreateVisualSnapshots()` exposes the resulting Drawing scenes and `TextSpans` with page text geometry.
 
@@ -934,13 +936,15 @@ The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` o
 
 ## Content provenance
 
+Add the `OfficeIMO` front-door package for the shared inspection entry point.
+
 Inspect C2PA and AI-specific IPTC metadata in the package and its supported embedded images, then remove only the selected carriers:
 
 ```csharp
 using OfficeIMO.Provenance;
 using OfficeIMO.Word;
 
-OfficeProvenanceReport report = WordDocument.InspectProvenance("input.docx");
+OfficeProvenanceReport report = OfficeIMO.OfficeDocument.Inspect("input.docx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!;
 OfficeProvenanceRemovalResult result = WordDocument.RemoveProvenance("input.docx", "clean.docx");
 ```
 
@@ -953,12 +957,13 @@ using OfficeIMO.Word;
 using OfficeIMO.Provenance;
 
 static OfficeProvenanceReport InspectUploadedWord(byte[] packageBytes) =>
-    WordDocument.InspectProvenance(packageBytes, "upload.docx");
+    OfficeIMO.OfficeDocument.Inspect(new MemoryStream(packageBytes), "upload.docx",
+        new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!;
 ```
 
 ## Concealed-content inspection and cleanup
 
-`WordDocument.InspectContentSafety(...)` reports native/inherited hidden runs, deleted revisions, tiny or zero-geometry text, explicit low contrast, comments/notes, alternative text, and exact Unicode evidence. Pass reviewed finding IDs to `WordDocument.RemoveSelectedContent(...)`; the package is reopened after cleanup, and signed-document mutation fails closed by default. These findings describe ingestion risk, not AI authorship.
+`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports native/inherited hidden runs, deleted revisions, tiny or zero-geometry text, explicit low contrast, comments/notes, alternative text, and exact Unicode evidence. Pass reviewed finding IDs to `WordDocument.RemoveSelectedContent(...)`; the package is reopened after cleanup, and signed-document mutation fails closed by default. These findings describe ingestion risk, not AI authorship.
 
 ## Adjacent packages
 

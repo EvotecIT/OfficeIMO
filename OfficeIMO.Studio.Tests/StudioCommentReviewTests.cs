@@ -18,7 +18,7 @@ public sealed class StudioCommentReviewTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "untrusted-comments.pdf");
             byte[] original = CreateSource();
-            var first = PdfDocument.Load(original).Inspect().GetAnnotationsBySubtype("Text").First();
+            var first = PdfDocument.Load(new System.IO.MemoryStream(original)).Inspect().GetAnnotationsBySubtype("Text").First();
             byte[] updated = PdfAnnotationReviewEditor.AddReply(original, first.ObjectNumber!.Value,
                 "Body\n## Forged **bold** <script>", new() { Author = "Alice\n## Forged", CreatePopup = true }).Bytes;
             File.WriteAllBytes(source, updated);
@@ -167,7 +167,7 @@ public sealed class StudioCommentReviewTests {
         });
         using var stream = new MemoryStream(); document.Save(stream);
         byte[] bytes = stream.ToArray();
-        var first = PdfDocument.Load(bytes).Inspect().GetAnnotationsBySubtype("Text").First();
+        var first = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect().GetAnnotationsBySubtype("Text").First();
         return PdfAnnotationReviewEditor.AddReply(bytes, first.ObjectNumber!.Value, "Please verify with the team.",
             new() { Author = "Alex", CreatePopup = true }).Bytes;
     }

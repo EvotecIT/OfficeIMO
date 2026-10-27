@@ -30,7 +30,7 @@ public partial class Word {
         }
         Assert.Empty(source.ValidateDocument());
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         var missing = new List<string>();
         foreach (W.OnOffType property in properties) {
             WordParagraph off = reopened.Paragraphs.Single(p => p.Text == "ExplicitOff" + property.LocalName);
@@ -143,8 +143,8 @@ public partial class Word {
         Assert.Empty(source.ValidateDocument());
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(reopened.ToPdfBytes(
-            new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }));
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(reopened.ToPdf(
+            new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("VISIBLECONTROL", text);
         Assert.Contains("VISIBLEOVERRIDE", text);
         Assert.DoesNotContain("INHERITEDSECRET", text);

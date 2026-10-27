@@ -17,8 +17,8 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Pin a URL image to a worksheet range.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelImageFromUrl -Range 'A1:C15' -Url 'https://example.org/logo.png' -Placement MoveAndSize }</code>
-///   <para>Uses Excel's two-cell anchor so the image moves and resizes with the cells in A1:C15.</para>
+///   <code>ExcelSheet 'Data' { Add-OfficeExcelImageFromUrl -Range 'ExcelA1:C15' -Url 'https://example.org/logo.png' -Placement MoveAndSize }</code>
+///   <para>Uses Excel's two-cell anchor so the image moves and resizes with the cells in ExcelA1:C15.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelImageFromUrl", DefaultParameterSetName = ParameterSetContext)]
 [Alias("ExcelImageFromUrl")]
@@ -51,12 +51,12 @@ public sealed class AddOfficeExcelImageFromUrlCommand : AsyncPSCmdlet
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
+    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
     [Parameter]
     [Alias("Cell")]
     public string? Address { get; set; }
 
-    /// <summary>A1-style range (for example, A1:C15) for a two-cell anchor that can move and resize with cells.</summary>
+    /// <summary>ExcelA1-style range (for example, ExcelA1:C15) for a two-cell anchor that can move and resize with cells.</summary>
     [Parameter]
     public string? Range { get; set; }
 

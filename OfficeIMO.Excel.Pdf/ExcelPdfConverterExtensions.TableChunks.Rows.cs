@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         // Map authored row numbers after hidden-row filtering and any title-row prepend.
-        private static IReadOnlyList<int> GetPrintTitleRowIndexes(ExcelSheet? sheet, string?[,]? references, ExcelToPdfOptions options) {
+        private static IReadOnlyList<int> GetPrintTitleRowIndexes(ExcelSheet? sheet, string?[,]? references, ExcelPdfExportOptions options) {
             ExcelPrintTitles? titles = sheet?.GetPrintTitles();
             if (!options.UseWorksheetPrintTitleRows || titles?.HasRows != true || references == null) return Array.Empty<int>();
             var indexes = new List<int>();

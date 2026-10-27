@@ -42,7 +42,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultTabStopWidth = 72,
             WidowControl = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultParagraphStyle = style
         };
 
@@ -56,7 +56,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfParagraphStyle readback = options.DefaultParagraphStyle!;
         readback.LeftIndent = 30;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(1.7, options.DefaultParagraphStyle!.LineHeight);
         Assert.Equal(8, options.DefaultParagraphStyle.LeftIndent);
@@ -70,7 +70,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Options_SnapshotDefaultTableStyle() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderWidth = 0.8;
         style.CellPaddingX = 12;
         style.RowSeparatorColor = new PdfColor(0.11, 0.22, 0.33);
@@ -81,7 +81,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.MaxWidth = 180;
         style.LeftIndent = 24;
         style.KeepWithNext = true;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultTableStyle = style
         };
 
@@ -100,7 +100,7 @@ public partial class PdfDocumentVisualQualityTests {
         readback.CellPaddingX = 44;
         readback.Alignments![0] = PdfColumnAlign.Center;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.True(options.HasExplicitDefaultTableStyle);
         Assert.Equal(0.8, options.DefaultTableStyle!.BorderWidth);
@@ -121,8 +121,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(24, clone.DefaultTableStyle.LeftIndent);
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
         Assert.True(clone.HasExplicitDefaultTableStyle);
-        Assert.False(new PdfOptions().HasExplicitDefaultTableStyle);
-        Assert.False(new PdfOptions().Clone().HasExplicitDefaultTableStyle);
+        Assert.False(new PdfCreateOptions().HasExplicitDefaultTableStyle);
+        Assert.False(new PdfCreateOptions().Clone().HasExplicitDefaultTableStyle);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public partial class PdfDocumentVisualQualityTests {
         var styles = new PdfHeadingStyles {
             Level1 = style
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultHeadingStyles = styles
         };
 
@@ -155,7 +155,7 @@ public partial class PdfDocumentVisualQualityTests {
             FontSize = 8
         };
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(16, options.DefaultHeadingStyles!.Level1!.FontSize);
         Assert.Equal(1.1, options.DefaultHeadingStyles.Level1.LineHeight);
@@ -185,7 +185,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepTogether = true,
             KeepWithNext = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultPanelStyle = style
         };
 
@@ -197,7 +197,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfPanelStyle readback = options.DefaultPanelStyle!;
         readback.PaddingX = 44;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfColor.FromRgb(240, 248, 255), options.DefaultPanelStyle!.Background);
         Assert.Equal(PdfColor.FromRgb(20, 40, 60), options.DefaultPanelStyle.BorderColor);
@@ -232,7 +232,7 @@ public partial class PdfDocumentVisualQualityTests {
             PaddingY = 6,
             SpacingAfter = 0
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -252,7 +252,7 @@ public partial class PdfDocumentVisualQualityTests {
             Width = 3
         };
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         byte[] bytes = PdfDocument.Create(options)
             .PanelParagraph(p => p.Text("PanelSideBorders"))
             .ToBytes();
@@ -282,7 +282,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 13,
             KeepWithNext = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultHorizontalRuleStyle = style
         };
 
@@ -296,7 +296,7 @@ public partial class PdfDocumentVisualQualityTests {
         readback.Thickness = 4;
         readback.Color = PdfColor.FromRgb(200, 10, 10);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(1.4, options.DefaultHorizontalRuleStyle!.Thickness);
         Assert.Equal(PdfColor.FromRgb(20, 40, 60), options.DefaultHorizontalRuleStyle.Color);
@@ -319,7 +319,7 @@ public partial class PdfDocumentVisualQualityTests {
             FirstLineIndent = 24,
             SpacingAfter = 0
         };
-        var tableStyle = TableStyles.Minimal();
+        var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = 22;
         tableStyle.KeepWithNext = true;
         var headingStyle = new PdfHeadingStyle {
@@ -365,7 +365,7 @@ public partial class PdfDocumentVisualQualityTests {
             HorizontalRuleStyle = horizontalRuleStyle,
             RowStyle = rowStyle
         };
-        var options = new PdfOptions().ApplyTheme(theme);
+        var options = new PdfCreateOptions().ApplyTheme(theme);
 
         textStyle.FontSize = 8;
         textStyle.Color = PdfColor.Black;
@@ -391,7 +391,7 @@ public partial class PdfDocumentVisualQualityTests {
             FontSize = 7
         };
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
         Assert.Equal(16, options.DefaultFontSize);

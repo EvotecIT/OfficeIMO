@@ -39,7 +39,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             out HashSet<(int Row, int Column)>? dataCells)
                         || target.GetSheet(dataSourceSheet.Name) is not OdsSheet dataSheet
                         || !HasChartSourceCoordinates(range, dataCells)
-                        || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) continue;
+                        || !chart.TryGetSnapshot(out ExcelChartInfo snapshot)) continue;
                     if ((type == OdsChartType.Pie || type == OdsChartType.Doughnut) &&
                         (snapshot.RadialLayout.FirstSliceAngleDegrees != OfficeChartRadialLayout.Default.FirstSliceAngleDegrees ||
                          type == OdsChartType.Doughnut && snapshot.RadialLayout.DoughnutHolePercent !=

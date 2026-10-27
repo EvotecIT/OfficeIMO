@@ -31,7 +31,7 @@ public partial class Word {
                 RichNoteRun("LASTWORD")));
         Assert.Empty(source.ValidateDocument());
         string original = note.OuterXml;
-        var result = source.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = source.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -89,7 +89,7 @@ public partial class Word {
             new W.Paragraph(RichNoteRun("JOINRIGHT")), new W.Paragraph(RichNoteRun("AFTERJOIN")));
         Assert.Empty(source.ValidateDocument());
         string original = note.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(FootnoteDiagnosticOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(FootnoteDiagnosticOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         Letter[] left = FindRichNoteToken(letters, "JOINLEFT");
         Letter[] right = FindRichNoteToken(letters, "JOINRIGHT");
@@ -129,7 +129,7 @@ public partial class Word {
         paragraph.Append(properties, NoteBodyMarker(endnote: false), RichNoteRun("DECORATEDNOTE"));
         Assert.Empty(source.ValidateDocument());
         string original = note.OuterXml;
-        var result = source.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = source.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var page = pdf.GetPages().Single(item => item.Text.Contains("DECORATEDNOTE", StringComparison.Ordinal));
         Letter[] content = FindRichNoteToken(page.Letters.ToArray(), "DECORATEDNOTE");
@@ -141,7 +141,7 @@ public partial class Word {
         else Assert.Contains(page.Paths, path => path.IsStroked &&
             path.GetBoundingRectangle() is { } bounds && bounds.Height > 8D &&
             bounds.Bottom < content[0].StartBaseLine.Y && bounds.Top > content[0].StartBaseLine.Y);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(original, note.OuterXml);
     }
 
@@ -167,7 +167,7 @@ public partial class Word {
             Val = profile == "normal" ? W.VerticalPositionValues.Baseline : W.VerticalPositionValues.Subscript });
         Assert.Empty(source.ValidateDocument());
         string original = body._paragraph.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(FootnoteDiagnosticOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(FootnoteDiagnosticOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter[] letters = pdf.GetPage(1).Letters.ToArray();
         Letter[] before = FindRichNoteToken(letters, "BEFORE");
         string text = string.Concat(letters.Select(letter => letter.Value));

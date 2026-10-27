@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
             }
             if (atom.PayloadLength != LegacyPptDocumentAtomReader.PayloadLength) {
-                AddDiagnostic("PPT-DOCUMENT-ATOM-LENGTH", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-document-atom-length", LegacyPptDiagnosticSeverity.Warning,
                     $"DocumentAtom has {atom.PayloadLength} payload bytes instead of 40; complete document settings remain preserve-only.",
                     atom.Offset);
             }
@@ -27,13 +27,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || settings.NotesWidth < 576 || settings.NotesHeight < 576
                 || settings.ServerZoomNumerator <= 0 || settings.ServerZoomDenominator <= 0
                 || settings.FirstSlideNumber >= 10000 || !settings.SlideSizeType.HasValue) {
-                AddDiagnostic("PPT-DOCUMENT-ATOM-VALUE", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-document-atom-value", LegacyPptDiagnosticSeverity.Warning,
                     "DocumentAtom contains an out-of-range page size, zoom ratio, slide number, or slide-size type.",
                     atom.Offset);
             }
             for (int index = 36; index < 40; index++) {
                 if (atom.ReadByte(index) <= 1) continue;
-                AddDiagnostic("PPT-DOCUMENT-ATOM-BOOLEAN", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-document-atom-boolean", LegacyPptDiagnosticSeverity.Warning,
                     "DocumentAtom contains a Boolean field other than zero or one.", atom.Offset);
                 break;
             }

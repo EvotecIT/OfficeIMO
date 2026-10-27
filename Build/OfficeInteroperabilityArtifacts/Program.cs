@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -31,7 +32,7 @@ static void CreateWordArtifact(string outputDirectory, ICollection<Interoperabil
         document.AddParagraph("OfficeIMO Word modern-to-binary interoperability artifact");
         document.Save();
     }
-    WordDocument.Convert(source, destination).RequireNoLoss();
+    OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
     artifacts.Add(CreateArtifact("Word.Doc", "doc", destination));
 }
 
@@ -48,7 +49,7 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
                  ("Excel.Xlsb", ".xlsb")
              }) {
         string destination = Path.Combine(outputDirectory, "officeimo-excel-generated" + extension);
-        ExcelDocument.Convert(source, destination).RequireNoLoss();
+        OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
         artifacts.Add(CreateArtifact(formatId, extension.TrimStart('.'), destination));
     }
 }
@@ -60,7 +61,7 @@ static void CreatePowerPointArtifact(string outputDirectory, ICollection<Interop
         presentation.AddSlide().AddTextBox("OfficeIMO PowerPoint modern-to-binary interoperability artifact");
         presentation.Save();
     }
-    PowerPointPresentation.Convert(source, destination).RequireNoLoss();
+    OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
     artifacts.Add(CreateArtifact("PowerPoint.Ppt", "ppt", destination));
 }
 

@@ -37,11 +37,11 @@ public sealed class WordPdfSmallCapsTests {
             paragraph.Text = "AB";
             paragraph.SetSmallCaps();
         }
-        WordToPdfOptions options = Options();
-        options.PdfOptions = new PdfOptions {
+        WordPdfExportOptions options = Options();
+        options.PdfOptions = new PdfCreateOptions {
             DefaultTableStyle = new PdfTableStyle { FontSize = 18D, HeaderRowCount = 0 }
         };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("AB", pdf.GetPage(1).Text);
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Equal(18D, letter.PointSize, 3));
     }
@@ -145,7 +145,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsMeasuresReducedGlyphsBeforeWrappingMixedCaseWords() {
         using WordDocument document = CreateDocument();
         document.AddParagraph("MMMMmmmm Z").SetSmallCaps();
-        using var pdf = OpenPdf(document, new PageSize(115, 300));
+        using var pdf = OpenPdf(document, new PdfPageSize(115, 300));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ").ToArray();
         Assert.Equal("MMMMMMMMZ", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters.Take(8), letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
@@ -176,7 +176,7 @@ public sealed class WordPdfSmallCapsTests {
         const string uri = "https://example.com/small-caps";
         WordParagraph paragraph = document.AddParagraph();
         paragraph.AddHyperLink("AaBb", new Uri(uri), tooltip: "Small caps reference").CapsStyle = WordCapsStyle.SmallCaps;
-        byte[] bytes = document.ToPdfBytes(Options());
+        byte[] bytes = document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal("AABB", pdf.GetPage(1).Text);
         Assert.Equal(new[] { 12D, 9.5D, 12D, 9.5D }, pdf.GetPage(1).Letters.Select(letter => letter.PointSize));
@@ -198,11 +198,11 @@ public sealed class WordPdfSmallCapsTests {
         return document;
     }
 
-    private static WordToPdfOptions Options(PageSize? pageSize = null) => new() {
+    private static WordPdfExportOptions Options(PdfPageSize? pageSize = null) => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = pageSize, Margins = PageMargins.Uniform(20)
+        PageSize = pageSize, Margins = PdfPageMargins.Uniform(20)
     };
 
-    private static PdfPigDocument OpenPdf(WordDocument document, PageSize? pageSize = null) =>
-        PdfPigDocument.Open(document.ToPdfBytes(Options(pageSize)));
+    private static PdfPigDocument OpenPdf(WordDocument document, PdfPageSize? pageSize = null) =>
+        PdfPigDocument.Open(document.ToPdf(Options(pageSize)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 }

@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             CellRange range = ranges[0];
             string rangeReference = FormatRange(range, absolute: true);
-            string firstCell = A1.CellReference(range.FirstRow + 1, range.FirstColumn + 1);
+            string firstCell = ExcelA1.CellReference(range.FirstRow + 1, range.FirstColumn + 1);
             if (type == ConditionalFormatValues.DuplicateValues) {
                 formulas.Add($"COUNTIF({rangeReference},{firstCell})>1");
                 return true;
@@ -308,8 +308,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static string FormatCell(int row, int column, bool absolute) {
             return absolute
-                ? A1.AbsoluteCellReference(row, column)
-                : A1.CellReference(row, column);
+                ? ExcelA1.AbsoluteCellReference(row, column)
+                : ExcelA1.CellReference(row, column);
         }
 
         private static bool TryCreateExtensionPayload(
@@ -436,10 +436,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var parsed = new List<CellRange>(parts.Length);
             foreach (string part in parts) {
                 string rangeText = part.Replace("$", string.Empty);
-                if (!A1.TryParseRangeCoordinates(rangeText,
+                if (!ExcelA1.TryParseRangeCoordinates(rangeText,
                         out int firstRow, out int firstColumn,
                         out int lastRow, out int lastColumn)) {
-                    if (!A1.TryParseCellReferenceCoordinates(rangeText,
+                    if (!ExcelA1.TryParseCellReferenceCoordinates(rangeText,
                             out firstRow, out firstColumn)) {
                         reason = "conditional formatting ranges";
                         return false;

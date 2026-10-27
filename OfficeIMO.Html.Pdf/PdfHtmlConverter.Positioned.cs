@@ -76,7 +76,7 @@ public static partial class PdfHtmlConverterExtensions {
                 bool hasOmittedVectors = page.UnrepresentedVectorPrimitiveCount > 0;
                 AddWarning(
                     options,
-                    "VectorAppearanceNotExported",
+                    OfficeDiagnosticCodes.VectorAppearanceNotExported,
                     hasOmittedVectors
                         ? page.UnrepresentedVectorPrimitiveCount.ToString(CultureInfo.InvariantCulture) +
                           " vector primitives were not represented by positioned HTML content or detected table structure."

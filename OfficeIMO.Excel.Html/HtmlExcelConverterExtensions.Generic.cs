@@ -82,7 +82,7 @@ public static partial class HtmlExcelConverterExtensions {
                 int maxTableCells = budget.Limits.MaxTableCells;
                 int narrativeCells = 0;
                 foreach (HtmlSemanticSection section in document.Sections) {
-                    if (narrativeCells >= maxTableCells || row > A1.MaxRows) break;
+                    if (narrativeCells >= maxTableCells || row > ExcelA1.MaxRows) break;
                     bool sectionHasNarrative = HasSectionNarrative(section);
                     if (!sectionHasNarrative && tables.Count > 0) {
                         if (options.ImportImages) {
@@ -106,7 +106,7 @@ public static partial class HtmlExcelConverterExtensions {
                             }
                             continue;
                         }
-                        if (narrativeCells >= maxTableCells || row > A1.MaxRows) {
+                        if (narrativeCells >= maxTableCells || row > ExcelA1.MaxRows) {
                             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                                 "Remaining HTML text blocks were omitted because the configured cell limit was reached.",
                                 lossKind: OfficeConversionLossKind.Omission, detail: "limit=" + maxTableCells);
@@ -143,8 +143,8 @@ public static partial class HtmlExcelConverterExtensions {
             ExcelSheet imageSheet = narrativeSheet ?? workbook.Sheets[0];
             int imageRow = narrativeSheet != null ? row : 2;
             if (narrativeSheet == null
-                && A1.TryParseRange(imageSheet.UsedRangeA1, out _, out _, out int lastRow, out _)) {
-                imageRow = Math.Min(A1.MaxRows, lastRow + 2);
+                && ExcelA1.TryParseRange(imageSheet.UsedRangeA1, out _, out _, out int lastRow, out _)) {
+                imageRow = Math.Min(ExcelA1.MaxRows, lastRow + 2);
             }
             ImportGenericImages(document, imageSheet, result, budget, placedImages, ref imageRow);
         }
@@ -190,12 +190,12 @@ public static partial class HtmlExcelConverterExtensions {
             }
             var occupied = new List<EditableLayoutCellBounds>();
             if (sheet.EnumerateCells().Any()
-                && A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+                && ExcelA1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
                     out int usedLastRow, out int usedLastColumn)) {
                 occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
             }
             foreach (var merged in sheet.GetMergedRanges()) {
-                if (A1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
+                if (ExcelA1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
                         out int lastMergedRow, out int lastMergedColumn)) {
                     occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
                 }
@@ -224,23 +224,23 @@ public static partial class HtmlExcelConverterExtensions {
                         + "; requestedY=" + localRegionY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
                         + "; minimumRow=1; minimumColumn=1");
             }
-            int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(localRegionX / 64D) + 1));
-            int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(localRegionY / 20D) + 1));
-            int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,
-                firstColumn + Math.Max(1, (int)Math.Min(A1.MaxColumns, Math.Ceiling(regionWidth / 64D))) - 1));
-            int lastRow = Math.Max(firstRow, Math.Min(A1.MaxRows,
-                firstRow + Math.Max(1, (int)Math.Min(A1.MaxRows, Math.Ceiling(regionHeight / 20D))) - 1));
+            int firstColumn = Math.Max(1, Math.Min(ExcelA1.MaxColumns, (int)Math.Floor(localRegionX / 64D) + 1));
+            int firstRow = Math.Max(1, Math.Min(ExcelA1.MaxRows, (int)Math.Floor(localRegionY / 20D) + 1));
+            int lastColumn = Math.Max(firstColumn, Math.Min(ExcelA1.MaxColumns,
+                firstColumn + Math.Max(1, (int)Math.Min(ExcelA1.MaxColumns, Math.Ceiling(regionWidth / 64D))) - 1));
+            int lastRow = Math.Max(firstRow, Math.Min(ExcelA1.MaxRows,
+                firstRow + Math.Max(1, (int)Math.Min(ExcelA1.MaxRows, Math.Ceiling(regionHeight / 20D))) - 1));
             int requestedFirstRow = firstRow;
             var bounds = new EditableLayoutCellBounds(firstRow, firstColumn, lastRow, lastColumn);
             while (occupied.Any(existing => existing.Intersects(bounds))) {
                 int rowSpan = bounds.LastRow - bounds.FirstRow;
                 int nextRow = occupied.Where(existing => existing.Intersects(bounds))
                     .Max(existing => existing.LastRow) + 2;
-                if (nextRow > A1.MaxRows || rowSpan > A1.MaxRows - nextRow) {
+                if (nextRow > ExcelA1.MaxRows || rowSpan > ExcelA1.MaxRows - nextRow) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An editable HTML layout region was omitted because no non-overlapping native cell anchor remained.",
                         HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
-                        "MaxRows=" + A1.MaxRows);
+                        "MaxRows=" + ExcelA1.MaxRows);
                     bounds = default;
                     break;
                 }
@@ -371,12 +371,12 @@ public static partial class HtmlExcelConverterExtensions {
                 Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
         }
 
-        int anchorRow = Math.Max(1, Math.Min(A1.MaxRows, image.RowIndex));
-        int anchorColumn = Math.Max(1, Math.Min(A1.MaxColumns, image.ColumnIndex));
+        int anchorRow = Math.Max(1, Math.Min(ExcelA1.MaxRows, image.RowIndex));
+        int anchorColumn = Math.Max(1, Math.Min(ExcelA1.MaxColumns, image.ColumnIndex));
         if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
             return new EditableLayoutCellBounds(anchorRow, anchorColumn,
-                Math.Max(anchorRow, Math.Min(A1.MaxRows, image.ToRowIndex.Value)),
-                Math.Max(anchorColumn, Math.Min(A1.MaxColumns, image.ToColumnIndex.Value)));
+                Math.Max(anchorRow, Math.Min(ExcelA1.MaxRows, image.ToRowIndex.Value)),
+                Math.Max(anchorColumn, Math.Min(ExcelA1.MaxColumns, image.ToColumnIndex.Value)));
         }
 
         int columnSpan = Math.Max(1, (int)Math.Ceiling(
@@ -384,15 +384,15 @@ public static partial class HtmlExcelConverterExtensions {
         int rowSpan = Math.Max(1, (int)Math.Ceiling(
             (Math.Max(0, image.OffsetYPixels) + Math.Max(1, image.HeightPixels)) / 20D));
         return new EditableLayoutCellBounds(anchorRow, anchorColumn,
-            Math.Min(A1.MaxRows, anchorRow + rowSpan - 1),
-            Math.Min(A1.MaxColumns, anchorColumn + columnSpan - 1));
+            Math.Min(ExcelA1.MaxRows, anchorRow + rowSpan - 1),
+            Math.Min(ExcelA1.MaxColumns, anchorColumn + columnSpan - 1));
     }
 
     private static int PixelToColumn(long pixels) =>
-        Math.Max(1, Math.Min(A1.MaxColumns, (int)(Math.Max(0L, pixels) / 64L) + 1));
+        Math.Max(1, Math.Min(ExcelA1.MaxColumns, (int)(Math.Max(0L, pixels) / 64L) + 1));
 
     private static int PixelToRow(long pixels) =>
-        Math.Max(1, Math.Min(A1.MaxRows, (int)(Math.Max(0L, pixels) / 20L) + 1));
+        Math.Max(1, Math.Min(ExcelA1.MaxRows, (int)(Math.Max(0L, pixels) / 20L) + 1));
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
@@ -511,7 +511,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!TryPrepareExcelImage(dataUri, result, budget, resource.Source,
                 out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-        if (row > A1.MaxRows) return;
+        if (row > ExcelA1.MaxRows) return;
         int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
         int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
         ExcelImage importedImage = sheet.AddImage(row, 1, bytes, contentType, width, height,
@@ -520,7 +520,7 @@ public static partial class HtmlExcelConverterExtensions {
         ApplyImageHyperlink(importedImage, resource.Hyperlink, result);
         result.Images++;
         imageReservation.Commit();
-        row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
+        row = Math.Min(ExcelA1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
     }
 
     private static int ReadGenericImageDimension(

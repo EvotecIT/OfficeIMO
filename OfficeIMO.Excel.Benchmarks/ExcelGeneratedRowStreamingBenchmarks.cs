@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 [MemoryDiagnoser]
 public class ExcelGeneratedRowStreamingBenchmarks {
     private static readonly string[] Headers = ["Id", "Amount", "CreatedOn", "Active"];
-    private static readonly ExcelTabularWriteOptions CompactWriteOptions = new() {
+    private static readonly ExcelWriterOptions CompactWriteOptions = new() {
         IncludeCellReferences = false,
         UseSharedStrings = false
     };
@@ -227,9 +227,9 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         string method,
         string workbookPath,
         int expectedRowCount) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             workbookPath,
-            new ExcelReadOptions { NumericAsDecimal = true });
+            new ExcelReaderOptions { NumericAsDecimal = true });
         if (reader.FieldCount != Headers.Length) {
             throw new InvalidDataException(
                 $"{method} exposed {reader.FieldCount} columns instead of {Headers.Length}.");

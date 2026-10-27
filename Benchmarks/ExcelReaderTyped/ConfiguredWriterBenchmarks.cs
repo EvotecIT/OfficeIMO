@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 row.Write(record.Id);
                 row.Write(record.Date);
                 row.Write(record.Value);
-            }, new ExcelTabularWriteOptions { UseSharedStrings = sharedStrings, IncludeCellReferences = includeReferences });
+            }, new ExcelWriterOptions { UseSharedStrings = sharedStrings, IncludeCellReferences = includeReferences });
 
         private async Task WriteExcelReaderAsync(Stream stream, bool sharedStrings, bool prefetch) {
             await using XlsxWorkbookWriter workbook = XlsxWorkbookWriter.Create(stream, leaveOpen: true,

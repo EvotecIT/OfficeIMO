@@ -12,7 +12,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(8D, 2)]
     [InlineData(16D, 2)]
     public void FollowingParagraphAfterSpacingStaysOutsideTheReservedNoteArea(double after, int pages) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = BodyAfterStyle(after);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
@@ -126,7 +126,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("heading")]
     [InlineData("list")]
     public void ImportedAutoLineAdvanceDoesNotEnterAContinuedNoteRegion(string owner) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 150;
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
@@ -181,7 +181,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ImportedAutoLineAdvanceRetainsALegalPrefixOrMovesTheKeptParagraph(bool keepTogether) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 175;
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {

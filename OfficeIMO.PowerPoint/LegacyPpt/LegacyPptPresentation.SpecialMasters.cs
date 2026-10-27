@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
             if (persistId == 0) return null;
             if (!persistOffsets.TryGetValue(persistId, out uint offset)) {
-                AddDiagnostic("PPT-SPECIAL-MASTER-PERSIST-MISSING",
+                AddDiagnostic("ppt-special-master-persist-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {GetSpecialMasterName(kind)} master references missing persist object {persistId}.",
                     offset: null);
@@ -46,13 +46,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         $"{GetSpecialMasterName(kind)} master persist object"),
                     options, _recordBudget);
             } catch (InvalidDataException exception) {
-                AddDiagnostic("PPT-SPECIAL-MASTER-READ", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-special-master-read", LegacyPptDiagnosticSeverity.Warning,
                     $"The {GetSpecialMasterName(kind)} master could not be decoded: {exception.Message}",
                     offset);
                 return null;
             }
             if (record.Type != expectedRecordType) {
-                AddDiagnostic("PPT-SPECIAL-MASTER-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-special-master-type", LegacyPptDiagnosticSeverity.Warning,
                     $"The {GetSpecialMasterName(kind)} master points to record 0x{record.Type:X4} instead of 0x{expectedRecordType:X4}.",
                     record.Offset);
                 return null;
@@ -74,14 +74,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptImportOptions options) {
             LegacyPptRecord? atom = record.Children.FirstOrDefault(child => child.Type == RecordNotesAtom);
             if (atom == null || atom.PayloadLength < 8) {
-                AddDiagnostic("PPT-NOTES-MASTER-ATOM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-notes-master-atom", LegacyPptDiagnosticSeverity.Warning,
                     "The notes master has no complete NotesAtom and remains preserve-only.",
                     atom?.Offset ?? record.Offset);
                 return;
             }
             if (options.ReportUnsupportedContent
                 && (atom.ReadUInt32(0) != 0 || atom.ReadUInt16(4) != 0)) {
-                AddDiagnostic("PPT-NOTES-MASTER-ATOM-INVALID",
+                AddDiagnostic("ppt-notes-master-atom-invalid",
                     LegacyPptDiagnosticSeverity.Information,
                     "The notes master NotesAtom contains slide-specific fields; they have no master semantics and were ignored.",
                     atom.Offset);

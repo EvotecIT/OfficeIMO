@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static RichSeg[] BuildPageTextSegments(IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions options) {
+    private static RichSeg[] BuildPageTextSegments(IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         var segments = new RichSeg[runs.Count];
         for (int index = 0; index < runs.Count; index++) {
             PdfTextRun run = runs[index];

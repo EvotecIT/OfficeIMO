@@ -208,11 +208,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow) {
-            if (startRow < 1 || startRow > A1.MaxRows) {
-                throw new ArgumentOutOfRangeException(nameof(startRow), $"Start row must be between 1 and {A1.MaxRows}.");
+            if (startRow < 1 || startRow > ExcelA1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(startRow), $"Start row must be between 1 and {ExcelA1.MaxRows}.");
             }
 
-            int maximumRows = A1.MaxRows - startRow + 1 - (includeHeaders ? 1 : 0);
+            int maximumRows = ExcelA1.MaxRows - startRow + 1 - (includeHeaders ? 1 : 0);
             if (items is IReadOnlyList<T> readOnlyList) {
                 int capturedCount = readOnlyList.Count;
                 if (capturedCount > maximumRows) {
@@ -269,14 +269,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static void EnsureObjectExportColumnAvailable(int existingColumnCount) {
-            if (existingColumnCount >= A1.MaxColumns) {
-                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            if (existingColumnCount >= ExcelA1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {ExcelA1.MaxColumns}-column limit.");
             }
         }
 
         private static void ValidateObjectExportDenseDimensions(int rowCount, int columnCount, bool includeHeaders) {
-            if (columnCount > A1.MaxColumns) {
-                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            if (columnCount > ExcelA1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {ExcelA1.MaxColumns}-column limit.");
             }
 
             long materializedCells = (long)(rowCount + (includeHeaders ? 1 : 0)) * Math.Max(1, columnCount);

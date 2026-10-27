@@ -12,7 +12,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_ProjectsTableCellParagraphSpacingInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsTableCellParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
@@ -28,11 +28,11 @@ namespace OfficeIMO.Tests {
             cell.PaddingBottomPoints = 0D;
             PowerPointParagraph first = cell.Paragraphs.Single();
             PowerPointParagraph second = cell.AddParagraph("Cell spaced second");
-            PowerPointSlideVisualSnapshot unspaced = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo unspaced = slide.CreateVisualSnapshot();
             first.SetSpaceAfterPoints(16);
             second.SetSpaceBeforePoints(4);
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(220, image!.Width);
 
-            PdfTextSpan firstText = SingleText(snapshot, "Cell spaced first");
-            PdfTextSpan secondText = SingleText(snapshot, "Cell spaced second");
+            PowerPointTextSpanInfo firstText = SingleText(snapshot, "Cell spaced first");
+            PowerPointTextSpanInfo secondText = SingleText(snapshot, "Cell spaced second");
             double baselineGap = SingleText(unspaced, "Cell spaced first").Y - SingleText(unspaced, "Cell spaced second").Y;
             Assert.InRange(firstText.Y - secondText.Y - baselineGap, 19.9D, 20.1D);
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTableCellLineSpacingInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsTableCellLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             first.SetLineSpacingPoints(22);
             cell.AddParagraph("Cell next line");
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -81,8 +81,8 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(140, image!.Height);
 
-            PdfTextSpan firstText = SingleText(snapshot, "Cell line spacing");
-            PdfTextSpan secondText = SingleText(snapshot, "Cell next line");
+            PowerPointTextSpanInfo firstText = SingleText(snapshot, "Cell line spacing");
+            PowerPointTextSpanInfo secondText = SingleText(snapshot, "Cell next line");
             Assert.InRange(firstText.Y - secondText.Y, 21.9D, 22.1D);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsDefaultMultiParagraphTableCellInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsDefaultMultiParagraphTableCellInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             cell.PaddingBottomPoints = 0D;
             cell.SetParagraphs(new[] { "Cell first", "Cell second" });
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsScaledGroupedTableCellTextMetricsInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsScaledGroupedTableCellTextMetricsInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 140);
@@ -147,24 +147,23 @@ namespace OfficeIMO.Tests {
             transform.ChildExtents.Cy = PowerPointUnits.FromPoints(30);
             slide.SlidePart.Slide.Save();
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
-            PdfTextSpan text = SingleText(snapshot, "Grouped");
-            // Tf can remain 10pt under the group's 2x affine. The reader's
-            // restamp size includes the text-to-page matrix's vertical scale.
-            Assert.Equal(20D, text.RestampFontSize, 3);
+            PowerPointTextSpanInfo text = SingleText(snapshot, "Grouped");
+            // Scene text geometry includes the group's vertical scale.
+            Assert.Equal(20D, text.FontSize, 3);
             Assert.InRange(text.X, 25.9D, 26.1D);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(240, image!.Width);
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTableCellListMarkersInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsTableCellListMarkersInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 180);
@@ -181,12 +180,10 @@ namespace OfficeIMO.Tests {
             cell.AddNumberedList(new[] { "Cell number", "Cell next" }, startAt: 5);
             cell.AddBullets(new[] { "Cell nested" }, level: 1);
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "table-list-layout-approximation"
-                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics, "table-list-layout-approximation");
@@ -202,7 +199,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsSingleTableCellBulletInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsSingleTableCellBulletInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
@@ -217,12 +214,10 @@ namespace OfficeIMO.Tests {
             cell.PaddingBottomPoints = 0D;
             cell.SetBullets(new[] { "Only bullet" });
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "table-list-layout-approximation"
-                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-list-layout-approximation");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics, "table-list-layout-approximation");

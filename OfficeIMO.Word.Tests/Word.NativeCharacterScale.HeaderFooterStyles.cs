@@ -26,7 +26,7 @@ public partial class Word {
         string before = style.OuterXml;
         Assert.Empty(source.ValidateDocument());
 
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph actual = (footer ? loaded.Sections[0].Footer.Default!.Paragraphs : loaded.Sections[0].Header.Default!.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style imported = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -39,7 +39,7 @@ public partial class Word {
         Assert.Empty(loaded.ValidateDocument());
 
         loaded.AddParagraph("Edited body");
-        using WordDocument savedAgain = WordDocument.Load(new MemoryStream(loaded.ToBytes(WordFileFormat.Doc)));
+        using WordDocument savedAgain = WordDocument.Load(new MemoryStream(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph repeated = (footer ? savedAgain.Sections[0].Footer.Default!.Paragraphs : savedAgain.Sections[0].Header.Default!.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style repeatedStyle = savedAgain._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!

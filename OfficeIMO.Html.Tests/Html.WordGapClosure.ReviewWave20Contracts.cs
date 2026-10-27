@@ -16,7 +16,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTable table = Assert.Single(document.Tables);
         Paragraph spacing = Assert.IsType<Paragraph>(
             table._table.PreviousSibling());
@@ -34,7 +34,7 @@ public partial class HtmlWordGapClosure {
             </p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "blended");
@@ -48,11 +48,11 @@ public partial class HtmlWordGapClosure {
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
             HtmlConversionDocument
                 .Parse("""<body style="margin:0;margin-inline-start:10px"><p>Text</p></body>""")
-                .ToWordDocument(new HtmlToWordOptions {
-                    UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+                .ToWord(new WordHtmlImportOptions {
+                    UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
                 }));
 
-        Assert.Equal("UnsupportedCssDeclaration", exception.Code);
+        Assert.Equal("unsupported-css-declaration", exception.Code);
         Assert.Equal("body:margin-inline-start", exception.CssSource);
     }
 
@@ -67,7 +67,7 @@ public partial class HtmlWordGapClosure {
             </table>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         List<WordTableCell> cells = Assert.Single(document.Tables).Rows[0].Cells;
 
         Assert.Equal("0000FF", cells[0].ShadingFillColorHex);
@@ -82,7 +82,7 @@ public partial class HtmlWordGapClosure {
         cell.AddHtml(
             HtmlConversionDocument.Parse(
                 """<table><caption>Nested caption</caption><tr><td>Value</td></tr></table>"""),
-            new HtmlToWordOptions { TableCaptionPosition = TableCaptionPosition.Below });
+            new WordHtmlImportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below });
 
         Paragraph caption = Assert.Single(
             cell._tableCell.Elements<Paragraph>(),
@@ -100,7 +100,7 @@ public partial class HtmlWordGapClosure {
                   <p>Tail</p>
                 </div>
                 """)
-            .ToWordDocument();
+            .ToWord();
         OpenXmlElement[] tableFirstBlocks = GetBodyBlocks(tableFirst);
         int tableIndex = Array.FindIndex(tableFirstBlocks, element => element is Table);
         int tailIndex = Array.FindIndex(
@@ -120,7 +120,7 @@ public partial class HtmlWordGapClosure {
                   <table><tr><td>Value</td></tr></table>
                 </div>
                 """)
-            .ToWordDocument();
+            .ToWord();
         OpenXmlElement[] tableLastBlocks = GetBodyBlocks(tableLast);
         int leadIndex = Array.FindIndex(
             tableLastBlocks,

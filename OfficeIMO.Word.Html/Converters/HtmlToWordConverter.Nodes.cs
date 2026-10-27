@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private void ProcessNode(INode node, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
             if (node is IElement element) {
                 ApplyCssToElement(element);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
-                            if (options.SectionTagHandling == SectionTagHandling.WordSection && cell == null) {
+                            if (options.SectionTagHandling == WordHtmlSectionTagHandling.WordSection && cell == null) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
                                 ApplyExportedSectionMetadata(element, newSection);
                                 int startIndex = newSection.Paragraphs.Count;
@@ -936,7 +936,7 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "script":
                     case "template": {
-                            AddDiagnostic(options, "HtmlElementSkipped", "HTML element content was skipped because it is not rendered as document content.", element.TagName.ToLowerInvariant());
+                            AddDiagnostic(options, "html-element-skipped", "HTML element content was skipped because it is not rendered as document content.", element.TagName.ToLowerInvariant());
                             break;
                         }
                     case "iframe":
@@ -945,7 +945,7 @@ namespace OfficeIMO.Word.Html {
                     case "video":
                     case "audio":
                     case "canvas": {
-                            AddDiagnostic(options, "HtmlEmbeddedContentSkipped", "Embedded HTML content was skipped because it does not have a Word conversion contract.", element.TagName.ToLowerInvariant());
+                            AddDiagnostic(options, "html-embedded-content-skipped", "Embedded HTML content was skipped because it does not have a Word conversion contract.", element.TagName.ToLowerInvariant());
                             break;
                         }
                     case "style": {

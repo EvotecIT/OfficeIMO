@@ -451,7 +451,7 @@ was 6.18 MiB and Sylvan's was 7.52 MiB.
 Use the measured compact contract for a plain SQL-style export:
 
 ```csharp
-ExcelDocument.WriteDataReader(output, reader, new ExcelTabularWriteOptions {
+ExcelDocument.WriteDataReader(output, reader, new ExcelWriterOptions {
     IncludeCellReferences = false,
     UseSharedStrings = false
 });

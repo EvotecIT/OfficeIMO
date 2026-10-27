@@ -6,10 +6,10 @@ internal static partial class PdfWriter {
         private readonly Dictionary<PdfFootnoteDefinition, int> footnoteSourceOrdinals = new();
         private readonly List<FootnoteCursor> continuedFootnotes = new();
         private readonly List<FootnoteFragment> pageFootnotes = new();
-        private readonly Dictionary<(PdfFootnoteDefinition Definition, PdfOptions Options, double Width), PreparedFootnote> preparedFootnotes = new();
+        private readonly Dictionary<(PdfFootnoteDefinition Definition, PdfCreateOptions Options, double Width), PreparedFootnote> preparedFootnotes = new();
         private bool paintingFootnotes;
         private double pageFootnoteHeight;
-        private PdfOptions? footnotePageOptions;
+        private PdfCreateOptions? footnotePageOptions;
         private IReadOnlyList<FootnoteUnit> pageFootnoteSeparator = Array.Empty<FootnoteUnit>();
         private IReadOnlyList<FootnoteUnit> pageFootnoteContinuationNotice = Array.Empty<FootnoteUnit>();
         private bool pageReserveContinuationNoticeSpaceOnFinalPage;
@@ -163,7 +163,7 @@ internal static partial class PdfWriter {
             double savedY = y;
             bool savedBodyContent = pageHasBodyContent;
             bool beneath = pageFootnotes.All(fragment => fragment.Note.Definition.Placement == PdfFootnotePlacement.BeneathText);
-            PdfOptions savedOptions = currentOpts;
+            PdfCreateOptions savedOptions = currentOpts;
             currentOpts = footnotePageOptions ?? currentOpts;
             double top = beneath ? y : currentOpts.MarginBottom + pageFootnoteHeight;
             pageFootnotes.Sort((left, right) => FootnoteSourceOrdinal(left.Note.Definition).CompareTo(FootnoteSourceOrdinal(right.Note.Definition)));

@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
             OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
-                diagnostic => diagnostic.Code == "Excel.VbaProject.Removed");
+                diagnostic => diagnostic.Code == "excel-vba-project-removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
             Assert.False(File.Exists(blockedPath));
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(exception.Result.Report.FidelityDiagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(exception.Result.Report.Diagnostics,
-                diagnostic => diagnostic.Code == "Excel.LegacyDestination.NotWritable"
+                diagnostic => diagnostic.Code == "excel-legacy-destination-not-writable"
                     && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(destinationPath));
         }
@@ -275,14 +275,14 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionReport report = ExcelDocument.AnalyzeConversion(sourcePath, destinationPath, options);
 
             Assert.True(report.Compatibility.HasBlockedFeatures);
-            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "Excel.LegacyDestination.NotWritable");
-            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "Excel.SourceCarrier.Embedded");
+            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "excel-legacy-destination-not-writable");
+            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "excel-source-carrier-embedded");
             Assert.False(File.Exists(destinationPath));
 
             ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
                 ExcelDocument.Convert(sourcePath, destinationPath, options));
             Assert.DoesNotContain(exception.Result.Report.Diagnostics,
-                diagnostic => diagnostic.Code == "Excel.SourceCarrier.Embedded");
+                diagnostic => diagnostic.Code == "excel-source-carrier-embedded");
             Assert.False(File.Exists(destinationPath));
         }
 
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionReport analysis = ExcelDocument.AnalyzeConversion(sourcePath, blockedPath);
             Assert.True(analysis.Compatibility.HasSecurityImpact);
             Assert.Contains(analysis.Compatibility.Findings,
-                finding => finding.Code == "Excel.DigitalSignature.Invalidated"
+                finding => finding.Code == "excel-digital-signature-invalidated"
                     && finding.State == OfficeCompatibilityState.Blocked
                     && finding.RepresentsLoss);
 
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
                 });
             Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
             Assert.Contains(allowed.Report.Compatibility.Findings,
-                finding => finding.Code == "Excel.DigitalSignature.Invalidated"
+                finding => finding.Code == "excel-digital-signature-invalidated"
                     && finding.State == OfficeCompatibilityState.Dropped
                     && finding.RepresentsLoss);
             using SpreadsheetDocument converted = SpreadsheetDocument.Open(allowedPath, false);
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(blocked.Result.Report.FidelityDiagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(blocked.Result.Report.Diagnostics,
-                finding => finding.Code == "Excel.BinaryWriter.Unsupported"
+                finding => finding.Code == "excel-binary-writer-unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(blockedPath));
 
@@ -549,7 +549,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(File.Exists(visualPath));
             Assert.Contains(preflight.Diagnostics,
-                finding => finding.Code == "Excel.BinaryWriter.CellRasterFallback"
+                finding => finding.Code == "excel-binary-writer-cell-raster-fallback"
                     && finding.CompatibilityState == OfficeCompatibilityState.Rasterized
                     && finding.FallbackArtifact != null);
             ExcelDocumentConversionResult converted = ExcelDocument.Convert(sourcePath, visualPath, options);
@@ -595,7 +595,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(converted.Report.Diagnostics,
-                finding => finding.Code == "Excel.SourceCarrier.Embedded"
+                finding => finding.Code == "excel-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using ExcelDocument binary = ExcelDocument.Load(destinationPath);
             Assert.Equal(ExcelFileFormat.Xlsb, binary.SourceFormat);
@@ -622,7 +622,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Contains(converted.Report.Diagnostics,
-                    finding => finding.Code == "Excel.SourceCarrier.Embedded"
+                    finding => finding.Code == "excel-source-carrier-embedded"
                         && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
                 Assert.Contains(converted.Report.Diagnostics,
                     finding => finding.RepresentsDataLoss
@@ -730,7 +730,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(analysis.Compatibility.HasSecurityImpact);
                 Assert.Contains(analysis.Compatibility.Findings,
-                    finding => finding.Code == "Excel.PasswordEncryption.Removed"
+                    finding => finding.Code == "excel-password-encryption-removed"
                         && finding.State == OfficeCompatibilityState.Blocked
                         && finding.RepresentsLoss);
                 ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
@@ -747,7 +747,7 @@ namespace OfficeIMO.Tests {
                     });
                 Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
                 Assert.Contains(allowed.Report.Compatibility.Findings,
-                    finding => finding.Code == "Excel.PasswordEncryption.Removed"
+                    finding => finding.Code == "excel-password-encryption-removed"
                         && finding.State == OfficeCompatibilityState.Dropped
                         && finding.RepresentsLoss);
                 Assert.True(File.Exists(allowedPath));

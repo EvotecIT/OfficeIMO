@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingWordFieldsTyped() {
             using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithFieldSwitchesTyped.docx"))) {
-                var ask = new AskField {
+                var ask = new WordAskField {
                     Bookmark = "ANSWER",
                     Prompt = "What is the answer of life and everything?",
                     DefaultResponse = "42"
@@ -262,10 +262,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AdditionalTypedFields() {
             using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithAdditionalTypedFields.docx"))) {
-                document.AddField(new AuthorField { Author = "John Doe" });
-                document.AddField(new FileNameField { IncludePath = true });
-                document.AddField(new SetField { Bookmark = "ANSWER", Value = "42" });
-                document.AddField(new RefField { Bookmark = "ANSWER", InsertHyperlink = true });
+                document.AddField(new WordAuthorField { Author = "John Doe" });
+                document.AddField(new WordFileNameField { IncludePath = true });
+                document.AddField(new WordSetField { Bookmark = "ANSWER", Value = "42" });
+                document.AddField(new WordRefField { Bookmark = "ANSWER", InsertHyperlink = true });
 
                 document.Save();
 

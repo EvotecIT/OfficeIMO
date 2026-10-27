@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private double _pageWidth = 612;
     private double _pageHeight = 792;
     private long _pageSizeConfigurationVersion;
@@ -38,8 +38,8 @@ public sealed partial class PdfOptions {
         }
     }
     /// <summary>Page size in points.</summary>
-    public PageSize PageSize {
-        get => new PageSize(PageWidth, PageHeight);
+    public PdfPageSize PageSize {
+        get => new PdfPageSize(PageWidth, PageHeight);
         set {
             Guard.Positive(value.Width, nameof(PageSize));
             Guard.Positive(value.Height, nameof(PageSize));
@@ -61,8 +61,8 @@ public sealed partial class PdfOptions {
     /// <summary>Bottom margin in points. Default 72 (1 inch).</summary>
     public double MarginBottom { get; set; } = 72;
     /// <summary>Page margins in points.</summary>
-    public PageMargins Margins {
-        get => new PageMargins(MarginLeft, MarginTop, MarginRight, MarginBottom);
+    public PdfPageMargins Margins {
+        get => new PdfPageMargins(MarginLeft, MarginTop, MarginRight, MarginBottom);
         set {
             MarginLeft = value.Left;
             MarginTop = value.Top;

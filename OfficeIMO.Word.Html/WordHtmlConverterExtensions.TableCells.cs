@@ -14,10 +14,10 @@ public static partial class WordHtmlConverterExtensions {
     public static void AddHtml(
         this WordTableCell cell,
         HtmlConversionDocument htmlDocument,
-        HtmlToWordOptions? options = null) {
+        WordHtmlImportOptions? options = null) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
-        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         EnsureOfflineSynchronousImport(htmlDocument, resolved);
         cell.AddHtmlAsync(htmlDocument, resolved).GetAwaiter().GetResult();
@@ -33,13 +33,13 @@ public static partial class WordHtmlConverterExtensions {
     public static async Task AddHtmlAsync(
         this WordTableCell cell,
         HtmlConversionDocument htmlDocument,
-        HtmlToWordOptions? options = null,
+        WordHtmlImportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         cancellationToken.ThrowIfCancellationRequested();
 
-        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         var converter = new HtmlToWordConverter();
         await converter.AddHtmlToTableCellAsync(

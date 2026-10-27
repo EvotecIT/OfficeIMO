@@ -7,14 +7,14 @@ namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
     /// <summary>Analyzes a file-to-file PowerPoint conversion without creating or changing an artifact.</summary>
-    public static PowerPointPresentationConversionReport AnalyzeConversion(
+    internal static PowerPointPresentationConversionReport AnalyzeConversion(
         string sourcePath,
         string destinationPath,
         PowerPointPresentationConversionOptions? options = null) =>
         AnalyzeConversionAsync(sourcePath, destinationPath, options).GetAwaiter().GetResult();
 
     /// <summary>Asynchronously analyzes a file-to-file PowerPoint conversion without creating or changing an artifact.</summary>
-    public static async Task<PowerPointPresentationConversionReport> AnalyzeConversionAsync(
+    internal static async Task<PowerPointPresentationConversionReport> AnalyzeConversionAsync(
         string sourcePath,
         string destinationPath,
         PowerPointPresentationConversionOptions? options = null,

@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
             table.TotalsRowCount = 0U;
             SheetDimension dimension = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()
                 ?? sheet.WorksheetPart.Worksheet.InsertAt(new SheetDimension(), 0);
-            dimension.Reference = $"A1:A{A1.MaxRows}";
+            dimension.Reference = $"A1:A{ExcelA1.MaxRows}";
             sheet.InsertRows(2);
 
             Assert.Equal("A3", hyperlink.Reference!.Value);

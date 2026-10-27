@@ -76,7 +76,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
     public void ProjectedFixedHeightWordRegionDisablesShapeAutoFitAfterReopen() {
         const string html = "<div style='position:absolute;width:120px;height:18px'>"
             + "Text that is intentionally longer than the fixed rendered box height.</div>";
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();

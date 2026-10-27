@@ -51,7 +51,7 @@ internal static class PdfUnderstandingBenchmarkValidation {
         PdfBinaryClassificationScore adjacency = EvaluateCellAdjacency(document, corpus.Pages);
 
         PdfDocument continuationSource = PdfDocument.Load(corpus.ContinuationPdf);
-        PdfDocumentReadResult continuationDocument = continuationSource.Read(new PdfReadOptions {
+        PdfDocumentReadResult continuationDocument = continuationSource.Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Structured
         });
         PdfBinaryClassificationScore continuationPairs = EvaluateContinuationPairs(

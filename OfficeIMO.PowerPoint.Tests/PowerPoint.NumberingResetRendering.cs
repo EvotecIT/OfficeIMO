@@ -38,8 +38,8 @@ public sealed class PowerPointNumberingResetRenderingTests {
         }
         saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        var result = reopened.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfReadDocument.Open(result.Value.ToBytes());
+        var result = reopened.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfReadDocument.Open(result.ToBytes());
         string text = pdf.ExtractText();
         AssertNumberedItemsInOrder(text);
         Assert.Equal(OfficeConversionLossKind.Approximation,
@@ -64,7 +64,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         paragraph.SetBulletFont("Times New Roman").SetBulletSizePoints(11);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        var result = reopened.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         var spans = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetTextSpans();
@@ -91,11 +91,11 @@ public sealed class PowerPointNumberingResetRenderingTests {
         paragraph.Text = "Inherited body size";
         paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);
         paragraph.SetBulletSizePercent(50);
-        var options = new PowerPointToPdfOptions { PdfOptions = new PdfCore.PdfOptions {
+        var options = new PowerPointPdfExportOptions { PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultTableStyle = new PdfCore.PdfTableStyle { FontSize = 20, HeaderFontSize = 24, FooterFontSize = 28 }
         }};
-        byte[] bytes = presentation.ToPdfBytes(options);
-        var spans = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
+        byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        var spans = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetTextSpans();
         var marker = Assert.Single(spans, span => span.Text.TrimEnd() == "7.");
         Assert.Equal((double)expectedSize, marker.FontSize);
         var body = Assert.Single(spans, span => span.Text == "Inherited body size");

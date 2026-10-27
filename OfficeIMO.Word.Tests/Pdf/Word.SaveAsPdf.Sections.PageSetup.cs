@@ -21,10 +21,10 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Native page setup marker");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(240, 320),
-                Margins = new PdfCore.PageMargins(80, 36, 36, 36)
+                PageSize = new PdfCore.PdfPageSize(240, 320),
+                Margins = new PdfCore.PdfPageMargins(80, 36, 36, 36)
             });
         }
 
@@ -46,10 +46,10 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Native explicit geometry marker");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 240),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(420, 240),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 
@@ -82,7 +82,7 @@ public partial class Word {
             secondSection.AddParagraph("WideMarginMarker starts from the wider Word section margin.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }

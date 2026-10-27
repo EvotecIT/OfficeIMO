@@ -337,8 +337,8 @@ namespace OfficeIMO.Tests {
                         break;
                     case ".pdf":
                         byte[] pdf = File.ReadAllBytes(path);
-                        PdfCore.PdfReadDocument parsed =
-                            PdfCore.PdfReadDocument.Open(pdf);
+                        PdfCore.PdfDocument parsed =
+                            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
                         if (parsed.Pages.Count < 1) {
                             issue = "PDF page tree is empty: " + path;
                             return false;
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                             return false;
                         }
                         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
-                            PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
+                            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                                 new PdfCore.PdfPageRenderOptions {
                                     Dpi = 72D,
                                     Format = PdfCore.PdfPageRenderFormat.Png,

@@ -27,9 +27,9 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithRequiredRowHeight(bool inColumn, bool fixedHeight, int lineCount) {
-        var options = new PdfOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
+        var options = new PdfCreateOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0;
         style.MinimumBodyRowsOnFirstPage = 0; style.MinimumBodyRowsOnLastPage = 0;
         style.CellPaddingY = 2; style.SpacingBefore = 0; style.SpacingAfter = 0; style.CellSpacing = 0;
@@ -47,9 +47,9 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_RowHeightRequirementCannotOverflowItsContinuationFrame(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = 141;
         var document = PdfDocument.Create(options);
         var rows = new[] { new[] { "Required row height" } };
@@ -64,9 +64,9 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_PartiallyRenderedRowDoesNotRestartOnItsContinuationPage(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
+        var options = new PdfCreateOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
         style.CellPaddingY = 2;
         var rows = new[] { new[] { "Heading" }, new[] { string.Join("\n", Enumerable.Range(1, 11).Select(line => "Unique" + line.ToString("D2"))) } };
@@ -105,9 +105,9 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithFirstSegmentImage(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
         style.CellPaddingX = 2; style.CellPaddingY = 2;
         style.ColumnWidthPoints = new List<double?> { 60, null };

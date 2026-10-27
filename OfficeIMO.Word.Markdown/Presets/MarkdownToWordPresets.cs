@@ -14,14 +14,14 @@ public static class MarkdownToWordPresets {
     /// <summary>
     /// Creates the explicit IntelligenceX transcript markdown-to-Word conversion preset.
     /// </summary>
-    public static MarkdownToWordOptions CreateIntelligenceXTranscript(
+    public static WordMarkdownImportOptions CreateIntelligenceXTranscript(
         IReadOnlyList<string>? allowedImageDirectories = null,
         int? visualMaxWidthPx = null) {
         var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             preservesGroupedDefinitionLikeParagraphs: false,
             visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
-        var options = new MarkdownToWordOptions {
+        var options = new WordMarkdownImportOptions {
             FontFamily = "Calibri",
             AllowLocalImages = allowedImageDirectories is { Count: > 0 },
             PreferNarrativeSingleLineDefinitions = true,

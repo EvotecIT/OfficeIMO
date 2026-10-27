@@ -23,7 +23,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
                     LineRule = minimum ? W.LineSpacingRuleValues.AtLeast : W.LineSpacingRuleValues.Auto });
             if (hidden) blank._paragraph.Append(new W.Run(new W.RunProperties(new W.Vanish(), new W.FontSize { Val = "144" }), new W.Text("Invisible")));
             document.AddParagraph("Marker");
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.DoesNotContain("Invisible", pdf.GetPage(1).Text);
             return pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.Y;
         }
@@ -47,7 +47,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         var referenceRun = (W.Run)reference.Parent!;
         referenceRun.RunProperties ??= new W.RunProperties();
         referenceRun.RunProperties.FontSize = referencePoints > 0 ? new W.FontSize { Val = (referencePoints * 2).ToString() } : null;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double baseline = pdf.GetPage(1).Letters.First(letter => letter.Value == "B").StartBaseLine.Y;
         var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == (endnote ? "i" : "1") && letter.StartBaseLine.Y > baseline + .1);
         Assert.Equal((referencePoints > 0 ? referencePoints : 11D) * .65D, marker.PointSize, precision: 3);
@@ -78,7 +78,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
             FontSize = 12.5, LineHeight = 1.4, HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
             BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
         };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal(3, letters.Length);
         Assert.All(letters, letter => Assert.Equal(authored ? 18D : 12.5D, letter.PointSize, precision: 3));
@@ -100,7 +100,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
             new W.SdtContentBlock(new W.Paragraph(new W.Run(new W.Picture(shape)))));
         var body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
         body.InsertBefore(cover, body.Elements<W.SectionProperties>().FirstOrDefault());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal(3, letters.Length);
         Assert.Equal(13.2D, letters[1].StartBaseLine.Y - letters[2].StartBaseLine.Y, precision: 3);
@@ -131,7 +131,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         sourceRun.RunProperties.FontSize = authored ? new W.FontSize { Val = "36" } : null;
         var options = Options();
         options.PdfOptions!.DefaultTableStyle = new PdfTableStyle { FontSize = 12.5, HeaderRowCount = 0 };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var body = pdf.GetPage(1).Letters.First(letter => letter.Value == "B");
         Assert.Equal(12.5D, body.PointSize, precision: 3);
         if (kind == "link") Assert.Equal(authored ? 18D : 12.5D,
@@ -145,8 +145,8 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
 
     private static W.Run Text(string text, int points) => new(new W.RunProperties(new W.FontSize { Val = (points * 2).ToString() }),
         new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
-    private static WordToPdfOptions Options() => new() {
+    private static WordPdfExportOptions Options() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfOptions { CompressContentStreams = false }
+        PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
     };
 }

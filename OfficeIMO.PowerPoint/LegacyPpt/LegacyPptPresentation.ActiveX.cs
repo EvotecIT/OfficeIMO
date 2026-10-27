@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         || _oleObjectsById.ContainsKey(control.Id)
                         || _linkedOleObjectsById.ContainsKey(control.Id)
                         || _activeXControlsById.ContainsKey(control.Id)) {
-                        AddDiagnostic("PPT-ACTIVEX-ID-DUPLICATE",
+                        AddDiagnostic("ppt-activex-id-duplicate",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"ActiveX identifier {control.Id} occurs more than once or collides with another object; later controls remain preserve-only.",
                             container.Offset);
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord container, LegacyPptPackage package,
             LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-ACTIVEX-CONTAINER",
+                AddDiagnostic("ppt-activex-container",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ExControlContainer has an invalid record header and remains preserve-only.",
                     container.Offset);
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || objects[0].Instance != 0
                 || objects[0].PayloadLength != 24
                 || metafiles.Length > 1) {
-                AddDiagnostic("PPT-ACTIVEX-ATOM",
+                AddDiagnostic("ppt-activex-atom",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ActiveX control has malformed identifying records and remains preserve-only.",
                     container.Offset);
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             uint persistId = obj.ReadUInt32(16);
             if (type != 2 || id == 0 || persistId == 0
                 || !IsOleDrawAspect(drawAspectValue)) {
-                AddDiagnostic("PPT-ACTIVEX-IDENTITY",
+                AddDiagnostic("ppt-activex-identity",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ActiveX control uses an invalid type, identifier, persist reference, or view aspect.",
                     obj.Offset);
@@ -92,14 +92,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || !TryReadOleString(container, 2, out string? progId)
                 || !TryReadOleString(container, 3,
                     out string? clipboardName)) {
-                AddDiagnostic("PPT-ACTIVEX-STRING",
+                AddDiagnostic("ppt-activex-string",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"ActiveX identifier {id} has duplicate or malformed names and remains preserve-only.",
                     container.Offset);
                 return null;
             }
             if (!TryReadExternalObjectStorage(package, options, id,
-                    persistId, "PPT-ACTIVEX-STORAGE", "ActiveX",
+                    persistId, "ppt-activex-storage", "ActiveX",
                     obj.Offset, out byte[] storageBytes,
                     out bool compressed)) {
                 return null;

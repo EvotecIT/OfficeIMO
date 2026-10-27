@@ -13,11 +13,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlStacking_PdfLogicalOwnerAccountsForAllRenderableLayers(string first, string firstStyle, string second, string expected) {
         string html = "<p style='margin:0'><span style='position:relative;z-index:2;font-family:MissingIcon;" + firstStyle + "'>" + first
             + "</span><span style='position:relative;z-index:1;font-family:MissingIcon'>" + second + "</span></p>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             AutoFitWidePrintContent = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Contains(expected, text);
         Assert.DoesNotContain("\uF42B", text);
         Assert.Equal(1, text.Split(new[] { "BETA" }, StringSplitOptions.None).Length - 1);
@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = result.ToBytes();
         var rendered = result.RenderResult.Document;
         Assert.Contains("/ActualText", System.Text.Encoding.ASCII.GetString(pdf));
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Contains("ALPHA BETA", text);
         Assert.Equal(1, text.Split(new[] { "ALPHA" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, text.Split(new[] { "BETA" }, StringSplitOptions.None).Length - 1);

@@ -86,6 +86,12 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptProjectionMap projectionMap, PowerPointFileFormat sourceFormat) {
             _legacyPptSourcePath = sourcePath;
             _legacyPptImportDiagnostics = legacy.Diagnostics.ToArray();
+            _sourceLoadDiagnostics = legacy.CreateImportReport().FidelityDiagnostics.Select(d => new OfficeDiagnostic(d.Code,
+                legacy.Diagnostics.FirstOrDefault(item => item.Code == d.Code)?.Severity switch {
+                    LegacyPptDiagnosticSeverity.Information => OfficeDiagnosticSeverity.Information,
+                    LegacyPptDiagnosticSeverity.Error => OfficeDiagnosticSeverity.Error,
+                    _ => OfficeDiagnosticSeverity.Warning
+                }, d.Message, d.Location, d.Source, d.LossKind)).ToArray();
             _legacyPptPackage = legacy.Package;
             _openXmlOriginalPackageBytes = null;
             _legacyPptProjectionMap = projectionMap;

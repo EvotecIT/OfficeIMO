@@ -14,11 +14,11 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// Export-OfficeDocumentPdf -InputPath .\Report.docx -Path .\Report.pdf -WordOptions $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeWordPdfOptions")]
-[OutputType(typeof(WordToPdfOptions))]
+[OutputType(typeof(WordPdfExportOptions))]
 public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the document does not specify one.</summary>
     [Parameter]
@@ -26,7 +26,7 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
 
     /// <summary>PDF page size.</summary>
     [Parameter]
-    public PageSize? PageSize { get; set; }
+    public PdfPageSize? PageSize { get; set; }
 
     /// <summary>PDF page orientation.</summary>
     [Parameter]
@@ -98,7 +98,7 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new WordToPdfOptions();
+        var options = new WordPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
         if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
         if (PageSize.HasValue) options.PageSize = PageSize.Value;
@@ -106,8 +106,8 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
         if (DefaultPageSize.HasValue) options.DefaultPageSize = DefaultPageSize.Value;
         if (DefaultOrientation.HasValue) options.DefaultOrientation = DefaultOrientation.Value;
         if (HasMargins()) {
-            PageMargins defaults = PageMargins.Normal;
-            options.Margins = new PageMargins(
+            PdfPageMargins defaults = PdfPageMargins.Normal;
+            options.Margins = new PdfPageMargins(
                 MarginLeft ?? defaults.Left,
                 MarginTop ?? defaults.Top,
                 MarginRight ?? defaults.Right,

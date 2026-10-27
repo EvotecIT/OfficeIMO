@@ -141,7 +141,7 @@ public partial class Word {
         source.Paragraphs[1].KeepLinesTogether = true;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Page[] pages = pdf.GetPages().ToArray();
         var picture = Assert.Single(pages.SelectMany(page => page.GetImages()));
         Assert.Equal(160D, picture.BoundingBox.Width, 3);
@@ -160,7 +160,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(path);
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string xml = main.Document.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
-        byte[] result = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] result = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(xml, main.Document.OuterXml + main.DocumentSettingsPart.Settings.OuterXml);
         Assert.Equal(source, File.ReadAllBytes(path));
         return result;

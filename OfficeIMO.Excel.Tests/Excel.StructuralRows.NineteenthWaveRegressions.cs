@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 1).SetValue("Keep");
             var view = new SheetView {
                 WorkbookViewId = 0U,
-                TopLeftCell = $"A{A1.MaxRows}"
+                TopLeftCell = $"A{ExcelA1.MaxRows}"
             };
             var sheetViews = new SheetViews(view);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", view.TopLeftCell!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", view.TopLeftCell!.Value);
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
         }
 
@@ -95,13 +95,13 @@ namespace OfficeIMO.Tests {
             Xdr.Shape shape = AddCellLinkedDrawingShape(
                 dashboard,
                 1U,
-                $"Data!A{A1.MaxRows}");
+                $"Data!A{ExcelA1.MaxRows}");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => data.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"Data!A{A1.MaxRows}", shape.TextLink!.Value);
+            Assert.Equal($"Data!A{ExcelA1.MaxRows}", shape.TextLink!.Value);
             Assert.Equal("Keep", data.CellAt(1, 1).GetValue<string>());
         }
 

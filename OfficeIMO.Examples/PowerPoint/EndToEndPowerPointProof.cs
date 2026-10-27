@@ -138,10 +138,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .ExportImage(OfficeImageExportFormat.Svg)
                     .Save(Path.Combine(outputFolder, stem + ".svg"), OfficeImageExportFileConflictPolicy.Replace);
             }
-            var pdfOptions = new PowerPointToPdfOptions().UseProfile(PdfExportProfile.Faithful);
-            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
-            pdfResult.Save(pdfPath);
-            presentation.SaveAsPdf(handoutPath, new PowerPointToPdfOptions {
+            var pdfOptions = new PowerPointPdfExportOptions().UseProfile(PdfExportProfile.Faithful);
+            OfficeConversionReport pdfResult = presentation.SaveAsPdf(pdfPath, pdfOptions);
+            presentation.SaveAsPdf(handoutPath, new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
@@ -157,7 +156,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     File.ReadAllBytes(presentationPath))
                 .RecordArtifact(Path.GetFileName(pdfPath), "application/pdf", File.ReadAllBytes(pdfPath),
-                    pdfResult.Warnings.Count)
+                    pdfResult.Diagnostics.Count)
                 .RecordArtifact(Path.GetFileName(htmlPath), "text/html", File.ReadAllBytes(htmlPath),
                     htmlResult.ImageDiagnostics.Count);
             visualProof.SaveJson(visualProofPath);

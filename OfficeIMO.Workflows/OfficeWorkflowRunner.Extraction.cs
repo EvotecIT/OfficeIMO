@@ -12,7 +12,7 @@ public sealed partial class OfficeWorkflowRunner {
         var extracted = document.Pages.Extract(pages, request.Limits.MaximumOutputBytes);
         token.ThrowIfCancellationRequested();
         using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
-        extracted.SaveAsync(output, token).GetAwaiter().GetResult();
+        extracted.SaveAsync(output, new PdfSaveOptions { AllowLoss = true }, token).GetAwaiter().GetResult();
         token.ThrowIfCancellationRequested();
         byte[] bytes = output.ToArray();
         if (PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Inspect().PageCount != pages.Length)

@@ -44,7 +44,7 @@ internal static class NativePdfScenarios {
         return new OfficeWorkflowRequest {
             InputPath = PathFor(source), OutputPath = Path.Combine(directory, "output.pdf"),
             Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = source.Route,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace, RegisteredConversionSettings = settings
+            ConflictPolicy = OfficePublicationPolicy.Replace, RegisteredConversionSettings = settings
         };
     }
 
@@ -60,7 +60,7 @@ internal static class NativePdfScenarios {
             source.Name + " published a reported omission or failure.");
         Require(evidence.FidelityDiagnostics.Any(item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"),
             source.Name + " concealed unassessed record fidelity.");
-        Require(result.Diagnostics.Any(item => item.Code == "OutputReopened")
+        Require(result.Diagnostics.Any(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             && result.Diagnostics.Single(item => item.Code == "SourceSnapshot").Details["sha256"].Equals(source.Hash, StringComparison.OrdinalIgnoreCase),
             source.Name + " lost output reopen or source identity evidence.");
     }
@@ -135,7 +135,7 @@ internal static class NativePdfScenarios {
         }), cancellation.Token);
         Require(result.Status == OfficeWorkflowStatus.Cancelled && File.ReadAllText(request.OutputPath!) == "keep existing",
             "Cancellation replaced the destination or lost its status.");
-        if (atPublication) Require(reachedPublication && result.Diagnostics.Any(item => item.Code == "OutputReopened"),
+        if (atPublication) Require(reachedPublication && result.Diagnostics.Any(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened),
             "Publication cancellation did not reach a reopened completed PDF.");
         VerifyIntegrity(request, Body);
         Console.WriteLine("PASS | " + (atPublication ? "publication" : "pre-start") + " cancellation | destination and source preserved; staging removed");

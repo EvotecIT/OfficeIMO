@@ -121,28 +121,21 @@ Use `LoadLegacyPptWithReport(...)` when an import gate needs parser diagnostics 
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using LegacyPptLoadResult result =
-    PowerPointPresentation.LoadLegacyPptWithReport("legacy-deck.ppt");
-
-result.EnsureNoImportErrors();
-if (result.HasConversionLoss) {
-    foreach (var diagnostic in result.Diagnostics) {
-        Console.WriteLine(diagnostic);
-    }
-}
-
-PowerPointPresentation presentation = result.Document;
+using PowerPointPresentation presentation = PowerPointPresentation.Load("legacy-deck.ppt", null,
+    out OfficeIMO.OfficeConversionReport report);
+foreach (OfficeIMO.OfficeDiagnostic diagnostic in report.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
 Native binary saving is selected by a `.ppt`, `.pot`, or `.pps` destination, or explicitly through
-`ToBytes(PowerPointFileFormat.Ppt)`. Fresh binary authoring and supported PPTX conversion use the same
+`ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })`. Fresh binary authoring and supported PPTX conversion use the same
 slides, masters, layouts, placeholders, themes, text, shapes, pictures, notes, comments, interactions,
 transitions, animations, properties, macros, embedded objects, and media contracts exposed by the normal
 PowerPoint model:
 
 Explicit `.pptx` output is macro-free. VBA imported from a binary presentation remains available in the
 editable model and is retained when saving back to `.ppt`, `.pot`, or `.pps`, but it is omitted from
-`Save("output.pptx")` and `ToBytes(PowerPointFileFormat.Pptx)` so the package content matches its extension.
+`Save("output.pptx")` and `ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })` so the package content matches its extension.
 Matching macro-enabled Open XML path destinations (`.pptm`, `.potm`, `.ppsm`, and `.ppam`) preserve their
 package type and VBA, including encrypted path saves. Associated no-format stream saves preserve the loaded
 macro-enabled package type and VBA as well.
@@ -186,11 +179,12 @@ CryptoAPI for PowerPoint 97-2003 compatibility; it is a legacy interoperability 
 cryptography:
 
 ```csharp
-using var encrypted = PowerPointPresentation.LoadEncrypted(
-    "protected.ppt", "open-password");
+using var encrypted = PowerPointPresentation.Load(
+    "protected.ppt", new PowerPointLoadOptions { Password = "open-password" });
 
-encrypted.SaveEncrypted("protected-copy.ppt", "new-password",
+encrypted.Save("protected-copy.ppt",
     new PowerPointSaveOptions {
+        Password = "new-password",
         LegacyPptEncryptionKeySizeBits = 128,
         LegacyPptEncryptDocumentProperties = true
     });
@@ -399,7 +393,7 @@ these overrides, including sparse and theme-based fills, so saved and reopened p
 charts retain their colours in managed image and PDF exports. A null entry inherits the chart's normal
 colour selection. The [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md#powerpoint)
 tracks the exact chart appearance boundary.
-PDF export uses the native chart style unless `PowerPointToPdfOptions.ChartStyle` supplies an override.
+PDF export uses the native chart style unless `PowerPointPdfExportOptions.ChartStyle` supplies an override.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -625,7 +619,7 @@ Save macro content only to matching macro-enabled Open XML package formats such
 as `.pptm`, `.potm`, or `.ppsm`. Source editing adds no runtime dependency and
 does not execute VBA or edit binary `.ppt` carriers.
 
-`InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
+`OfficeDocument.Inspect(path, options).VbaSignatures` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
 
 ### SmartArt and visual proof
 
@@ -749,7 +743,7 @@ The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` 
 
 ## PDF export
 
-Forward PDF conversion is part of `OfficeIMO.PowerPoint`:
+Forward PDF conversion lives in `OfficeIMO.PowerPoint.Pdf`:
 
 ```csharp
 using OfficeIMO.PowerPoint;
@@ -757,12 +751,13 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Load("deck.pptx");
 presentation.SaveAsPdf("deck.pdf");
-byte[] pdfBytes = presentation.ToPdfBytes();
+using var pdf = presentation.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
+byte[] pdfBytes = pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 ```
 
-Installed document fonts are embedded by default. Inspect `ToPdfDocumentResult().Warnings`
-for substitutions, approximations, and omissions. Add `OfficeIMO.PowerPoint.Pdf` when
-importing PDF content as editable slides.
+Installed document fonts are embedded by default. Inspect `report.Diagnostics`
+for substitutions, approximations, and omissions. Use `OfficeIMO.Pdf.PowerPoint`
+when reconstructing PDF content as editable slides.
 
 ## Managed image export
 
@@ -790,7 +785,9 @@ PowerPoint PDF and slide images use the same layout and font policy through `Off
 
 ## Content provenance
 
-`PowerPointPresentation.InspectProvenance("input.pptx")` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+Add the `OfficeIMO` front-door package for the shared inspection entry point.
+
+`OfficeIMO.OfficeDocument.Inspect("input.pptx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
 When the presentation is already in memory, inspect its encoded package bytes directly. This overload validates the package and inspects supported provenance without accessing the filesystem:
 
@@ -799,24 +796,25 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Provenance;
 
 static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
-    PowerPointPresentation.InspectProvenance(packageBytes, "upload.pptx");
+    OfficeIMO.OfficeDocument.Inspect(new MemoryStream(packageBytes), "upload.pptx",
+        new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!;
 ```
 
 ## Concealed-content inspection and cleanup
 
-`PowerPointPresentation.InspectContentSafety(...)` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointPresentation.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
+`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointPresentation.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
 
 ## Adjacent packages
 
 | Package | Use it for |
 | --- | --- |
-| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Import PDF text, tables, shapes, and images as editable PowerPoint slides. |
+| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Export presentations as PDF. |
 | [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Render semantic markup documents to PowerPoint. |
 
 ## Related packages
 
 - `OfficeIMO.PowerPoint` provides editable PowerPoint creation and manipulation.
-- `OfficeIMO.PowerPoint` exports PDF through `OfficeIMO.Pdf`; add `OfficeIMO.PowerPoint.Pdf` for reverse PDF import.
+- `OfficeIMO.PowerPoint.Pdf` exports PDF; `OfficeIMO.Pdf.PowerPoint` reconstructs PDF content as editable slides.
 - See `OfficeIMO.Examples` for complete showcase decks and design examples.
 
 ## Targets and license

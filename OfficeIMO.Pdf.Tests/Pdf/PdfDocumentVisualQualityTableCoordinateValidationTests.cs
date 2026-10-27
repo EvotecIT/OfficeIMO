@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeCellFillCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
             [(2, 0)] = PdfColor.Gray
         };
@@ -33,7 +33,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsOutOfRangeCellBorderCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 2)] = new PdfCellBorder()
         };
@@ -56,7 +56,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeCellFillCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
             [(0, 2)] = PdfColor.Gray
         };
@@ -77,7 +77,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsOutOfRangeRowMinimumHeights() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.RowMinHeights = new List<double?> {
             null,
             null,
@@ -97,7 +97,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsOutOfRangeRowBreakPolicies() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.RowAllowBreakAcrossPages = new List<bool?> {
             null,
             null,
@@ -117,7 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsOutOfRangeBodyColumnFill() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BodyColumnFills = new List<PdfColor?> {
             null,
             null,
@@ -137,7 +137,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_IgnoresCellFillCoordinatesCoveredByColumnSpan() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
             [(0, 1)] = PdfColor.Gray
@@ -155,7 +155,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_IgnoresCellAlignmentCoordinatesCoveredByRowSpan() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
             [(1, 0)] = PdfColumnAlign.Right
@@ -173,7 +173,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsOutOfRangeColumnAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.Alignments = new List<PdfColumnAlign> {
             PdfColumnAlign.Left,
             PdfColumnAlign.Right,
@@ -193,7 +193,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsOutOfRangeColumnAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.Alignments = new List<PdfColumnAlign> {
             PdfColumnAlign.Left,
             PdfColumnAlign.Right,
@@ -218,7 +218,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeColumnAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.Alignments = new List<PdfColumnAlign> {
             PdfColumnAlign.Left,
             PdfColumnAlign.Right,
@@ -241,7 +241,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsOutOfRangeVerticalAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.VerticalAlignments = new List<PdfCellVerticalAlign> {
             PdfCellVerticalAlign.Top,
             PdfCellVerticalAlign.Middle,
@@ -261,7 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsOutOfRangeVerticalAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.VerticalAlignments = new List<PdfCellVerticalAlign> {
             PdfCellVerticalAlign.Top,
             PdfCellVerticalAlign.Middle,
@@ -286,7 +286,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeVerticalAlignment() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.VerticalAlignments = new List<PdfCellVerticalAlign> {
             PdfCellVerticalAlign.Top,
             PdfCellVerticalAlign.Middle,
@@ -309,7 +309,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsOutOfRangeColumnWidthWeight() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> {
             1,
             1,
@@ -334,7 +334,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeFixedColumnWidth() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> {
             null,
             null,

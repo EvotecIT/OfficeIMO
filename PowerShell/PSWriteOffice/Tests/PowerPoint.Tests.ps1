@@ -89,12 +89,11 @@ Describe 'PowerPoint cmdlets' {
         $savedAsPath = Join-Path (Join-Path $TestDrive 'save-as-output') 'PowerPointExternal.Copy.pptx'
         $seedPath = Join-Path $TestDrive 'PowerPointTypeSeed.pptx'
         $seed = New-OfficePowerPoint -Path $seedPath -NoSave
-        $presentationType = $seed.GetType()
         Close-OfficePowerPoint -Presentation $seed
-        $create = $presentationType.GetMethods() |
-            Where-Object { $_.Name -eq 'Create' -and $_.GetParameters().Count -eq 0 } |
-            Select-Object -First 1
-        $presentation = $create.Invoke($null, @())
+        $create = $seed.GetType().GetMethods() | Where-Object {
+            $_.Name -eq 'Create' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].Name -eq 'options'
+        }
+        $presentation = $create.Invoke($null, @($null))
         try {
             Add-OfficePowerPointSlide -Presentation $presentation | Out-Null
 

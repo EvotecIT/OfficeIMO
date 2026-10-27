@@ -11,14 +11,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordSoundCollection).ToArray();
             if (collections.Length == 0) return;
             if (collections.Length > 1) {
-                AddDiagnostic("PPT-SOUND-COLLECTION-DUPLICATE",
+                AddDiagnostic("ppt-sound-collection-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document contains multiple sound collections; the first collection is used.",
                     collections[1].Offset);
             }
             LegacyPptRecord collection = collections[0];
             if (collection.Version != 0x0F || collection.Instance != 5) {
-                AddDiagnostic("PPT-SOUND-COLLECTION-HEADER",
+                AddDiagnostic("ppt-sound-collection-header",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The sound collection has a nonstandard record header.",
                     collection.Offset);
@@ -30,11 +30,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 && seedAtoms[0].Instance == 0 && seedAtoms[0].PayloadLength == 4) {
                 int seed = seedAtoms[0].ReadInt32(0);
                 if (seed > 0) SoundIdSeed = unchecked((uint)seed);
-                else AddDiagnostic("PPT-SOUND-SEED",
+                else AddDiagnostic("ppt-sound-seed",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The sound collection identifier seed is negative.", seedAtoms[0].Offset);
             } else {
-                AddDiagnostic("PPT-SOUND-SEED",
+                AddDiagnostic("ppt-sound-seed",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The sound collection must contain one valid identifier-seed atom.",
                     collection.Offset);
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (options.ReportUnsupportedContent && collection.Children.Any(child =>
                     child.Type != RecordSoundCollectionAtom
                     && child.Type != RecordSound)) {
-                AddDiagnostic("PPT-SOUND-COLLECTION-UNKNOWN",
+                AddDiagnostic("ppt-sound-collection-unknown",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The sound collection contains unknown records that remain preserve-only.",
                     collection.Offset);
@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             _sounds.Sort((left, right) => left.Id.CompareTo(right.Id));
             uint greatestId = _sounds.Count == 0 ? 0 : _sounds.Max(sound => sound.Id);
             if (SoundIdSeed.HasValue && SoundIdSeed.Value < greatestId) {
-                AddDiagnostic("PPT-SOUND-SEED-RANGE",
+                AddDiagnostic("ppt-sound-seed-range",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The sound collection seed {SoundIdSeed.Value} is lower than sound identifier {greatestId}.",
                     seedAtoms.Length == 1 ? seedAtoms[0].Offset : collection.Offset);
@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void TryParseSound(LegacyPptRecord container,
             LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-SOUND-HEADER", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-sound-header", LegacyPptDiagnosticSeverity.Warning,
                     "A sound entry has a nonstandard record header and was skipped.",
                     container.Offset);
                 return;
@@ -81,14 +81,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     out string? idText)
                 || !int.TryParse(idText, NumberStyles.None, CultureInfo.InvariantCulture,
                     out int parsedId) || parsedId <= 0) {
-                AddDiagnostic("PPT-SOUND-ID", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-sound-id", LegacyPptDiagnosticSeverity.Warning,
                     "A sound entry has a missing or invalid positive identifier and was skipped.",
                     container.Offset);
                 return;
             }
             uint id = unchecked((uint)parsedId);
             if (_soundsById.ContainsKey(id)) {
-                AddDiagnostic("PPT-SOUND-ID-DUPLICATE",
+                AddDiagnostic("ppt-sound-id-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Sound identifier {id} is defined more than once; the first definition is retained.",
                     container.Offset);
@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (extensions.Length > 0) {
                 if (extensions.Length != 1 || extensions[0].Version != 0
                     || extensions[0].PayloadLength != 8) {
-                    AddDiagnostic("PPT-SOUND-EXTENSION",
+                    AddDiagnostic("ppt-sound-extension",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Sound {id} has duplicate or malformed extension data.",
                         container.Offset);
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         NumberStyles.None, CultureInfo.InvariantCulture,
                         out int parsedBuiltInId) || parsedBuiltInId < 100
                     || parsedBuiltInId > 125) {
-                    AddDiagnostic("PPT-SOUND-BUILTIN-ID",
+                    AddDiagnostic("ppt-sound-builtin-id",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Sound {id} has an invalid built-in sound identifier.",
                         container.Offset);
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             if (data.Length > 1) {
-                AddDiagnostic("PPT-SOUND-DATA-DUPLICATE",
+                AddDiagnostic("ppt-sound-data-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Sound {id} has multiple data blobs; the first payload is retained.",
                     data[1].Offset);
@@ -137,12 +137,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             _sounds.Add(sound);
             _soundsById.Add(id, sound);
             if (!sound.HasData) {
-                AddDiagnostic("PPT-SOUND-DATA-MISSING",
+                AddDiagnostic("ppt-sound-data-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Sound {id} has no embedded audio payload and cannot be projected.",
                     container.Offset);
             } else if (sound.ContentType == null) {
-                AddDiagnostic("PPT-SOUND-FORMAT",
+                AddDiagnostic("ppt-sound-format",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Sound {id} is neither recognizable WAV nor AIFF audio and cannot be projected.",
                     container.Offset);
@@ -150,7 +150,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (options.ReportUnsupportedContent && container.Children.Any(child =>
                     child.Type != RecordCString
                     && child.Type != RecordSoundDataBlob)) {
-                AddDiagnostic("PPT-SOUND-UNKNOWN",
+                AddDiagnostic("ppt-sound-unknown",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Sound {id} contains unknown records that remain preserve-only.",
                     container.Offset);
@@ -166,7 +166,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             value = null;
             if (records.Length != 1 || records[0].Version != 0
                 || (records[0].PayloadLength & 1) != 0) {
-                AddDiagnostic("PPT-SOUND-STRING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-sound-string", LegacyPptDiagnosticSeverity.Warning,
                     $"A sound entry has duplicate or malformed {field} data.",
                     container.Offset);
                 return false;
@@ -242,12 +242,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ValidateSoundReference(uint id, string owner) {
             if (id == 0) {
-                AddDiagnostic("PPT-SOUND-REFERENCE-NULL",
+                AddDiagnostic("ppt-sound-reference-null",
                     LegacyPptDiagnosticSeverity.Information,
                     $"The {owner} is marked to play a null sound reference; no sound was projected.",
                     null);
             } else if (!_soundsById.ContainsKey(id)) {
-                AddDiagnostic("PPT-SOUND-REFERENCE-MISSING",
+                AddDiagnostic("ppt-sound-reference-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {owner} references missing sound identifier {id}.", null);
             }

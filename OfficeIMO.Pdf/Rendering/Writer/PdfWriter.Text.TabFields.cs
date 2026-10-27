@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         alignment == PdfTabAlignment.Center || alignment == PdfTabAlignment.Right || alignment == PdfTabAlignment.DecimalSeparator;
 
     private static RichTabFieldMeasurement MeasureRichTabField(IReadOnlyList<PdfTextRun> runs, int runIndex, int textOffset,
-        PdfStandardFont baseFont, double fontSize, PdfOptions? options, PdfTextWhitespaceMode whitespaceMode) {
+        PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options, PdfTextWhitespaceMode whitespaceMode) {
         var field = new List<PdfTextRun>();
         for (int index = runIndex; index < runs.Count; index++) {
             PdfTextRun run = runs[index];
@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
         new(line, start);
 
     private static double? ResolveRichDecimalTabAnchor(RichTabFieldMeasurement? field, PdfTabAlignment alignment,
-        PdfTabStop? stop, PdfOptions? options, double leadingAdvance = 0D) =>
+        PdfTabStop? stop, PdfCreateOptions? options, double leadingAdvance = 0D) =>
         field != null && (stop?.Alignment ?? alignment) == PdfTabAlignment.DecimalSeparator
             ? leadingAdvance + field.GetDecimalAnchorWidth(stop?.DecimalSeparator, options) : null;
 
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
 
         internal double Width { get; }
 
-        internal double GetDecimalAnchorWidth(char? separator, PdfOptions? options) {
+        internal double GetDecimalAnchorWidth(char? separator, PdfCreateOptions? options) {
             double advance = 0D;
             for (int index = _start; index < _end; index++) {
                 RichSeg segment = _segments[index];
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
     }
 
     /// <summary>Uses the prepared token's encoded glyph origins, including cross-run kerning and authored tracking.</summary>
-    private static double MeasureRichSegmentDecimalAnchor(RichSeg segment, string paintedText, int decimalIndex, PdfOptions? options) {
+    private static double MeasureRichSegmentDecimalAnchor(RichSeg segment, string paintedText, int decimalIndex, PdfCreateOptions? options) {
         PdfTextShowCommand command = segment.KerningCommand ?? EncodeTextShowCommand(segment.Text, segment.Font,
             segment.NamedFont, options, segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale,
             segment.HorizontalTextScaling, segment.PreservesPaintedGlyphs, requireGlyphClusters: true);

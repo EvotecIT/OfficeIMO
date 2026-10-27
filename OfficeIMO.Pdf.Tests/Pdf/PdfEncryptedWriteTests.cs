@@ -12,14 +12,14 @@ public class PdfEncryptedWriteTests {
         };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
                 .Paragraph(paragraph => paragraph.Text("Bounded password"))
                 .ToBytes());
     }
 
     [Fact]
     public void GeneratedEncryptionDefaultsToAes256Revision6() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("AES default source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
@@ -41,7 +41,7 @@ public class PdfEncryptedWriteTests {
             Algorithm = PdfStandardEncryptionAlgorithm.Aes128
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("AES-128 interoperability source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
@@ -62,7 +62,7 @@ public class PdfEncryptedWriteTests {
             Algorithm = PdfStandardEncryptionAlgorithm.LegacyRc4
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Legacy RC4 source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
@@ -82,7 +82,7 @@ public class PdfEncryptedWriteTests {
             AllowedPermissions = PdfStandardPermissions.Print | PdfStandardPermissions.FillForms,
             EncryptMetadata = false
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 IncludeXmpMetadata = true
             }.SetEncryption(encryption))
             .Meta(title: "Visible XMP policy")
@@ -102,7 +102,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedPdfRequiresValidPassword() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Generated Secret PDF Text"))
             .ToBytes();
 
@@ -117,7 +117,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithUserPassword() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Generated Secret PDF Text"))
             .ToBytes();
 
@@ -141,7 +141,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedFormPdfRequiresOwnerOrExplicitOverrideForFullRewrite() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .TextField("Name", width: 180, height: 24, value: "Ada")
             .ToBytes();
 
@@ -166,7 +166,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordWhenUserPasswordUsesUtf8Fallback() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open \ud83d\udd12", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open \ud83d\udd12", "owner"))
             .Paragraph(paragraph => paragraph.Text("Generated UTF8 Password Secret"))
             .ToBytes();
 
@@ -179,7 +179,7 @@ public class PdfEncryptedWriteTests {
     public void Aes256PasswordsUseUnicodeCompatibilityNormalization() {
         const string composed = "café";
         const string decomposed = "cafe\u0301";
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(composed, "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(composed, "owner"))
             .Paragraph(paragraph => paragraph.Text("Normalized Unicode password"))
             .ToBytes();
 
@@ -194,7 +194,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void Aes256PasswordsApplyTheStandard127ByteLimit() {
         string sharedPrefix = new('a', 127);
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(sharedPrefix + "first", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(sharedPrefix + "first", "owner"))
             .Paragraph(paragraph => paragraph.Text("Truncated Unicode password"))
             .ToBytes();
 
@@ -220,7 +220,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordForWinAnsiUserPassword() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("€", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("€", "owner"))
             .Paragraph(paragraph => paragraph.Text("Owner Password Secret"))
             .ToBytes();
 
@@ -231,7 +231,7 @@ public class PdfEncryptedWriteTests {
 
     [Fact]
     public void GeneratedEncryptedPdfReadsWhenEncryptReferenceHasNonZeroGeneration() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Generation Encryption Secret"))
             .ToBytes();
         string text = PdfEncoding.Latin1GetString(pdf);

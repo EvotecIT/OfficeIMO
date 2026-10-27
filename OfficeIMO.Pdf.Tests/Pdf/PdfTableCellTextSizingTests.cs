@@ -19,7 +19,7 @@ public sealed class PdfTableCellTextSizingTests {
             CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
             FixedRowHeights = new() { 30 }, BorderColor = null
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
         });
@@ -44,7 +44,7 @@ public sealed class PdfTableCellTextSizingTests {
             FontSize = 12, HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
             ColumnWidthPoints = new() { 4 }, MaxWidth = 4, PreserveWidth = true, BorderColor = null
         };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfOptions { DefaultFont = PdfStandardFont.Courier })
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier })
             .Table(new[] { new[] { cell } }, style: style).ToBytes());
         var letters = pdf.GetPages().SelectMany(x => x.Letters).ToArray();
         Assert.Equal("AB", string.Concat(letters.Select(x => x.Value)));
@@ -73,14 +73,14 @@ public sealed class PdfTableCellTextSizingTests {
             CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
             PreserveWidth = true, MaxWidth = 190, SpacingBefore = 0, SpacingAfter = 0
         };
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12,
             PageWidth = 300, PageHeight = 200,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
         });
         if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 190, 40, style));
         else document.Table(rows, style: style);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var targets = words.Where(word => word.Text == "ShrinkTarget").OrderBy(word => word.BoundingBox.Left).ToArray();
         Assert.Equal(2, targets.Length);

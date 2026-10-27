@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class UnorderedListParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.UnorderedLists) return false;
             if (!IsUnorderedListLine(lines[i], options.TaskLists, out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
             if (!TryGetUnorderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out char firstMarker)) return false;

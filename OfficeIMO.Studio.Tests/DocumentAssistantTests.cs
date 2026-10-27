@@ -16,7 +16,7 @@ public sealed partial class DocumentAssistantTests {
             string path = Path.Combine(services.Paths.Root, "protected.pdf");
             const string password = "private-reader-password";
             byte[] plain = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
-            File.WriteAllBytes(path, PdfDocument.Load(plain).Security.Encrypt(new(password) {
+            File.WriteAllBytes(path, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(new(password) {
                 OwnerPassword = "private-owner-password", AllowedPermissions = PdfStandardPermissions.CopyContents
             }).Pdf);
             using var workspace = await PdfWorkspace.OpenAsync(path, default, services.Recovery, password);

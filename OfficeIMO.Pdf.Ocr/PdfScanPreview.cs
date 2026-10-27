@@ -34,8 +34,8 @@ public sealed class PdfScanPreview {
     public byte[] GetPreparedPng() => (byte[])_processed.Clone();
     /// <summary>Creates a single-page raster PDF of the reviewed appearance. Interactive content and native text are not copied.</summary>
     public PdfDocument CreateImagePdf(CancellationToken cancellationToken = default) => PdfDocument.CreateFromImages(
-        new[] { new PdfImageDocumentSource(_processed) }, new PdfImageDocumentOptions {
-            FixedPageSize = new PageSize(Width, Height),
+        new[] { new PdfImageDocumentSource(_processed) }, new PdfImageImportOptions {
+            FixedPageSize = new PdfPageSize(Width, Height),
             Margin = 0,
             Fit = OfficeImageFit.Stretch
         }, cancellationToken);

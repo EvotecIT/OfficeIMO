@@ -25,7 +25,7 @@ internal sealed partial class PdfWorkspace {
     internal async Task<OfficeWorkflowResult> SaveSignedCopyAsync(string destinationPath, IPdfExternalSigner signer,
         PdfExternalSignatureOptions options, IPdfSignatureCryptographyProvider verifier, CancellationToken token,
         IProgress<PdfWorkspaceProgress>? progress = null, OfficeWorkflowStreamOutput? outputStream = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficePublicationGuard? publicationGuard = null) {
         ThrowIfDisposed();
         if (!CanSign) throw new InvalidOperationException("This document's security policy prevents signing.");
         string destination = ValidateExportDestination(destinationPath);
@@ -34,7 +34,7 @@ internal sealed partial class PdfWorkspace {
         byte[] snapshot = CopyBytes(); long revision = Revision; string source = Path;
         // The fluent owner captures all signature and appearance settings before the destination check can await.
         var request = OfficeWorkflow.SignPdf("urn:officeimo:workspace:" + Guid.NewGuid().ToString("N"), signer, options, verifier)
-            .WithPdfPassword(_readOptions.Password).To(destination).OnConflict(OfficeWorkflowConflictPolicy.Replace).Build();
+            .WithPdfPassword(_readOptions.Password).To(destination).OnConflict(OfficePublicationPolicy.Replace).Build();
         request.InputStream = new("workspace.pdf", _ => Task.FromResult<Stream>(new MemoryStream(snapshot, false)));
         request.OutputStream = outputStream;
         request.PublicationGuard = new WorkspaceOutputPublicationGuard(this, source, revision, publicationGuard);

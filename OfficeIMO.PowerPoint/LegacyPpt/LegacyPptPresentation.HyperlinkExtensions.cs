@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord[] infoLists = document.Children.Where(record =>
                 record.Type == RecordDocumentInfoList).ToArray();
             if (infoLists.Length > 1) {
-                AddDiagnostic("PPT-HYPERLINK9-DOCINFO",
+                AddDiagnostic("ppt-hyperlink9-docinfo",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple information lists; hyperlink extensions remain preserve-only.",
                     infoLists[1].Offset);
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         record.Type == RecordBinaryTagDataBlob).ToArray();
                     if (dataBlobs.Length != 1 || dataBlobs[0].Version != 0
                         || dataBlobs[0].Instance != 0) {
-                        AddDiagnostic("PPT-HYPERLINK9-DATA",
+                        AddDiagnostic("ppt-hyperlink9-data",
                             LegacyPptDiagnosticSeverity.Warning,
                             "A PP9 programmable tag has no unique valid data blob; hyperlink extensions remain preserve-only.",
                             binaryTag.Offset);
@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                             dataBlobs[0].PayloadLength, options,
                             _recordBudget);
                     } catch (InvalidDataException) {
-                        AddDiagnostic("PPT-HYPERLINK9-TRUNCATED",
+                        AddDiagnostic("ppt-hyperlink9-truncated",
                             LegacyPptDiagnosticSeverity.Warning,
                             "A PP9 programmable tag is malformed; hyperlink extensions remain preserve-only.",
                             dataBlobs[0].Offset);
@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void ApplyHyperlinkExtension(LegacyPptRecord container,
             ISet<uint> seenIds, LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-HYPERLINK9-CONTAINER",
+                AddDiagnostic("ppt-hyperlink9-container",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ExHyperlink9Container has an invalid header and remains preserve-only.",
                     container.Offset);
@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || screenTips.Length > 1 || screenTips.Any(record =>
                     record.Version != 0 || record.Instance != 0
                     || (record.PayloadLength & 1) != 0)) {
-                AddDiagnostic("PPT-HYPERLINK9-SHAPE",
+                AddDiagnostic("ppt-hyperlink9-shape",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ExHyperlink9Container has malformed reference, screen-tip, or flags data and remains preserve-only.",
                     container.Offset);
@@ -98,14 +98,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             uint id = references[0].ReadUInt32(0);
             if (!seenIds.Add(id)) {
-                AddDiagnostic("PPT-HYPERLINK9-DUPLICATE",
+                AddDiagnostic("ppt-hyperlink9-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has multiple PP9 extensions and remains preserve-only.",
                     container.Offset);
                 return;
             }
             if (!_hyperlinksById.TryGetValue(id, out LegacyPptHyperlink? hyperlink)) {
-                AddDiagnostic("PPT-HYPERLINK9-MISSING",
+                AddDiagnostic("ppt-hyperlink9-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"A PP9 extension references missing hyperlink identifier {id}.",
                     container.Offset);
@@ -117,13 +117,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             uint flags = flagsAtoms[0].ReadUInt32(0);
             hyperlink.ApplyExtension(screenTip, flags);
             if (options.ReportUnsupportedContent && (flags & ~0x07U) != 0) {
-                AddDiagnostic("PPT-HYPERLINK9-RESERVED",
+                AddDiagnostic("ppt-hyperlink9-reserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has nonzero reserved PP9 flags that remain preserve-only.",
                     flagsAtoms[0].Offset);
             }
             if (options.ReportUnsupportedContent && flags != 0) {
-                AddDiagnostic("PPT-HYPERLINK9-FLAGS",
+                AddDiagnostic("ppt-hyperlink9-flags",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has PP9 dialog or custom-show flags that remain preserve-only.",
                     flagsAtoms[0].Offset);

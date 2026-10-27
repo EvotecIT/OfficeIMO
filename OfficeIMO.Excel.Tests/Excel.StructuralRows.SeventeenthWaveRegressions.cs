@@ -17,13 +17,13 @@ namespace OfficeIMO.Tests {
                 .CacheSource!.WorksheetSource!;
             source.Id = "rIdExternal";
             source.Sheet = "Data";
-            source.Reference = $"A{A1.MaxRows}";
+            source.Reference = $"A{ExcelA1.MaxRows}";
             cachePart.PivotCacheDefinition.RefreshOnLoad = false;
             cachePart.PivotCacheDefinition.SaveData = true;
 
             sheet.InsertRows(1);
 
-            Assert.Equal($"A{A1.MaxRows}", source.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", source.Reference!.Value);
             Assert.False(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
             Assert.True(cachePart.PivotCacheDefinition.SaveData!.Value);
         }

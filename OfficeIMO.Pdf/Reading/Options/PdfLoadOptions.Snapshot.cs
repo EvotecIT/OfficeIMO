@@ -8,6 +8,12 @@ public sealed partial class PdfLoadOptions {
         PdfLoadOptions effective = Resolve(this);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits.CloneWithMaximumInputBytes(maximumInputBytes),
             Password = passwordOverride ?? effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,

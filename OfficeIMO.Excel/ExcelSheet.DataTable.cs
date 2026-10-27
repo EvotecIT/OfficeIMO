@@ -235,8 +235,8 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
+            return ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
         }
 
         private bool TryInsertDataTableAsDeferredDirectSave(

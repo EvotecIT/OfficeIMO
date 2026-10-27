@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Tests {
             using var output = new MemoryStream();
             using (var reader = table.CreateDataReader()) {
                 ExcelDocument.WriteDataReader(output, reader, compact
-                    ? new ExcelTabularWriteOptions { IncludeCellReferences = false, UseSharedStrings = false }
+                    ? new ExcelWriterOptions { IncludeCellReferences = false, UseSharedStrings = false }
                     : null);
             }
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.Tests {
             Assert.Equal("München", GetDirectCellText(cells["C3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(output.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(output.ToArray());
             Assert.True(reader.Read());
             Assert.Equal("Zażółć", reader.GetString(1));
             Assert.True(reader.Read());

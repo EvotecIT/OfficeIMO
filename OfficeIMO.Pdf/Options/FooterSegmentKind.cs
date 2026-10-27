@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Kinds of footer text segment.</summary>
-public enum FooterSegmentKind {
+public enum PdfFooterSegmentKind {
     /// <summary>Literal text.</summary>
     Text,
     /// <summary>Current page number.</summary>

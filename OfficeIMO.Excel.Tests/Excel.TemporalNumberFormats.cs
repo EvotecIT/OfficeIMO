@@ -26,7 +26,7 @@ public class ExcelTemporalNumberFormatTests {
         saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
-            using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }));
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Contains(expected, string.Concat(pdf.GetPages().Select(page => page.Text)));
         }
     }
@@ -47,7 +47,7 @@ public class ExcelTemporalNumberFormatTests {
         sheet.CellAt(1, 1).SetValue(serial).SetNumberFormat(format);
         sheet.SetColumnWidth(1, 35);
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
-            using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }));
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Contains(expected, string.Concat(pdf.GetPages().Select(page => page.Text)));
         }
     }
@@ -138,9 +138,9 @@ public class ExcelTemporalNumberFormatTests {
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
-            using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes(new ExcelToPdfOptions {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false, WorksheetLayout = layout
-            }));
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Contains("11s", string.Concat(pdf.GetPages().Select(page => page.Text)));
         }
     }
@@ -168,7 +168,7 @@ public class ExcelTemporalNumberFormatTests {
         sheet.CellAt(3, 1).SetValue(-1.5).SetNumberFormat("[h]:mm;[Red]([h]:mm)");
         sheet.CellAt(4, 1).SetValue(-0.1).SetNumberFormat("[h]\"h\" m\"m\"");
         sheet.SetColumnWidth(1, 35);
-        byte[] pdf = workbook.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, WorksheetLayout = layout });
+        byte[] pdf = workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
         string text = string.Concat(parsed.GetPages().Select(page => page.Text));
         Assert.Contains("5.01.2026 13:04", text);
@@ -194,7 +194,7 @@ public class ExcelTemporalNumberFormatTests {
         var cells = reopened.Sheets[0].Range("A1:A2").CreateVisualSnapshot().Cells;
         Assert.Equal("5.01.2026 13:05:00.0", cells.Single(cell => cell.Row == 1).Text);
         Assert.Equal("2h 24m", cells.Single(cell => cell.Row == 2).Text);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false }));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("5.01.2026 13:05:00.0", text);
         Assert.Contains("2h 24m", text);
@@ -214,7 +214,7 @@ public class ExcelTemporalNumberFormatTests {
         sheet.SetColumnWidth(1, 40);
         string expected = system == ExcelDateSystem.NineteenHundred ? "1904-01-02 large" : "1904-01-02 small";
         Assert.Equal(expected, Assert.Single(sheet.Range("A1:A1").CreateVisualSnapshot().Cells).Text);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(expected, string.Concat(pdf.GetPages().Select(page => page.Text)));
     }
 

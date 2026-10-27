@@ -14,7 +14,7 @@ public sealed class HtmlWordLanguageLineBreakTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<html lang='en'><body><p>Text<span style='white-space:pre'>" + breaks + "</span>More</p></body></html>");
 
-        using var document = source.ToWordDocumentResult().RequireValue();
+        using var document = source.ConvertToWordWithEvidence().RequireValue();
 
         var insertedBreaks = document.Paragraphs.Where(paragraph => paragraph.IsBreak).ToArray();
         Assert.Equal(breaks.Length, insertedBreaks.Length);

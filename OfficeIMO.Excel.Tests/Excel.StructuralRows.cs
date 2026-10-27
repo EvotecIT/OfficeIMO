@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
             Row secondRow = sheetData.Elements<Row>().Single(row => row.RowIndex?.Value == 2U);
             firstRow.Append(new Cell {
                 CellReference = "B1",
-                CellFormula = new CellFormula($"A{A1.MaxRows - 1}") {
+                CellFormula = new CellFormula($"A{ExcelA1.MaxRows - 1}") {
                     FormulaType = CellFormulaValues.Shared,
                     SharedIndex = 21U,
                     Reference = "B1:B2"
@@ -372,7 +372,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             CellFormula[] formulas = sheet.WorksheetPart.Worksheet.Descendants<CellFormula>().ToArray();
             Assert.All(formulas, formula => Assert.Equal(CellFormulaValues.Shared, formula.FormulaType!.Value));
-            Assert.Equal($"A{A1.MaxRows - 1}", formulas[0].Text);
+            Assert.Equal($"A{ExcelA1.MaxRows - 1}", formulas[0].Text);
             Assert.True(string.IsNullOrEmpty(formulas[1].Text));
         }
 
@@ -384,14 +384,14 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("Item");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.CellFormula(1, 10, $"A{A1.MaxRows}");
-            document.SetNamedRange("Bottom", $"'Data'!A{A1.MaxRows}", save: false);
-            sheet.Range("C1").Validation.CustomFormula($"A{A1.MaxRows}>0");
+            sheet.CellFormula(1, 10, $"A{ExcelA1.MaxRows}");
+            document.SetNamedRange("Bottom", $"'Data'!A{ExcelA1.MaxRows}", save: false);
+            sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
             sheet.AddChartFromRange("A1:B2", row: 4, column: 4);
             C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single()
                 .ChartSpace.Descendants<C.Formula>().First();
-            chartFormula.Text = $"'Data'!$A${A1.MaxRows}";
+            chartFormula.Text = $"'Data'!$A${ExcelA1.MaxRows}";
             sheet.AddPivotTable(
                 "A1:B2",
                 "E5",
@@ -413,20 +413,20 @@ namespace OfficeIMO.Tests {
             validation.Formula1!.Text = "A1>0";
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             chartFormula.Text = "'Data'!$A$1";
-            pivotSource.Reference = $"A{A1.MaxRows - 1}:B{A1.MaxRows}";
+            pivotSource.Reference = $"A{ExcelA1.MaxRows - 1}:B{ExcelA1.MaxRows}";
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             pivotSource.Reference = "A1:B2";
-            pivotLocation.Reference = $"E{A1.MaxRows - 1}:F{A1.MaxRows}";
+            pivotLocation.Reference = $"E{ExcelA1.MaxRows - 1}:F{ExcelA1.MaxRows}";
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             pivotLocation.Reference = "E5:F6";
-            sparkline.ReferenceSequence!.Text = $"D{A1.MaxRows}";
+            sparkline.ReferenceSequence!.Text = $"D{ExcelA1.MaxRows}";
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             sparkline.ReferenceSequence.Text = "D1";
-            sheet.AddManualRowPageBreak(A1.MaxRows);
+            sheet.AddManualRowPageBreak(ExcelA1.MaxRows);
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
 
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal((uint)A1.MaxRows, Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<RowBreaks>()!.Elements<Break>()).Id!.Value);
+            Assert.Equal((uint)ExcelA1.MaxRows, Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<RowBreaks>()!.Elements<Break>()).Id!.Value);
         }
 
         [Fact]
@@ -484,13 +484,13 @@ namespace OfficeIMO.Tests {
 
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(A1.MaxRows, 1).SetValue("Last");
+            sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("Last");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.DeleteRows(A1.MaxRows, 2));
-            Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(A1.MaxRows));
-            Assert.Equal("Last", sheet.CellAt(A1.MaxRows, 1).GetValue<string>());
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.DeleteRows(ExcelA1.MaxRows, 2));
+            Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(ExcelA1.MaxRows));
+            Assert.Equal("Last", sheet.CellAt(ExcelA1.MaxRows, 1).GetValue<string>());
         }
 
         private static WorksheetPart GetStructuralWorksheetPart(SpreadsheetDocument spreadsheet, string sheetName) {

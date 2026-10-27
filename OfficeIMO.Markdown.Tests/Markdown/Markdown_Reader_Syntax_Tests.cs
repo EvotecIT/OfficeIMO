@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Reader_Syntax_Tests {
     [Fact]
     public void Paragraph_RawInlineHtml_Preserves_Source_LineBreaks_Inside_Tag() {
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("<a href=\"foo  \nbar\">x</a>");
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("<a href=\"foo  \nbar\">x</a>");
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("<a href=\"foo  \nbar\">x</a>", paragraph.Inlines.RenderMarkdown());
@@ -15,9 +15,9 @@ public class Markdown_Reader_Syntax_Tests {
 
     [Fact]
     public void Paragraph_Literal_Html_Uses_Soft_Line_Break_When_InlineHtml_Disabled() {
-        var options = new MarkdownReaderOptions { InlineHtml = false };
+        var options = new MarkdownLoadOptions { InlineHtml = false };
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("<a\nhref=\"/\">x</a>", options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("<a\nhref=\"/\">x</a>", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("<a href=\"/\">x</a>", paragraph.Inlines.RenderMarkdown());
@@ -90,7 +90,7 @@ Paragraph text
 
     [Fact]
     public void ParseProjectionWithBlockSpans_Uses_FullParse_When_DocumentTransforms_Are_Configured() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
         var projection = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans("original", options);
@@ -183,7 +183,7 @@ Paragraph text
     [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_LineEndingEquivalent_Input() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true
         };
 
@@ -212,7 +212,7 @@ Paragraph text
     [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_StandaloneCarriageReturns() {
         const string markdown = "# Title\r\rParagraph one\rSecond para";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true
         };
 
@@ -233,7 +233,7 @@ Paragraph text
     [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlice_When_Text_Is_Equivalent() {
         const string markdown = "# Title\n\nParagraph one\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true
         };
 
@@ -252,7 +252,7 @@ Paragraph text
     [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Rejects_Original_SourceSlice_When_InputNormalization_Changes_Text() {
         const string markdown = "# Ti\u200Btle\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = true
@@ -273,7 +273,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Returns_FinalDocument_OriginalSyntaxTree_And_TransformDiagnostics() {
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
         const string markdown = "previous shutdown was unexpected### Reason";
 
@@ -305,7 +305,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Provides_Final_Syntax_Lookup_Helpers() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
@@ -337,7 +337,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Final_AssociatedObject_Lookup_Uses_Final_Tree_After_Document_Rewrite() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
@@ -352,7 +352,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Detaches_Original_Syntax_Associations_When_Transform_Replaces_Document() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
@@ -372,7 +372,7 @@ Paragraph text
     tail
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -402,7 +402,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Transform_SourceSpans_When_Original_Syntax_Has_Reference_Definitions() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
         var markdown = """
 [hero]: https://example.com/docs "Docs title"
@@ -420,7 +420,7 @@ Paragraph text
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Aggregate_SourceSpans_For_Adjacent_Block_Rewrites() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstTwoParagraphsTransform("first rewritten", "second rewritten"));
         var markdown = """
 alpha
@@ -446,7 +446,7 @@ gamma
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Aggregate_SourceSpans_For_Adjacent_Block_Merges() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsTransform("merged"));
         var markdown = """
 alpha
@@ -472,7 +472,7 @@ gamma
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_SourceProvenance_Across_Chained_Block_Transforms() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteFirstTwoParagraphsTransform("first rewritten", "second rewritten"));
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsTransform("merged"));
         var markdown = """
@@ -495,7 +495,7 @@ gamma
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Keeps_InsertOnly_Blocks_Without_SourceProvenance_Across_Later_Rewrites() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new AppendParagraphTransform("tail"));
         options.DocumentTransforms.Add(new RewriteSecondParagraphTransform("tail rewritten"));
 
@@ -926,7 +926,7 @@ baz*
     [Fact]
     public void ParseWithSyntaxTree_Maps_Text_After_SoftBreak_GenericAttribute_To_Original_Continuation_Column() {
         const string markdown = "line\n{#soft .wide} tail";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -995,7 +995,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Autolink_Targets_And_Angle_Marker_Metadata() {
         const string markdown = "Go <https://example.com/docs> and mailto:user@example.com";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
 
@@ -1024,7 +1024,7 @@ baz*
                 Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), closingMarker.SourceSpan);
             });
 
-        var angleMetadata = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+        var angleMetadata = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile())
             .EnumerateInlines()
             .First(inline => inline.Kind == MarkdownNativeInlineKind.Link);
         Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 4), Assert.Single(angleMetadata.Metadata, metadata => metadata.Name == "openingMarker").SourceSpan);
@@ -1042,7 +1042,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Bare_Ftp_And_Tel_Autolink_Targets() {
         const string markdown = "See ftp://example.com/file.txt and tel:+123";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
 
@@ -1100,7 +1100,7 @@ baz*
     [Fact]
     public void ParseWithSyntaxTree_Uses_Custom_Inline_Parser_Extensions_With_Nested_Ast_And_SourceSpans() {
         const string markdown = "Lead {{**Bold** core}} tail";
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -1179,7 +1179,7 @@ baz*
     public void ParseWithSyntaxTree_Associates_SequenceInline_Syntax_To_Wrapper_Objects() {
         const string markdown = "Use **bold**, *emphasis*, ~~strike~~, and ==mark==.";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateOfficeIMOProfile());
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var paragraphSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var boldInline = Assert.IsType<BoldSequenceInline>(paragraphBlock.Inlines.Nodes[1]);
@@ -1226,10 +1226,10 @@ baz*
 | --- |
 | {{Cell}} |
 """;
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         var cellInlines = Assert.Single(Assert.Single(table.RowInlines));
@@ -1240,12 +1240,13 @@ baz*
     [Fact]
     public void Custom_Inline_Can_Render_Html_With_Public_Html_Options_Context() {
         const string markdown = "Lead {{core}} tail";
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "inline-title"
         });
 
@@ -1257,12 +1258,13 @@ baz*
     [Fact]
     public void Html_Inline_Render_Extension_Overrides_Contextual_Custom_Inline_Rendering() {
         const string markdown = "Lead {{core}} tail";
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "inline-extension-title"
         };
         htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
@@ -1280,7 +1282,7 @@ baz*
                     + "</mark>";
             }));
 
-        var rendered = document.ToHtmlFragment(htmlOptions);
+        var rendered = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-inline-extension=\"double-brace\"", rendered, StringComparison.Ordinal);
         Assert.Contains("data-title=\"inline-extension-title\"", rendered, StringComparison.Ordinal);
@@ -1295,12 +1297,13 @@ baz*
 
 Lead {{core}} tail
 """;
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
         var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "inline-context-title"
         };
         htmlOptions.InlineRenderExtensions.Add(MarkdownInlineHtmlRenderExtension.CreateContextual(
@@ -1327,7 +1330,7 @@ Lead {{core}} tail
                     + "</mark>";
             }));
 
-        var rendered = document.ToHtmlFragment(htmlOptions);
+        var rendered = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-inline-context=\"true\"", rendered, StringComparison.Ordinal);
         Assert.Contains("data-title=\"inline-context-title\"", rendered, StringComparison.Ordinal);
@@ -1340,12 +1343,13 @@ Lead {{core}} tail
     [Fact]
     public void Html_Inline_Render_Extension_Uses_Last_Matching_Registration() {
         const string markdown = "Lead {{core}} tail";
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment
         };
         htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
             "first-double-brace-html",
@@ -1364,7 +1368,7 @@ Lead {{core}} tail
                     + "</strong>"
                 : null));
 
-        var rendered = document.ToHtmlFragment(htmlOptions);
+        var rendered = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-inline-extension=\"last\"", rendered, StringComparison.Ordinal);
         Assert.Contains("<strong", rendered, StringComparison.Ordinal);
@@ -1375,12 +1379,13 @@ Lead {{core}} tail
     [Fact]
     public void Html_Inline_Render_Extension_Null_Result_Falls_Back_To_Contextual_Rendering() {
         const string markdown = "Lead {{core}} tail";
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "fallback-title"
         };
         htmlOptions.InlineRenderExtensions.Add(new MarkdownInlineHtmlRenderExtension(
@@ -1388,7 +1393,7 @@ Lead {{core}} tail
             typeof(DoubleBraceInline),
             static (_, _) => null));
 
-        var rendered = document.ToHtmlFragment(htmlOptions);
+        var rendered = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-inline=\"double-brace\"", rendered, StringComparison.Ordinal);
         Assert.Contains("data-title=\"fallback-title\"", rendered, StringComparison.Ordinal);
@@ -1474,7 +1479,7 @@ Lead {{core}} tail
 
     [Fact]
     public void FluentDocument_Assigns_ObjectModel_Parents_Without_SyntaxTree() {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .H1("Title")
             .Ul(list => {
                 list.Item("first");
@@ -1514,7 +1519,7 @@ Lead {{core}} tail
 | One | 1 |
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var list = Assert.IsType<UnorderedListBlock>(document.Blocks[0]);
         var item = Assert.Single(list.Items);
         var table = Assert.IsType<TableBlock>(document.Blocks[1]);
@@ -1561,7 +1566,7 @@ Lead {{core}} tail
   > quoted
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
         var blockChildren = item.ChildBlocks;
@@ -1670,7 +1675,7 @@ Lead {{core}} tail
 10) Ordered
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var unorderedItem = Assert.Single(result.SyntaxTree.Children[0].Children);
         var orderedItem = Assert.Single(result.SyntaxTree.Children[1].Children);
 
@@ -1705,7 +1710,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Captures_ThematicBreak_Marker_Token_Syntax() {
         const string markdown = "  * * *  \n\n---";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         Assert.Equal(2, result.SyntaxTree.Children.Count);
 
         var spacedRule = result.SyntaxTree.Children[0];
@@ -1734,7 +1739,7 @@ Lead {{core}} tail
 > beta
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var quote = Assert.Single(result.SyntaxTree.Children);
 
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
@@ -1858,7 +1863,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownVisitor_Walks_Public_ObjectTree_In_DepthFirst_Order() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 # Title
 
 - first
@@ -1872,7 +1877,7 @@ Lead {{core}} tail
         document.Accept(visitor);
 
         Assert.Equal(new[] {
-            "MarkdownDoc",
+            "MarkdownDocument",
             "HeadingBlock",
             "InlineSequence",
             "MarkdownTextRun",
@@ -1905,7 +1910,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownRewriter_Rewrites_Nested_Block_Content_And_Rebinds_Parents() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 > before
 
 - item
@@ -1928,7 +1933,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownRewriter_Keeps_ListItem_BlockProjection_Canonical_After_Rewriting_Loose_Items() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 - lead
 
   second
@@ -2136,7 +2141,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Preserves_Raw_Image_Alt_Syntax_While_Rendering_Plain_Alt_Text() {
         const string markdown = "Lead ![foo *bar*](train.jpg \"train & tracks\")";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var image = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineImage);
 
@@ -2164,10 +2169,13 @@ Lead {{core}} tail
                 Assert.Equal(new MarkdownSourceSpan(1, 45, 1, 45), node.SourceSpan);
             });
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("<p>Lead <img src=\"train.jpg\" alt=\"foo bar\" title=\"train &amp; tracks\" /></p>", html);
@@ -2177,7 +2185,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_CommonMark_Profile_Leaves_Standalone_Image_Lines_Inside_Paragraphs() {
         const string markdown = "![foo *bar*](train.jpg \"train & tracks\")\n";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -2213,7 +2221,7 @@ Lead {{core}} tail
       two
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2255,7 +2263,7 @@ Lead {{core}} tail
        more code
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.OrderedList, list.Kind);
@@ -2290,7 +2298,7 @@ Lead {{core}} tail
 - bar
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2319,7 +2327,7 @@ Lead {{core}} tail
    - boo
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2338,7 +2346,7 @@ Lead {{core}} tail
 - # Bar
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var outerList = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, outerList.Kind);
@@ -2643,7 +2651,7 @@ See ![Badge][hero]
 'title'
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Paragraph,
@@ -2725,7 +2733,7 @@ See ![Badge][hero]
 [hero]
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var paragraph = Assert.Single(result.FinalSyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -2774,7 +2782,7 @@ See ![Badge][hero]
 [Baz][Foo bar]
 """;
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.ReferenceLinkDefinition,
@@ -3230,7 +3238,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Quote_Syntax_After_Nested_Transform() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -3258,7 +3266,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Absolute_SourceSpans_On_Rewritten_Nested_Quote_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -3459,7 +3467,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Callout_Syntax_After_Nested_Transform() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -3494,7 +3502,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Absolute_SourceSpans_On_Rewritten_Nested_Callout_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -3736,7 +3744,7 @@ Other: `code`
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Definition_List_Syntax_After_Transform() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteDefinitionListDefinitionsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -3809,7 +3817,7 @@ Term: Intro
 
     [Fact]
     public void DefinitionList_ChildBlocks_Expose_Definition_Body_Blocks_As_Public_Ast_Projection() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 Term: Intro
 
   - first
@@ -3930,7 +3938,7 @@ Lead[^1]
 [^1]: footnote
 """;
 
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "mermaid",
             new[] { "mermaid" },
@@ -4050,7 +4058,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Details_Syntax_After_Nested_Transform() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4151,7 +4159,7 @@ intro
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Absolute_SourceSpans_On_Rewritten_Nested_Details_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4171,7 +4179,7 @@ original
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Transform_Sees_SyntaxTree_And_Nested_Block_SourceSpans() {
         var transform = new CaptureQuoteSyntaxAndBlockSpansTransform();
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(transform);
 
         _ = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4354,7 +4362,7 @@ Lead[^note]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Footnote_Syntax_After_Nested_Transform() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4390,7 +4398,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Absolute_SourceSpans_On_Rewritten_Nested_Footnote_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4407,7 +4415,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Aggregate_SourceSpans_On_Merged_Nested_Quote_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4440,7 +4448,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Final_Quote_List_Syntax_Associations_For_MultiParagraph_List_Items() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4475,7 +4483,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Final_Callout_List_Syntax_Associations_For_MultiParagraph_List_Items() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4513,7 +4521,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Final_Details_List_Syntax_Associations_For_MultiParagraph_List_Items() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4552,7 +4560,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Final_Footnote_List_Syntax_Associations_For_MultiParagraph_List_Items() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4593,7 +4601,7 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Preserves_Aggregate_SourceSpans_On_Split_Nested_Footnote_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new SplitFirstParagraphInNestedBlockListsTransform("first", "second"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -4819,7 +4827,7 @@ Lead[^1]
 | Two | 2 |
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         var header = table.GetHeaderCell(1);
@@ -4848,7 +4856,7 @@ Lead[^1]
 | One | 1 |
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         var nameHeader = table.GetHeaderCell(0);
@@ -4912,7 +4920,7 @@ Lead[^1]
 | One | 1 |
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         var cell = table.GetCell(0, 0);
 
@@ -5021,7 +5029,7 @@ Lead[^1]
 > | One | 1 |
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
 
         var table = Assert.Single(document.DescendantTables());
         Assert.Single(document.DescendantsAndSelf().OfType<QuoteBlock>());
@@ -5139,7 +5147,7 @@ Console.WriteLine("hi");
 hello
 :::
 """;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -5179,7 +5187,7 @@ hello
   hello
   :::
 """;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -5240,7 +5248,7 @@ hello
 
     [Fact]
     public void ParseWithSyntaxTree_Captures_Semantic_Fence_Info_And_Content_SourceSpans_On_Ast() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "mermaid",
             new[] { "mermaid" },
@@ -5402,7 +5410,7 @@ _Caption_
 </figure>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5446,7 +5454,7 @@ _Caption_
 <p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5494,7 +5502,7 @@ _Caption_
 </figure>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -6073,7 +6081,7 @@ Console.WriteLine();
 Term: Definition
 """;
 
-        var expected = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var expected = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var detailed = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(expected.Blocks.Count, detailed.Document.Blocks.Count);
@@ -6081,8 +6089,8 @@ Term: Definition
     }
 
     private sealed class RewriteFirstParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var rewritten = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -6100,15 +6108,15 @@ Term: Definition
     }
 
     private sealed class AppendParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
         }
     }
 
     private sealed class RewriteFirstTwoParagraphsTransform(string firstText, string secondText) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var rewritten = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -6128,8 +6136,8 @@ Term: Definition
     }
 
     private sealed class RewriteSecondParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var rewritten = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -6147,8 +6155,8 @@ Term: Definition
     }
 
     private sealed class MergeFirstTwoParagraphsTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var rewritten = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -6175,8 +6183,8 @@ Term: Definition
     }
 
     private sealed class RewriteDefinitionListDefinitionsTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var rewritten = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -6202,7 +6210,7 @@ Term: Definition
     }
 
     private sealed class RewriteNestedParagraphsTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             MarkdownDocumentBlockRewriter.RewriteDocument(document, block =>
                 block is ParagraphBlock
                     ? new ParagraphBlock(new InlineSequence().Text(text))
@@ -6212,7 +6220,7 @@ Term: Definition
     }
 
     private sealed class MergeFirstTwoParagraphsInNestedBlockListsTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             MarkdownDocumentBlockListExpander.RewriteDocument(document, context, (blocks, _) => {
                 if (blocks.Count >= 2
                     && blocks[0] is ParagraphBlock
@@ -6229,7 +6237,7 @@ Term: Definition
     }
 
     private sealed class SplitFirstParagraphInNestedBlockListsTransform(string firstText, string secondText) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             MarkdownDocumentBlockListExpander.RewriteDocument(document, context, (blocks, _) => {
                 if (blocks.Count == 1 && blocks[0] is ParagraphBlock) {
                     return new List<IMarkdownBlock> {
@@ -6248,7 +6256,7 @@ Term: Definition
         public MarkdownSourceSpan? SyntaxTreeParagraphSpan { get; private set; }
         public MarkdownSourceSpan? BlockParagraphSpan { get; private set; }
 
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             var quoteSyntax = Assert.Single(context.SyntaxTree!.Children);
             SyntaxTreeParagraphSpan = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph).SourceSpan;
 
@@ -6285,7 +6293,7 @@ Term: Definition
 
         public string RenderHtml() => "<span data-inline=\"double-brace\">" + Inlines.RenderHtml() + "</span>";
 
-        string IContextualHtmlMarkdownInline.RenderHtml(HtmlOptions options) =>
+        string IContextualHtmlMarkdownInline.RenderHtml(MarkdownHtmlExportOptions options) =>
             "<span data-inline=\"double-brace\" data-title=\""
             + System.Net.WebUtility.HtmlEncode(options.Title)
             + "\">"

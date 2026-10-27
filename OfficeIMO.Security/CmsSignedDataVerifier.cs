@@ -174,7 +174,7 @@ public static class CmsSignedDataVerifier {
             if (signers.Count == 0) {
                 containerFindings.Add(new SecurityFinding(
                     SecurityFindingSeverity.Error,
-                    "CmsSignerMissing",
+                    global::OfficeIMO.OfficeDiagnosticCodes.CmsSignerMissing,
                     "The CMS SignedData object contains no signers."));
             }
 
@@ -259,7 +259,7 @@ public static class CmsSignedDataVerifier {
         if (bcSigner == null) {
             findings.Add(new SecurityFinding(
                 SecurityFindingSeverity.Error,
-                "SignerCertificateMissing",
+                global::OfficeIMO.OfficeDiagnosticCodes.SignerCertificateMissing,
                 "No certificate matching the CMS signer identifier was supplied or embedded.",
                 signerIndex));
             return CreateMissingCertificateResult(signer, signerIndex, findings.Items);
@@ -296,7 +296,7 @@ public static class CmsSignedDataVerifier {
                     if (signatureStatus == SecurityValidationStatus.Invalid) {
                         findings.Add(new SecurityFinding(
                             SecurityFindingSeverity.Error,
-                            "CmsSignatureInvalid",
+                            global::OfficeIMO.OfficeDiagnosticCodes.CmsSignatureInvalid,
                             "The CMS signature did not verify.",
                             signerIndex));
                     }
@@ -304,7 +304,7 @@ public static class CmsSignedDataVerifier {
                     signatureStatus = SecurityValidationStatus.Invalid;
                     findings.Add(new SecurityFinding(
                         SecurityFindingSeverity.Error,
-                        "CmsSignatureInvalid",
+                        global::OfficeIMO.OfficeDiagnosticCodes.CmsSignatureInvalid,
                         "The CMS signature or signed attributes are invalid: " + exception.Message,
                         signerIndex));
                 }

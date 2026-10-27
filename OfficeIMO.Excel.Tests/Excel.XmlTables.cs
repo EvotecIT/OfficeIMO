@@ -32,7 +32,7 @@ public sealed class ExcelXmlTableTests {
         Assert.Equal("A1:D3", sheet.FromXml(source, includeHeaders: true, options: options));
         Assert.Equal("Identifier", sheet.CellAt(1, 1).GetValue<string>()); Assert.Equal("00127", sheet.CellAt(2, 1).GetValue<string>());
         Assert.Equal(12.5, sheet.CellAt(2, 2).GetValue<double>()); Assert.True(sheet.CellAt(2, 3).GetValue<bool>());
-        var read = new ExcelReadOptions { TreatDatesUsingNumberFormat = true };
+        var read = new ExcelReaderOptions { TreatDatesUsingNumberFormat = true };
         string xml = sheet.ToXml("A1:D3", true, options, read);
         XNamespace ns = "urn:orders"; var rows = XElement.Parse(xml).Elements(ns + "order").ToArray();
         Assert.Equal("00127", (string?)rows[0].Attribute("id")); Assert.Equal("true", rows[0].Element(ns + "paid")!.Value);

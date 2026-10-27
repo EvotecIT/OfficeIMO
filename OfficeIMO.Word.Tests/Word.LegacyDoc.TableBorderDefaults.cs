@@ -19,10 +19,9 @@ public partial class Word {
         }
 
         table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Double, topSize: 12,
-            topColor: OfficeIMO.Drawing.OfficeColor.Red);
+            topColor: OfficeIMO.OfficeColor.Red);
         // The Word-produced fixture also carries preserve-only metadata; this test qualifies its table projection.
-        using WordDocument reloaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
-            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var top = reloaded.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
         Assert.Equal(WordBorderStyle.Double, top.Style);
         Assert.Equal(12U, top.Size);
@@ -42,8 +41,7 @@ public partial class Word {
         Assert.Equal(color, cell.Borders.TopColorHex);
         Assert.Equal(size, cell.Borders.TopSize);
         Assert.Equal(WordBorderStyle.Single, document.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Style);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
-            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var border = restored.Tables[0].Rows[0].Cells[0].Borders;
         Assert.Equal(style, border.TopStyle);
         Assert.Equal(color, border.TopColorHex);

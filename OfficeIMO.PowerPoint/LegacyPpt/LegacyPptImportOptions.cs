@@ -1,6 +1,7 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Controls dependency-free PowerPoint 97-2003 binary import behavior.</summary>
     public sealed class LegacyPptImportOptions {
+        internal LegacyPptImportOptions Snapshot() => (LegacyPptImportOptions)MemberwiseClone();
         /// <summary>Default maximum input size in bytes.</summary>
         public const int DefaultMaxInputBytes = 64 * 1024 * 1024;
 

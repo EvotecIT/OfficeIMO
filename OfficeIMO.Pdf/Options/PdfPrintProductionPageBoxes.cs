@@ -9,21 +9,21 @@ namespace OfficeIMO.Pdf;
 /// </remarks>
 public sealed class PdfPrintProductionPageBoxes {
     /// <summary>Creates print-production page boxes from MediaBox-relative insets.</summary>
-    public PdfPrintProductionPageBoxes(PageMargins trimInsets, PageMargins bleedInsets) {
+    public PdfPrintProductionPageBoxes(PdfPageMargins trimInsets, PdfPageMargins bleedInsets) {
         ValidateContainment(trimInsets, bleedInsets);
         TrimInsets = trimInsets;
         BleedInsets = bleedInsets;
     }
 
     /// <summary>Insets used to resolve the TrimBox from the MediaBox.</summary>
-    public PageMargins TrimInsets { get; }
+    public PdfPageMargins TrimInsets { get; }
 
     /// <summary>Insets used to resolve the BleedBox from the MediaBox.</summary>
-    public PageMargins BleedInsets { get; }
+    public PdfPageMargins BleedInsets { get; }
 
     /// <summary>Creates coincident MediaBox, BleedBox, and TrimBox boundaries.</summary>
     public static PdfPrintProductionPageBoxes FullBleed { get; } =
-        new(PageMargins.Uniform(0D), PageMargins.Uniform(0D));
+        new(PdfPageMargins.Uniform(0D), PdfPageMargins.Uniform(0D));
 
     internal PdfResolvedPrintProductionPageBoxes Resolve(double pageWidth, double pageHeight) {
         Guard.Positive(pageWidth, nameof(pageWidth));
@@ -44,7 +44,7 @@ public sealed class PdfPrintProductionPageBoxes {
             pageHeight - BleedInsets.Top);
     }
 
-    private static void ValidateContainment(PageMargins trimInsets, PageMargins bleedInsets) {
+    private static void ValidateContainment(PdfPageMargins trimInsets, PdfPageMargins bleedInsets) {
         if (bleedInsets.Left > trimInsets.Left ||
             bleedInsets.Top > trimInsets.Top ||
             bleedInsets.Right > trimInsets.Right ||

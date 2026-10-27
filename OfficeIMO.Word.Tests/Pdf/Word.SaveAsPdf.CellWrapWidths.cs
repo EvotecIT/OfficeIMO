@@ -40,7 +40,7 @@ public partial class Word {
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
         paragraph.LineSpacing = 240;
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToList();
         Assert.Equal(text.Split(' '), words.Select(word => word.Text));
@@ -96,7 +96,7 @@ public partial class Word {
             paragraph.LineSpacing = 240;
         }
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToList();
         var shortWord = Assert.Single(words, word => word.Text == "Short");

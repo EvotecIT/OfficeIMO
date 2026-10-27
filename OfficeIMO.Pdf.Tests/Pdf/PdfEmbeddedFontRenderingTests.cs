@@ -12,7 +12,7 @@ public class PdfEmbeddedFontRenderingTests {
 
         byte[] fontBytes = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("Managed Embedded", fontBytes);
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily(family)
             .Paragraph(paragraph => paragraph.Text("Document font outlines"))
             .ToBytes();

@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageBuilder page, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelToPdfOptions options) {
+        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageBuilder page, ExcelSheet.ExcelHeaderFooterInfo? headerFooter, string sheetName, string? workbookPath, ExcelPdfExportOptions options) {
             if (headerFooter == null) {
                 return;
             }
@@ -125,9 +125,9 @@ namespace OfficeIMO.Excel.Pdf {
             text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
 
         private static PreparedHeaderFooterImages PrepareHeaderFooterImages(
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter,
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter,
             string sheetName,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             if (!options.UseWorksheetHeaderFooterImages) return new PreparedHeaderFooterImages();
 
             return new PreparedHeaderFooterImages {
@@ -141,10 +141,10 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PreparedHeaderFooterImage? PrepareHeaderFooterImage(
-            ExcelSheet.ExcelHeaderFooterImageSnapshot? image,
+            ExcelSheet.ExcelHeaderFooterImageInfo? image,
             string sheetName,
             string location,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             if (image == null) return null;
 
             if (image.Bytes.Length > 0 &&
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel.Pdf {
             AddWarning(
                 options,
                 sheetName,
-                "WorksheetHeaderFooterImage",
+                "worksheet-header-footer-image",
                 $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.WidthPoints.ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.HeightPoints.ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
             return null;
         }
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
 
-        private static HeaderFooterZones ConvertHeaderFooterZones(string? left, string? center, string? right, string sheetName, string? workbookPath, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterZones ConvertHeaderFooterZones(string? left, string? center, string? right, string sheetName, string? workbookPath, ExcelPdfExportOptions options, string scope) {
             HeaderFooterZone leftZone = ConvertHeaderFooterText(left, sheetName, workbookPath, options, scope, "left");
             HeaderFooterZone centerZone = ConvertHeaderFooterText(center, sheetName, workbookPath, options, scope, "center");
             HeaderFooterZone rightZone = ConvertHeaderFooterText(right, sheetName, workbookPath, options, scope, "right");
@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ResolveSharedHeaderFooterZoneStyle(new[] { leftZone, centerZone, rightZone }, sheetName, options, scope));
         }
 
-        private static HeaderFooterZone ConvertHeaderFooterText(string? text, string sheetName, string? workbookPath, ExcelToPdfOptions options, string scope, string zone) {
+        private static HeaderFooterZone ConvertHeaderFooterText(string? text, string sheetName, string? workbookPath, ExcelPdfExportOptions options, string scope, string zone) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return HeaderFooterZone.Empty;
             }
@@ -316,7 +316,7 @@ namespace OfficeIMO.Excel.Pdf {
                 AddWarning(
                     options,
                     sheetName,
-                    "WorksheetHeaderFooterFormatting",
+                    "worksheet-header-footer-formatting",
                     $"Excel header/footer formatting in the {scope} {zone} zone was simplified. Text, page tokens, total-page tokens, sheet-name, date/time, and workbook file fields are preserved, but rich formatting is not exported yet.");
             }
 
@@ -336,7 +336,7 @@ namespace OfficeIMO.Excel.Pdf {
             apply(style);
         }
 
-        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterZoneStyle(HeaderFooterZone[] zones, string sheetName, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterZoneStyle(HeaderFooterZone[] zones, string sheetName, ExcelPdfExportOptions options, string scope) {
             HeaderFooterLineStyle? shared = null;
             bool hasStyle = false;
             bool hasUnstyledText = false;
@@ -370,7 +370,7 @@ namespace OfficeIMO.Excel.Pdf {
             return shared;
         }
 
-        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterStyle(HeaderFooterZones?[] zoneSets, string sheetName, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterStyle(HeaderFooterZones?[] zoneSets, string sheetName, ExcelPdfExportOptions options, string scope) {
             HeaderFooterLineStyle? shared = null;
             bool hasStyle = false;
             bool hasUnstyledText = false;
@@ -448,15 +448,15 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void AddMixedHeaderFooterFormattingWarning(ExcelToPdfOptions options, string sheetName, string scope) {
+        private static void AddMixedHeaderFooterFormattingWarning(ExcelPdfExportOptions options, string sheetName, string scope) {
             AddWarning(
                 options,
                 sheetName,
-                "WorksheetHeaderFooterFormatting",
+                "worksheet-header-footer-formatting",
                 $"Excel header/footer formatting in the {scope} uses mixed or partial styles that cannot be represented as one PDF header/footer line style yet. Text is preserved, but rich formatting is simplified.");
         }
 
-        private static DateTime GetHeaderFooterDateTime(ExcelToPdfOptions options, ref DateTime? dateTime) {
+        private static DateTime GetHeaderFooterDateTime(ExcelPdfExportOptions options, ref DateTime? dateTime) {
             if (!dateTime.HasValue) {
                 dateTime = options.HeaderFooterDateTimeProvider != null
                     ? options.HeaderFooterDateTimeProvider()

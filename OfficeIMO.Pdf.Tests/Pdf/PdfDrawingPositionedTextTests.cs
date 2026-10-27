@@ -29,7 +29,7 @@ public sealed class PdfDrawingPositionedTextTests {
             ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular,
             new OfficeFontUnicodeRangeSet(new[] { new OfficeFontUnicodeRange('A', 'A') }));
         Assert.NotEqual(family, Assert.Single(profileFonts.Faces).ResourceFamilyName);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 100D, PageHeight = 80D,
             MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
         }.UseRenderingProfile(new OfficeRenderingProfile("prepared-alias", profileFonts));
@@ -61,7 +61,7 @@ public sealed class PdfDrawingPositionedTextTests {
     public void SinglePositionedLineKeepsItsExplicitAdvance() {
         var drawing = new OfficeDrawing(100, 80).AddPositionedText("A", 10, 10, 80, 60,
             new OfficeFontInfo("Helvetica", 20), alignment: OfficeTextAlignment.Center, textAdvanceWidth: 50);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 100, PageHeight = 80, MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
         }).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -77,7 +77,7 @@ public sealed class PdfDrawingPositionedTextTests {
     public void PositionedHardLinesRetainTheirOwnAdvance(OfficeTextAlignment alignment, string separator) {
         var drawing = new OfficeDrawing(100, 80).AddPositionedText("AAAA" + separator + "A", 10, 10, 80, 60,
             new OfficeFontInfo("Helvetica", 20), alignment: alignment, lineHeight: 25);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 100, PageHeight = 80, MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
         }).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);

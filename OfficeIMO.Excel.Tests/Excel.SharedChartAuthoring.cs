@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets.Single(item => item.Name == "Shared");
                 ExcelChart chart = Assert.Single(sheet.Charts);
-                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
                 Assert.Equal("Shared performance", snapshot.Title);
                 Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
                 Assert.Collection(
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
             Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
         }
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal(new[] { 1.25D, 2.75D }, Assert.Single(snapshot.Data.Series).XValues);
         }
 
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
             Assert.Equal("2563EB", series.SeriesColorArgb);
             Assert.Equal(2.25D, series.SeriesLineWidth);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal("DC2626", snapshot.Data.Series.Single(series => series.Name == "Columns A").SeriesColorArgb);
             Assert.Equal("16A34A", snapshot.Data.Series.Single(series => series.Name == "Trend").SeriesColorArgb);
             Assert.Equal("2563EB", snapshot.Data.Series.Single(series => series.Name == "Columns B").SeriesColorArgb);

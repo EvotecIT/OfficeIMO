@@ -279,7 +279,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                         new[] { run },
                         confidence,
                         new[] { new PdfInferenceEvidence(
-                            hasResolvedCharacterAdvances ? "word.character-advance-projection" : "word.baseline-projection",
+                            hasResolvedCharacterAdvances ? "word-character-advance-projection" : "word-baseline-projection",
                             hasResolvedCharacterAdvances
                                 ? "Word geometry was projected from decoded per-character advances along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline."
                                 : "Word geometry was projected uniformly along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline because per-character advances were unavailable.",
@@ -315,7 +315,7 @@ public static partial class PdfAdvancedUnderstandingStages {
             if (gap < -0.3D * em || gap > 0.1D * em) return false;
             var sources = new List<PdfTextSpan>(previous.SourceRuns) { run };
             var evidence = new List<PdfInferenceEvidence>(previous.Evidence) {
-                new PdfInferenceEvidence("word.kerned-fragment-join",
+                new PdfInferenceEvidence("word-kerned-fragment-join",
                     "Adjacent same-baseline glyph runs without whitespace were joined into one word.", 0.9D)
             };
             result[result.Count - 1] = new PdfUnderstandingWord(
@@ -519,7 +519,7 @@ public static partial class PdfAdvancedUnderstandingStages {
             double confidence = PdfInference.Clamp(lines.Average(static line => line.Confidence) - Math.Min(0.2D, Math.Max(0, lines.Count - 12) * 0.01D));
             regions.Add(new PdfUnderstandingRegion(lines.AsReadOnly(), confidence, new[] {
                 new PdfInferenceEvidence(
-                    "region.structural-connectivity",
+                    "region-structural-connectivity",
                     "The region is a spatially connected run bounded by typographic transitions and language-neutral list syntax.",
                     lines.Count > 1 ? 0.8D : 0.6D)
             }));
@@ -623,7 +623,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 double confidence = PdfInference.Clamp(tableLines.Average(static line => line.Confidence));
                 regions.Add(new PdfUnderstandingRegion(tableLines, confidence, new[] {
                     new PdfInferenceEvidence(
-                        "region.canonical-table",
+                        "region-canonical-table",
                         "The page table-detection stage owns these aligned source lines.",
                         0.9D)
                 }));
@@ -675,10 +675,10 @@ public static partial class PdfAdvancedUnderstandingStages {
             double median) {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
-            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
+            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
             if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
-            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
+            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic-list-marker", "The region begins with a bullet or numbered marker.");
             if (IsLocalTypographicLead(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             if (IsCenteredSpanningBand(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-spanning-band", "A compact centered line forms a band above or below two separated content columns.");
@@ -699,7 +699,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 context.ConsumeWork();
                 PdfUnderstandingRegion table = pageRegions[regionIndex];
                 if (ReferenceEquals(candidate, table) ||
-                    !table.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) continue;
+                    !table.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
 
                 PdfVisualBounds tableBounds = GetVisualBounds(context, table);
                 double tableWidth = tableBounds.Right - tableBounds.Left;
@@ -734,7 +734,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 context.ConsumeWork();
                 PdfUnderstandingRegion region = pageRegions[regionIndex];
                 if (ReferenceEquals(candidate, region) ||
-                    region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) continue;
+                    region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
                 PdfVisualBounds bounds = GetVisualBounds(context, region);
                 double gap = bounds.Top - candidateBounds.Bottom;
                 if (gap < -1D || gap > Math.Max(18D, candidateFontSize * 4D)) continue;

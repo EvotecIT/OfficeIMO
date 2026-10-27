@@ -98,7 +98,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
         var sheet = document.AddWorksheet("Evidence");
         sheet.CellValue(1, 1, "Header"); sheet.CellFormula(2, 1, "1+1"); sheet.CellValue(3, 1, "Stable value");
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, ResourceLimits = new ReaderResourceLimits { MaxChunkCharacters = 1000 } };
-        var format = new ReaderExcelOptions { SheetName = "Evidence", A1Range = "A1:A3", ChunkRows = 0, ReadOptions = new ExcelReadOptions() };
+        var format = new ReaderExcelOptions { SheetName = "Evidence", A1Range = "A1:A3", ChunkRows = 0, ReadOptions = new ExcelReaderOptions() };
         int calls = 0;
         format.ReadOptions.CellValueConverter = _ => {
             calls++;

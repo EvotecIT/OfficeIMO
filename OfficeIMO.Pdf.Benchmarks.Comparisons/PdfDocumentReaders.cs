@@ -39,7 +39,7 @@ internal static class PdfDocumentReaders {
         byte[] pdf,
         global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) => OfficePdfDocument
             .Load(pdf, loadOptions)
-            .Read(new global::OfficeIMO.Pdf.PdfReadOptions {
+            .Read(new global::OfficeIMO.Pdf.PdfLoadOptions {
                 Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
         });
 

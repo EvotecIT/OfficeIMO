@@ -45,7 +45,7 @@ public sealed class PowerPointPdfFontResetTests {
         var properties = Assert.Single(actual.Paragraph.Elements<A.Run>()).RunProperties!;
         Assert.NotNull(properties.Bold); Assert.False(properties.Bold.Value);
         Assert.NotNull(properties.Italic); Assert.False(properties.Italic.Value);
-        using var pdf = PdfPigDocument.Open(reopened.ToPdfBytes());
+        using var pdf = PdfPigDocument.Open(reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("Plain", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters, letter => {

@@ -623,7 +623,7 @@ namespace OfficeIMO.Excel {
             string? reference = cell.CellReference?.Value;
             if (!string.IsNullOrWhiteSpace(reference)) {
                 try {
-                    (row, column) = A1.ParseCellRef(reference!);
+                    (row, column) = ExcelA1.ParseCellRef(reference!);
                     return row > 0 && column > 0;
                 } catch {
                     return false;

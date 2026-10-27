@@ -26,7 +26,7 @@ public sealed class RtfWordDefaultFontTests {
 
         using WordDocument converted = source.ToWordDocument();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
         AssertPaintedFont(pdf, "DEFAULTFONT", paintedFont);
         AssertDefaultFonts(reopened, family);
@@ -47,7 +47,7 @@ public sealed class RtfWordDefaultFontTests {
 
         using WordDocument converted = source.ToWordDocument();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
         AssertPaintedFont(pdf, "BODYFONT", "Courier");
         AssertPaintedFont(pdf, "CELLFONT", "Courier");
@@ -72,7 +72,7 @@ public sealed class RtfWordDefaultFontTests {
 
         using WordDocument converted = source.ToWordDocument();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
         AssertPaintedFont(pdf, "STYLEFONT", "Times");
         AssertPaintedFont(pdf, "DIRECTFONT", "Helvetica");
@@ -104,7 +104,7 @@ public sealed class RtfWordDefaultFontTests {
         Assert.Null(fonts.ComplexScriptTheme);
     }
 
-    private static WordToPdfOptions PortableOptions() => new() {
+    private static WordPdfExportOptions PortableOptions() => new() {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
     };

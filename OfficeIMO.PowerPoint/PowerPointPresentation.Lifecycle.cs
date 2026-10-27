@@ -112,8 +112,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Creates a detached presentation with explicit persistence.</summary>
-        public static PowerPointPresentation Create() =>
-            CreateInternal(filePath: null, sourceStream: null, new PowerPointCreateOptions());
+        public static PowerPointPresentation Create(PowerPointCreateOptions? options = null) =>
+            CreateInternal(filePath: null, sourceStream: null, options ?? new PowerPointCreateOptions());
 
         /// <summary>
         /// Creates a new presentation associated with a file path. The path is not created until
@@ -144,6 +144,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
             }
 
+            if (options.Template != null) {
+                PowerPointPresentation copy = Load(options.Template);
+                copy._filePath = filePath ?? string.Empty;
+                copy._sourceStream = sourceStream;
+                copy._persistenceMode = options.PersistenceMode;
+                return copy;
+            }
             var packageStream = new MemoryStream(StreamBufferSize);
             try {
                 PresentationDocument document = PresentationDocument.Create(
@@ -171,6 +178,7 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation Load(string filePath,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
+            if (options?.Password is string password) return AssociateEncryptedPresentation(LoadEncrypted(filePath, password, options, cancellationToken), filePath, password);
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -197,6 +205,7 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation Load(Stream stream,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
+            if (options?.Password is string password) return AssociateEncryptedPresentation(LoadEncrypted(stream, password, options, cancellationToken), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream);
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
@@ -214,6 +223,7 @@ namespace OfficeIMO.PowerPoint {
             string filePath,
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) return AssociateEncryptedPresentation(await LoadEncryptedAsync(filePath, password, options, cancellationToken).ConfigureAwait(false), filePath, password);
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) {
@@ -241,6 +251,7 @@ namespace OfficeIMO.PowerPoint {
             Stream stream,
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) return AssociateEncryptedPresentation(await LoadEncryptedAsync(stream, password, options, cancellationToken).ConfigureAwait(false), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream);
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
@@ -254,14 +265,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads a password-encrypted presentation into detached memory.</summary>
-        public static PowerPointPresentation LoadEncrypted(
+        internal static PowerPointPresentation LoadEncrypted(
             string filePath,
             string password,
             PowerPointLoadOptions? options = null) => LoadEncrypted(filePath,
                 password, options, CancellationToken.None);
 
         /// <summary>Loads a password-encrypted presentation into detached memory with cancellation.</summary>
-        public static PowerPointPresentation LoadEncrypted(
+        internal static PowerPointPresentation LoadEncrypted(
             string filePath,
             string password,
             PowerPointLoadOptions? options,
@@ -283,6 +294,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
                         resolved.LegacyPptImportOptions);
+            if (!resolved.AllowLegacyProjection && legacyEncryption != LegacyBinaryEncryptionKind.NotLegacyBinary)
+                throw new NotSupportedException("This load profile accepts Open XML presentations only; binary PPT projection is disabled.");
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
@@ -298,7 +311,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation into detached memory.</summary>
-        public static async Task<PowerPointPresentation> LoadEncryptedAsync(
+        internal static async Task<PowerPointPresentation> LoadEncryptedAsync(
             string filePath,
             string password,
             PowerPointLoadOptions? options = null,
@@ -326,6 +339,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
                         resolved.LegacyPptImportOptions);
+            if (!resolved.AllowLegacyProjection && legacyEncryption != LegacyBinaryEncryptionKind.NotLegacyBinary)
+                throw new NotSupportedException("This load profile accepts Open XML presentations only; binary PPT projection is disabled.");
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
@@ -341,7 +356,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Asynchronously loads a password-encrypted presentation stream into detached memory.</summary>
-        public static async Task<PowerPointPresentation> LoadEncryptedAsync(
+        internal static async Task<PowerPointPresentation> LoadEncryptedAsync(
             Stream stream,
             string password,
             PowerPointLoadOptions? options = null,
@@ -359,6 +374,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
                         resolved.LegacyPptImportOptions);
+            if (!resolved.AllowLegacyProjection && legacyEncryption != LegacyBinaryEncryptionKind.NotLegacyBinary)
+                throw new NotSupportedException("This load profile accepts Open XML presentations only; binary PPT projection is disabled.");
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved,
@@ -373,14 +390,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads a password-encrypted presentation stream into detached memory.</summary>
-        public static PowerPointPresentation LoadEncrypted(
+        internal static PowerPointPresentation LoadEncrypted(
             Stream stream,
             string password,
             PowerPointLoadOptions? options = null) => LoadEncrypted(stream,
                 password, options, CancellationToken.None);
 
         /// <summary>Loads a password-encrypted presentation stream into detached memory with cancellation.</summary>
-        public static PowerPointPresentation LoadEncrypted(
+        internal static PowerPointPresentation LoadEncrypted(
             Stream stream,
             string password,
             PowerPointLoadOptions? options,
@@ -398,6 +415,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
                         resolved.LegacyPptImportOptions);
+            if (!resolved.AllowLegacyProjection && legacyEncryption != LegacyBinaryEncryptionKind.NotLegacyBinary)
+                throw new NotSupportedException("This load profile accepts Open XML presentations only; binary PPT projection is disabled.");
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved,

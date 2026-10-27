@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPanelContinuationTests {
     [Fact]
     public void Panel_ParagraphRelaxesUnavoidableWidowsWhenOnlyOneLineFits() {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 60, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 60, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Marker001\nMarker002\nMarker003"), style: new PdfParagraphStyle {
@@ -23,7 +23,7 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_KeptTogetherAlsoMovesWithItsFollowingParagraph() {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 2 };
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0,
             LineSpacing = PdfLineSpacing.Exactly(20), WidowControl = false };
@@ -42,7 +42,7 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_SectionHeadingUsesIntermediateFragmentCapacity() {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 4).Select(i => $"Marker{i:D3}"))), style: new PdfParagraphStyle {
@@ -60,7 +60,7 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_TableOfContentsRetainsClosingSpaceAfterItsFinalEntry() {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 196, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 196, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 20, MaxGeneratedPages = 4 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel.TableOfContents(new PdfTableOfContentsOptions { Title = null }),
             new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false });
@@ -72,7 +72,7 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_FinalParagraphSpacingMovesWithItsClosingPadding() {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 4).Select(i => $"Marker{i:D3}"))), style: new PdfParagraphStyle {
@@ -91,7 +91,7 @@ public class PdfPanelContinuationTests {
     [InlineData("columns")]
     [InlineData("row")]
     public void Panel_UnscaledFinalImageRejectsInsufficientClosingSpace(string layout) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
         };
@@ -121,7 +121,7 @@ public class PdfPanelContinuationTests {
     [InlineData("body", "layer")]
     [InlineData("body", "section")]
     public void Panel_FinalContentKeepsClosingSpaceAcrossSupportedChildren(string layout, string child) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
         };
@@ -167,7 +167,7 @@ public class PdfPanelContinuationTests {
     [InlineData(1)]
     [InlineData(2)]
     public void Columns_ContinuedPanelImageUsesContinuationCapacityDuringBalancing(int depth) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 4
         };
@@ -192,7 +192,7 @@ public class PdfPanelContinuationTests {
     [InlineData(false, 2)]
     [InlineData(true, 2)]
     public void Row_ContinuedPanelImageUsesItsAvailableCapacity(bool scale, int depth) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
         };
@@ -215,7 +215,7 @@ public class PdfPanelContinuationTests {
     [InlineData("columns")]
     [InlineData("row")]
     public void Panel_ContinuousDecorationRetainsFullClosingPadding(string layout) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
         };
@@ -241,7 +241,7 @@ public class PdfPanelContinuationTests {
     [InlineData(0D)]
     [InlineData(6D)]
     public void Panel_BorderOffsetsMovePaintWithoutMovingText(double radius) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20
         };
@@ -269,7 +269,7 @@ public class PdfPanelContinuationTests {
     [InlineData("columns")]
     [InlineData("row")]
     public void Panel_ContinuousDecorationScalesImageWithinItsFragmentInset(string layout) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
         };
@@ -305,7 +305,7 @@ public class PdfPanelContinuationTests {
     [InlineData("row", false, 0D)]
     [InlineData("row", false, 4D)]
     public void Panel_ContinuationPreservesItsChosenPaddingPolicy(string layout, bool repeat, double inset) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, MaxGeneratedPages = 6
         };

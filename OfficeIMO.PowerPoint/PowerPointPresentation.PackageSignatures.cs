@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
     /// <summary>Inspects a saved PPTX/PPTM package through the shared dependency-light OPC signature engine.</summary>
-    public static OfficePackageSignatureInfo InspectPackageSignatures(
+    internal static OfficePackageSignatureInfo InspectPackageSignatures(
         string filePath,
         OfficePackageSignatureInspectionOptions? options = null) =>
         OfficePackageSignatureService.Inspect(filePath, options);

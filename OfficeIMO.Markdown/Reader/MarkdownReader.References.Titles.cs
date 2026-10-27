@@ -2,7 +2,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool TryParseReferenceDestinationAndMultilineTitle(
         string[] lines,
         int destinationLineIndex,

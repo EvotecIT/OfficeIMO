@@ -16,7 +16,7 @@ public partial class Excel {
         workbook.AddWorksheet("Formats").CellAt(1, 1).SetValue(value).SetNumberFormat(format).SetFontColor("0000FF");
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        byte[] bytes = reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
+        byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(expected, Assert.Single(pdf.GetPages()).Text.Trim());
         string operators = PdfOperatorSearchText.From(bytes);
@@ -46,7 +46,7 @@ public partial class Excel {
         workbook.AddWorksheet("Formats").CellAt(1, 1).SetValue(value).SetNumberFormat(format);
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        byte[] bytes = reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
+        byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(expected, Assert.Single(pdf.GetPages()).Text.Trim());
     }
@@ -66,7 +66,7 @@ public partial class Excel {
         sheet.CellAt(1, 1).SetNumberFormat(format).SetFontColor("0000FF");
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        byte[] bytes = reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
+        byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(value, Assert.Single(pdf.GetPages()).Text.Trim());
         string operators = PdfOperatorSearchText.From(bytes);

@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
 
                 using ExcelDocument sourceDocument = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 ExcelSheet sourceSheet = Assert.Single(sourceDocument.Sheets);
-                Assert.True(sourceSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? sourceValue));
+                Assert.True(sourceSheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? sourceValue));
                 Assert.Equal("OpenXML source", sourceValue!.Text);
             } finally {
                 TryDelete(openXmlPath);
@@ -313,26 +313,26 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(18.5d, loadedSheet.DefaultRowHeight);
                 Assert.True(loadedSheet.DefaultRowsHidden);
 
-                ExcelMergedRangeSnapshot merge = Assert.Single(loadedSheet.GetMergedRanges());
+                ExcelMergedRangeInfo merge = Assert.Single(loadedSheet.GetMergedRanges());
                 Assert.Equal("A1:C1", merge.A1Range);
                 Assert.Equal(1, merge.StartRow);
                 Assert.Equal(3, merge.EndColumn);
 
-                ExcelColumnSnapshot widthColumn = Assert.Single(loadedSheet.GetColumnDefinitions(), column => column.StartIndex == 2 && column.EndIndex == 2);
+                ExcelColumnInfo widthColumn = Assert.Single(loadedSheet.GetColumnDefinitions(), column => column.StartIndex == 2 && column.EndIndex == 2);
                 Assert.Equal(12.5d, widthColumn.Width);
                 Assert.Equal((byte?)2, widthColumn.OutlineLevel);
                 Assert.True(widthColumn.Collapsed);
 
-                ExcelColumnSnapshot hiddenColumn = Assert.Single(loadedSheet.GetColumnDefinitions(), column => column.StartIndex == 3 && column.EndIndex == 3);
+                ExcelColumnInfo hiddenColumn = Assert.Single(loadedSheet.GetColumnDefinitions(), column => column.StartIndex == 3 && column.EndIndex == 3);
                 Assert.True(hiddenColumn.Hidden);
 
-                ExcelRowSnapshot heightRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 2);
+                ExcelRowInfo heightRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 2);
                 Assert.Equal(21d, heightRow.Height);
                 Assert.True(heightRow.CustomHeight);
                 Assert.Equal((byte?)1, heightRow.OutlineLevel);
                 Assert.True(heightRow.Collapsed);
 
-                ExcelRowSnapshot hiddenRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 3);
+                ExcelRowInfo hiddenRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 3);
                 Assert.True(hiddenRow.Hidden);
 
                 ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
@@ -829,7 +829,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(printOptions.HorizontalCentered);
                 Assert.False(printOptions.VerticalCentered);
 
-                ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = loadedSheet.GetHeaderFooter();
+                ExcelSheet.ExcelHeaderFooterInfo headerFooter = loadedSheet.GetHeaderFooter();
                 Assert.Equal("Left header", headerFooter.HeaderLeft);
                 Assert.Equal("Page &P", headerFooter.HeaderCenter);
                 Assert.Equal("Right header", headerFooter.HeaderRight);
@@ -1008,7 +1008,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(legacySheet.PageSetup.AlignHeaderFooterWithMargins);
 
                 using ExcelDocument loaded = ExcelDocument.Load(xlsOutputPath);
-                ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = loaded.Sheets.Single().GetHeaderFooter();
+                ExcelSheet.ExcelHeaderFooterInfo headerFooter = loaded.Sheets.Single().GetHeaderFooter();
                 Assert.Equal("Odd header", headerFooter.HeaderCenter);
                 Assert.Equal("Odd footer", headerFooter.FooterRight);
                 Assert.Equal("First left", headerFooter.FirstHeaderLeft);
@@ -1217,7 +1217,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(font.ColorIndex, out string? fontColor));
                 Assert.Equal("FF123456", fontColor);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.True(projectedStyle.Bold);
                 Assert.True(projectedStyle.Italic);
                 Assert.True(projectedStyle.Underline);
@@ -1486,7 +1486,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.FillBackgroundColorIndex, out string? backgroundColor));
                 Assert.Equal("FFABCDEF", backgroundColor);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.Equal("FFABCDEF", projectedStyle.FillColorArgb);
             } finally {
                 TryDelete(openXmlPath);
@@ -1590,11 +1590,11 @@ namespace OfficeIMO.Tests {
                 Assert.True(topAlignedCellFormat.ApplyAlignment);
                 Assert.Equal((byte)0, topAlignedCellFormat.VerticalAlignment);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.Equal("center", projectedStyle.HorizontalAlignment);
                 Assert.Equal("bottom", projectedStyle.VerticalAlignment);
                 Assert.True(projectedStyle.WrapText);
-                ExcelCellStyleSnapshot topProjectedStyle = result.Document.Sheets[0].GetCellStyle(2, 1);
+                ExcelCellStyleInfo topProjectedStyle = result.Document.Sheets[0].GetCellStyle(2, 1);
                 Assert.Equal("top", topProjectedStyle.VerticalAlignment);
             } finally {
                 TryDelete(openXmlPath);
@@ -1718,7 +1718,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(border.DiagonalColorIndex, out string? diagonalColor));
                 Assert.Equal("FF123456", diagonalColor);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.Equal("FFABCDEF", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);
                 Assert.Equal("thin", projectedStyle.Border!.Left!.Style);
@@ -1961,7 +1961,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.FillForegroundColorIndex, out string? foregroundColor));
                 Assert.Equal("FF666666", foregroundColor);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.Equal("FF666666", projectedStyle.FillColorArgb);
             } finally {
                 TryDelete(openXmlPath);
@@ -2919,7 +2919,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(worksheet.Protection.Permissions.AllowAutoFilter);
                 Assert.False(worksheet.Protection.Permissions.AllowFormatCells);
 
-                ExcelWorksheetProtectionSnapshot projectedProtection = Assert.Single(result.Document.CreateInspectionSnapshot().Worksheets).Protection!;
+                ExcelWorksheetProtectionInfo projectedProtection = Assert.Single(result.Document.Inspect().Worksheets).Protection!;
                 Assert.True(projectedProtection.AllowSelectLockedCells);
                 Assert.True(projectedProtection.AllowSelectUnlockedCells);
                 Assert.True(projectedProtection.AllowInsertRows);
@@ -3110,7 +3110,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Unicode Spec", Assert.IsType<string>(unicodeRelativeCell.Value));
                 Assert.Equal("Support", Assert.IsType<string>(mailtoCell.Value));
 
-                IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> projectedLinks = result.Document.Sheets[0].GetHyperlinks();
+                IReadOnlyDictionary<string, ExcelHyperlinkInfo> projectedLinks = result.Document.Sheets[0].GetHyperlinks();
                 Assert.True(projectedLinks["A1"].IsExternal);
                 Assert.Equal("https://evotec.xyz/xls", projectedLinks["A1"].Target);
                 Assert.False(projectedLinks["A2"].IsExternal);
@@ -3164,7 +3164,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Target'!A1", internalLink.Target);
                 Assert.Equal("Jump inside workbook", internalLink.Tooltip);
 
-                IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> projectedLinks = result.Document.Sheets[0].GetHyperlinks();
+                IReadOnlyDictionary<string, ExcelHyperlinkInfo> projectedLinks = result.Document.Sheets[0].GetHyperlinks();
                 Assert.Equal("Open OfficeIMO XLS docs", projectedLinks["A1"].Tooltip);
                 Assert.Equal("Jump inside workbook", projectedLinks["A2"].Tooltip);
             } finally {

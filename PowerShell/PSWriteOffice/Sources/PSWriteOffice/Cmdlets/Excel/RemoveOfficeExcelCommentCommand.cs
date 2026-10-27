@@ -38,7 +38,7 @@ public sealed class RemoveOfficeExcelCommentCommand : PSCmdlet
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
+    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
     [Parameter]
     public string? Address { get; set; }
 

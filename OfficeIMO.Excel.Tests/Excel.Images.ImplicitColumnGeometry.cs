@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             ExcelImage image = sheet.AddImageToRange("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
             Assert.Equal(expectedPixels, image.WidthPixels);
             Assert.Equal((double)expectedPixels, sheet.Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(package));
             Assert.Equal(expectedPixels, reopened.Sheets[0].Images.Single().WidthPixels);
             Assert.Equal((double)expectedPixels, reopened.Sheets[0].Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
@@ -51,10 +51,10 @@ namespace OfficeIMO.Tests {
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(new Xdr.ColumnId("3"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot before));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
             Assert.Equal(192, before.WidthPixels);
             format.BaseColumnWidth = 12U;
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot after));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo after));
             Assert.Equal(288, after.WidthPixels);
         }
 
@@ -83,12 +83,12 @@ namespace OfficeIMO.Tests {
                 new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
 
             Assert.Equal(140, image.WidthPixels);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot before));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
             Assert.Equal(140, before.WidthPixels);
             Assert.Equal(140, sheet.Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
-            using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xlsx)));
+            using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx })));
             Assert.Equal(140, reopened.Sheets[0].Images.Single().WidthPixels);
-            Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartSnapshot after));
+            Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartInfo after));
             Assert.Equal(140, after.WidthPixels);
             Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
         }

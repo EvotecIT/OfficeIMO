@@ -162,7 +162,7 @@ public sealed class ReaderPowerPointExtractionTests {
                 .SetHyperlink(target, "Jump to destination");
             target.AddTitle("Destination");
             bytes = binary
-                ? presentation.ToBytes(PowerPointFileFormat.Ppt)
+                ? presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })
                 : presentation.ToBytes();
         }
 
@@ -199,7 +199,7 @@ public sealed class ReaderPowerPointExtractionTests {
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             pptxBytes = presentation.ToBytes();
-            pptBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            pptBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         OfficeDocumentReadResult pptxResult =
@@ -335,7 +335,7 @@ public sealed class ReaderPowerPointExtractionTests {
         Assert.True(preflight.CanWrite,
             string.Join(Environment.NewLine, preflight.Findings));
         return binary
-            ? presentation.ToBytes(PowerPointFileFormat.Ppt)
+            ? presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })
             : presentation.ToBytes();
     }
 

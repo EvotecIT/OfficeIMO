@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Data");
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(A1.MaxRows + 1, new ExcelRowLayoutOptions { Height = 20 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(ExcelA1.MaxRows + 1, new ExcelRowLayoutOptions { Height = 20 }));
         }
 
         [Fact]
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot sheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo sheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.All(sheet.Cells.Where(cell => cell.Row >= 1 && cell.Row <= 3), cell => Assert.NotNull(cell.Hyperlink));
                 Assert.Equal(3, sheet.Cells.Count(cell => cell.Hyperlink != null));
             }
@@ -360,8 +360,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Images");
             ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(A1.MaxRows + 1, 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, A1.MaxColumns + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(ExcelA1.MaxRows + 1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, ExcelA1.MaxColumns + 1));
         }
 
         [Fact]
@@ -427,8 +427,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "EU");
             sheet.CellValue(2, 2, 10);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = A1.MaxRows + 1, Column = 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = A1.MaxColumns + 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = ExcelA1.MaxRows + 1, Column = 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = ExcelA1.MaxColumns + 1 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", WidthPixels = 0 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", HeightPixels = -1 }));
         }

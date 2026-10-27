@@ -4502,7 +4502,7 @@ public partial class PdfPageImageRendererTests {
         rectangle.StrokeWidth = 1.5D;
         rectangle.ClipPath = OfficeClipPath.Rectangle(45, 20);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -4526,7 +4526,7 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void RenderPage_ProjectsGeneratedImageClipPathAsCroppedProjection() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,

@@ -75,7 +75,7 @@ internal static partial class PdfWriter {
 
     private static void AddHeaderFooterImages(
         LayoutResult.Page page,
-        PdfOptions options,
+        PdfCreateOptions options,
         int variantPageNumber,
         int pageNumber,
         int totalPages,
@@ -104,7 +104,7 @@ internal static partial class PdfWriter {
 
     private static void AddHeaderFooterImages(
         LayoutResult.Page page,
-        PdfOptions options,
+        PdfCreateOptions options,
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images,
         int variantPageNumber,
         int pageNumber,
@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddHeaderFooterImage(LayoutResult.Page page, PdfOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
+    private static void AddHeaderFooterImage(LayoutResult.Page page, PdfCreateOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         double y = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
         return width + Math.Max(0, groups - 1) * HeaderFooterInlineGap;
     }
 
-    private static double AlignHeaderFooterGroup(PdfOptions options, double groupWidth, PdfAlign align) {
+    private static double AlignHeaderFooterGroup(PdfCreateOptions options, double groupWidth, PdfAlign align) {
         double contentLeft = options.MarginLeft;
         double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
         return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
@@ -213,7 +213,7 @@ internal static partial class PdfWriter {
     private static string BuildHeaderFooterShapes(
         RunningShapePaintCache paintCache,
         LayoutResult.Page page,
-        PdfOptions options,
+        PdfCreateOptions options,
         int variantPageNumber,
         int pageNumber,
         int totalPages,
@@ -249,7 +249,7 @@ internal static partial class PdfWriter {
         RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
-        PdfOptions options,
+        PdfCreateOptions options,
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes,
         int variantPageNumber,
         int pageNumber,
@@ -288,7 +288,7 @@ internal static partial class PdfWriter {
         RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfHeaderFooterShape headerFooterShape,
         double x,
         bool isHeader) {
@@ -302,7 +302,7 @@ internal static partial class PdfWriter {
             : options.MarginBottom - options.FooterOffsetY;
         RunningShapePaint paint = paintCache.Get(headerFooterShape, block.Shape);
         foreach (string message in paint.UnmeasuredMessages)
-            options.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+            options.AddUnassessedLayoutWarning("header-footer-paint-bounds-unmeasured", source,
                 message.Replace("Running shape", source));
         foreach (RunningPaintBounds bounds in paint.Bounds)
             ReportHeaderFooterBounds(options, source, bounds.Kind,
@@ -315,7 +315,7 @@ internal static partial class PdfWriter {
         OfficeShape shape,
         double x,
         double bottomY,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         string source,
         out double boundsX,
         out double boundsY,
@@ -439,7 +439,7 @@ internal static partial class PdfWriter {
         && (!shape.StrokeLineJoin.HasValue || shape.StrokeLineJoin.Value == OfficeStrokeLineJoin.Miter);
 
     private static void ReportHeaderFooterBounds(
-        PdfOptions options,
+        PdfCreateOptions options,
         string source,
         string contentKind,
         double x,
@@ -451,7 +451,7 @@ internal static partial class PdfWriter {
             (y.Value < -tolerance || y.Value + height.Value > options.PageHeight + tolerance);
         if (x < -tolerance || x + width > options.PageWidth + tolerance || outsideVerticalBounds) {
             options.AddLayoutDiagnostic(
-                "HeaderFooterPageBoundsClipped",
+                "header-footer-page-bounds-clipped",
                 source,
                 source + " " + contentKind + " extends beyond the physical page bounds and may be clipped by the PDF page.",
                 PdfLayoutDiagnosticKind.ClippedContent,

@@ -14,28 +14,32 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Saved conversion jobs
 
-`OfficeConversionJob` stores a local conversion batch as strict, versioned JSON.
+`OfficeBatchOptions` stores a local conversion batch as strict, versioned JSON.
 The same definition runs in Studio's local-folder workbench, `OfficeIMO.Tool`,
 and PSWriteOffice. Relative paths resolve against the job file's directory.
 Loading or planning a job does not start a conversion.
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Pdf;
 using OfficeIMO.Workflows;
 
-var job = new OfficeConversionJob {
+OfficeWorkflow.RegisterConversions();
+var job = new OfficeBatchOptions {
     InputDirectory = "documents",
     OutputDirectory = "pdf",
-    CheckpointDirectory = "conversion-state",
-    SourceExtensions = [".txt", ".docx", ".html"],
-    Options = new OfficeConversionJobOptions { TextEncoding = "utf-8", TabSize = 4 }
+    ResumeFrom = "conversion-state/plan.json",
+    Extensions = [".txt", ".docx", ".html"],
+    ConversionOptions = new OfficeConversionOptions {
+        PlainText = new PdfTextImportOptions { EncodingName = "utf-8", TabSize = 4 }
+    }
 };
-OfficeConversionJobSerializer.SaveFile(job, "monthly.officeimojob.json");
-string jobDirectory = Path.GetDirectoryName(Path.GetFullPath("monthly.officeimojob.json"))!;
-var runner = new OfficeWorkflowRunner();
-var plan = await OfficeConversionJobRunner.PlanAsync(job, jobDirectory, runner);
+job.Save("monthly.officeimojob.json");
+var saved = OfficeBatchOptions.Load("monthly.officeimojob.json");
+var plan = await OfficeConverter.PlanAsync(saved);
 if (plan.CanRun) {
-    var result = await OfficeConversionJobRunner.RunAsync(job, jobDirectory, runner);
-    Console.WriteLine($"Completed {result.Completed}; failed {result.Failed}; skipped {result.Skipped}");
+    var result = await OfficeConverter.ConvertAsync(saved);
+    Console.WriteLine($"Completed {result.Summary.Completed}; failed {result.Summary.Failed}; skipped {result.Summary.Skipped}");
 }
 ```
 
@@ -51,7 +55,7 @@ A terminal discovery or file-budget error returns retained per-file counts and
 run can retain a completed PDF without having an individually failed conversion.
 Hosts report the terminal failure while keeping the completed artifacts available.
 
-The `officeimo.conversion.job.v1` contract covers source selection, output and
+The `officeimo.conversion.job.v2` contract covers source selection, output and
 checkpoint folders, route, profile, conflicts, budgets and portable conversion
 choices: page ranges, PDF import modes, raster density, worksheet/HTML layout,
 PDF compression, legacy import loss, supported strict-loss checks, and literal
@@ -60,9 +64,9 @@ explicitly. Provider handles, callbacks, custom font data and credentials are
 outside this saved format. Direct typed workflow APIs retain their advanced
 settings. Registered routes remain subject to the existing checkpoint limits.
 
-`Secrets.SourcePasswordEnvironmentVariable` and
-`Secrets.PdfPasswordEnvironmentVariable` contain names only. An executing host
-supplies `OfficeConversionJobRuntimeOptions.ResolveEnvironmentVariable`; planning
+`SourcePasswordEnvironmentVariable` and
+`PdfPasswordEnvironmentVariable` contain names only. An executing host
+supplies `OfficeBatchOptions.ResolveEnvironmentVariable`; planning
 does not resolve secret values. Saving a request containing literal passwords
 is rejected. Treat a job as an executable instruction: review its inputs,
 destinations, replacement policy and referenced variables before running it.
@@ -74,24 +78,24 @@ for folder conversion, a delivery document, and recovery from partial failure.
 
 ### Durable run reports
 
-`OfficeConversionJobRunner.RunRecordedAsync` records a saved job's attempt before
-execution and finalizes it after the batch returns. It accepts the loaded job,
-its filename, a new report filename and the configured runner. The report parent
+`OfficeConverter.ConvertAsync` records a loaded saved job's attempt when its
+`ReportPath` is set, and finalizes it after the batch returns. The report parent
 must exist, and reports stay outside source, output and checkpoint trees.
 
 ```csharp
 string jobPath = Path.GetFullPath("monthly.officeimojob.json");
-var saved = OfficeConversionJobSerializer.ReadFile(jobPath);
+var saved = OfficeBatchOptions.Load(jobPath);
 Directory.CreateDirectory("runs");
-var recorded = await OfficeConversionJobRunner.RunRecordedAsync(
-    saved, jobPath, Path.GetFullPath("runs/first.json"), runner);
-Console.WriteLine(recorded.Batch?.Summary.Completed);
-var inspected = OfficeConversionJobRunReportSerializer.ReadFile("runs/first.json");
+var recorded = await OfficeConverter.ConvertAsync(saved with {
+    ReportPath = Path.GetFullPath("runs/first.json")
+});
+Console.WriteLine(recorded.Summary.Completed);
+var inspected = OfficeBatchReport.Load("runs/first.json");
 ```
 
-The separate `officeimo.conversion.job.run.v1` contract records run identity,
+The `officeimo.conversion.batch.v2` contract records run identity,
 UTC timing, the admitted job file's SHA-256, output/checkpoint locations and a
-bounded `OfficeConversionBatchReport`. The batch report is shared with CLI JSON
+bounded item list and complete `OfficeBatchSummary`. The batch report is shared with CLI JSON
 and NDJSON presentation; item truncation is explicit. Runtime passwords,
 resolvers and callbacks are excluded. An explicit retry is recorded separately
 from the saved definition's fingerprint.
@@ -105,52 +109,50 @@ must report that failure without discarding completed output counts.
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. `OfficeConverter` runs directory and selected-file batches after `OfficeWorkflow.RegisterConversions()`, with shared profiles, diagnostics and publication policies. Route-owned renderer settings use `OfficeConversionOptions.RegisteredSettings`. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using OfficeIMO.Workflows;
 
-var options = new OfficeWorkflowConversionOptions {
-    PlainText = new PdfPlainTextOptions { TabSize = 4 }
+OfficeWorkflow.RegisterConversions();
+var options = new OfficeConversionOptions {
+    PlainText = new PdfTextImportOptions { TabSize = 4 }
 };
-var runner = new OfficeWorkflowRunner();
-var single = await runner.RunAsync(new OfficeWorkflowRequest {
-    Operation = OfficeWorkflowOperation.Convert,
-    InputPath = "report.txt", OutputPath = "report.pdf", ConversionRouteId = "txt-pdf", ConversionOptions = options
+OfficeConversionReport single = await OfficeConverter.ConvertAsync(
+    "report.txt", "report.pdf", options, cancellationToken);
+OfficeBatchReport batch = await OfficeConverter.ConvertAsync(new OfficeBatchOptions {
+    InputDirectory = "Documents", OutputDirectory = "PDF", MaxParallelism = 2,
+    ConversionOptions = options
 }, cancellationToken: cancellationToken);
 
-OfficeConversionBatchResult batch = await OfficeWorkflow.ConvertDirectory("Documents")
-    .ToDirectory("PDF")
-    .WithConversionOptions(options)
-    .WithConcurrency(2)
-    .RunAsync(runner, cancellationToken: cancellationToken);
-
-// Selected files use the same batch API; the target need not be PDF.
-var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
-    .ToDirectory("HTML", ".html")
-    .RunAsync(runner, cancellationToken: cancellationToken);
+var html = await OfficeConverter.ConvertAsync(
+    new[] { "report.pdf", "appendix.pdf" }, "HTML", OfficeDocumentFormat.Html,
+    cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `Draw`, `Visio`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints.
 
-Draw conversion uses original page sizes and print-visible layers, including blank pages. `ConversionOptions.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `ConversionOptions.RequireNoLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
+Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
-VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `ConversionOptions.Visio` accepts [VisioToPdfOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `RequireNoLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
+VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioToPdfOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio.Pdf;
 using OfficeIMO.Workflows;
 
-var diagram = await OfficeWorkflow.Convert("drawing.vdx")
-    .To("drawing.pdf")
-    .WithConversionOptions(new OfficeWorkflowConversionOptions {
-        Visio = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }
-    })
-    .RunAsync();
+OfficeWorkflow.RegisterConversions();
+OfficeConversionReport diagram = await OfficeConverter.ConvertAsync("drawing.vdx", "drawing.pdf",
+    new OfficeConversionOptions {
+        RegisteredSettings = new OfficeWorkflowRouteSettings {
+            Visio = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }
+        }
+    });
 ```
 
-`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeConversionBatchRequest` exposes the same setting per document; both APIs capture it before asynchronous source access.
+`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share
@@ -162,18 +164,21 @@ dropping native semantics. When semantic loss is acceptable, first convert with
 the explicit opt-out below and assemble the resulting PDFs.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Xps;
+using OfficeIMO.Workflows;
 
-OfficeWorkflowResult converted = await OfficeWorkflow.Convert("report.oxps")
-    .To("report.pdf")
-    .WithConversionOptions(new OfficeWorkflowConversionOptions {
-        Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
-    })
-    .RunAsync(cancellationToken: cancellationToken);
+OfficeWorkflow.RegisterConversions();
+OfficeConversionReport converted = await OfficeConverter.ConvertAsync("report.oxps", "report.pdf",
+    new OfficeConversionOptions {
+        RegisteredSettings = new OfficeWorkflowRouteSettings {
+            Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
+        }
+    }, cancellationToken);
 ```
 
 The explicit semantic opt-out retains vector paint and markup-order Unicode.
-`Xps.PdfOptions` accepts the PDF engine's output settings, including encryption;
+`Xps.PdfCreateOptions` accepts the PDF engine's output settings, including encryption;
 `CompressPdfOutput` uses the shared verified compression path. Native input limits
 and workflow byte limits both apply. PDF serialization is bounded before the
 runner reopens and publishes the artifact. See the [native preservation limits](../OfficeIMO.Xps/SUPPORT.md).
@@ -272,12 +277,13 @@ and the EPUB writer. It uses the same runner, publication guards, conflict polic
 byte limits and checkpoint recovery as other conversions.
 
 ```csharp
-OfficeConversionBatchResult published = await OfficeWorkflow.ConvertDirectory("BookProjects")
-    .ToDirectory("PublishedBooks", ".epub")
-    .SelectExtensions(true, ".oibook")
-    .WithLimits(BookProject.MaximumProjectBytes, 128L * 1024 * 1024)
-    .WithCheckpoint("PublishingState")
-    .RunAsync(cancellationToken: cancellationToken);
+OfficeWorkflow.RegisterConversions();
+OfficeBatchReport published = await OfficeConverter.ConvertAsync(new OfficeBatchOptions {
+    InputDirectory = "BookProjects", OutputDirectory = "PublishedBooks", TargetExtension = ".epub",
+    Extensions = [".oibook"], Recursive = true,
+    MaximumInputBytes = BookProject.MaximumProjectBytes, MaximumOutputBytes = 128L * 1024 * 1024,
+    ResumeFrom = "PublishingState/plan.json"
+}, cancellationToken: cancellationToken);
 ```
 
 Outputs retain source names, such as `novel.oibook.epub`. Export requires saved author
@@ -378,6 +384,10 @@ limited to 1 MiB, and `maximumOutputBytes` can lower the 184 MiB ZIP ceiling.
 No accounts are accessed, files written, images resampled or books uploaded.
 
 ## ONIX bibliographic export
+
+The ONIX examples use `DateOnly` on .NET 8 and .NET 10. On .NET Standard 2.0
+and .NET Framework 4.7.2, the same calendar-date properties use `DateTime`;
+construct the date with a zero time component, for example `new DateTime(2026, 10, 5)`.
 
 `ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB
 digital download. It takes a selected title (the first by default) and an explicitly
@@ -1611,7 +1621,7 @@ recipient acceptance or the validity of a commercial agreement.
 
 ## Optional checkpoints
 
-Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
+Set `ResumeFrom = "PDF-State/plan.json"` on `OfficeBatchOptions` for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
 
 Checkpoints support built-in routes. Registered adapters require an ordinary batch because their captured runtime configuration cannot be fingerprinted. An explicit registered route with checkpoints is rejected before execution; a registered input discovered in a mixed checkpoint batch reports a failed item without publishing it.
 
@@ -1621,9 +1631,9 @@ Checkpoint reuse verifies a **recorded artifact**; it does not rerender it or pr
 
 HTML and enabled local Markdown resources are conservatively fingerprinted within the source root, with at most 256 regular files and an aggregate input-byte budget. Every filename is included because Markdown identifies image formats from their bytes. Resource trees cannot contain links; checkpointed Markdown also requires `RestrictLocalImagesToBaseDirectory`. A changed CSS, image or font invalidates reuse. Checkpoints exclude remote resources and runtime resource, text-shaping or cryptography callbacks because their output cannot be identified from captured settings; use an ordinary batch or the native adapter for those cases. Workflow HTML resource resolution remains scoped to the source; custom HTML resolvers belong to the native adapter.
 
-Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1–32. `MaximumFiles` bounds discovered files, including skipped files, and defaults to one million. Discovery beyond this bound stops the run while preserving completed output. These are configurable resource bounds, not throughput guarantees. TXT defaults to strict BOM-aware decoding, literal markup, tab expansion and bounded wrapping; `PlainText` carries its encoding and layout limits. Legacy DOC import loss blocks output unless `LegacyDocLossPolicy = OfficeConversionLossPolicy.Allow` accepts reported reductions.
+Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1–32. `MaximumFiles` bounds discovered files, including skipped files, and defaults to one million. Discovery beyond this bound stops the run while preserving completed output. These are configurable resource bounds, not throughput guarantees. TXT defaults to strict BOM-aware decoding, literal markup, tab expansion and bounded wrapping; `PlainText` carries its encoding and layout limits. Legacy DOC import loss blocks output unless `WordLoad = new WordLoadOptions { FailOnLoss = false }` accepts reported reductions.
 
-`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
+`IProgress<OfficeBatchItemReport>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `PublicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
 
 Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
 
@@ -1693,7 +1703,7 @@ unsupported target fields; explicit lower-profile projection returns each
 intentional reduction as a warning.
 
 Select `Validate`, `RenderPresentationPdf` or `RenderHybridPdf` for the other
-operations. Rendering requires an explicit CII contract. Pass `PdfOptions` with
+operations. Rendering requires an explicit CII contract. Pass `PdfCreateOptions` with
 the fonts your content needs and `InvoicePdfLayoutOptions` for appearance and
 resource limits. The returned output XML is the same captured invoice used for
 the visible PDF; hybrid output embeds those exact bytes.
@@ -1745,7 +1755,7 @@ var storageResult = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
     Operation = OfficeInvoiceWorkflowOperation.EditSource,
     SourceEdits = new InvoiceSourceEdits(number: "INV-002"),
     OutputPath = "invoice.edited.xml",
-    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+    ConflictPolicy = OfficePublicationPolicy.Rename
 });
 ```
 
@@ -1919,7 +1929,7 @@ OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
     Operation = OfficeWorkflowOperation.OptimizeWordImages,
     InputPath = "input.docx",
     OutputPath = "optimized.docx", // .doc or .pdf also selects that output format
-    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    ConflictPolicy = OfficePublicationPolicy.Fail,
     WordImageOptimization = new WordImageOptimizationOptions {
         Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
         TargetDpi = 144,
@@ -1949,7 +1959,7 @@ OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
     ConversionRouteId = "docx-pdf",
     InputPath = "report.docx",
     OutputPath = "report.pdf",
-    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+    ConflictPolicy = OfficePublicationPolicy.Replace
 });
 
 if (!result.Succeeded) {
@@ -1959,17 +1969,14 @@ if (!result.Succeeded) {
 Console.WriteLine(result.OutputPath);
 ```
 
-The same request has a fluent form. When a source/target extension pair maps to
-one locally executable route, the builder infers it; use `Via(routeId)` for an
-ambiguous pair or to pin a specific route contract.
+Use the front door for single conversions. It selects the route from the filenames;
+set `OfficeConversionOptions.RouteId` when an extension pair is ambiguous.
 
 ```csharp
-OfficeWorkflowResult result = await OfficeWorkflow
-    .Convert("report.docx")
-    .To("report.pdf")
-    .WithProfile(OfficeWorkflowOutputProfile.PrintReady)
-    .OnConflict(OfficeWorkflowConflictPolicy.Replace)
-    .RunAsync(cancellationToken: cancellationToken);
+OfficeConversionReport result = await OfficeConverter.ConvertAsync("report.docx", "report.pdf",
+    new OfficeConversionOptions {
+        OutputProfile = OfficeConversionProfile.PrintReady, FileConflictPolicy = OfficePublicationPolicy.Replace
+    }, cancellationToken);
 ```
 
 `OfficeWorkflowCatalog.Routes` projects the complete canonical first-party
@@ -1978,23 +1985,23 @@ runner can invoke. Route metadata includes accepted extensions, the owning
 package, representative API and result contract, fidelity and support evidence,
 known limits, browser and agent availability, and `CanExecute`.
 
-Use `ConversionOptions` (or the fluent `WithConversionOptions` method) for settings
-specific to a route. PDF input routes accept `PageRanges`. PDF-to-Word and
-PDF-to-PowerPoint expose editable or visual import modes; visual pages accept
-`RasterDpi`. Excel-to-PDF supports worksheet-canvas or flowing-table layout, and
+Use `OfficeConversionOptions` for settings specific to a route. PDF input routes
+accept `PdfLoad.PageSelection`. `PdfWord` and `PdfPowerPoint` expose editable or
+visual import modes; visual pages accept `Dpi`. Excel-to-PDF supports worksheet-canvas or flowing-table layout, and
 PDF-to-HTML supports semantic or positioned HTML. PDF output routes can request
 verified lossless compression with `CompressPdfOutput`. The runner rejects options
 and output profiles unsupported by the selected route.
 
 ```csharp
-OfficeWorkflowResult result = await OfficeWorkflow.Convert("source.pdf")
-    .To("visual-pages.docx")
-    .WithConversionOptions(new OfficeWorkflowConversionOptions {
-        PageRanges = "1-3,5",
-        WordMode = OfficeIMO.Word.Pdf.PdfWordImportMode.VisualPages,
-        RasterDpi = 144
-    })
-    .RunAsync(cancellationToken: cancellationToken);
+using OfficeIMO;
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Word;
+
+OfficeConversionReport result = await OfficeConverter.ConvertAsync("source.pdf", "visual-pages.docx",
+    new OfficeConversionOptions {
+        PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1-3,5") },
+        PdfWord = new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 144 }
+    }, cancellationToken);
 ```
 
 `OfficeWorkflowRunner.PreviewDocument(bytes, extension, cancellationToken)` creates
@@ -2067,7 +2074,7 @@ Only the `Faithful` profile applies. Input snapshots, byte limits during generat
 ```csharp
 OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5, 1, 2, 5)
     .To("selected-pages.pdf")
-    .OnConflict(OfficeWorkflowConflictPolicy.Rename)
+    .OnConflict(OfficePublicationPolicy.Rename)
     .RunAsync(cancellationToken: cancellationToken);
 ```
 
@@ -2115,7 +2122,7 @@ PdfSplitWorkflowResult result = await runner.SplitPdfAsync(new PdfSplitWorkflowR
     InputPath = "report.pdf",
     OutputDirectory = "report-parts",
     PagesPerDocument = 10,
-    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+    ConflictPolicy = OfficePublicationPolicy.Rename
 }, cancellationToken: cancellationToken);
 
 foreach (PdfSplitFile file in result.Files) {
@@ -2200,7 +2207,7 @@ Searchable PDF generation uses `OfficeWorkflowRunner.MakePdfSearchableAsync` wit
 var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
     InputPath = "scan.pdf",
     OutputPath = "searchable.pdf",
-    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    ConflictPolicy = OfficePublicationPolicy.Fail,
     Ocr = new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "en", Dpi = 150 }
 }, engine, cancellationToken);
 ```
@@ -2318,7 +2325,7 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
         InputPath = "report.docx",
         OutputPath = "report.cleaned.docx",
         ExpectedInputSha256 = inspection.InputSha256,
-        ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        ConflictPolicy = OfficePublicationPolicy.Fail
     });
 ```
 

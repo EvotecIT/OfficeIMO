@@ -1,6 +1,7 @@
+using OfficeIMO.Drawing;
 using System;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>Semantic palette roles; only roles with native theme slots follow later edits in Office.</summary>
 public enum OfficeColorRole {
@@ -91,7 +92,7 @@ public readonly partial struct OfficeColor {
         ? throw new InvalidOperationException("Resolve the color against an OfficeTheme before reading RGBA components or formatting a literal.") : value;
     private static bool TryParseRole(string value, out OfficeColor color) {
         // Enum.TryParse accepts numbers; role parsing deliberately accepts names only.
-        foreach (OfficeColorRole role in Enum.GetValues(typeof(OfficeColorRole))) {
+        foreach (OfficeColorRole role in OfficeIMO.Internal.EnumCompat.GetValues<OfficeColorRole>()) {
             if (role != OfficeColorRole.None && string.Equals(value, role.ToString(), StringComparison.OrdinalIgnoreCase)) {
                 color = new OfficeColor(role);
                 return true;

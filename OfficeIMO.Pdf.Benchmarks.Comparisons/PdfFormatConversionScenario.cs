@@ -89,21 +89,21 @@ internal sealed record PdfFormatConversionScenario(
     private static byte[] ConvertDocx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using WordDocument document = WordDocument.Load(stream);
         return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new WordToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            ? document.ToPdfBytes(new WordPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : document.ToPdfBytes();
     }
 
     private static byte[] ConvertXlsx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using ExcelDocument document = ExcelDocument.Load(stream);
         return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new ExcelToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            ? document.ToPdfBytes(new ExcelPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : document.ToPdfBytes();
     }
 
     private static byte[] ConvertPptx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
         return textFallbacksOverride.HasValue
-            ? presentation.ToPdfBytes(new PowerPointToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            ? presentation.ToPdfBytes(new PowerPointPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : presentation.ToPdfBytes();
     }
 
@@ -115,9 +115,9 @@ internal sealed record PdfFormatConversionScenario(
     }
 
     private static byte[] ConvertMarkdown(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
-        OfficeIMO.Markdown.MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse(Encoding.UTF8.GetString(source));
+        OfficeIMO.Markdown.MarkdownDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse(Encoding.UTF8.GetString(source));
         return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new MarkdownToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            ? document.ToPdfBytes(new MarkdownPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : document.ToPdfBytes();
     }
 

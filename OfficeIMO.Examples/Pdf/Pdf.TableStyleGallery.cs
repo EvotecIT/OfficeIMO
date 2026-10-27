@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfOptions {
+                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 9.5,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples.Pdf {
                 })
                 .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO");
 
-            foreach (string styleName in TableStyles.SupportedWordStyleNames) {
-                PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
+            foreach (string styleName in PdfTableStyles.SupportedWordStyleNames) {
+                PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
                 style.Caption = styleName;
                 style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
                 style.CaptionFontSize = 8.5;

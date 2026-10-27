@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentPaginationFidelityTests {
     [Fact]
     public void Paragraph_CustomOrphanAndWidowCountsProduceBalancedSplit() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -48,7 +48,7 @@ public class PdfDocumentPaginationFidelityTests {
 
     [Fact]
     public void Table_MinimumBodyRowsOnLastPageKeepsRowsWithFooter() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 280,
             PageHeight = 160,
             MarginLeft = 30,
@@ -58,7 +58,7 @@ public class PdfDocumentPaginationFidelityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
         style.MinimumBodyRowsOnLastPage = 3;
@@ -86,7 +86,7 @@ public class PdfDocumentPaginationFidelityTests {
 
     [Fact]
     public void Table_MinimumBodyRowsOnFirstPagePreventsOrphanedHeader() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 280,
             PageHeight = 180,
             MarginLeft = 30,
@@ -96,7 +96,7 @@ public class PdfDocumentPaginationFidelityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
         style.FixedRowHeights = new List<double?> { 20, 20, 20 };

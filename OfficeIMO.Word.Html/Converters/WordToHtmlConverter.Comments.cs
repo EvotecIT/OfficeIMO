@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
         private static bool TryAppendCommentReference(
             IDocument htmlDoc,
             WordParagraph run,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             Dictionary<string, WordComment> commentsById,
             List<(int Number, WordComment Comment)> comments,
             Dictionary<string, int> commentMap,
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement body,
             List<(int Number, WordComment Comment)> comments,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (!options.ExportComments || comments.Count == 0) {
                 return;

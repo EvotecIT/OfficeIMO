@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptRecord[] dataBlobs = binaryTag.Children.Where(record =>
                         record.Type == RecordBinaryTagDataBlob).ToArray();
                     if (dataBlobs.Length != 1) {
-                        AddDiagnostic("PPT-COMMENT-TAG-DATA", LegacyPptDiagnosticSeverity.Warning,
+                        AddDiagnostic("ppt-comment-tag-data", LegacyPptDiagnosticSeverity.Warning,
                             $"Slide {slide.SlideId} has a malformed PP10 programmable tag; comments remain preserve-only.",
                             binaryTag.Offset);
                         continue;
@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 records = LegacyPptRecordReader.ReadSequence(bytes, 8,
                     dataBlob.PayloadLength, options, _recordBudget);
             } catch (InvalidDataException) {
-                AddDiagnostic("PPT-COMMENT-DATA-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-data-truncated", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has malformed PP10 tag data; comments remain preserve-only.",
                     dataBlob.Offset);
                 return;
@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             out LegacyPptComment? comment) {
             comment = null;
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-COMMENT-CONTAINER", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-container", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has a malformed Comment10Container; the comment remains preserve-only.",
                     container.Offset);
                 return false;
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (atom == null || atom.Version != 0 || atom.Instance != 0
                 || atom.PayloadLength != 28
                 || container.Children.Count(record => record.Type == RecordComment10Atom) != 1) {
-                AddDiagnostic("PPT-COMMENT-ATOM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-atom", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has a malformed Comment10Atom; the comment remains preserve-only.",
                     container.Offset);
                 return false;
@@ -87,14 +87,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             int index = atom.ReadInt32(0);
             if (index < 0) {
-                AddDiagnostic("PPT-COMMENT-INDEX", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-index", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has a negative comment index; the comment remains preserve-only.",
                     atom.Offset);
                 return false;
             }
 
             if (!TryReadCommentDate(atom, out DateTime? createdAtUtc)) {
-                AddDiagnostic("PPT-COMMENT-DATETIME", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-datetime", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has an invalid comment creation time; the comment remains preserve-only.",
                     atom.Offset);
                 return false;
@@ -106,14 +106,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     out string text)
                 || !TryReadCommentString(container, instance: 2, maximumBytes: 104,
                     out string initials)) {
-                AddDiagnostic("PPT-COMMENT-STRING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-string", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has a malformed comment author, text, or initials string; the comment remains preserve-only.",
                     container.Offset);
                 return false;
             }
             if (container.Children.Any(child => child.Type != RecordComment10Atom
                     && (child.Type != RecordCString || child.Instance > 2))) {
-                AddDiagnostic("PPT-COMMENT-EXTENSION", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-comment-extension", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slideId} has comment extension data that is retained only in the binary source.",
                     container.Offset);
             }

@@ -94,7 +94,7 @@ public sealed partial class WordPdfInlineContentControlTests {
         byte[] sourceBytes = converted.Bytes;
         byte[] referenceBytes = ConvertSavedDocument(reference, InlinePaintOptions());
         Assert.Empty(PdfCore.PdfReadDocument.Open(sourceBytes).FormFields);
-        Assert.Single(converted.Result.Warnings, warning => warning.Code == "NativeInlineControlBackgroundStatic");
+        Assert.Single(converted.Result.Warnings, warning => warning.Code == "native-inline-control-background-static");
         var expectedPaint = InlineControlYellowBounds(referenceBytes);
         var actualPaint = InlineControlYellowBounds(sourceBytes);
         Assert.True(expectedPaint.Pixels > 20, "The ordinary highlighted run must provide a visible paint control.");
@@ -147,7 +147,7 @@ public sealed partial class WordPdfInlineContentControlTests {
         var converted = ConvertSavedInlinePaintWithReport(source);
         Assert.Equal(controlBefore, control.OuterXml);
         Assert.Empty(PdfCore.PdfReadDocument.Open(converted.Bytes).FormFields);
-        Assert.Single(converted.Result.Warnings, warning => warning.Code == "NativeInlineControlBackgroundStatic");
+        Assert.Single(converted.Result.Warnings, warning => warning.Code == "native-inline-control-background-static");
         byte[] referenceBytes = ConvertSavedDocument(reference, InlinePaintOptions());
         Assert.True(InlineControlYellowBounds(referenceBytes).Pixels > 20,
             "The later cached run must inherit visible background through its character style.");
@@ -165,7 +165,7 @@ public sealed partial class WordPdfInlineContentControlTests {
         using WordDocument loaded = WordDocument.Load(new MemoryStream(docx));
         string documentBefore = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         string stylesBefore = loaded._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml;
-        PdfCore.PdfDocumentConversionResult result = loaded.ToPdfDocumentResult(InlinePaintOptions());
+        PdfCore.PdfDocumentConversionResult result = loaded.ConvertToPdfWithEvidence(InlinePaintOptions());
         byte[] bytes = result.ToBytes();
         Assert.Equal(documentBefore, loaded._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         Assert.Equal(stylesBefore, loaded._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
@@ -211,9 +211,9 @@ public sealed partial class WordPdfInlineContentControlTests {
         return (bitmap.Width, bitmap.Height, pixels);
     }
 
-    private static WordToPdfOptions InlinePaintOptions() => new() {
-        IncludePageNumbers = false, PageSize = new PdfCore.PageSize(300, 160),
-        Margins = new PdfCore.PageMargins(24, 24, 24, 24)
+    private static WordPdfExportOptions InlinePaintOptions() => new() {
+        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(300, 160),
+        Margins = new PdfCore.PdfPageMargins(24, 24, 24, 24)
     };
 
     private static (int Left, int Top, int Right, int Bottom, int Pixels) InlineControlYellowBounds(byte[] bytes) {

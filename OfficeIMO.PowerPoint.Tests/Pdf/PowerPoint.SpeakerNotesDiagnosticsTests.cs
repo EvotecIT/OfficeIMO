@@ -20,9 +20,9 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
         slide.Notes.Text = "PRESENTER-NOTE";
-        var options = new PowerPointToPdfOptions { PageLayout = layout, IncludeSpeakerNotes = includeNotes };
+        var options = new PowerPointPdfExportOptions { PageLayout = layout, IncludeSpeakerNotes = includeNotes };
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
         bool omitted = layout == PowerPointPdfPageLayout.Slides || !includeNotes;
         if (omitted) {
@@ -47,7 +47,7 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
         slide.Notes.Text = string.Join("\n", Enumerable.Range(1, lines).Select(index => $"PRESENTER-NOTE-{index:000}"));
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             PageLayout = layout, IncludeSpeakerNotes = true, HandoutSlidesPerPage = slidesPerPage
         });
 
@@ -77,7 +77,7 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
         hidden.Hidden = true;
         hidden.Notes.Text = "Hidden presenter note";
 
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions { IncludeHiddenSlides = includeHidden });
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { IncludeHiddenSlides = includeHidden });
 
         if (includeHidden)
             Assert.Equal("Slide 2", Assert.Single(result.Warnings, item => item.Code == "speaker-notes-omitted").Source);

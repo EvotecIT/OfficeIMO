@@ -26,7 +26,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_ExplicitMarginOverrideReplacesTheAuthoredGutter() {
-        var options = new WordToPdfOptions { IncludePageNumbers = false, Margins = PdfCore.PageMargins.Uniform(30) };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, Margins = PdfCore.PdfPageMargins.Uniform(30) };
         var baseline = RenderGutterMarkers(false, false, WordFileFormat.Docx, 0, options);
         var gutter = RenderGutterMarkers(true, true, WordFileFormat.Docx, 400, options);
         Assert.Equal(baseline, gutter);
@@ -44,14 +44,14 @@ public partial class Word {
         }
         document.AddParagraph("BodyMarker");
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         Assert.Contains("BodyMarker", page.Text);
         Assert.True(FindWordStartY(page, "BodyMarker") > document.Sections[0].Margins.Bottom / 20D);
     }
 
     private static (double Left, double Right, double Top) RenderGutterMarkers(bool atTop, bool onRight,
-        WordFileFormat format, uint gutter, WordToPdfOptions? options = null) {
+        WordFileFormat format, uint gutter, WordPdfExportOptions? options = null) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
         section.Margins.Left = 800; section.Margins.Right = 1400;
@@ -66,7 +66,7 @@ public partial class Word {
         }
         using var source = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(source);
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(options ?? new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(options ?? new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var page = pdf.GetPage(1);
         return (FindWordStartX(page, "LeftMarker"), FindWordStartX(page, "RightMarker"), FindWordStartY(page, "LeftMarker"));

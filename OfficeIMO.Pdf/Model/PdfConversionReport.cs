@@ -157,6 +157,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         Guard.NotNull(warning, nameof(warning));
         EnsureMutable();
         _warnings.Add(warning);
+        PdfOutputDiagnosticScope.Capture(this, warning);
     }
 
     /// <summary>Adds all warnings from another report.</summary>
@@ -237,7 +238,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     private static bool IsDeclaredSubstitutionWarning(PdfConversionWarning warning) =>
         warning.Code.EndsWith("FontFamilySubstituted", StringComparison.OrdinalIgnoreCase) ||
         warning.Code.EndsWith("FontSubstitution", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(warning.Code, "NativeFontFamilySlotExhausted", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "native-font-family-slot-exhausted", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "font-family-substitution", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "unsupported-font-ligature-substitution", StringComparison.OrdinalIgnoreCase);
 }

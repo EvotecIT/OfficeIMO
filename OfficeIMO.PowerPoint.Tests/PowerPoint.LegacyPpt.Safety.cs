@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                     presentation.AddSlide().AddTextBox(
                         "Persist budget " + index);
                 }
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
                 encrypted = presentation.ToEncryptedBytes(Password,
                     PowerPointFileFormat.Ppt);
             }
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                     writable: false);
                 slide.AddOleObject(first, "Package");
                 slide.AddOleObject(second, "Package");
-                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
                 encryptedBytes = created.ToEncryptedBytes(Password,
                     PowerPointFileFormat.Ppt);
             }
@@ -618,7 +618,7 @@ namespace OfficeIMO.Tests {
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
                         left: 1000000);
                 }
-                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation unrestricted =
                 LegacyPptPresentation.Load(bytes);
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
                         left: 1000000);
                 }
-                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation source =
@@ -939,7 +939,7 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.Create();
             presentation.AddSlide().AddTextBox("Safety fixture");
             presentation.AddSlide().AddTextBox("Second safety slide");
-            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+            return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         private static byte[] CreateRecord(byte version, byte[] payload) {

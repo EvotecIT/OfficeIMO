@@ -22,7 +22,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
@@ -37,7 +37,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
@@ -56,10 +56,10 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             Operation(OfficeWorkflowOperation.Sanitize, "Sanitize", "Remove forbidden actions and payloads, then inventory the saved result.", true)
         ];
         Profiles = [
-            Profile(OfficeWorkflowOutputProfile.Faithful, "Balanced", "Conservative deterministic lossless optimization."),
-            Profile(OfficeWorkflowOutputProfile.Lightweight, "Maximum compression", "Use object and cross-reference streams where supported."),
-            Profile(OfficeWorkflowOutputProfile.PrintReady, "Archival", "Classic cross references without linearization."),
-            Profile(OfficeWorkflowOutputProfile.TextOnly, "Web", "Fast Web View layout with broadly compatible cross references.")
+            Profile(OfficeConversionProfile.Faithful, "Balanced", "Conservative deterministic lossless optimization."),
+            Profile(OfficeConversionProfile.Lightweight, "Maximum compression", "Use object and cross-reference streams where supported."),
+            Profile(OfficeConversionProfile.PrintReady, "Archival", "Classic cross references without linearization."),
+            Profile(OfficeConversionProfile.TextOnly, "Web", "Fast Web View layout with broadly compatible cross references.")
         ];
         SelectedOperation = Operations[0];
         SelectedProfile = Profiles[0];
@@ -447,7 +447,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
             OutputPath = GetOutputDestination(),
             OutputProfile = SelectedProfile.Value,
             PublicationGuard = _publicationGuard,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
+            ConflictPolicy = OfficePublicationPolicy.Rename,
             PdfPassword = string.IsNullOrEmpty(PdfPassword) ? null : PdfPassword
         };
     }
@@ -525,7 +525,7 @@ public sealed partial class DocumentHealthViewModel : ObservableObject, IDisposa
     private HealthOperationChoice Operation(OfficeWorkflowOperation value, string label, string description, bool producesArtifact) =>
         new(value, T($"Operation.{value}.Label", label), T($"Operation.{value}.Description", description), producesArtifact);
 
-    private WorkflowProfileChoice Profile(OfficeWorkflowOutputProfile value, string label, string description) =>
+    private WorkflowProfileChoice Profile(OfficeConversionProfile value, string label, string description) =>
         new(value, T($"Profile.{value}.Label", label), T($"Profile.{value}.Description", description));
 
     private string T(string suffix, string fallback) =>

@@ -96,7 +96,7 @@ $ConversionFormatNames = @(
     'Project', 'Access', 'Epub', 'OneNote', 'IWork', 'AsciiDoc', 'Latex', 'Confluence', 'Image', 'Text', 'Xps'
 )
 $SlideLayouts = 'Title', 'Section', 'TitleAndContent', 'TwoContent', 'Comparison', 'Kpi', 'Cards', 'Process', 'Quote', 'ImageFull', 'Closing', 'CaseStudy', 'Logos', 'Coverage'
-$FrontDoorFrameworks = @('net10.0')
+$FrontDoorFrameworks = @('netstandard2.0', 'net8.0', 'net10.0')
 $MaxJobExamples = 2
 
 # Common jobs, most useful first. Old names that are missing from the map are skipped with a warning.
@@ -768,7 +768,7 @@ if ($flipped.Count -gt 0) {
 $frontDoor = $packages | Where-Object Name -eq 'OfficeIMO' | Select-Object -First 1
 Add-Heading 2 'The OfficeIMO package'
 $frontDoorText = 'The `OfficeIMO` package is the front door for applications that want the common formats and conversions in one reference: `dotnet add package OfficeIMO`.'
-$frontDoorText += " It targets $(($FrontDoorFrameworks | ForEach-Object { Format-Code $_ }) -join ', '); .NET Framework applications reference the format and adapter packages directly."
+$frontDoorText += " It targets $(($FrontDoorFrameworks | ForEach-Object { Format-Code $_ }) -join ', '), plus $(Format-Code 'net472') on Windows, the same as the format packages."
 Add-Paragraph $frontDoorText
 if ($frontDoor) {
     $references = @(Get-Field (Get-Field $frontDoor.Data 'project') 'projectReferences') | Where-Object { Test-Text $_ } | ForEach-Object { ($_ -replace '\s*\(.*$', '').Trim() } | Select-Object -Unique

@@ -33,9 +33,9 @@ namespace OfficeIMO.Excel.Tests {
                     + "<row r=\"4097\"><c r=\"A4097\"><v>7</v></c></row></sheetData></worksheet>";
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
                 foreach (string firstAccess in new[] { "ascending", "descending", "bulk" }) {
-                    var options = new ExcelReadOptions { MaxDataReaderBufferedCells = 2 };
+                    var options = new ExcelReaderOptions { MaxDataReaderBufferedCells = 2 };
                     using var owner = surface == "explicitXml" ? ExcelDocumentReader.Open(path, options) : null;
-                    using DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                    using DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                         : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:B4097", schemaSampleRows: 0);
                     DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);
                     Assert.Equal(2, reader.FieldCount);
@@ -104,11 +104,11 @@ namespace OfficeIMO.Excel.Tests {
                     + "</row><row r=\"4097\"><c r=\"A4097\"><v>7</v></c></row></sheetData></worksheet>";
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
                 foreach (string firstAccess in new[] { "numeric", "decimal", "date", "null", "boolean", "bulk" }) {
-                    var options = new ExcelReadOptions {
+                    var options = new ExcelReaderOptions {
                         NumericAsDecimal = true, TreatDatesUsingNumberFormat = true, MaxDataReaderBufferedCells = 6
                     };
                     using var owner = surface == "explicitXml" ? ExcelDocumentReader.Open(path, options) : null;
-                    using DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                    using DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                         : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:F4097", schemaSampleRows: 0);
                     DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);
                     Assert.Equal(6, reader.FieldCount);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel.Tests {
                     + "<c r=\"B2\"><v>3</v></c></row></sheetData></worksheet>";
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
                 using var cancellation = new CancellationTokenSource();
-                using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions {
+                using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions {
                     CellValueConverter = context => {
                         if (context.RawText == "3") cancellation.Cancel();
                         return ExcelCellValue.NotHandled;

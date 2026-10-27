@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
 
             var a1 = GetUsedRangeA1();
-            var (r1, c1, r2, c2) = A1.ParseRange(a1);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1);
             if (r2 - r1 < 1) return; // nothing to sort
 
             if (!TryGetColumnIndexByHeader(header, out var targetCol)) return;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
             if (keys == null || keys.Length == 0) throw new ArgumentException("At least one key is required.", nameof(keys));
 
             var a1 = GetUsedRangeA1();
-            var (r1, c1, r2, c2) = A1.ParseRange(a1);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1);
             if (r2 - r1 < 1) return;
 
             // Resolve column indices and validate

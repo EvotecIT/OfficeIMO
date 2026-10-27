@@ -38,7 +38,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
         else Assert.Equal(mode == "evaluate" ? "3" : "99", cell.CellValue?.Text);
         if (mode != "evaluate") {
             Assert.True(loaded.WorkbookRoot.CalculationProperties?.FullCalculationOnLoad?.Value);
-            var native = XlsbWorkbookReader.Load(loaded.ToBytes(ExcelFileFormat.Xlsb)).Worksheets[0].Cells.Single(item => item.Row == 200 && item.Column == 4);
+            var native = XlsbWorkbookReader.Load(loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })).Worksheets[0].Cells.Single(item => item.Row == 200 && item.Column == 4);
             Assert.Equal(2, native.FormulaPayloadBytes![0] & 3);
         }
     }
@@ -47,12 +47,12 @@ public sealed class ExcelXlsbCalculationSaveTests {
     public void Fresh_workbooks_and_document_level_calculation_settings_apply_to_native_saves() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
-        byte[] cleared = seed.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = true });
+        byte[] cleared = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  ClearCachedFormulaResultsBeforeSave = true });
         using var blank = ExcelDocument.Load(new MemoryStream(cleared));
         Assert.Equal(string.Empty, blank.Sheets[0].GetCellText(blank.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single()));
         Assert.True(blank.WorkbookRoot.CalculationProperties?.FullCalculationOnLoad?.Value);
         blank.Calculation.EvaluateFormulasBeforeSave = true;
-        using var calculated = ExcelDocument.Load(new MemoryStream(blank.ToBytes(ExcelFileFormat.Xlsb)));
+        using var calculated = ExcelDocument.Load(new MemoryStream(blank.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
         Assert.Equal(3D, calculated.Sheets[0].CellAt(1, 1).GetValue<double>());
     }
 
@@ -62,7 +62,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
     public void Clearing_opaque_native_formula_cache_keeps_tokens_on_a_subsequent_edit(bool encryptedOutput) {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
-        byte[] source = seed.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] source = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         byte[] refError = { 0x4A, 0, 0, 0, 0, 0, 0 }; // Valid BIFF12 PtgRefErrV, deliberately outside the text projection subset.
         using var edited = new MemoryStream(); edited.Write(source, 0, source.Length);
         using (var archive = new ZipArchive(edited, ZipArchiveMode.Update, leaveOpen: true)) {
@@ -86,10 +86,10 @@ public sealed class ExcelXlsbCalculationSaveTests {
         var options = new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = true };
         if (encryptedOutput) document.SaveEncrypted(cleared, "test-password", ExcelFileFormat.Xlsb, options); else document.Save(cleared, ExcelFileFormat.Xlsb, options);
         using var readback = encryptedOutput ? ExcelDocument.LoadEncrypted(cleared, "test-password") : ExcelDocument.Load(cleared);
-        var first = XlsbWorkbookReader.Load(readback.ToBytes(ExcelFileFormat.Xlsb)).Worksheets[0].Cells.Single();
+        var first = XlsbWorkbookReader.Load(readback.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })).Worksheets[0].Cells.Single();
         Assert.Equal(refError, first.FormulaBytes); Assert.Equal(string.Empty, first.Value);
         document.Sheets[0].CellValue(2, 1, "later edit");
-        var second = XlsbWorkbookReader.Load(document.ToBytes(ExcelFileFormat.Xlsb)).Worksheets[0].Cells.Single(cell => cell.Row == 1);
+        var second = XlsbWorkbookReader.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })).Worksheets[0].Cells.Single(cell => cell.Row == 1);
         Assert.Equal(refError, second.FormulaBytes); Assert.Equal(string.Empty, second.Value);
     }
 }

@@ -12,7 +12,7 @@ public sealed class OfficeProvenanceBufferSubtypeTests {
     public void RenamedBinaryWorkbookIsRejectedBeforeInspectionOrRemoval() {
         using var workbook = ExcelDocument.Create();
         workbook.AddWorksheet("Data").Cell(1, 1, "Binary workbook");
-        byte[] bytes = workbook.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] bytes = workbook.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         Verify(bytes, "renamed.xlsx", workflowSupported: false, ownerSupported: true,
             (data, options) => ExcelDocument.InspectProvenance(data, "owner.xlsb", options));
     }

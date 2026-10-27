@@ -35,10 +35,10 @@ public partial class Word {
             main.EndnotesPart?.Endnotes?.OuterXml;
         string original = SourceXml();
         var configuredStyle = new PdfTableStyle { HeaderRowCount = 0, ShrinkTextToFit = true };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions { DefaultTableStyle = configuredStyle }
+            PdfOptions = new PdfCreateOptions { DefaultTableStyle = configuredStyle }
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
@@ -47,10 +47,10 @@ public partial class Word {
         if (sourceGridStyle) {
             // A concrete Word table style owns its supported geometry; an
             // unused PDF default must not force its cells into fallback.
-            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         } else {
-            string expectedWarning = noteKind == 0 ? "NativeNestedTableLayoutApproximated" :
-                noteKind == 1 ? "NativeFootnotePlacementApproximated" : "NativeEndnoteContentApproximated";
+            string expectedWarning = noteKind == 0 ? "native-nested-table-layout-approximated" :
+                noteKind == 1 ? "native-footnote-placement-approximated" : "native-endnote-content-approximated";
             PdfConversionWarning warning = Assert.Single(result.Warnings, warning => warning.Code == expectedWarning);
             Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.True(result.HasLoss);

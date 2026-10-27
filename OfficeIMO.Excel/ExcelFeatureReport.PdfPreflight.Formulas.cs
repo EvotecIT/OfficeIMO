@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!A1.TryParseCellReferenceFast(formula.CellReference, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(formula.CellReference, out int row, out int column)) {
                 return true;
             }
 
@@ -26,9 +26,9 @@ namespace OfficeIMO.Excel {
                 // Invalid metadata is reported separately; remain conservative about cached formula results.
                 if (!sheet.TryParsePrintAreaReference(area, out ExcelReference? reference) || reference == null) return true;
                 int firstRow = reference.Kind == ExcelReferenceKind.WholeColumn ? 1 : Math.Min(reference.Start.Row, reference.End.Row);
-                int lastRow = reference.Kind == ExcelReferenceKind.WholeColumn ? A1.MaxRows : Math.Max(reference.Start.Row, reference.End.Row);
+                int lastRow = reference.Kind == ExcelReferenceKind.WholeColumn ? ExcelA1.MaxRows : Math.Max(reference.Start.Row, reference.End.Row);
                 int firstColumn = reference.Kind == ExcelReferenceKind.WholeRow ? 1 : Math.Min(reference.Start.Column, reference.End.Column);
-                int lastColumn = reference.Kind == ExcelReferenceKind.WholeRow ? A1.MaxColumns : Math.Max(reference.Start.Column, reference.End.Column);
+                int lastColumn = reference.Kind == ExcelReferenceKind.WholeRow ? ExcelA1.MaxColumns : Math.Max(reference.Start.Column, reference.End.Column);
                 bool selectedRow = row >= firstRow && row <= lastRow
                     || titles.HasRows && row >= titles.FirstRow!.Value && row <= Math.Min(titles.LastRow!.Value, lastRow);
                 bool selectedColumn = column >= firstColumn && column <= lastColumn
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsPdfHiddenRow(ExcelSheet sheet, int rowIndex) {
-            IReadOnlyList<ExcelRowSnapshot> definitions = sheet.GetRowDefinitions();
+            IReadOnlyList<ExcelRowInfo> definitions = sheet.GetRowDefinitions();
             for (int i = definitions.Count - 1; i >= 0; i--) {
                 if (definitions[i].Index == rowIndex) {
                     return definitions[i].Hidden;
@@ -50,9 +50,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsPdfHiddenColumn(ExcelSheet sheet, int columnIndex) {
-            IReadOnlyList<ExcelColumnSnapshot> definitions = sheet.GetColumnDefinitions();
+            IReadOnlyList<ExcelColumnInfo> definitions = sheet.GetColumnDefinitions();
             for (int i = definitions.Count - 1; i >= 0; i--) {
-                ExcelColumnSnapshot definition = definitions[i];
+                ExcelColumnInfo definition = definitions[i];
                 if (columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex) {
                     return definition.Hidden;
                 }

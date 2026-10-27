@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
                 using var cancellation = new CancellationTokenSource();
                 cancellation.Cancel();
 
-                await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                     presentation.SaveAsync(path, cancellationToken: cancellation.Token));
                 Assert.False(File.Exists(path));
             } finally {

@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expectedTextNumber, row.TextAmount);
             }
 
-            var decimalOptions = new ExcelReadOptions { NumericAsDecimal = true };
+            var decimalOptions = new ExcelReaderOptions { NumericAsDecimal = true };
             using (var reader = ExcelDocumentReader.Open(filePath, decimalOptions)) {
                 object?[,] values = reader.GetSheet("Data").ReadRange("A2:B2", ExcelExecutionMode.Sequential);
                 Assert.Equal(expectedExcelNumber, Assert.IsType<decimal>(values[0, 0]));

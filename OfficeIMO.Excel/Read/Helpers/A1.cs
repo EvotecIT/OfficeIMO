@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel {
     /// Utility helpers for parsing and converting Excel A1 references. Public so examples and
     /// consumers can reuse consistent logic without re-implementing regexes or math.
     /// </summary>
-    public static partial class A1 {
+    public static partial class ExcelA1 {
         /// <summary>Maximum row index supported by the Excel worksheet grid.</summary>
         public const int MaxRows = 1048576;
 

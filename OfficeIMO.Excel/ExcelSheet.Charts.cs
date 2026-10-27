@@ -204,7 +204,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart AddChartFromRange(string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360,
             ExcelChartType type = ExcelChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true) {
             if (string.IsNullOrWhiteSpace(dataRangeA1)) throw new ArgumentNullException(nameof(dataRangeA1));
-            if (!A1.TryParseRange(dataRangeA1, out int r1, out int c1, out int r2, out int c2)) {
+            if (!ExcelA1.TryParseRange(dataRangeA1, out int r1, out int c1, out int r2, out int c2)) {
                 throw new ArgumentException($"Invalid A1 range '{dataRangeA1}'.", nameof(dataRangeA1));
             }
 
@@ -454,8 +454,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateChartPlacement(int row, int column, int widthPixels, int heightPixels) {
-            if (row <= 0 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column <= 0 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (row <= 0 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
             if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
         }

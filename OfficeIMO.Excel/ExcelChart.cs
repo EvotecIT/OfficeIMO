@@ -152,13 +152,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
-        public bool TryGetSnapshot(out ExcelChartSnapshot snapshot) =>
+        public bool TryGetSnapshot(out ExcelChartInfo snapshot) =>
             TryGetSnapshotCore(null, out snapshot);
 
-        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartSnapshot snapshot) =>
+        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
             TryGetSnapshotCore(geometry, out snapshot);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartSnapshot snapshot) {
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) {
             if (!TryGetData(out ExcelChartData data)) {
                 snapshot = null!;
                 return false;
@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
                 var bubble = ReadBubbleImageSettings(plot, data);
-                snapshot = new ExcelChartSnapshot(
+                snapshot = new ExcelChartInfo(
                     Name,
                     Title,
                     ChartType,

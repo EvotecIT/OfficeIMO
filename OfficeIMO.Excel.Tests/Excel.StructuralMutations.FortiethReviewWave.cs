@@ -207,12 +207,12 @@ namespace OfficeIMO.Tests {
             var range = new ExcelChartDataRange(
                 "Data",
                 startRow: 1,
-                startColumn: A1.MaxColumns - 1,
+                startColumn: ExcelA1.MaxColumns - 1,
                 categoryCount: 1,
                 seriesCount: 1);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => range.WithSize(1, 2));
-            Assert.Equal(A1.MaxColumns, range.SeriesEndColumn);
+            Assert.Equal(ExcelA1.MaxColumns, range.SeriesEndColumn);
             Assert.Equal(1, range.SeriesCount);
         }
     }

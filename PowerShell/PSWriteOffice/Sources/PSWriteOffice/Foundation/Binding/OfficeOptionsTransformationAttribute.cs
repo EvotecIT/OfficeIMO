@@ -36,7 +36,7 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
                 object? converted = input;
                 // Reuse the same binding contracts for nested common values.
                 if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
-                else if (property.PropertyType == typeof(OfficeIMO.Drawing.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
                 else converted = LanguagePrimitives.ConvertTo(input, property.PropertyType, CultureInfo.InvariantCulture);
                 property.SetValue(result, converted);
             } catch (Exception error) when (error is PSInvalidCastException or ArgumentException or TargetInvocationException) {

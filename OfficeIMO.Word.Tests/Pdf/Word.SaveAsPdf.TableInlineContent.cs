@@ -22,7 +22,7 @@ public partial class Word {
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
         paragraph.AddImage(image, "inline.png", 16, 32);
         paragraph.AddText("After");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("Before", text);
         Assert.Contains("After", text);
@@ -45,9 +45,9 @@ public partial class Word {
         paragraph.AddText("After");
         document.Save();
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(originalXml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = pdf.GetPage(1);
         var before = Assert.Single(page.GetWords(), word => word.Text == "Before");
@@ -69,7 +69,7 @@ public partial class Word {
         if (nested) cell = cell.AddTable(1, 1).Rows[0].Cells[0];
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
         cell.Paragraphs[0].AddImage(image, "inline.png", 16, 32);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var picture = Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Equal(12D, picture.BoundingBox.Width, 3);
         Assert.Equal(24D, picture.BoundingBox.Height, 3);
@@ -99,9 +99,9 @@ public partial class Word {
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
             resultRun,
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, MaxImagesPerParagraph = 1
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var pictures = pdf.GetPages().SelectMany(page => page.GetImages()).ToArray();
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.DoesNotContain("instruction", text);
@@ -129,10 +129,10 @@ public partial class Word {
         W.Drawing second = (W.Drawing)paragraph._run!.GetFirstChild<W.Drawing>()!.CloneNode(true);
         second.Inline!.DocProperties!.Id = 2;
         paragraph._run.Append(new W.Text("Middle"), second, new W.Text("After"));
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, MaxImagesPerParagraph = 2
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var pictures = page.GetImages().OrderBy(picture => picture.BoundingBox.Left).ToArray();
         Assert.Equal(2, pictures.Length);
@@ -183,7 +183,7 @@ public partial class Word {
         paragraph._run!.RunProperties ??= new W.RunProperties();
         paragraph._run.RunProperties.Vanish = new W.Vanish();
         document.AddParagraph("VisibleBody");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Empty(pdf.GetPages().SelectMany(page => page.GetImages()));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.DoesNotContain("HiddenBefore", text);

@@ -6,12 +6,12 @@ using Xunit;
 namespace OfficeIMO.Latex.Markdown.Tests;
 
 public sealed class LatexStructuredContentTests {
-    private static MarkdownDoc Convert(string body) => LatexDocument.Parse(
+    private static MarkdownDocument Convert(string body) => LatexDocument.Parse(
         "\\documentclass{article}\\begin{document}" + body + "\\end{document}").ToMarkdownDocumentResult().Value;
 
     [Fact]
     public void List_items_own_nested_quotations_and_following_paragraphs_in_source_order() {
-        MarkdownDoc document = Convert("\\begin{itemize}\\item First\n\n\\begin{quote}Quoted\\end{quote}\n\nContinued\\item Last\\end{itemize}");
+        MarkdownDocument document = Convert("\\begin{itemize}\\item First\n\n\\begin{quote}Quoted\\end{quote}\n\nContinued\\item Last\\end{itemize}");
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         Assert.Equal(2, list.Items.Count);
         Assert.Collection(list.Items[0].ChildBlocks,
@@ -24,7 +24,7 @@ public sealed class LatexStructuredContentTests {
 
     [Fact]
     public void Quotations_own_nested_lists_without_promoting_items_to_outer_list() {
-        MarkdownDoc document = Convert(@"\begin{quotation}Intro\begin{enumerate}\item One\begin{itemize}\item Nested\end{itemize}\item Two\end{enumerate}Tail\end{quotation}");
+        MarkdownDocument document = Convert(@"\begin{quotation}Intro\begin{enumerate}\item One\begin{itemize}\item Nested\end{itemize}\item Two\end{enumerate}Tail\end{quotation}");
         QuoteBlock quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         Assert.Equal(3, quote.ChildBlocks.Count);
         OrderedListBlock ordered = Assert.IsType<OrderedListBlock>(quote.ChildBlocks[1]);
@@ -37,7 +37,7 @@ public sealed class LatexStructuredContentTests {
 
     [Fact]
     public void Description_definitions_keep_structured_children_and_multiple_paragraphs() {
-        MarkdownDoc document = Convert("\\begin{description}\\item[Term]First\n\nSecond\\begin{quote}Quoted\\end{quote}\\end{description}");
+        MarkdownDocument document = Convert("\\begin{description}\\item[Term]First\n\nSecond\\begin{quote}Quoted\\end{quote}\\end{description}");
         DefinitionListBlock definitions = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         DefinitionListEntry entry = Assert.Single(definitions.Entries);
         Assert.Equal("Term", Plain(entry.Term));
@@ -50,7 +50,7 @@ public sealed class LatexStructuredContentTests {
     [Fact]
     public void Commands_wrapping_nested_blocks_stay_complete_source_in_container_content() {
         const string wrapped = @"\resizebox{1}{!}{\begin{itemize}\item Inert\end{itemize}}";
-        MarkdownDoc document = Convert(@"\begin{quote}Before " + wrapped + @" After\end{quote}");
+        MarkdownDocument document = Convert(@"\begin{quote}Before " + wrapped + @" After\end{quote}");
         QuoteBlock quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         CodeBlock fallback = Assert.Single(quote.ChildBlocks.OfType<CodeBlock>());
         Assert.Equal(wrapped, fallback.Content);
@@ -61,7 +61,7 @@ public sealed class LatexStructuredContentTests {
 
     [Fact]
     public void Required_single_token_arguments_convert_with_following_text_outside_the_formatting() {
-        MarkdownDoc document = Convert(@"\textbf XYZ and \emph\% tail.");
+        MarkdownDocument document = Convert(@"\textbf XYZ and \emph\% tail.");
         ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("XYZ and % tail.", Plain(paragraph.Inlines));
         Assert.Equal("X", Plain(Assert.Single(paragraph.Inlines.Nodes.OfType<BoldSequenceInline>())));

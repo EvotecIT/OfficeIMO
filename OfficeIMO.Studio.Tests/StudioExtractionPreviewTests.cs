@@ -79,7 +79,7 @@ public sealed class StudioExtractionPreviewTests {
                     Assert.False(File.Exists(output));
                 } else {
                     Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput); Assert.Equal(folderNavigation, completed.CanRevealOutput);
-                    Assert.Equal(new[] { 220D, 200D, 220D }, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().Pages.Select(page => page.Width));
+                    Assert.Equal(new[] { 220D, 200D, 220D }, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Inspect().Pages.Select(page => page.Width));
                     var job = Assert.Single(services.Jobs.Entries); Assert.False(job.IsActive); Assert.True(job.HasOutput);
                     await model.UndoCommand.ExecuteAsync(null);
                     Assert.Equal(3, model.Pages.Count); // Extraction creates no edit or undo entry.
@@ -127,7 +127,7 @@ public sealed class StudioExtractionPreviewTests {
                     var recovery = Assert.Single(services.WorkflowRecovery.GetRecoveries());
                     await services.WorkflowRecovery.VerifyAsync(recovery); bytes = File.ReadAllBytes(recovery.FilePath);
                 } else bytes = output.Bytes;
-                Assert.Equal(new[] { 220D, 200D }, PdfDocument.Load(bytes).Inspect().Pages.Select(page => page.Width));
+                Assert.Equal(new[] { 220D, 200D }, PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect().Pages.Select(page => page.Width));
             }
             return true;
         }, CancellationToken.None);
@@ -179,7 +179,7 @@ public sealed class StudioExtractionPreviewTests {
                 await preview.OpenOutputCommand.ExecutionTask!; Assert.Equal(destination, opened);
                 Click(resultDialog, services.Localizer.Get("Common.Close")); await pending;
                 Assert.Null(model.ErrorMessage);
-                Assert.Equal(new[] { 220D, 200D, 220D }, PdfDocument.Load(File.ReadAllBytes(destination)).Inspect().Pages.Select(page => page.Width));
+                Assert.Equal(new[] { 220D, 200D, 220D }, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(destination))).Inspect().Pages.Select(page => page.Width));
                 string? captureRoot = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_EXTRACTION_CAPTURE_DIR");
                 if (!string.IsNullOrWhiteSpace(captureRoot)) File.Copy(destination, Path.Combine(captureRoot, $"extracted-{width}.pdf"), overwrite: true);
             } finally { foreach (var dialog in owner.OwnedWindows.ToArray()) dialog.Close(); owner.Close(); }

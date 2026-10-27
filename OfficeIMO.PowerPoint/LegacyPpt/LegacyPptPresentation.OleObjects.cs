@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     if (ole == null) continue;
                     if (_hyperlinksById.ContainsKey(ole.Id)
                         || _oleObjectsById.ContainsKey(ole.Id)) {
-                        AddDiagnostic("PPT-OLE-ID-DUPLICATE",
+                        AddDiagnostic("ppt-ole-id-duplicate",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"Embedded OLE identifier {ole.Id} occurs more than once; later objects remain preserve-only.",
                             container.Offset);
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord container, LegacyPptPackage package,
             LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-OLE-CONTAINER",
+                AddDiagnostic("ppt-ole-container",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An ExOleEmbedContainer has an invalid record header and remains preserve-only.",
                     container.Offset);
@@ -66,7 +66,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || embeds[0].Instance != 0 || embeds[0].PayloadLength != 8
                 || objects.Length != 1 || objects[0].Version != 1
                 || objects[0].Instance != 0 || objects[0].PayloadLength != 24) {
-                AddDiagnostic("PPT-OLE-ATOM",
+                AddDiagnostic("ppt-ole-atom",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An embedded OLE object has malformed identifying atoms and remains preserve-only.",
                     container.Offset);
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (type != 0 || id == 0 || persistId == 0
                 || !IsOleDrawAspect(drawAspectValue)
                 || colorFollowValue > 2) {
-                AddDiagnostic("PPT-OLE-IDENTITY",
+                AddDiagnostic("ppt-ole-identity",
                     LegacyPptDiagnosticSeverity.Warning,
                     "An embedded OLE object uses an invalid type, identifier, persist reference, view aspect, or color-follow value.",
                     obj.Offset);
@@ -92,14 +92,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (!TryReadOleString(container, 1, out string? menuName)
                 || !TryReadOleString(container, 2, out string? progId)
                 || !TryReadOleString(container, 3, out string? clipboardName)) {
-                AddDiagnostic("PPT-OLE-STRING",
+                AddDiagnostic("ppt-ole-string",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Embedded OLE identifier {id} has duplicate or malformed names and remains preserve-only.",
                     container.Offset);
                 return null;
             }
             if (!TryReadExternalObjectStorage(package, options, id,
-                    persistId, "PPT-OLE-STORAGE", "Embedded OLE",
+                    persistId, "ppt-ole-storage", "Embedded OLE",
                     obj.Offset, out byte[] storageBytes,
                     out bool compressed)) {
                 return null;
@@ -144,7 +144,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (references.Length != 1 || references[0].Version != 0
                 || references[0].Instance != 0
                 || references[0].PayloadLength != 4) {
-                AddDiagnostic("PPT-OLE-SHAPE-REFERENCE",
+                AddDiagnostic("ppt-ole-shape-reference",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A shape has duplicate or malformed ExObjRefAtom records and remains preserve-only.",
                     shapeContainer.Offset);
@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || _mediaById.TryGetValue(id, out media);
             if (!found) {
                 if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-OLE-SHAPE-TARGET",
+                    AddDiagnostic("ppt-ole-shape-target",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"A shape references unavailable external object {id} and remains preserve-only.",
                         references[0].Offset);
@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return;
             }
             if (!_referencedExternalObjectIds.Add(id)) {
-                AddDiagnostic("PPT-OLE-SHAPE-DUPLICATE",
+                AddDiagnostic("ppt-ole-shape-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"External object identifier {id} is referenced by more than one shape; later references remain preserve-only.",
                     references[0].Offset);
@@ -212,7 +212,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptLinkedOleObject linked in _linkedOleObjects) {
                 if (linked.SlideId != 0
                     && !slideIds.Contains(linked.SlideId)) {
-                    AddDiagnostic("PPT-OLE-LINK-SLIDE",
+                    AddDiagnostic("ppt-ole-link-slide",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Linked OLE identifier {linked.Id} references missing slide {linked.SlideId}; the object remains preserve-only.",
                         null);
@@ -221,7 +221,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptActiveXControl control in _activeXControls) {
                 if (control.SlideId != 0
                     && !slideIds.Contains(control.SlideId)) {
-                    AddDiagnostic("PPT-ACTIVEX-SLIDE",
+                    AddDiagnostic("ppt-activex-slide",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"ActiveX identifier {control.Id} references missing slide {control.SlideId}; the control remains preserve-only.",
                         null);
@@ -246,7 +246,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     && atoms[0].Instance == 0
                     && atoms[0].PayloadLength == 4
                     && atoms[0].ReadUInt32(0) < greatestId) {
-                    AddDiagnostic("PPT-EXTERNAL-OBJECT-ID-SEED",
+                    AddDiagnostic("ppt-external-object-id-seed",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The external-object id seed {atoms[0].ReadUInt32(0)} is below live identifier {greatestId}; new objects require a repaired seed.",
                         atoms[0].Offset);

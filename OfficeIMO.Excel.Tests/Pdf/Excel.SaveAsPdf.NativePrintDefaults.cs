@@ -16,7 +16,7 @@ public partial class Excel {
     [InlineData(4, 0U, 1U, 3)]
     public void SaveAsPdf_ResolvesNativePrintFitDefaultsAndEnabledState(int settingsCase, uint? fitWidth, uint? fitHeight, int expectedPages) {
         string path = Path.Combine(_directoryWithFiles, "NativePrintDefaults" + settingsCase + ".xlsx");
-        using (var workbook = ExcelDocument.Create(path, "Layout")) {
+        using (var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Layout" })) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.SetColumnWidth(1, 50);
             sheet.SetColumnWidth(2, 80);
@@ -46,7 +46,7 @@ public partial class Excel {
         ExcelSheetPageSetup pageSetup = loaded.Sheets[0].GetPageSetup();
         Assert.Equal(fitWidth, pageSetup.FitToWidth);
         Assert.Equal(fitHeight, pageSetup.FitToHeight);
-        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(loaded.ToPdfBytes());
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.Pages.Count);
     }
 }

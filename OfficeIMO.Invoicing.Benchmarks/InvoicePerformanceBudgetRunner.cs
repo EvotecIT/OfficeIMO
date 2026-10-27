@@ -24,7 +24,7 @@ internal static class InvoicePerformanceBudgetRunner {
             new Workload("rules-validation", async () => await validator.ValidateAsync(corpus.Xml,
                     InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2).ConfigureAwait(false),
                 value => InvoiceBenchmarkCorrectness.Rules((InvoiceValidationReport)value)),
-            new Workload("pdf-generation", () => Task.FromResult<object>(pdfSnapshot.ToPdfBytes(corpus.PdfOptions)),
+            new Workload("pdf-generation", () => Task.FromResult<object>(pdfSnapshot.ToPdf(corpus.PdfOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })),
                 value => InvoiceBenchmarkCorrectness.Pdf((byte[])value, corpus.Xml))
         };
 

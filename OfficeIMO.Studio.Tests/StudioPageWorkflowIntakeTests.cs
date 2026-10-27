@@ -35,12 +35,12 @@ public sealed class StudioPageWorkflowIntakeTests {
                 if (operation == "import") {
                     await model.ImportPagesCommand.ExecuteAsync(null);
                     await model.SaveCommand.ExecuteAsync(null);
-                    Assert.Equal(450D, PdfDocument.Load(File.ReadAllBytes(source)).Inspect().Pages[0].Width);
+                    Assert.Equal(450D, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source))).Inspect().Pages[0].Width);
                     Assert.Equal(3, model.Pages.Count);
                 } else {
                     await model.SplitCommand.ExecuteAsync(null);
                     string output = Assert.Single(Directory.GetFiles(Path.Combine(folder, "Split PDFs"), "*.pdf"));
-                    Assert.Equal(2, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().PageCount);
+                    Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Inspect().PageCount);
                 }
                 Assert.Null(model.ErrorMessage);
             }

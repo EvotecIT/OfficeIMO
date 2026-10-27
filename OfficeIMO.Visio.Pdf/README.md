@@ -64,7 +64,7 @@ flattening report approximations; content that still cannot fit a frame and
 unprojected content report omissions.
 
 `DrawingOptions` supplies the same font faces and shaping provider to the scenes
-and PDF font resolver. `PdfOptions` configures PDF metadata, security, font
+and PDF font resolver. `PdfCreateOptions` configures PDF metadata, security, font
 resources and generation policy. Explicit PDF font families take precedence
 when overlaid with drawing fonts. Both options are copied for the operation.
 Text-clipping diagnostics use the effective PDF font and shaping resources,

@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static int? RegisterInlineFigureStructureElement(
         LayoutResult.Page? page,
-        PdfOptions options,
+        PdfCreateOptions options,
         string? alternativeText,
         int? parentElementIndex) {
         if (page == null ||
@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
         PdfInlineElement inlineElement,
         double x,
         double baseline,
-        PdfOptions options,
+        PdfCreateOptions options,
         LayoutResult.Page? page,
         int? parentElementIndex) {
         double bottom = baseline + inlineElement.BaselineOffset;
@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
             xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
@@ -632,7 +632,7 @@ internal static partial class PdfWriter {
         if (uprightCellImages != null) sb.Append(uprightCellImages);
     }
 
-    private static bool UsesSimpleFontText(RichSeg segment, PdfOptions options) {
+    private static bool UsesSimpleFontText(RichSeg segment, PdfCreateOptions options) {
         if (segment.InlineElement != null) return false;
         if (segment.NamedFont is PdfNamedFontFace named &&
             (options.TryGetNamedFontProgram(named, out _) || options.TryGetNamedOpenTypeCffFontProgram(named, out _))) return false;

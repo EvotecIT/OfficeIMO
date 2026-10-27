@@ -279,7 +279,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return null;
     }
 
-    private static string RenderHtml(IMarkdownInline node, HtmlOptions? options, MarkdownInlineHtmlRenderContext? context) {
+    private static string RenderHtml(IMarkdownInline node, MarkdownHtmlExportOptions? options, MarkdownInlineHtmlRenderContext? context) {
         var overridden = TryRenderInlineSyntaxOverride(node, context);
         if (overridden != null) {
             return overridden;

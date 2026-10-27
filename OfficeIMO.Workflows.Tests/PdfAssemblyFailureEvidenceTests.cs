@@ -24,13 +24,13 @@ public sealed class PdfAssemblyFailureEvidenceTests {
             var runner = new OfficeWorkflowRunner();
             var conversion = await runner.RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = route, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = route, ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumOutputBytes = 1 }
             });
             Assert.False(conversion.Succeeded);
             var expected = Assert.Single(conversion.Diagnostics, d => d.Code == "WorkflowFailed");
             var assembly = await runner.AssemblePdfAsync(new() {
-                Sources = [input], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Sources = [input], OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumOutputBytes = 1 }
             });
             Assert.False(assembly.Succeeded);

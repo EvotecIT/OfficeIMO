@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using OfficeIMO.Word;
@@ -29,7 +30,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "IMPORTED", 0, 0, 0);
         Assert.Equal(sourceXml, SourceXml(document));
@@ -50,7 +51,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "DEFAULT", 51, 102, 153);
         AssertRgbWord(page.GetWords(), "INHERITED", 153, 51, 102);
@@ -73,7 +74,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "EXPLICIT", 204, 51, 0);
         AssertRgbWord(page.GetWords(), "AUTO", 0, 0, 0);
@@ -93,7 +94,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "AUTHORED", 47, 84, 150);
         Assert.Equal(sourceXml, SourceXml(document));
@@ -165,13 +166,13 @@ public sealed class WordPdfImportedHeadingColorTests {
             extent.LeftEdge = extent.TopEdge = extent.RightEdge = extent.BottomEdge = 0L;
     }
 
-    private static WordToPdfOptions Options() {
-        var pdf = new PdfOptions();
+    private static WordPdfExportOptions Options() {
+        var pdf = new PdfCreateOptions();
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500,
             Enumerable.Range(32, 95).ToArray());
         pdf.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             font, bold: font, italic: font, boldItalic: font));
-        return new WordToPdfOptions {
+        return new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = pdf

@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingExcel2() {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary2.xlsx");
-            using (var document = ExcelDocument.Create(filePath, "Worksheet5")) {
+            using (var document = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Worksheet5" })) {
                 Assert.True(document.Sheets.Count == 1);
                 ExcelSheet sheet = document.AddWorksheet("Test");
                 Assert.True(document.Sheets.Count == 2);

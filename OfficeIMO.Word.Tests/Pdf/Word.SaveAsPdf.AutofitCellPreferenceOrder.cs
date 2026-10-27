@@ -30,9 +30,9 @@ public partial class Word {
         ReverseAutofitPreferenceRows(table, reversed);
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var page = pdf.GetPage(1);
         var a = Assert.Single(page.Letters, letter => letter.Value == "A");
@@ -65,9 +65,9 @@ public partial class Word {
         cell.Paragraphs[0].Text = "Alpha Bravo Charlie Delta";
         ReverseAutofitPreferenceRows(table, reversed);
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         const string expected = "AlphaBravoCharlieDelta";
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
@@ -104,9 +104,9 @@ public partial class Word {
         }
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var words = page.GetWords().ToArray();
         const string expected = "AlphaBravoCharlieDelta";

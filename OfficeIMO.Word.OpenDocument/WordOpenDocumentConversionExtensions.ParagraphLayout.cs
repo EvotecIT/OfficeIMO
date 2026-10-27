@@ -5,7 +5,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
-    private static void ApplyWordParagraphFormatting(WordParagraphSnapshot source, OdtParagraph target) {
+    private static void ApplyWordParagraphFormatting(WordParagraphInfo source, OdtParagraph target) {
         if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out OdtParagraphAlignment alignment)) {
             target.Alignment = alignment;
         }
@@ -70,7 +70,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         return 1;
     }
 
-    private static bool TryMapWordLineHeight(WordParagraphSnapshot source, out OdfLength lineHeight) {
+    private static bool TryMapWordLineHeight(WordParagraphInfo source, out OdfLength lineHeight) {
         lineHeight = default;
         if (!source.LineSpacingValue.HasValue || source.LineSpacingValue.Value < 0) return false;
         if (source.LineSpacingRule == null

@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
     /// </remarks>
     internal static bool TryResolveImportedLineBoxFloor(
         IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont,
-        PdfOptions options, out double layoutFontSize, out double naturalMultiplier) {
+        PdfCreateOptions options, out double layoutFontSize, out double naturalMultiplier) {
         layoutFontSize = double.PositiveInfinity;
         naturalMultiplier = double.PositiveInfinity;
         foreach (PdfTextRun run in NormalizeFallbackRuns(runs, baseFont, options)) {

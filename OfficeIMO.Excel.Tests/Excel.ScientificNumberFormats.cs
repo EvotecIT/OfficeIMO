@@ -43,7 +43,7 @@ public partial class ExcelImageExportTests {
         Assert.Equal("(1.25E+03)", negative.Text);
         Assert.Equal("FF0000", negative.Style.FontColorHex);
         ExcelRange range = reopened.Sheets[0].Range("A2:A3");
-        ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
         Assert.Equal("1.5E00", Assert.Single(snapshot.Cells, cell => cell.Row == 2).Text);
         ExcelVisualCell text = Assert.Single(snapshot.Cells, cell => cell.Row == 3);
         Assert.Equal("-1250", text.Text);

@@ -28,7 +28,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         line.SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
         Assert.Equal("powerpoint-slide-2", link.DestinationName);
         Assert.True(link.X2 - link.X1 >= 1.99D && link.Y2 - link.Y1 >= 1.99D);
@@ -45,7 +45,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointAutoShape line = first.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 200, 0);
         line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
         line.Rotation = rotation; line.SetHyperlink(second);
-        PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes()).LinkAnnotations);
+        PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
         OfficeTransform transform = new OfficeImageFrameTransform(rotation, 120, 40, false, false).CreateDestinationTransform();
         OfficePoint[] corners = new[] { new OfficePoint(19, 39), new OfficePoint(221, 39),
             new OfficePoint(19, 41), new OfficePoint(221, 41) }.Select(transform.TransformPoint).ToArray();
@@ -83,7 +83,7 @@ public sealed class PowerPointPdfSlideLinkTests {
             Assert.True(master ? inherited.OwnerPart is DocumentFormat.OpenXml.Packaging.SlideMasterPart
                 : inherited.OwnerPart is DocumentFormat.OpenXml.Packaging.SlideLayoutPart);
         }
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
         Assert.Equal("powerpoint-slide-2", link.DestinationName);
         Assert.Single(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted"
@@ -95,7 +95,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
             "keynote-slide-links-v15.4.pptx");
         using var presentation = PowerPointPresentation.Load(path);
-        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes());
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.Pages.Count);
         Assert.Equal(new int?[] { 2, 2, 1 }, pdf.LinkAnnotations.Select(link => pdf.NamedDestinations.Single(
             destination => destination.Name == link.DestinationName).PageNumber));
@@ -119,7 +119,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         using var reopened = PowerPointPresentation.Load(saved);
         Assert.Equal(finalSlide ? "#slide-3" : "#slide-2",
             reopened.Slides[finalSlide ? 1 : 0].TextBoxes.Single().Hyperlink!.OriginalString);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         if (finalSlide) {
             Assert.Empty(pdf.LinkAnnotations);
@@ -146,8 +146,8 @@ public sealed class PowerPointPdfSlideLinkTests {
         omitted.Paragraphs[0].Runs[0].SetHyperlink(hidden);
         omitted.SetHyperlink(hidden);
 
-        var options = new PowerPointToPdfOptions { IncludeHiddenSlides = includeHidden };
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult(options);
+        var options = new PowerPointPdfExportOptions { IncludeHiddenSlides = includeHidden };
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence(options);
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(includeHidden ? 3 : 2, pdf.Pages.Count);
         Assert.Equal(includeHidden ? 3 : 2, Assert.Single(pdf.NamedDestinations,
@@ -163,7 +163,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         }
         // Reusing caller options must not retain an earlier operation's destination set.
         options.IncludeHiddenSlides = !includeHidden;
-        PdfCore.PdfDocumentInfo opposite = PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes(options));
+        PdfCore.PdfDocumentInfo opposite = PdfCore.PdfInspector.Inspect(presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(!includeHidden, opposite.NamedDestinations.Any(d => d.Name == "powerpoint-slide-2"));
     }
 
@@ -180,7 +180,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         byte[] bytes = conversion.ToBytes();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(bytes);
         PdfCore.PdfLinkAnnotation firstLink = Assert.Single(pdf.LinkAnnotations, l => l.DestinationName == "powerpoint-slide-2");
@@ -207,7 +207,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         cell.Text = "Cell target"; cell.Paragraphs[0].Runs[0].SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(2, pdf.LinkAnnotations.Count);
         Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
@@ -230,9 +230,9 @@ public sealed class PowerPointPdfSlideLinkTests {
         box.FontName = "Arial"; box.FontSize = 14;
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectanglePoints(40, 110, 200, 10) });
-        PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes()).LinkAnnotations);
+        PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
         group.Rotation = 30; group.HorizontalFlip = true;
-        PdfCore.PdfLinkAnnotation actual = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes()).LinkAnnotations);
+        PdfCore.PdfLinkAnnotation actual = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
         OfficeTransform matrix = new OfficeImageFrameTransform(30, 140, 80, true, false).CreateDestinationTransform();
         OfficePoint[] corners = new[] { new OfficePoint(original.X1, 220 - original.Y1),
             new OfficePoint(original.X1, 220 - original.Y2), new OfficePoint(original.X2, 220 - original.Y1),

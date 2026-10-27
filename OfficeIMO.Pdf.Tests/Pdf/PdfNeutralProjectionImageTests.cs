@@ -18,7 +18,7 @@ public sealed class PdfNeutralProjectionImageTests {
             Blocks = new[] { new OfficeDocumentModelBlock { Kind = "paragraph", Text = "Searchable source content" } },
             Assets = new[] { new OfficeDocumentModelAsset { Id = "diagram", Kind = "preview-png", PayloadBytes = png } }
         };
-        var pdfOptions = new PdfOptions {
+        var pdfOptions = new PdfCreateOptions {
             PageWidth = pageWidth, PageHeight = pageHeight,
             MarginLeft = margin, MarginRight = margin, MarginTop = margin, MarginBottom = margin
         };

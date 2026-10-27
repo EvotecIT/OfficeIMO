@@ -22,7 +22,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions { MaximumRowLayoutRows = 2 });
         using ExcelDocument target = conversion.Value;
-        Assert.Equal(new[] { 1, 2 }, target.CreateInspectionSnapshot().Worksheets.Single().Rows
+        Assert.Equal(new[] { 1, 2 }, target.Inspect().Worksheets.Single().Rows
             .Where(item => item.Hidden).Select(item => item.Index));
         Assert.Contains(conversion.Report.ForFeature("expansion-limits"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Skipped);
@@ -50,7 +50,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
 
         OdfConversionResult<ExcelDocument> toExcel = reopened.ToExcelDocumentResult();
         using ExcelDocument roundTrip = toExcel.Value;
-        ExcelCellStyleSnapshot style = roundTrip.CreateInspectionSnapshot().Worksheets.Single()
+        ExcelCellStyleInfo style = roundTrip.Inspect().Worksheets.Single()
             .Cells.Single().Style!;
         Assert.Equal("right", style.HorizontalAlignment);
         Assert.Equal("center", style.VerticalAlignment);
@@ -77,7 +77,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.Equal("center", reopened.GetSheet("Layout")!.Cell(0, 0).TextAlign);
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellStyleSnapshot style = target.CreateInspectionSnapshot().Worksheets.Single()
+        ExcelCellStyleInfo style = target.Inspect().Worksheets.Single()
             .Cells.Single().Style!;
         Assert.Equal("center", style.HorizontalAlignment);
         Assert.Equal("bottom", style.VerticalAlignment);
@@ -134,7 +134,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.Equal("wrap", loaded.Cell(1, 0).WrapOption);
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        var cells = target.CreateInspectionSnapshot().Worksheets.Single().Cells;
+        var cells = target.Inspect().Worksheets.Single().Cells;
         Assert.Equal("center", cells.Single(cell => cell.Row == 1).Style!.HorizontalAlignment);
         Assert.Equal("center", cells.Single(cell => cell.Row == 1).Style!.VerticalAlignment);
         Assert.Equal("right", cells.Single(cell => cell.Row == 2).Style!.HorizontalAlignment);
@@ -155,7 +155,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellStyleSnapshot? projected = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style;
+        ExcelCellStyleInfo? projected = target.Inspect().Worksheets.Single().Cells.Single().Style;
         Assert.NotEqual("center", projected?.HorizontalAlignment);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-layout" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -173,7 +173,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellStyleSnapshot? projected = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style;
+        ExcelCellStyleInfo? projected = target.Inspect().Worksheets.Single().Cells.Single().Style;
         Assert.NotEqual("center", projected?.HorizontalAlignment);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-layout" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -201,7 +201,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        var cells = target.CreateInspectionSnapshot().Worksheets.Single().Cells;
+        var cells = target.Inspect().Worksheets.Single().Cells;
         Assert.Equal("left", cells.Single(item => item.Column == 1).Style!.HorizontalAlignment);
         Assert.Equal("right", cells.Single(item => item.Column == 2).Style!.HorizontalAlignment);
     }
@@ -224,7 +224,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.True(reopened.Validate().IsValid);
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellStyleSnapshot style = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style!;
+        ExcelCellStyleInfo style = target.Inspect().Worksheets.Single().Cells.Single().Style!;
         Assert.Equal("right", style.HorizontalAlignment);
         Assert.True(style.WrapText);
     }
@@ -331,7 +331,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellStyleSnapshot style = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style!;
+        ExcelCellStyleInfo style = target.Inspect().Worksheets.Single().Cells.Single().Style!;
         Assert.Equal("336699", style.FontColorHex);
         Assert.DoesNotContain(conversion.Report.ForFeature("blank-cell-styles"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -380,7 +380,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.Throws<InvalidOperationException>(() => grouped.Column(0).Hidden = false);
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelWorksheetSnapshot snapshot = target.CreateInspectionSnapshot().Worksheets.Single();
+        ExcelWorksheetInfo snapshot = target.Inspect().Worksheets.Single();
         Assert.True(snapshot.Rows.Single(rowSnapshot => rowSnapshot.Index == 1).Hidden);
         Assert.True(snapshot.Columns.Single(columnSnapshot => columnSnapshot.StartIndex == 1).Hidden);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "row-groups" &&
@@ -432,7 +432,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.True(filtered.Column(0).Hidden);
         OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelWorksheetSnapshot snapshot = target.CreateInspectionSnapshot().Worksheets.Single();
+        ExcelWorksheetInfo snapshot = target.Inspect().Worksheets.Single();
         Assert.True(snapshot.Rows.Single(rowSnapshot => rowSnapshot.Index == 1).Hidden);
         Assert.True(snapshot.Columns.Single(columnSnapshot => columnSnapshot.StartIndex == 1).Hidden);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "filtered-visibility" &&

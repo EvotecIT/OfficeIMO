@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Html;
 public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
-        ExcelCellStyleSnapshot style,
+        ExcelCellStyleInfo style,
         bool includeDecorations) {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", style.Bold ? "700" : null);
@@ -42,7 +42,7 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
         ExcelRichTextRun run,
-        ExcelCellStyleSnapshot cellStyle) {
+        ExcelCellStyleInfo cellStyle) {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.BoldSpecified ? (run.Bold ? "700" : "normal") : null);
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);

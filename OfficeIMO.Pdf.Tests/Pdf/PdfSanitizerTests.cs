@@ -627,7 +627,7 @@ public partial class PdfSanitizerTests {
     [Fact]
     public void Sanitize_QuarantinesAttachmentsAndRemovesAllPayloadReferences() {
         byte[] payload = Encoding.UTF8.GetBytes("quarantined payload");
-        var options = new PdfOptions().AddEmbeddedFile(
+        var options = new PdfCreateOptions().AddEmbeddedFile(
             "payload.txt",
             payload,
             "text/plain",

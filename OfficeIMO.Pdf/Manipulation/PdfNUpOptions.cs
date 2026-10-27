@@ -3,14 +3,14 @@ namespace OfficeIMO.Pdf;
 /// <summary>Sheet geometry and preservation policy for vector PDF N-up output.</summary>
 public sealed class PdfNUpOptions {
     /// <summary>Creates an N-up sheet layout.</summary>
-    public PdfNUpOptions(PageSize sheetSize, int columns, int rows) {
+    public PdfNUpOptions(PdfPageSize sheetSize, int columns, int rows) {
         SheetSize = sheetSize;
         Columns = columns;
         Rows = rows;
     }
 
     /// <summary>Output sheet dimensions in PDF points.</summary>
-    public PageSize SheetSize { get; }
+    public PdfPageSize SheetSize { get; }
     /// <summary>Number of columns, from one through eight.</summary>
     public int Columns { get; }
     /// <summary>Number of rows, from one through eight.</summary>

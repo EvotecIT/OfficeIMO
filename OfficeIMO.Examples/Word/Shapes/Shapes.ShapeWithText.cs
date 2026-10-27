@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using V = DocumentFormat.OpenXml.Vml;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {

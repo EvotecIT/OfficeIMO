@@ -51,7 +51,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].ColorHex = "FF00FF";
             table.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter = 60;
         }
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable result = Assert.Single(restored.Tables);
         Assert.Equal(direct ? "FF00FF" : "FF0000", result.Rows[0].Cells[0].Paragraphs[0].ColorHex);
         Assert.Equal(direct ? 60 : 240, result.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter);

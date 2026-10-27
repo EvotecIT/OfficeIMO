@@ -1,17 +1,17 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     // Geometry-only views live inside one serialization. Borrow its immutable assets and
     // generation font programs so story glyph usage reaches the page's font subset/CMap.
     // Public Clone remains an independent deep snapshot.
-    internal PdfOptions CreateRunningContentFrame(double top, double bottom) {
+    internal PdfCreateOptions CreateRunningContentFrame(double top, double bottom) {
         _embeddedFontPrograms ??= new Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>();
         _embeddedOpenTypeCffFontPrograms ??= new Dictionary<PdfStandardFont, PdfOpenTypeCffFontProgram>();
         _namedFontPrograms ??= new Dictionary<PdfNamedFontFace, PdfTrueTypeFontProgram>();
         _namedOpenTypeCffFontPrograms ??= new Dictionary<PdfNamedFontFace, PdfOpenTypeCffFontProgram>();
         _namedFontProgramFailures ??= new HashSet<PdfNamedFontFace>();
         _embeddedFontProgramFailures ??= new HashSet<PdfStandardFont>();
-        var frame = (PdfOptions)MemberwiseClone();
+        var frame = (PdfCreateOptions)MemberwiseClone();
         frame.MarginTop = top;
         frame.MarginBottom = bottom;
         return frame;

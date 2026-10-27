@@ -104,7 +104,7 @@ public class PdfFlowGroupTests {
     }
 
     private static PdfDocument CreateShortPageDocument() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 200,
             PageHeight = 200,
             MarginLeft = 20,

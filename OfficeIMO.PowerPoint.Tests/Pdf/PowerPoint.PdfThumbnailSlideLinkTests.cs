@@ -44,13 +44,13 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
         flowing.AddParagraph("TABLE EXTERNAL").Runs[0].Hyperlink = new Uri("https://example.com/table");
         fifth.AddTextBoxPoints("EXTERNAL TARGET", 20, 20, 350, 40)
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("https://example.com/slide");
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             PageLayout = layout, HandoutSlidesPerPage = perPage, IncludeHiddenSlides = includeHidden
         };
 
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence(options);
         byte[] bytes = conversion.ToBytes();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(bytes);
         int[] visibleNumbers = includeHidden ? new[] { 1, 2, 3, 4, 5 } : new[] { 1, 3, 4, 5 };

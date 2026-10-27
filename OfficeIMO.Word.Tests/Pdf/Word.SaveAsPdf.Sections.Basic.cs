@@ -60,10 +60,10 @@ public partial class Word {
             document.AddParagraph("ContinuousSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(400, 300),
+                Margins = PdfCore.PdfPageMargins.Uniform(50)
             });
         }
 
@@ -84,10 +84,10 @@ public partial class Word {
             document.AddParagraph("NextPageSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(400, 300),
+                Margins = PdfCore.PdfPageMargins.Uniform(50)
             });
         }
 
@@ -131,7 +131,7 @@ public partial class Word {
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
             document.AddParagraph("Native body text");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -159,7 +159,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -213,7 +213,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -253,7 +253,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -307,7 +307,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -365,7 +365,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -402,7 +402,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -447,10 +447,10 @@ public partial class Word {
             document.AddParagraph("NativeAlignedBody");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(400, 300),
+                Margins = PdfCore.PdfPageMargins.Uniform(50)
             });
         }
 
@@ -498,10 +498,10 @@ public partial class Word {
 
             document.AddParagraph("NativeTableZoneBody");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(520, 320),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(520, 320),
+                Margins = PdfCore.PdfPageMargins.Uniform(60)
             });
         }
 
@@ -550,10 +550,10 @@ public partial class Word {
 
             document.AddParagraph("Native blank paragraph header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(520, 340),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(520, 340),
+                Margins = PdfCore.PdfPageMargins.Uniform(60)
             });
         }
 
@@ -592,9 +592,9 @@ public partial class Word {
             document.AddParagraph("ClearanceBodyHeading").SetStyle(WordParagraphStyles.Heading1);
             document.AddParagraph("Body text after a multiline Word header.");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -643,9 +643,9 @@ public partial class Word {
 
             document.AddParagraph(bodyText).SetStyle(WordParagraphStyles.Heading1);
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
     }
@@ -667,10 +667,10 @@ public partial class Word {
 
             document.AddParagraph("Native multiline header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(440, 340),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(440, 340),
+                Margins = PdfCore.PdfPageMargins.Uniform(60)
             });
         }
 
@@ -709,9 +709,9 @@ public partial class Word {
 
             document.AddParagraph("Native footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -741,9 +741,9 @@ public partial class Word {
 
             document.AddParagraph("Large footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -780,7 +780,7 @@ public partial class Word {
             paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new SpacingBetweenLines {
                 Before = "0", After = "0", Line = "280", LineRule = LineSpacingRuleValues.Exact });
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.True(pdf.NumberOfPages > 1);
         Assert.Equal(70, pdf.GetPages().Sum(page => page.GetWords().Count(word => word.Text == "BodyMarker")));
         foreach (var page in pdf.GetPages()) {

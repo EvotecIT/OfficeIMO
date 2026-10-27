@@ -32,7 +32,7 @@ public partial class Word {
         paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
             new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         var frame = Assert.Single(page.Paths.Where(path => path.IsStroked)
@@ -56,7 +56,7 @@ public partial class Word {
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(direction, imported.Tables[0].Rows[0].Cells[0].TextDirection);
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("ABCD", string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -103,7 +103,7 @@ public partial class Word {
         paragraph.AddImage(image, "direction.png", 40D * 4D / 3D, 20D * 4D / 3D,
             description: "Red left half and blue right half");
         paragraph.AddText("After");
-        byte[] bytes = document.ToPdfBytes(BorderFramePdfOptions());
+        byte[] bytes = document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());
         Assert.Single(page.GetImages());
@@ -141,7 +141,7 @@ public partial class Word {
         WordParagraph after = document.AddParagraph("After");
         after.FontSize = 12;
         after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "After")
             .Letters[0].StartBaseLine.Y;
     }
@@ -160,7 +160,7 @@ public partial class Word {
             description: "Red left half and blue right half");
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var image = Assert.Single(Assert.Single(pdf.GetPages()).GetImages());
         return (image.BoundingBox.Width, image.BoundingBox.Height, image.BoundingBox.Top);
@@ -179,7 +179,7 @@ public partial class Word {
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacing = 300;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         // The 109.2-point content frame retains the partially visible eighth 15-point column.
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal(8, page.Letters.Select(letter => Math.Round(letter.StartBaseLine.X, 3)).Distinct().Count());

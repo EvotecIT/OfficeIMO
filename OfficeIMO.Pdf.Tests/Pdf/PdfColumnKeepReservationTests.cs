@@ -16,7 +16,7 @@ public sealed class PdfColumnKeepReservationTests {
     [InlineData("panel", false, false)]
     public void Columns_BalancedKeepNextLeadersRetainTheirTerminalGroupWithoutEmptyPageRetries(
         string kind, bool interveningBookmark, bool balanceKeptLines) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 500, PageHeight = 400,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
             MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12,
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {

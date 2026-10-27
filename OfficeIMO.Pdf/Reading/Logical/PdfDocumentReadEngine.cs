@@ -23,7 +23,7 @@ internal static partial class PdfDocumentReadEngine {
 
     internal static PdfDocumentReadResult Read(
         PdfDocument source,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         CancellationToken cancellationToken) {
         Guard.NotNull(source, nameof(source));
         Guard.NotNull(options, nameof(options));
@@ -34,13 +34,13 @@ internal static partial class PdfDocumentReadEngine {
 
     internal static PdfDocumentReadResult Read(
         PdfReadDocument document,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         CancellationToken cancellationToken = default) =>
         Read(document, options, out _, cancellationToken);
 
     internal static PdfDocumentReadResult Read(
         PdfReadDocument document,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         out IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));

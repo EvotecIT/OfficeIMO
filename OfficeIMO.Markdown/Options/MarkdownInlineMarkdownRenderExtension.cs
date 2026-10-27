@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Delegate used to override Markdown emitted for a specific inline type during Markdown serialization.
 /// Returning <see langword="null"/> falls back to the inline's built-in Markdown rendering.
 /// </summary>
-public delegate string? MarkdownInlineMarkdownRenderer(IMarkdownInline inline, MarkdownWriteOptions options);
+public delegate string? MarkdownInlineMarkdownRenderer(IMarkdownInline inline, MarkdownSaveOptions options);
 
 /// <summary>
 /// Delegate used to override Markdown emitted for a specific inline type during Markdown serialization with access

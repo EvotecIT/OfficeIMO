@@ -90,7 +90,7 @@ public sealed class PdfPageChangeAnalyzerTests {
     }));
 
     private static PdfDocument BuildPages(params string[] texts) {
-        PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(240, 180) });
         for (int index = 0; index < texts.Length; index++) {
             if (index != 0) document.PageBreak();
             document.Paragraph(paragraph => paragraph.Text(texts[index]));

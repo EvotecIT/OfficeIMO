@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class RichParagraphWrappingTests {
         [Fact]
         public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFontSize = 12
                 })
                 .Paragraph(p => p.Text("A B"), style: new PdfParagraphStyle {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_UseDefaultParagraphStyleTabStopWidth() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFontSize = 12,
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = 72,
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_RenderDotLeadersAndStructuredLeaderReadback() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 36,
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(PdfTabLeaderStyle.Hyphens, "-")]
         [InlineData(PdfTabLeaderStyle.Underscores, "_")]
         public void ParagraphTabs_RenderNonDotLeaders(PdfTabLeaderStyle leaderStyle, string expectedGlyph) {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 36,
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_RightAlignedDotLeadersAlignValueEnds() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 200,
                     MarginLeft = 36,
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_DecimalAlignedDotLeadersAlignDecimalSeparators() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 200,
                     MarginLeft = 36,
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_DotLeaderReadbackPreservesDecimalValues() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 220,
                     MarginLeft = 36,
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphTabs_NonDotLeaderReadbackPreservesNumericValues() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 220,
                     MarginLeft = 36,

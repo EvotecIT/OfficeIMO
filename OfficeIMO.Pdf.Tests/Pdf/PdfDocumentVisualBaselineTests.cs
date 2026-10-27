@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentVisualBaselineTests {
     [Fact]
     public void RepresentativeReport_MatchesVisualGeometryBaseline() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10.5,
             FooterFont = PdfStandardFont.Helvetica,
@@ -48,7 +48,7 @@ public class PdfDocumentVisualBaselineTests {
                 new[] { "Typography", "Natural word spacing for standard proportional fonts.", "Guarded" },
                 new[] { "Tables", "Long content wraps inside cells instead of drawing through adjacent columns or page margins.", "Guarded" },
                 new[] { "PowerShell", "PSWriteOffice can eventually expose this engine as the PSWritePDF successor.", "Roadmap" }
-            }, style: TableStyles.RightAlignedNumbers())
+            }, style: PdfTableStyles.RightAlignedNumbers())
             .Paragraph(p => p.Text("End of visual baseline."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
             .ToBytes();
 
@@ -58,7 +58,7 @@ public class PdfDocumentVisualBaselineTests {
 
     [Fact]
     public void ProfessionalReport_MatchesVisualContentBaseline() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10,
             HeaderFont = PdfStandardFont.Helvetica,

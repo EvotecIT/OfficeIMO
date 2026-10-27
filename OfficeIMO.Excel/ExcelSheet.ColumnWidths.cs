@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
             if (columnWidths == null) throw new ArgumentNullException(nameof(columnWidths));
             var selected = columnWidths.OrderBy(pair => pair.Key).ToArray();
             foreach (var pair in selected) {
-                if (pair.Key < 1 || pair.Key > A1.MaxColumns || pair.Value <= 0D
+                if (pair.Key < 1 || pair.Key > ExcelA1.MaxColumns || pair.Value <= 0D
                     || double.IsNaN(pair.Value) || double.IsInfinity(pair.Value)) {
                     throw new ArgumentOutOfRangeException(nameof(columnWidths),
                         "Column indexes must be within the worksheet and widths must be positive and finite.");

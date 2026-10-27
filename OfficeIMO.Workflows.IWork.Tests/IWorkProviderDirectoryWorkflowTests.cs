@@ -16,7 +16,7 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
         var request = package.Request(route);
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
-        Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
         var capture = Assert.Single(result.Diagnostics, d => d.Code == "SourceSnapshot");
         Assert.Equal("source." + kind, capture.Details["sourceName"]);
         Assert.Equal("DirectoryPackage", capture.Details["snapshotKind"]);
@@ -33,7 +33,7 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
         using var package = new Package("pages", "docx");
         File.WriteAllText(package.Output, "keep");
         var request = package.Request("pages-docx");
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         request.PublicationGuard = new Guard(() => {
             switch (mutation) {
                 case "add": package.Files.Add("new.txt", [42]); break;
@@ -93,7 +93,7 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
         firstRequest.OutputPath = selected + "/nested/result.docx";
         if (opaque) firstRequest.OutputStream = new("result.docx", _ => throw new FileNotFoundException(), _ => throw new InvalidOperationException("Must not write"),
             new OfficeWorkflowOutputRecoveryStore(Path.Combine(Path.GetDirectoryName(first.Output)!, "recovery")));
-        firstRequest.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        firstRequest.ConflictPolicy = OfficePublicationPolicy.Replace;
         var secondRequest = second.Request("pages-docx");
         secondRequest.InputPath = selected;
         secondRequest.InputDirectoryPackage = new("source.pages", secondRequest.InputDirectoryPackage!.Directory,
@@ -118,18 +118,18 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
         Assert.True(result.Succeeded, result.Summary);
     }
 
-    private sealed class PathGuard(string root) : IOfficeWorkflowPublicationGuard {
+    private sealed class PathGuard(string root) : IOfficePublicationGuard {
         private readonly string _root = new Uri(root).AbsoluteUri.TrimEnd('/');
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             string destination = new Uri(path).AbsoluteUri.TrimEnd('/');
-            return ValueTask.FromResult(destination != _root && !destination.StartsWith(_root + "/", StringComparison.Ordinal));
+            return Task.FromResult(destination != _root && !destination.StartsWith(_root + "/", StringComparison.Ordinal));
         }
     }
 
-    private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class Guard(Func<bool> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             token.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(check());
+            return Task.FromResult(check());
         }
     }
 

@@ -60,11 +60,9 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
 
         document.Save();
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(
-            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseProfile(PdfExportProfile.Faithful));
-        SavePdf(
-            conversion,
-            Path.Combine(output, "customer-delivery-summary.pdf"));
+        string pdfPath = Path.Combine(output, "customer-delivery-summary.pdf");
+        document.SaveAsPdf(pdfPath, new OfficeIMO.Word.Pdf.WordPdfExportOptions().UseProfile(PdfExportProfile.Faithful));
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
 
     // Sample data for the delivery summary.
@@ -229,10 +227,9 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
 
         File.WriteAllText(sourcePath, document.ToRtf(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
-        SavePdf(
-            conversion,
-            Path.Combine(output, "change-approval-memo.pdf"));
+        string pdfPath = Path.Combine(output, "change-approval-memo.pdf");
+        document.SaveAsPdf(pdfPath);
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
     private static void CreateMarkdownReleaseReadiness(string output) {
         string sourcePath = Path.Combine(output, "release-readiness-report.md");
@@ -240,7 +237,7 @@ internal static class RealWorldWorkflowShowcase {
             .WithColorScheme(MarkdownColorSchemeKind.Blue);
 
         #region Excerpt:release-readiness-report
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("Release readiness report")
             .P(p => p.Bold("Release 4.2.0").Text(" · candidate ").Code("4.2.0-rc.3").Text(" · decision due Friday"))
             .H2("Readiness summary")
@@ -269,13 +266,12 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
 
         File.WriteAllText(sourcePath, document.ToMarkdown(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        MarkdownToPdfOptions options = new MarkdownToPdfOptions {
+        MarkdownPdfExportOptions options = new MarkdownPdfExportOptions {
             Theme = theme
         }.UseProfile(PdfExportProfile.Faithful);
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-        SavePdf(
-            conversion,
-            Path.Combine(output, "release-readiness-report.pdf"));
+        string pdfPath = Path.Combine(output, "release-readiness-report.pdf");
+        document.SaveAsPdf(pdfPath, options);
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
     private static void CreateOpenDocumentHandover(string output) {
         string sourcePath = Path.Combine(output, "project-handover-brief.odt");
@@ -337,14 +333,8 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
         document.Save(sourcePath);
 
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
-        SavePdf(
-            conversion,
-            Path.Combine(output, "project-handover-brief.pdf"));
-    }
-
-    private static void SavePdf(PdfDocumentConversionResult conversion, string pdfPath) {
-        conversion.Save(pdfPath);
+        string pdfPath = Path.Combine(output, "project-handover-brief.pdf");
+        document.SaveAsPdf(pdfPath);
         Console.WriteLine($"✓ PDF: {pdfPath}");
     }
 

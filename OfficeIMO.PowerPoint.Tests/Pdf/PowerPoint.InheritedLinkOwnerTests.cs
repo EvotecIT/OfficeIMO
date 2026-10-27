@@ -31,7 +31,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Equal("#slide-2", inherited.Hyperlink?.OriginalString);
         inherited.SetHyperlink(reopened.Slides[1]);
         Assert.Equal("#slide-2", inherited.Hyperlink?.OriginalString);
-        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(reopened.ToPdfBytes());
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.LinkAnnotations.Count);
         Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
     }
@@ -65,7 +65,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Equal(expected, inherited.GetCell(0, 0).Paragraphs[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
         Assert.Equal(expected, inherited.RowItems[0].Cells[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
         Assert.Equal(expected, inherited.ColumnItems[0].GetCell(0).Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);
-        var conversion = reopened.ToPdfDocumentResult();
+        var conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(kind == "next" ? 1 : 2, pdf.LinkAnnotations.Count);
         if (kind == "external") Assert.All(pdf.LinkAnnotations, link => Assert.Equal(expected, link.Uri));

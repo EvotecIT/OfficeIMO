@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
 
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_RendersMediaPosterThroughThePdfSceneInRasterAndSvg() {
+        public void PowerPointSlide_RendersMediaPosterInRasterAndSvg() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
@@ -95,9 +95,9 @@ namespace OfficeIMO.Tests {
             Assert.True(CountPixelsNear(rendered, OfficeColor.FromRgb(249, 250, 251)) > 0);
 
             Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
-            OfficeImageExportResult pdfSvg = presentation.ToPdfDocumentResult()
-                .ExportImages(OfficeImageExportFormat.Svg)[0];
-            Assert.Equal(pdfSvg.Bytes, svg.Bytes);
+            OfficeRasterImage svgPoster = ReadSvgOutput(svg);
+            Assert.Equal(OfficeColor.FromRgb(31, 41, 55), svgPoster.GetPixel(24, 24));
+            Assert.True(CountPixelsNear(svgPoster, OfficeColor.FromRgb(249, 250, 251)) > 0);
         }
 
         [Fact]

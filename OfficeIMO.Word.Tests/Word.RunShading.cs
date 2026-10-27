@@ -33,7 +33,7 @@ public partial class Word {
         Assert.Equal(string.Empty, paragraph.RunShadingFillColorHex);
         Assert.Null(paragraph.RunShadingFillColor);
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordDocument reloaded = WordDocument.Load(stream);
         WordParagraph reloadedParagraph = Assert.Single(
@@ -59,7 +59,7 @@ public partial class Word {
         Assert.Equal("AUTO", paragraph.RunShadingFillColorHex);
         Assert.Null(paragraph.RunShadingFillColor);
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordDocument reloaded = WordDocument.Load(stream);
         WordParagraph reloadedParagraph = Assert.Single(

@@ -98,7 +98,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<button style='display:inline-flex;flex-direction:column;width:132px'>"
             + "<strong>Primary</strong><small style='font-size:10px'>domain controllers</small>"
             + "<span hidden>omitted label</span></button><input value='Actual input'>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { InteractiveFormControls = interactive });
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { InteractiveFormControls = interactive })).ToBytes();
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Primary", text, StringComparison.Ordinal);
         Assert.Contains("domain controllers", text, StringComparison.Ordinal);

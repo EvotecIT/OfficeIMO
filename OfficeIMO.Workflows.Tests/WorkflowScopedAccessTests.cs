@@ -58,7 +58,7 @@ public sealed class WorkflowScopedAccessTests {
             if (operation == "assemble") {
                 var result = await runner.AssemblePdfAsync(new() {
                     Sources = [input.Path], SourceStreams = new Dictionary<string, OfficeWorkflowStreamInput> { [input.Path] = sourceStream },
-                    OutputPath = output.Path, OutputStream = outputStream, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                    OutputPath = output.Path, OutputStream = outputStream, ConflictPolicy = OfficePublicationPolicy.Replace,
                     PublicationGuard = guard
                 }, progress);
                 status = result.Status; published = result.OutputPath; summary = result.Summary;
@@ -73,7 +73,7 @@ public sealed class WorkflowScopedAccessTests {
                     InputPath = input.Path, InputStream = sourceStream,
                     ComparisonPath = comparison?.Path, ComparisonStream = comparison is null ? null : new("comparison.pdf", comparison.OpenRead),
                     OutputPath = operation == "inspect" ? null : output.Path,
-                    OutputStream = operation == "inspect" ? null : outputStream, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                    OutputStream = operation == "inspect" ? null : outputStream, ConflictPolicy = OfficePublicationPolicy.Replace,
                     Operation = operation == "convert" ? OfficeWorkflowOperation.Convert : operation == "compare"
                         ? OfficeWorkflowOperation.Compare : operation == "inspect" ? OfficeWorkflowOperation.Inspect : OfficeWorkflowOperation.Optimize,
                     ConversionRouteId = operation == "convert" ? "html-pdf" : null, PublicationGuard = guard
@@ -124,7 +124,7 @@ public sealed class WorkflowScopedAccessTests {
                 InputPath = source, Operation = OfficeWorkflowOperation.Optimize, OutputPath = output,
                 OutputStream = new("new.pdf", _ => Task.FromResult<Stream>(File.OpenRead(output)),
                     _ => Task.FromResult<Stream>(File.Create(output)), store),
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
             Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
             Assert.Equal(output, result.OutputPath);
@@ -133,8 +133,8 @@ public sealed class WorkflowScopedAccessTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
-    private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => new(check());
+    private sealed class Guard(Func<bool> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => Task.FromResult(check());
     }
     private sealed class InlineProgress(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => report(value);

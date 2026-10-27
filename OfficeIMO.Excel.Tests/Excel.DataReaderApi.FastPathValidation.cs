@@ -42,7 +42,7 @@ public partial class Excel {
                 "<row r=\"3\"",
                 "<!--invalid--comment--><row r=\"3\"");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -63,7 +63,7 @@ public partial class Excel {
                 emptyRow);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(markedXml));
 
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             while (reader.Read()) {
             }
         } finally {
@@ -90,7 +90,7 @@ public partial class Excel {
                 emptyRow);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -108,7 +108,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -126,7 +126,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -144,7 +144,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -162,7 +162,7 @@ public partial class Excel {
             string malformedXml = "<?xml?>" + worksheetXml.Substring(declarationEnd + 2);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -188,7 +188,7 @@ public partial class Excel {
                 + worksheetXml.Substring(valueEnd);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -206,7 +206,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -228,7 +228,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -246,7 +246,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -266,7 +266,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -286,7 +286,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -304,7 +304,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -329,7 +329,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -351,7 +351,7 @@ public partial class Excel {
             Assert.NotEqual(worksheetXml, malformedXml);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -368,7 +368,7 @@ public partial class Excel {
             string malformedXml = worksheetXml.Insert(rootStart, "junk");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -389,7 +389,7 @@ public partial class Excel {
     }
 
     private static void AssertCompactNumericRows(string path) {
-        using var reader = ExcelDocument.OpenDataReader(path);
+        using var reader = ExcelDocument.OpenReader(path);
         Assert.True(reader.Read());
         Assert.Equal(42, reader.GetInt32(0));
         Assert.True(reader.Read());

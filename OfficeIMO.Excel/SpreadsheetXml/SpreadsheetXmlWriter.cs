@@ -141,11 +141,11 @@ internal static class SpreadsheetXmlWriter {
                         else Attribute(writer, "Formula", "=" + syntax.ConvertReferences(ExcelReferenceStyle.R1C1, rowIndex, column));
                     }
                 }
-                if (merges.TryGetValue(cell.CellReference?.Value ?? A1.CellReference(rowIndex, column), out var merge)) {
+                if (merges.TryGetValue(cell.CellReference?.Value ?? ExcelA1.CellReference(rowIndex, column), out var merge)) {
                     if (merge.across > 0) Attribute(writer, "MergeAcross", merge.across.ToString(CultureInfo.InvariantCulture));
                     if (merge.down > 0) Attribute(writer, "MergeDown", merge.down.ToString(CultureInfo.InvariantCulture));
                 }
-                if (metadata.TryGetValue(cell.CellReference?.Value ?? A1.CellReference(rowIndex, column), out var extra))
+                if (metadata.TryGetValue(cell.CellReference?.Value ?? ExcelA1.CellReference(rowIndex, column), out var extra))
                     foreach (var attribute in extra.Attributes()) writer.WriteAttributeString(attribute.Name.Namespace == X ? "x" : "ss", attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
                 WriteValue(writer, cell, strings, part.GetParentParts().OfType<WorkbookPart>().Single(), context);
                 if (extra != null) foreach (var child in extra.Elements()) child.WriteTo(writer);

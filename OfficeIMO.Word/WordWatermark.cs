@@ -233,13 +233,13 @@ namespace OfficeIMO.Word {
         /// or three- or six-digit hexadecimal strings with or without a leading '#'.
         /// Invalid color values will result in <see cref="ArgumentException"/> being thrown.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;
                 }
 
-                return OfficeIMO.Drawing.OfficeColor.Parse(ColorHex);
+                return OfficeIMO.OfficeColor.Parse(ColorHex);
 
             }
             set {

@@ -26,8 +26,8 @@ public partial class Word {
         document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
         ConfigurePartialColumnParagraph(document.AddParagraph("AfterContinuous"));
         string target = Path.Combine(_directoryWithFiles, $"BalancedKeepNext-{format}-{mode}.pdf");
-        WordToPdfOptions options = CellPaginationOptions();
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 4 };
+        WordPdfExportOptions options = CellPaginationOptions();
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 4 };
         using var input = new MemoryStream(document.ToBytes(format));
         using (WordDocument reloaded = WordDocument.Load(input)) reloaded.SaveAsPdf(target, options);
         using var pdf = PdfPigDocument.Open(target);

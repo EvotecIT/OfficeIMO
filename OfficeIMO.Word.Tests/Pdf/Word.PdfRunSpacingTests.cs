@@ -138,9 +138,9 @@ public sealed class WordPdfRunSpacingTests {
             normal.CharacterScale = 100;
             normal.Spacing = 0;
         }
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPage(1).Letters.Where(letter => "ABCD".IndexOf(letter.Value, StringComparison.Ordinal) >= 0)
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))

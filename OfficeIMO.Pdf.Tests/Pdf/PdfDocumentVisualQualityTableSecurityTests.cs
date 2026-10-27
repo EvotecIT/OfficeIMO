@@ -13,12 +13,12 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void PositionedTableDoesNotAdvanceFollowingFlow(bool rowColumn) {
         double FollowingTextY(bool consumesVerticalFlow) {
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.FixedRowHeights = new List<double?> { 36 };
             style.ColumnWidthPoints = new List<double?> { 80 };
             style.ConsumesVerticalFlow = consumesVerticalFlow;
-            PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260, PageHeight = 180,
                 MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
             });
@@ -44,11 +44,11 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PositionedColumnTableThatSpansPagesKeepsFollowingTextBelowLastRow() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ConsumesVerticalFlow = false;
         style.FixedRowHeights = new List<double?> { 38, 38, 38, 38, 38 };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 260, PageHeight = 180,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
         });
@@ -72,7 +72,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ExactHeightTableRowsDoNotEmitClippedHiddenText(bool rowColumn) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -82,7 +82,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;
@@ -109,7 +109,7 @@ public partial class PdfDocumentVisualQualityTests {
             document.Table(rows, style: style);
         }
 
-        byte[] bytes = document.ToBytes();
+        byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -122,7 +122,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void NoWrapTableRunLinksStayInsideCellClip(bool rowColumn) {
         const string uri = "https://example.com/no-wrap";
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -132,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;
@@ -156,7 +156,7 @@ public partial class PdfDocumentVisualQualityTests {
             document.Table(rows, style: style);
         }
 
-        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(document.ToBytes()).LinkAnnotations, annotation => annotation.Uri == uri);
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations, annotation => annotation.Uri == uri);
 
         Assert.InRange(link.X1, 29.5D, 31D);
         Assert.InRange(link.X2, 30D, 112.5D);
@@ -166,7 +166,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NoWrapTableParagraphTextDoesNotPaintAcrossAdjacentCells(bool rowColumn) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -176,7 +176,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 12
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.BorderWidth = 0D;
@@ -202,7 +202,7 @@ public partial class PdfDocumentVisualQualityTests {
             document.Table(rows, style: style);
         }
 
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(document.ToBytes()));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         bool paintedInAdjacentCell = false;
         for (int y = 28; y < 55 && !paintedInAdjacentCell; y++) {
             for (int x = 96; x < 145; x++) {
@@ -219,7 +219,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RightAlignedNoWrapTableParagraphRemainsVisibleInsideItsCell() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -228,7 +228,7 @@ public partial class PdfDocumentVisualQualityTests {
             MarginBottom = 30,
             DefaultFontSize = 10
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;

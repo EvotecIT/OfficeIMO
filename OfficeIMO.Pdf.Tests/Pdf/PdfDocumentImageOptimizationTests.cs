@@ -16,24 +16,24 @@ public class PdfDocumentImageOptimizationTests {
             Metadata = new OfficeJpegMetadata(xmp: System.Text.Encoding.UTF8.GetBytes(marker))
         });
         var report = new PdfConversionReport();
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             ImageOptimization = new() {
                 Enabled = true, TargetDpi = 144, MetadataPolicy = policy,
                 MetadataSelection = OfficeImageMetadataKinds.None, AllowMetadataLoss = allowLoss
             }
-        }.ReportDiagnosticsTo(report)).Image(jpeg, 72, 36).ToBytes();
+        }.ReportDiagnosticsTo(report)).Image(jpeg, 72, 36).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal(40, image.Width);
         Assert.Equal(20, image.Height);
         if (allowLoss) {
             Assert.DoesNotContain(marker, System.Text.Encoding.UTF8.GetString(image.Bytes));
-            var warning = Assert.Single(report.Warnings, item => item.Code == "ImageOptimizationMetadataRemoved");
+            var warning = Assert.Single(report.Warnings, item => item.Code == "image-optimization-metadata-removed");
             Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
             Assert.Contains("Xmp", warning.Message);
         } else {
             Assert.Equal(jpeg, image.Bytes);
-            Assert.Contains(report.Warnings, item => item.Code == "ImageOptimizationMetadataLoss");
-            Assert.DoesNotContain(report.Warnings, item => item.Code == "ImageOptimizationMetadataRemoved");
+            Assert.Contains(report.Warnings, item => item.Code == "image-optimization-metadata-loss");
+            Assert.DoesNotContain(report.Warnings, item => item.Code == "image-optimization-metadata-removed");
         }
     }
 
@@ -41,7 +41,7 @@ public class PdfDocumentImageOptimizationTests {
     [InlineData(false, 144, 72)]
     [InlineData(true, 144, 72)]
     public void ImageOptimizationCoversBothStretchedAndCroppedSourceAxes(bool crop, int width, int height) {
-        var options = new PdfOptions { ImageOptimization = new() { Enabled = true, TargetDpi = 72, KeepOriginalWhenNotSmaller = false } };
+        var options = new PdfCreateOptions { ImageOptimization = new() { Enabled = true, TargetDpi = 72, KeepOriginalWhenNotSmaller = false } };
         var document = PdfDocument.Create(options);
         document.Canvas(canvas => canvas.Image(CreateJpeg(400, 200), 40, 50, 72, crop ? 36 : 72,
             new PdfImageStyle { Fit = OfficeImageFit.Stretch, SourceCrop = crop ? new PdfImageSourceCrop(0.5, 0, 0, 0) : null }));
@@ -52,7 +52,7 @@ public class PdfDocumentImageOptimizationTests {
     [Fact]
     public void ImageOptimization_RecompressesJpegWithoutReducingPixels() {
         byte[] jpeg = CreateJpeg(400, 200);
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             ImageOptimization = new PdfImageOptimizationOptions {
                 Enabled = true, Mode = OfficeImageOptimizationMode.Recompress,
                 TargetDpi = 72, JpegQuality = 35
@@ -67,7 +67,7 @@ public class PdfDocumentImageOptimizationTests {
     [Fact]
     public void ImageOptimization_DownsamplesToLaidOutPlacementResolution() {
         byte[] jpeg = CreateJpeg(400, 200);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ImageOptimization = new PdfImageOptimizationOptions {
                 Enabled = true,
                 TargetDpi = 72,
@@ -132,19 +132,19 @@ public class PdfDocumentImageOptimizationTests {
             ResamplingMode = OfficeRasterResamplingMode.NearestNeighbor,
             KeepOriginalWhenNotSmaller = false
         };
-        var options = new PdfOptions { ImageOptimization = policy };
+        var options = new PdfCreateOptions { ImageOptimization = policy };
 
         policy.TargetDpi = 300;
         PdfImageOptimizationOptions readback = options.ImageOptimization!;
         readback.JpegQuality = 40;
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(180, options.ImageOptimization!.TargetDpi);
         Assert.Equal(78, options.ImageOptimization!.JpegQuality);
         Assert.Equal(1.25, clone.ImageOptimization!.DownsampleThreshold);
         Assert.Equal(OfficeRasterResamplingMode.NearestNeighbor, clone.ImageOptimization.ResamplingMode);
         Assert.False(clone.ImageOptimization.KeepOriginalWhenNotSmaller);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions {
             ImageOptimization = new() { MetadataPolicy = (OfficeImageMetadataPolicy)99 }
         });
     }

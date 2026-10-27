@@ -11,7 +11,7 @@ public partial class HtmlWordGapClosure {
     [InlineData("""<html style="font-size:32px"><body><div style="margin-inline-start:1rem">Text</div></body></html>""")]
     [InlineData("""<style>html { font-size:32px; }</style><div style="margin-inline-start:1rem">Text</div>""")]
     public void HtmlToWord_RemLogicalSpacingUsesTheComputedRootFontSize(string html) {
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -25,7 +25,7 @@ public partial class HtmlWordGapClosure {
             <div style="font-size:20px;margin-inline-start:1em">Text</div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -42,7 +42,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -54,7 +54,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_TopLevelInlineCodeStaysInTheBodyParagraph() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""before<code>x</code>after""")
-            .ToWordDocument();
+            .ToWord();
 
         WordParagraph before = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "before");
         WordParagraph code = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "x");
@@ -72,7 +72,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTable table = Assert.Single(document.Tables);
         WordSection section = Assert.Single(document.Sections);
         int pageWidth = (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips);
@@ -88,7 +88,7 @@ public partial class HtmlWordGapClosure {
             <div style="font:32px Arial;margin-inline-start:1em">Text</div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -105,7 +105,7 @@ public partial class HtmlWordGapClosure {
         int expectedIndentation) {
         string html = $"""<div style="{style};margin-inline-start:1em">Text</div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");

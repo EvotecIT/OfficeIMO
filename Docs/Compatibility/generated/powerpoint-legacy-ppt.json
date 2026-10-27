@@ -481,7 +481,7 @@
       "modernToLegacy":"Rasterized",
       "legacyToModern":"Dropped",
       "affectedFidelity":"Semantic, Behavioral, Editability, Carrier",
-      "note":"Supported editable DrawingML charts convert explicitly to deterministic static PNG picture frames through the shared OfficeIMO chart renderer. Default saving is blocked by PPT-WRITE-CHART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; converted files preserve chart bounds and visible data but not chart editability or the embedded workbook. Existing legacy Microsoft Graph objects remain preserve-only through the embedded-OLE lane; editable Graph import and direct native Graph authoring are explicitly outside the conversion contract and structural edits are loss-blocked."
+      "note":"Supported editable DrawingML charts convert explicitly to deterministic static PNG picture frames through the shared OfficeIMO chart renderer. Default saving is blocked by ppt-write-chart-converted until PowerPointSaveOptions.LossPolicy is Allow; converted files preserve chart bounds and visible data but not chart editability or the embedded workbook. Existing legacy Microsoft Graph objects remain preserve-only through the embedded-OLE lane; editable Graph import and direct native Graph authoring are explicitly outside the conversion contract and structural edits are loss-blocked."
     },
     {
       "id":"PowerPoint.Ppt.SmartArt",
@@ -496,7 +496,7 @@
       "modernToLegacy":"Rasterized",
       "legacyToModern":"Dropped",
       "affectedFidelity":"Semantic, Behavioral, Editability, Carrier",
-      "note":"Readable SmartArt node data maps to the shared semantic process, hierarchy, or cycle diagram contract and converts explicitly to a deterministic static PNG picture frame. Unknown SmartArt layout categories use the process approximation while retaining node order. Default saving is blocked by PPT-WRITE-SMARTART-CONVERTED until PowerPointSaveOptions.LossPolicy is Allow; the converted visual preserves bounds and node text but not SmartArt structure or editability. Legacy binary diagram records are preserve-only; editable legacy diagram projection and direct native diagram authoring are explicitly loss-blocked."
+      "note":"Readable SmartArt node data maps to the shared semantic process, hierarchy, or cycle diagram contract and converts explicitly to a deterministic static PNG picture frame. Unknown SmartArt layout categories use the process approximation while retaining node order. Default saving is blocked by ppt-write-smartart-converted until PowerPointSaveOptions.LossPolicy is Allow; the converted visual preserves bounds and node text but not SmartArt structure or editability. Legacy binary diagram records are preserve-only; editable legacy diagram projection and direct native diagram authoring are explicitly loss-blocked."
     },
     {
       "id":"PowerPoint.Ppt.SpeakerNotes",

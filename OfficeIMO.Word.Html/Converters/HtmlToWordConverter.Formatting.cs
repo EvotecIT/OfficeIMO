@@ -6,7 +6,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -423,7 +423,7 @@ namespace OfficeIMO.Word.Html {
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
         private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
-        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
             text = ApplyWhiteSpace(text, formatting.WhiteSpace);
             if (string.IsNullOrEmpty(text)) {
                 return;
@@ -461,7 +461,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
             int start = 0;
             for (int index = 0; index < text.Length; index++) {
                 if (text[index] != '\n') continue;
@@ -506,7 +506,7 @@ namespace OfficeIMO.Word.Html {
             return collapsed;
         }
 
-        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
+        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, WordHtmlImportOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());

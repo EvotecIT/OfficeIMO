@@ -18,9 +18,9 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@media print{.reveal{display:" + display + "!important}}</style>"
             + fragment + "<section hidden>PLAIN-HIDDEN</section><p style='display:none'>CSS-HIDDEN</p>";
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             HonorCssPageRules = false, InteractiveFormControls = false
-        });
+        })).ToBytes();
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("REVEALED", text, StringComparison.Ordinal);
@@ -47,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlReportVisibility_InlineDisplayOverridesHidden() {
         const string html = "<span hidden style='display:inline'>INLINE-REVEALED</span><span hidden>PLAIN-HIDDEN</span>";
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).ExtractText();
 
         Assert.Contains("INLINE-REVEALED", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PLAIN-HIDDEN", text, StringComparison.Ordinal);
@@ -57,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlReportVisibility_OutlineUsesTheSameVisibleHeadingText() {
         const string html = "<h1>VISIBLE-TITLE <span hidden>HIDDEN-TITLE</span>"
             + "<span hidden style='display:inline'>REVEALED-TITLE</span></h1>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string title = Assert.Single(OfficeIMO.Pdf.PdfInspector.Inspect(bytes).Outlines).Title;
 
         Assert.Contains("VISIBLE-TITLE", title, StringComparison.Ordinal);
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
             + keyword + "'>REVEALED</span></" + parentTag + ">";
         var dom = HtmlDocumentParser.ParseDocument(html);
         HtmlComputedStyle computed = HtmlComputedStyleEngine.Compute(dom)[dom.QuerySelector("#target")!];
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).ExtractText();
 
         Assert.Equal(expectedDisplay, computed.GetValue("display"));
         Assert.Equal(revealed, text.Contains("REVEALED", StringComparison.Ordinal));
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlReportVisibility_LayerRevertRetainsEarlierDisplayOverride() {
         const string html = "<style>@layer base,theme;@layer base{#target{display:block}}"
             + "@layer theme{#target{display:revert-layer}}</style><section id='target' hidden>REVEALED</section>";
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).ExtractText();
 
         Assert.Contains("REVEALED", text, StringComparison.Ordinal);
     }
@@ -148,8 +148,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(concealed, item => item.TextPreview.Contains("REVERT-HIDDEN", StringComparison.Ordinal));
         OfficeContentCleanupResult cleaned = HtmlContentSafety.RemoveSelected(html,
             new OfficeContentCleanupSelection(concealed.Select(item => item.Id)));
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(HtmlConversionDocument.Parse(
-            System.Text.Encoding.UTF8.GetString(cleaned.Output)).ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(
+            System.Text.Encoding.UTF8.GetString(cleaned.Output)).ToPdf()).ToBytes())).ExtractText();
 
         Assert.Contains("VISIBLE-REVEALED", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PLAIN-HIDDEN", text, StringComparison.Ordinal);

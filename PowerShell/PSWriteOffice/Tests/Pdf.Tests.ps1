@@ -1244,10 +1244,10 @@ startxref
         $report.Signatures[0].Signature.UsesDetachedCmsSubFilter | Should -BeTrue
         $report.Signatures[0].UnsignedByteCount | Should -BeGreaterThan 0
         $report.Signatures[0].ByteRangeCoverageRatio | Should -BeGreaterThan 0
-        $report.Findings.Code | Should -Contain 'CryptographicTrustNotVerified'
-        $report.Findings.Code | Should -Contain 'DocMDPDetected'
-        $report.Findings.Code | Should -Contain 'LongTermValidationEvidenceDetected'
-        $report.Findings.Code | Should -Contain 'SignatureDetachedCmsSubFilter'
+        $report.Findings.Code | Should -Contain 'cryptographic-trust-not-verified'
+        $report.Findings.Code | Should -Contain 'doc-mdp-detected'
+        $report.Findings.Code | Should -Contain 'long-term-validation-evidence-detected'
+        $report.Findings.Code | Should -Contain 'signature-detached-cms-sub-filter'
     }
 
     It 'prepares and injects external PDF signature bytes' {
@@ -1276,7 +1276,7 @@ startxref
         $signedReport = Set-OfficePdfSignature -Path $preparedPath -SignaturePath $signaturePath -OutputPath $signedPath -PassThruReport -PassThru
         $signedReport.HasSignatures | Should -BeTrue
         $signedReport.Signatures[0].Signature.ByteRangeValues -join ',' | Should -Be ($plan.ByteRangeValues -join ',')
-        $signedReport.Findings.Code | Should -Contain 'SignatureDetachedCmsSubFilter'
+        $signedReport.Findings.Code | Should -Contain 'signature-detached-cms-sub-filter'
         [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($signedPath)) | Should -Match '3082010AAA55'
     }
 

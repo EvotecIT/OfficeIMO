@@ -20,7 +20,7 @@ public partial class Word {
         }
         Assert.Empty(source.ValidateDocument());
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         MainDocumentPart main = reopened._wordprocessingDocument.MainDocumentPart!;
         W.SimpleField[] fields = EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<W.SimpleField>()).ToArray();
         for (int index = 0; index < paragraphs.Length; index++) {
@@ -41,7 +41,7 @@ public partial class Word {
             normal.StyleRunProperties.Vanish = new W.Vanish();
             AppendSplitFormattingField(CreateFieldFormattingStories(source)[story], complex, false, "HIDDEN", "VISIBLE");
             Assert.Empty(source.ValidateDocument());
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             Assert.Contains("display runs use one formatting set", error.Message);
         }
     }
@@ -61,7 +61,7 @@ public partial class Word {
         table._table.GetFirstChild<W.TableProperties>()!.TableStyle = new W.TableStyle { Val = styleId };
         AppendSplitFormattingField(table.Rows[0].Cells[0].Paragraphs[0]._paragraph, complex, false, "HIDDEN", "VISIBLE");
         Assert.Empty(source.ValidateDocument());
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("display runs use one formatting set", error.Message);
     }
 

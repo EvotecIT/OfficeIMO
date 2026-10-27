@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
                 marginLeft *= horizontalScale; marginRight *= horizontalScale;
                 marginTop *= verticalScale; marginBottom *= verticalScale;
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_PADDING", "Reduced PowerPoint text box margins because they leave no renderable text area.",
+                    "powerpoint-text-padding", "Reduced PowerPoint text box margins because they leave no renderable text area.",
                     DescribeShape(textBox), OfficeConversionLossKind.Approximation));
             }
             double textWidth = width - marginLeft - marginRight;
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             if (fontScale <= 0D) {
                 fontScale = 0.001D;
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_SCALE_APPROXIMATED", "Approximated a zero text font scale with a positive rendering size.",
+                    "powerpoint-text-scale-approximated", "Approximated a zero text font scale with a positive rendering size.",
                     DescribeShape(textBox), OfficeConversionLossKind.Approximation));
             }
 
@@ -83,12 +83,12 @@ namespace OfficeIMO.PowerPoint {
                 measured.Any(paragraph => paragraph.HasContent && paragraph.MeasuredWidth > textWidth + 0.001D);
             if (exceedsFrame) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_OVERFLOW", "PowerPoint text exceeds the text frame and is rendered beyond its boundary without truncation.",
+                    "powerpoint-text-overflow", "PowerPoint text exceeds the text frame and is rendered beyond its boundary without truncation.",
                     DescribeShape(textBox), OfficeConversionLossKind.None));
             }
             if (measured.Any(paragraph => paragraph.Clipped)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_LAYOUT_LIMIT", "PowerPoint text exceeded the shared text layout safety limits; some content could not be laid out.",
+                    "powerpoint-text-layout-limit", "PowerPoint text exceeded the shared text layout safety limits; some content could not be laid out.",
                     DescribeShape(textBox), OfficeConversionLossKind.Omission));
             }
 

@@ -10,7 +10,7 @@ public sealed class PdfReadScanOptimizationTests {
     [InlineData("% Do BI S f sh\nBT /F1 12 Tf 20 40 Td (Do BI S f sh) Tj ET", "Do BI S f sh")]
     public void TextOnlyPagesKeepTextWithoutInventingImagesOrVectors(string content, string expected) {
         byte[] source = CreatePage(content);
-        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
         PdfLogicalPage page = Assert.Single(read.Pages);
         Assert.Contains(expected, read.Text);
         Assert.Empty(page.Images);
@@ -28,7 +28,7 @@ public sealed class PdfReadScanOptimizationTests {
     [Fact]
     public void FormOnlyPaintRetainsNestedTextAndVectorEvidence() {
         byte[] source = CreatePage("/Form1 Do", "BT /F1 12 Tf 20 40 Td (Nested text) Tj ET 20 20 40 10 re S");
-        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
         PdfLogicalPage page = Assert.Single(read.Pages);
         Assert.Contains("Nested text", read.Text);
         Assert.True(page.VectorPrimitiveCount > 0);
@@ -46,7 +46,7 @@ public sealed class PdfReadScanOptimizationTests {
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(PdfEncoding.Latin1GetBytes(source)).Pages);
 
         Assert.Empty(page.GetImagePlacements());
-        Assert.Equal((0, 0), page.GetVisibleVisualPrimitiveCounts(Array.Empty<StructuredTable>()));
+        Assert.Equal((0, 0), page.GetVisibleVisualPrimitiveCounts(Array.Empty<PdfStructuredTable>()));
     }
 
     [Fact]

@@ -10,11 +10,11 @@ public class Markdown_Renderer_OfflineAssets_Tests {
     [Fact]
     public void MarkdownRenderer_Shell_UsesExplicitResolverForRemoteOfflineAssets() {
         var options = new MarkdownRendererOptions {
-            HtmlOptions = new HtmlOptions {
-                Kind = HtmlKind.Fragment,
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                AssetMode = AssetMode.Offline
+            HtmlOptions = new MarkdownHtmlExportOptions {
+                Kind = MarkdownHtmlKind.Fragment,
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                AssetMode = MarkdownAssetMode.Offline
             }
         };
         options.Mermaid.Enabled = true;
@@ -56,12 +56,12 @@ public class Markdown_Renderer_OfflineAssets_Tests {
             File.WriteAllText(autoRenderJs, "window.renderMathInElement = window.renderMathInElement || function(){};", System.Text.Encoding.UTF8);
 
             var opts = new MarkdownRendererOptions {
-                HtmlOptions = new HtmlOptions {
-                    Kind = HtmlKind.Fragment,
-                    Style = HtmlStyle.Plain,
-                    CssDelivery = CssDelivery.None,
+                HtmlOptions = new MarkdownHtmlExportOptions {
+                    Kind = MarkdownHtmlKind.Fragment,
+                    Style = MarkdownHtmlStyle.Plain,
+                    CssDelivery = MarkdownCssDelivery.None,
                     BodyClass = null,
-                    AssetMode = AssetMode.Offline
+                    AssetMode = MarkdownAssetMode.Offline
                 }
             };
 

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultTextStyleAppliesToFollowingContent() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -50,7 +50,7 @@ public partial class PdfDocumentVisualQualityTests {
             Color = PdfColor.FromRgb(10, 20, 30)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -86,7 +86,7 @@ public partial class PdfDocumentVisualQualityTests {
             Color = PdfColor.FromRgb(10, 20, 30)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -124,7 +124,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void HeadingStyle_BoldFalse_UsesNormalFontResource() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -150,7 +150,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_UsesConfiguredSpacingBeforeAndAfter() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -200,7 +200,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_SuppressesSpacingBeforeAtPageTop() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -241,7 +241,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_CanApplySpacingBeforeAtPageTop() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -283,7 +283,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_CanApplySpacingBeforeAfterAutomaticPageBreak() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 160,
             MarginLeft = 30,
@@ -332,7 +332,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeading_SuppressesSpacingBeforeAtColumnTop() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -428,7 +428,7 @@ public partial class PdfDocumentVisualQualityTests {
             Align = PdfAlign.Center,
             SpacingAfter = 16
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -474,7 +474,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 15
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -515,7 +515,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 14
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -552,7 +552,7 @@ public partial class PdfDocumentVisualQualityTests {
             FirstLineIndent = 24,
             SpacingAfter = 0
         };
-        var tableStyle = TableStyles.Minimal();
+        var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = 22;
         var theme = new PdfTheme {
             TextStyle = textStyle,
@@ -560,7 +560,7 @@ public partial class PdfDocumentVisualQualityTests {
             TableStyle = tableStyle
         };
 
-        var doc = PdfDocument.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 260,
                 MarginLeft = 30,
@@ -610,7 +610,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfTheme_WordLikeProvidesGenericDocumentDefaultsAndSnapshotsInput() {
         PdfTheme theme = PdfTheme.WordLike();
-        PdfOptions options = new PdfOptions().ApplyTheme(theme);
+        PdfCreateOptions options = new PdfCreateOptions().ApplyTheme(theme);
 
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Courier,
@@ -621,7 +621,7 @@ public partial class PdfDocumentVisualQualityTests {
             LineHeight = 2,
             SpacingAfter = 0
         };
-        theme.TableStyle = TableStyles.Minimal();
+        theme.TableStyle = PdfTableStyles.Minimal();
 
         PdfTheme freshTheme = PdfTheme.WordLike();
 
@@ -654,9 +654,9 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfTheme_BuiltInVisualProfilesExposeReusableDocumentRhythm() {
-        PdfOptions technical = new PdfOptions().ApplyTheme(PdfTheme.TechnicalDocument());
-        PdfOptions compact = new PdfOptions().ApplyTheme(PdfTheme.Compact());
-        PdfOptions report = new PdfOptions().ApplyTheme(PdfTheme.Report());
+        PdfCreateOptions technical = new PdfCreateOptions().ApplyTheme(PdfTheme.TechnicalDocument());
+        PdfCreateOptions compact = new PdfCreateOptions().ApplyTheme(PdfTheme.Compact());
+        PdfCreateOptions report = new PdfCreateOptions().ApplyTheme(PdfTheme.Report());
 
         Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
         Assert.Equal(9.75, technical.DefaultTableStyle.FontSize);
@@ -681,7 +681,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_WordLikeThemeRendersReadableMixedFlowRhythm() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 520,
                 MarginLeft = 42,
@@ -726,7 +726,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_ReportThemeRendersStrongerTableAndPanelHierarchy() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 520,
                 MarginLeft = 42,
@@ -764,9 +764,9 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_OptionsAppliedThemeRendersReusableDefaults() {
-        var tableStyle = TableStyles.Minimal();
+        var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = 22;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 260,
                 MarginLeft = 30,

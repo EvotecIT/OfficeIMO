@@ -408,7 +408,7 @@ internal static partial class PdfWriter {
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");
                 MarkRichFonts(rpb.Runs);
-                ReportRichPaintDiagnostics("Paragraph", "PdfParagraph", rpb, sliceLines, sliceHeights,
+                ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfParagraph", rpb, sliceLines, sliceHeights,
                     FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, textFrame.X, textFrame.Width,
                     new TableCellContentFrame(textFrame.X, currentOpts.PageHeight, textFrame.Width, currentOpts.PageHeight), clipsToFrame: false,
                     offsets: floatingLineOffsets?.GetRange(lineIndex, take), widths: floatingLineWidths?.GetRange(lineIndex, take),

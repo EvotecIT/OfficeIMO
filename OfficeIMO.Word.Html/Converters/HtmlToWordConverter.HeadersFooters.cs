@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             WordDocument doc,
             WordSection section,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             TextFormatting formatting,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {

@@ -48,7 +48,7 @@ public class PowerPointPdfThemeColorTests {
         Assert.Equal(OfficeLineMarkerKind.Triangle, lineAppearance.StrokeStartMarker!.Kind);
         // The literal editing getters remain literal; exporters use the resolved model values.
         Assert.Null(shape.FillColor);
-        string pdf = PdfOperatorSearchText.From(presentation.ToPdfBytes());
+        string pdf = PdfOperatorSearchText.From(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("0.22 0.337 0.455 rg", pdf, StringComparison.Ordinal);
         Assert.Contains("0.043 0.102 0.161 rg", pdf, StringComparison.Ordinal);
         Assert.Contains("0.102 0.22 0.337 RG", pdf, StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public class PowerPointPdfThemeColorTests {
         Assert.Equal(OfficeColor.FromRgb(38, 61, 83), shape.ResolveFillColorForExport());
         Assert.Equal(OfficeColor.FromRgb(26, 56, 86), shape.ResolveOutlineColorForExport());
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), frame.ResolveFillColorForExport());
-        string pdf = PdfOperatorSearchText.From(presentation.ToPdfBytes());
+        string pdf = PdfOperatorSearchText.From(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("0.149 0.239 0.325 rg", pdf, StringComparison.Ordinal);
         Assert.Contains("0.102 0.22 0.337 RG", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0 0 rg", pdf, StringComparison.Ordinal);
@@ -160,7 +160,7 @@ public class PowerPointPdfThemeColorTests {
 
         Assert.Equal(expected, shape.ResolveFillColorForExport()!.Value.ToRgbHex());
         Assert.Equal(expected, slide.GetBackground().Color);
-        Assert.Contains(fillOperator, PdfOperatorSearchText.From(presentation.ToPdfBytes()), StringComparison.Ordinal);
+        Assert.Contains(fillOperator, PdfOperatorSearchText.From(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), StringComparison.Ordinal);
 
         layout.SlideLayout.CommonSlideData.Background = new Background(new BackgroundProperties(
             new A.GradientFill(new A.GradientStopList(
@@ -207,7 +207,7 @@ public class PowerPointPdfThemeColorTests {
         });
         Assert.Equal(OfficeColor.FromRgba(56, 86, 116, 128), shape.ResolveFillColorForExport());
         Assert.Equal(OfficeColor.FromRgba(56, 86, 116, 128).ToHex(), slide.GetBackground().Color);
-        string pdf = PdfOperatorSearchText.From(presentation.ToPdfBytes());
+        string pdf = PdfOperatorSearchText.From(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("0.22 0.337 0.455 rg", pdf, StringComparison.Ordinal);
         Assert.Contains("/ca 0.502", pdf, StringComparison.Ordinal);
     }
@@ -282,7 +282,7 @@ public class PowerPointPdfThemeColorTests {
         OfficeColor expected = source is "phClr" or "layoutPhClr"
             ? OfficeColor.FromRgb(38, 61, 83) : OfficeColor.FromRgb(56, 86, 116);
         Assert.Equal(expected, PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, box));
-        byte[] bytes = presentation.ToPdfBytes();
+        byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string expectedOperator = source is "phClr" or "layoutPhClr" ? "0.149 0.239 0.325 rg" : "0.22 0.337 0.455 rg";
         Assert.Contains(expectedOperator, PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
         Assert.Contains("Mapped theme text", OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -334,8 +334,8 @@ public class PowerPointPdfThemeColorTests {
         Assert.NotNull(appearance.Shadow);
         Assert.Equal(OfficeColor.FromRgb(80, 120, 160), appearance.Glow!.Color);
         Assert.Equal(OfficeColor.FromRgb(80, 120, 160), appearance.Shadow!.Color);
-        var options = new PowerPointToPdfOptions();
-        var result = presentation.ToPdfDocumentResult(options);
+        var options = new PowerPointPdfExportOptions();
+        var result = presentation.ConvertToPdfWithEvidence(options);
         string pdf = PdfOperatorSearchText.From(result.ToBytes());
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape);
         Assert.Contains("/ShadingType 2", pdf, StringComparison.Ordinal);
@@ -365,8 +365,8 @@ public class PowerPointPdfThemeColorTests {
         A.FillStyleList fills = slide.ResolvedFormatScheme!.GetFirstChild<A.FillStyleList>()!;
         fills.ReplaceChild(fill, fills.ChildElements[0]);
         native.ShapeStyle = Style(1U, new A.RgbColorModelHex { Val = "FF0000" });
-        var options = new PowerPointToPdfOptions();
-        var result = presentation.ToPdfDocumentResult(options);
+        var options = new PowerPointPdfExportOptions();
+        var result = presentation.ConvertToPdfWithEvidence(options);
         result.ToBytes();
         Assert.Contains(result.Warnings, warning => warning.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape
             && warning.LossKind == OfficeConversionLossKind.Omission);

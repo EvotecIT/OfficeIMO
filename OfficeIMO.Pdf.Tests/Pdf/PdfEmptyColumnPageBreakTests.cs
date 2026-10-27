@@ -53,7 +53,7 @@ public sealed class PdfEmptyColumnPageBreakTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ExplicitBreakPreservesASpacingOnlyBodyPage(bool columns, bool nextColumn) {
-        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false });
+        var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false });
         document.Compose(builder => builder.Page(page => page.Content(body => {
             void Content(PdfContentBuilder content) {
                 content.Spacer(12);
@@ -71,7 +71,7 @@ public sealed class PdfEmptyColumnPageBreakTests {
     }
 
     private static byte[] Render(int columns, int breaks, bool header, bool preserve) {
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
             MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false
         });

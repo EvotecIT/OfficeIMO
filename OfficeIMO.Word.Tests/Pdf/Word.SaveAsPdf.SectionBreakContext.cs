@@ -32,7 +32,7 @@ public partial class Word {
         paragraph.Append(moveFrom
             ? new W.MoveFromRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) }
             : new W.DeletedRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) });
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
         Assert.Equal(columnBreak ? 1 : 2, pdf.NumberOfPages);
         Assert.Contains("Before", text);
@@ -45,7 +45,7 @@ public partial class Word {
         document.Sections[0].ColumnCount = 3;
         document.AddParagraph("FirstColumn").AddBreak(WordBreakType.Column).AddText("SecondColumn")
             .AddBreak(WordBreakType.Column).AddText("ThirdColumn");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToDictionary(word => word.Text);
         Assert.True(words["FirstColumn"].BoundingBox.Left < words["SecondColumn"].BoundingBox.Left);
@@ -64,7 +64,7 @@ public partial class Word {
         target.AddBookmark("FragmentTarget");
         target.AddBreak(columnBreak ? WordBreakType.Column : WordBreakType.Page).AddText("After");
         document.AddHyperLink("Go to target", "FragmentTarget");
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var logical = OfficeIMO.Pdf.PdfDocumentReadResult.Load(bytes);
         Assert.Contains(logical.NamedDestinations, destination => destination.Name == "FragmentTarget");
         Assert.Contains(logical.GetLinksByDestinationName("FragmentTarget"), link => link.IsNamedDestinationLink);
@@ -85,7 +85,7 @@ public partial class Word {
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
             new W.Run(new W.Text("Before"), new W.Break { Type = breakType }, new W.Text("After")),
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         Assert.Contains("Before", text);

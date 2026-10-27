@@ -23,7 +23,7 @@ public sealed partial class DocumentAssistantTests {
             using var raster = new RenderTargetBitmap(new PixelSize(20, 20));
             using (var drawing = raster.CreateDrawingContext()) drawing.DrawRectangle(Brushes.Gray, null, new Rect(0, 0, 20, 20));
             using var png = new MemoryStream(); raster.Save(png, PngBitmapEncoderOptions.Default);
-            var pdf = PdfDocument.Create(new PdfOptions { PageWidth = 300, PageHeight = 220, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24 });
+            var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = 300, PageHeight = 220, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24 });
             pdf.Content.Image(png.ToArray(), 180, 120);
             pdf.Content.Paragraph(paragraph => paragraph.Text("Footer 1"));
             bool current = true, opened = false;

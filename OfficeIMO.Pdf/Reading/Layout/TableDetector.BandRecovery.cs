@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class TableDetector {
-    private static List<StructuredTable> DetectTablesAcrossBandGroups(
+    private static List<PdfStructuredTable> DetectTablesAcrossBandGroups(
         List<List<TextLayoutEngine.TextLine>> bands,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
-        var result = new List<StructuredTable>();
+        var result = new List<PdfStructuredTable>();
         // Pre-compute splits per band
         var bandSplits = new List<(int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits)>();
         for (int i = 0; i < bands.Count; i++) {
@@ -403,7 +403,7 @@ internal static partial class TableDetector {
             var twoRowLines = new List<TextLayoutEngine.TextLine>(headerBand.Count + bands[bodyBandIndex].Count);
             twoRowLines.AddRange(headerBand);
             twoRowLines.AddRange(bands[bodyBandIndex]);
-            StructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
+            PdfStructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
                 twoRowLines,
                 bodySplits,
                 "band-group");

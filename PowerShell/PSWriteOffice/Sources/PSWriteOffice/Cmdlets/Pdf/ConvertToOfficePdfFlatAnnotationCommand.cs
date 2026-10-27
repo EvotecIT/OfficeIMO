@@ -46,7 +46,7 @@ public sealed class ConvertToOfficePdfFlatAnnotationCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WriteObject(new FileInfo(outputPath));
     }
 }

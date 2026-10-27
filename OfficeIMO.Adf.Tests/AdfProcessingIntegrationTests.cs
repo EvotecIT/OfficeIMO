@@ -87,7 +87,7 @@ public sealed class AdfProcessingIntegrationTests {
     [Fact]
     public void ExtensionResolverGraphsAreCheckedBeforeRendering() {
         var quote = new QuoteBlock(Array.Empty<string>());
-        var projection = MarkdownDoc.Create().Add(quote);
+        var projection = MarkdownDocument.Create().Add(quote);
         quote.ChildBlocks.Add(quote);
         var document = new AdfDocument(new[] { new AdfNode("extension") });
         Assert.Throws<InvalidOperationException>(() => AdfConverter.ToMarkdown(document, new AdfConversionOptions {
@@ -100,7 +100,7 @@ public sealed class AdfProcessingIntegrationTests {
         var outer = ListItem.Task("Outer");
         outer.NestedBlocks.Add(new UnorderedListBlock { Items = { ListItem.Task("First") } });
         outer.NestedBlocks.Add(new UnorderedListBlock { Items = { ListItem.Task("Second") } });
-        var source = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { outer } });
+        var source = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { outer } });
         var result = AdfConverter.FromMarkdown(source, new AdfConversionOptions { LocalIdFactory = path => path });
         var root = Assert.Single(result.Value.Content);
         var nodes = new[] { root }.Concat(root.Content).Concat(root.Content.Where(node => node.Type == "taskList").SelectMany(node => node.Content));

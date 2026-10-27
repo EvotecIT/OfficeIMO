@@ -127,7 +127,7 @@ public class PdfSourceFontEditingTests {
 
     private static PdfDocument CreateSource(bool encrypted, string? baseFontAlias = null) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "OfficeIMOBaselineSans-Regular.ttf"));
-        var options = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Baseline", font));
+        var options = new PdfCreateOptions().RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Baseline", font));
         if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256 });
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("alpha beta gamma"))), options).ToBytes();
         var loadOptions = new PdfLoadOptions { Password = encrypted ? "owner" : null };

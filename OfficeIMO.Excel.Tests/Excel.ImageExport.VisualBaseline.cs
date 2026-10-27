@@ -1871,7 +1871,7 @@ namespace OfficeIMO.Tests {
             stylesheet.Fills.Count = fillId;
 
             Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>()
-                .Single(item => string.Equals(item.CellReference?.Value, A1.CellReference(row, column), StringComparison.OrdinalIgnoreCase));
+                .Single(item => string.Equals(item.CellReference?.Value, ExcelA1.CellReference(row, column), StringComparison.OrdinalIgnoreCase));
             CellFormat baseFormat = stylesheet.CellFormats.Elements<CellFormat>().ElementAtOrDefault((int)(cell.StyleIndex?.Value ?? 0U)) ?? new CellFormat();
             CellFormat format = (CellFormat)baseFormat.CloneNode(true);
             format.FillId = fillId - 1U;

@@ -27,7 +27,7 @@ public sealed class MarkdownPdfPageDecoration {
     }
 
     /// <summary>
-    /// When true, explicit low-level PdfOptions values take precedence over this theme decoration.
+    /// When true, explicit low-level PdfCreateOptions values take precedence over this theme decoration.
     /// </summary>
     public bool RespectExistingPdfOptions { get; set; } = true;
 
@@ -81,7 +81,7 @@ public sealed class MarkdownPdfPageDecoration {
         _kind = _kind
     };
 
-    internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfOptions options) {
+    internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfCreateOptions options) {
         if (pdf == null) {
             throw new ArgumentNullException(nameof(pdf));
         }
@@ -105,16 +105,16 @@ public sealed class MarkdownPdfPageDecoration {
         }
     }
 
-    private bool ShouldApplyBackgroundColor(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyBackgroundColor(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || !options.BackgroundColor.HasValue;
 
-    private bool ShouldApplyBackgroundShapes(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyBackgroundShapes(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || options.PageBackgroundShapes == null || options.PageBackgroundShapes.Count == 0;
 
-    private bool ShouldApplyPageBorder(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyPageBorder(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || options.PageBorder == null;
 
-    private IReadOnlyList<PdfCore.PdfPageBackgroundShape> CreateEffectiveBackgroundShapes(PdfCore.PdfOptions options) {
+    private IReadOnlyList<PdfCore.PdfPageBackgroundShape> CreateEffectiveBackgroundShapes(PdfCore.PdfCreateOptions options) {
         var shapes = new List<PdfCore.PdfPageBackgroundShape>();
         switch (_kind) {
             case MarkdownPdfPageDecorationKind.Report:
@@ -134,7 +134,7 @@ public sealed class MarkdownPdfPageDecoration {
         return shapes;
     }
 
-    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfOptions options) {
+    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfCreateOptions options) {
         yield return PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,
@@ -168,7 +168,7 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.22);
     }
 
-    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfOptions options) {
+    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {
         yield return PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,

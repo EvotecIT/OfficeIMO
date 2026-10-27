@@ -88,7 +88,7 @@ internal static partial class PdfComplianceAnalyzer {
         "ZZZ"
     };
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentMeansCodeRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentMeansCodeRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {

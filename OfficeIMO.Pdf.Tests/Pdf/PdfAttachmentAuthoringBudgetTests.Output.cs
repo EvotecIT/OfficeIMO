@@ -19,7 +19,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
         Assert.Equal(sentinel, destination.ToArray());
         Assert.Equal(3, destination.Position);
 
-        PdfSaveResult failure = document.SaveResult(destination);
+        PdfSaveResult failure = document.TrySaveWithEvidence(destination);
         Assert.False(failure.Succeeded);
         Assert.IsType<InvalidDataException>(failure.Exception);
         Assert.Equal(0, failure.BytesWritten);
@@ -56,7 +56,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
         Assert.Equal(sentinel, destination.ToArray());
         Assert.Equal(2, destination.Position);
 
-        PdfSaveResult failure = await document.SaveResultAsync(destination);
+        PdfSaveResult failure = await document.TrySaveWithEvidenceAsync(destination);
         Assert.False(failure.Succeeded);
         Assert.IsType<InvalidDataException>(failure.Exception);
         Assert.Equal(sentinel, destination.ToArray());
@@ -82,7 +82,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void DocumentPerFileLimitAlsoAppliesToPermissiveStructureAdmission() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             MaxEmbeddedFileBytes = 2,
             MaxTotalEmbeddedFileBytes = 10
@@ -99,7 +99,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void CombinedBudgetCountsIdenticalStructureFilesOnceAcrossPages() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             MaxEmbeddedFileBytes = 3,
             MaxTotalEmbeddedFileBytes = 6
@@ -124,7 +124,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void UnemittedStructureAttachmentsDoNotConsumeTheDocumentBudget() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.None,
             MaxEmbeddedFileBytes = 1,
             MaxTotalEmbeddedFileBytes = 1
@@ -137,7 +137,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     }
 
     private static PdfDocument OverBudgetDocument(PdfObjectSerializationMode mode) =>
-        PdfDocument.Create(new PdfOptions {
+        PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             ObjectSerializationMode = mode,
             MaxEmbeddedFileBytes = 3,

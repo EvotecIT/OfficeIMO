@@ -10,7 +10,7 @@ public class PdfVisualComparerTests {
     [InlineData(true)]
     public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
         byte[] single = BuildPdf("Common page");
-        byte[] multiple = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
+        byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(240, 180) })
             .Paragraph(paragraph => paragraph.Text("Common page"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Extra page"))
@@ -67,12 +67,12 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void Compare_ReportsPageCountAndDimensionStructureWithCenterAlignment() {
-        byte[] expected = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(300, 400) })
+        byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(300, 400) })
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))
             .ToBytes();
-        byte[] actual = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(320, 420) })
+        byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(320, 420) })
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .ToBytes();
 
@@ -168,7 +168,7 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareRejectsIgnoredRegionWorkBeforeRasterizing() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
             .Canvas(canvas => canvas.Text("Bounded ignored regions", 20D, 20D, 200D, 20D)).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 3000; index++) {
@@ -183,10 +183,10 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareChargesIgnoredRegionWorkForTheCombinedCanvas() {
-        byte[] wide = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 40D,
+        byte[] wide = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 40D,
             MarginTop = 0D, MarginBottom = 0D, MarginLeft = 0D, MarginRight = 0D })
             .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
-        byte[] tall = PdfDocument.Create(new PdfOptions { PageWidth = 40D, PageHeight = 400D,
+        byte[] tall = PdfDocument.Create(new PdfCreateOptions { PageWidth = 40D, PageHeight = 400D,
             MarginTop = 0D, MarginBottom = 0D, MarginLeft = 0D, MarginRight = 0D })
             .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
         var options = new PdfVisualComparisonOptions();
@@ -200,7 +200,7 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareDoesNotChargeSourceRastersAsIgnoredRegionWork() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { PageWidth = 500D, PageHeight = 500D })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = 500D, PageHeight = 500D })
             .Canvas(canvas => canvas.Text("A", 20D, 20D, 20D, 20D)).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 300; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 500, 500));
@@ -226,7 +226,7 @@ public class PdfVisualComparerTests {
                 cancellationToken: cancellation.Token));
     }
 
-    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
+    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(240, 180) })
         .Paragraph(paragraph => paragraph.Text(text))
         .ToBytes();
 

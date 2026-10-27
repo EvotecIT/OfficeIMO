@@ -25,7 +25,7 @@ public class PdfCatalogPageOperationScalingBenchmarks {
     [GlobalSetup]
     public void Setup() {
         bool hasPageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange || FeatureMode == PdfCatalogFeatureMode.PerPageRange;
-        var options = new PdfOptions { IncludePageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange };
+        var options = new PdfCreateOptions { IncludePageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange };
         if (FeatureMode == PdfCatalogFeatureMode.PerPageRange) {
             for (int page = 1; page <= PageCount; page++) {
                 options.AddPageLabelRange(page, PdfPageNumberStyle.Arabic, startNumber: page);

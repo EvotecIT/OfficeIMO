@@ -13,7 +13,7 @@ internal sealed class InvoiceComparisonScenario {
     private InvoiceComparisonScenario(
         Invoice invoice,
         InvoiceCalculation calculation,
-        PdfOptions pdfOptions,
+        PdfCreateOptions pdfOptions,
         byte[] logoBytes,
         byte[] regularFont,
         byte[] boldFont) {
@@ -27,7 +27,7 @@ internal sealed class InvoiceComparisonScenario {
 
     internal Invoice Invoice { get; }
     internal InvoiceCalculation Calculation { get; }
-    internal PdfOptions PdfOptions { get; }
+    internal PdfCreateOptions PdfOptions { get; }
     internal byte[] LogoBytes { get; }
     internal byte[] RegularFont { get; }
     internal byte[] BoldFont { get; }
@@ -70,7 +70,7 @@ internal sealed class InvoiceComparisonScenario {
         byte[] logo = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Brand", "evotec-logo-horizontal-gradient-2400.png"));
         byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf"));
         byte[] bold = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Bold.ttf"));
-        var options = new PdfOptions { DefaultFontSize = 9.5D }
+        var options = new PdfCreateOptions { DefaultFontSize = 9.5D }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito", regular, bold));
         return new InvoiceComparisonScenario(invoice, calculation, options, logo, regular, bold);
     }

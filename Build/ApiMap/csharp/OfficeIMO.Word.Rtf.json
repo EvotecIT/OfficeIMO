@@ -1,0 +1,16 @@
+{
+  "package": "OfficeIMO.Word.Rtf",
+  "extraChanges": [
+    {
+      "category": "diagnostics",
+      "phase": "A",
+      "applied": "applied",
+      "files": [
+        "OfficeIMO.Word.Rtf/WordRtfWorkflowExtensions.cs"
+      ],
+      "note": "Existing field, replacement, mail-merge and merge completion notices use the mapped Core diagnostic codes."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

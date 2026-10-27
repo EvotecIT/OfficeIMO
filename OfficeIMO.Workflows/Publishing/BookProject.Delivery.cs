@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Provenance;
 using System.IO.Compression;
@@ -69,7 +70,7 @@ public sealed partial class BookProject {
     }
 
     private static BookDeliveryFile DescribeDeliveryFile(string name, string mediaType, byte[] bytes) => new() {
-        Name = name, MediaType = mediaType, Bytes = bytes.LongLength, Sha256 = Convert.ToHexString(SHA256.HashData(bytes))
+        Name = name, MediaType = mediaType, Bytes = bytes.LongLength, Sha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes))
     };
 
     private static BookDeliveryDiagnostic DescribeDeliveryDiagnostic(OfficeConversionFidelityDiagnostic diagnostic) => new() {

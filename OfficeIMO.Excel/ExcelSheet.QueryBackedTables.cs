@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException(
                         $"Query-backed table '{tableName}' changed while its query was executing.");
                 }
-                var current = A1.ParseRange(table.Reference?.Value
+                var current = ExcelA1.ParseRange(table.Reference?.Value
                     ?? throw new InvalidDataException("Query-backed table range is missing."));
                 NormalizeImplicitCellReferences();
                 int headerRowCount = checked((int)(table.HeaderRowCount?.Value ?? 1U));
@@ -83,8 +83,8 @@ namespace OfficeIMO.Excel {
                 if (targetLastColumn > 16_384 || targetLastRow > 1_048_576) {
                     throw new InvalidOperationException("Query result exceeds worksheet capacity.");
                 }
-                updatedRange = A1.CellReference(current.r1, current.c1) + ":"
-                    + A1.CellReference(targetLastRow, targetLastColumn);
+                updatedRange = ExcelA1.CellReference(current.r1, current.c1) + ":"
+                    + ExcelA1.CellReference(targetLastRow, targetLastColumn);
                 ExcelReference currentReference = ExcelReference.Parse(table.Reference!.Value!);
                 ExcelReference targetReference = ExcelReference.Parse(updatedRange);
                 EnsureQueryRefreshExpansionIsEmpty(currentReference, targetReference);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                     int sourceColumn = current.c1 + columnOffset;
                     int targetRow = targetTotalsStartRow + rowOffset;
                     int targetColumn = current.c1 + columnOffset;
-                    clone.CellReference = A1.CellReference(targetRow, targetColumn);
+                    clone.CellReference = ExcelA1.CellReference(targetRow, targetColumn);
                     if (clone.CellFormula != null && targetRow != sourceRow) {
                         clone.CellFormula.Text = TranslateCopiedFormula(
                             clone.CellFormula.Text,
@@ -160,8 +160,8 @@ namespace OfficeIMO.Excel {
                     filter.Remove();
                 } else if (filter != null) {
                     int filterLastRow = targetLastRow - totalsRowCount;
-                    filter.Reference = A1.CellReference(current.r1, current.c1) + ":"
-                        + A1.CellReference(filterLastRow, targetLastColumn);
+                    filter.Reference = ExcelA1.CellReference(current.r1, current.c1) + ":"
+                        + ExcelA1.CellReference(filterLastRow, targetLastColumn);
                     foreach (FilterColumn stale in filter.Elements<FilterColumn>()
                         .Where(item => (item.ColumnId?.Value ?? uint.MaxValue) >= (uint)columnNames.Count).ToList()) stale.Remove();
                 }

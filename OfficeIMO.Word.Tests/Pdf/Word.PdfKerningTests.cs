@@ -29,8 +29,8 @@ public sealed class WordPdfKerningTests {
             paragraph.AddTabStop(2000, WordTabAlignment.Decimal);
         }
 
-        byte[] bytes = document.ToPdfBytes(ConversionOptions(
-            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('1', '.', includeSpace: true))));
+        byte[] bytes = document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('1', '.', includeSpace: true)))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
             Directory.CreateDirectory(output);
             File.WriteAllBytes(Path.Combine(output, $"decimal-kerning-{inTable}-{characterScale}-{spacingTwips}.pdf"), bytes);
@@ -92,9 +92,9 @@ public sealed class WordPdfKerningTests {
                 Name = new DocumentFormat.OpenXml.EnumValue<CompatSettingNameValues> { InnerText = "enableOpenTypeFeatures" },
                 Uri = "http://schemas.microsoft.com/office/word", Val = "1"
             });
-        PdfOptions options = FontOptions(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"));
+        PdfCreateOptions options = FontOptions(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"));
         if (managedProvider) options.UseManagedTextShaping();
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(options)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter ligature = Assert.Single(pdf.GetPage(1).Letters);
         Assert.Equal("fi", ligature.Value);
         Assert.Equal(5D, ligature.Width, 3);
@@ -145,11 +145,11 @@ public sealed class WordPdfKerningTests {
             });
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
-        PdfOptions options = FontOptions(ligatures
+        PdfCreateOptions options = FontOptions(ligatures
             ? ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn")
             : ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V'));
         options.UseManagedTextShaping();
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(options)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(pdf.GetPages()).Letters.ToArray();
     }
 
@@ -212,18 +212,18 @@ public sealed class WordPdfKerningTests {
             following.FontFamily = ManagedTextShapingTestAssets.FamilyName;
             following.KerningMinimumFontSizePoints = 0D;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(
-            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')))));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "V").ToArray();
     }
 
-    private static PdfOptions FontOptions(byte[] font) {
-        var options = new PdfOptions { DefaultFontSize = 10D };
+    private static PdfCreateOptions FontOptions(byte[] font) {
+        var options = new PdfCreateOptions { DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         return options;
     }
 
-    private static WordToPdfOptions ConversionOptions(PdfOptions options) => new() {
+    private static WordPdfExportOptions ConversionOptions(PdfCreateOptions options) => new() {
         IncludePageNumbers = false, PdfOptions = options,
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };

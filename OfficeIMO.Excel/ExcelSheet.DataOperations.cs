@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
                 var existingColumns = new Dictionary<uint, FilterColumn>();
                 foreach (var existing in af.Elements<FilterColumn>()) {
                     if (existing.ColumnId?.Value is uint existingColumnId) {
@@ -515,7 +515,7 @@ namespace OfficeIMO.Excel {
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
 
@@ -552,7 +552,7 @@ namespace OfficeIMO.Excel {
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
 
@@ -757,7 +757,7 @@ namespace OfficeIMO.Excel {
         private static bool TryGetTableAutoFilterRange(Table table, out string range) {
             range = string.Empty;
             if (table.HeaderRowCount?.Value == 0U
-                || !A1.TryParseRange(table.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out int c2)) {
+                || !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out int c2)) {
                 return false;
             }
             int totalsRows = table.TotalsRowShown?.Value == true
@@ -765,7 +765,7 @@ namespace OfficeIMO.Excel {
                 : 0;
             int filterLastRow = r2 - totalsRows;
             if (filterLastRow < r1) return false;
-            range = A1.CellReference(r1, c1) + ":" + A1.CellReference(filterLastRow, c2);
+            range = ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(filterLastRow, c2);
             return true;
         }
 
@@ -780,10 +780,10 @@ namespace OfficeIMO.Excel {
             reference.GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
             uint width = checked((uint)(lastColumn - firstColumn + 1));
             if (columnId >= width) throw new ArgumentOutOfRangeException(nameof(columnId), "AutoFilter column offset must be inside the filter range.");
-            string firstCell = A1.CellReference(firstRow, firstColumn);
+            string firstCell = ExcelA1.CellReference(firstRow, firstColumn);
             return reference.Kind == ExcelReferenceKind.Cell
                 ? firstCell
-                : firstCell + ":" + A1.CellReference(lastRow, lastColumn);
+                : firstCell + ":" + ExcelA1.CellReference(lastRow, lastColumn);
         }
 
     }

@@ -26,7 +26,7 @@ public partial class Word {
             paragraph.AddTabStop(4000, WordTabAlignment.Decimal);
         }
         using var output = new MemoryStream();
-        document.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        document.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(output.ToArray());
         var digits = pdf.GetPage(1).Letters.Where(letter => letter.Value.Length == 1 && "0123456789.,".Contains(letter.Value, StringComparison.Ordinal)).ToArray();
         Assert.Equal(grouped + control, string.Concat(digits.Select(letter => letter.Value)));

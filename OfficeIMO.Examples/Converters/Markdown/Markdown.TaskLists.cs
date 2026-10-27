@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Markdown {
             string filePath = Path.Combine(folderPath, "MarkdownTaskLists.docx");
             string markdown = "- [ ] Task 1\n- [x] Task 2\n  - [ ] Subtask";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             doc.Save(filePath);
 
             if (openWord) {

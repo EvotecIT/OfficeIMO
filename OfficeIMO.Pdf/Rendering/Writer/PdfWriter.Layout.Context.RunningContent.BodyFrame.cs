@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
             return height;
         }
 
-        private (double X, double Width, double ReservedHeight) GetRunningBodyContinuationFrame(PdfOptions source, int sequenceDepth) {
+        private (double X, double Width, double ReservedHeight) GetRunningBodyContinuationFrame(PdfCreateOptions source, int sequenceDepth) {
             double frameX = source.MarginLeft;
             double frameWidth = source.PageWidth - source.MarginLeft - source.MarginRight;
             double reserved = 0D;

@@ -79,7 +79,7 @@ public class PdfContinuedFlowCapacityTests {
 
     [Fact]
     public void AcceptedPageFootnotesKeepTheirReservationAboveTheContinuationSeparatorMargin() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 140;
         PdfDocument document = PdfDocument.Create(options);
         var tableStyle = new PdfTableStyle {
@@ -139,7 +139,7 @@ public class PdfContinuedFlowCapacityTests {
     private static void AssertStoryOrder(PdfPigDocument pdf, int count) =>
         Assert.Equal(Enumerable.Range(0, count).Select(index => "Story" + index.ToString("00")), pdf.GetPages().SelectMany(StoryTokens));
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 260, PageHeight = 160, MarginTop = 20, MarginBottom = 20, MarginLeft = 20, MarginRight = 20,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 6
     };

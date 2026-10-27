@@ -131,7 +131,7 @@ namespace OfficeIMO.Word.Html {
                 var elementName = element.TagName.ToLowerInvariant();
                 if (!IsSupportedCssDiagnosticProperty(element, elementName, propertyName)) {
                     AddUnsupportedCssDiagnostic(
-                        "UnsupportedCssDeclaration",
+                        "unsupported-css-declaration",
                         "CSS declaration is not currently mapped to Word output.",
                         $"{elementName}:{propertyName}");
                     continue;
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Html {
 
                 if (TryGetUnsupportedCssValueReason(elementName, propertyName, pair.Value, out var reason)) {
                     AddUnsupportedCssDiagnostic(
-                        "UnsupportedCssValue",
+                        "unsupported-css-value",
                         "CSS declaration value is not currently mapped to Word output.",
                         $"{elementName}:{propertyName}",
                         reason);
@@ -205,7 +205,7 @@ namespace OfficeIMO.Word.Html {
             elementName is "table" or "tr" or "td" or "th";
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
-            if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
+            if (_options.UnsupportedCssHandling == WordHtmlUnsupportedCssHandling.Ignore) {
                 return;
             }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Error) {
+            if (_options.UnsupportedCssHandling == WordHtmlUnsupportedCssHandling.Error) {
                 var exception = new HtmlUnsupportedCssException(code, message, source, detail);
                 AddDiagnostic(_options, code, message, source, exception, HtmlDiagnosticSeverity.Error);
                 throw exception;

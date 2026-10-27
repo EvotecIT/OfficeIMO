@@ -56,7 +56,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             DetectShapeCollisions = false,
             DetectMissingVisualAssets = false,
             IncludeVisualSnapshotDiagnostics = false
-        }).Findings, finding => finding.Code == "Text.Clipped");
+        }).Findings, finding => finding.Code == "text-clipped");
 
         using var stream = new MemoryStream();
         presentation.Save(stream);
@@ -95,7 +95,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             DetectShapeCollisions = false,
             DetectMissingVisualAssets = false,
             IncludeVisualSnapshotDiagnostics = false
-        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+        }).Findings, finding => finding.Code == "text-clipped" || finding.Code == "layout-shape-off-slide");
 
         foreach (PowerPointSlide slide in presentation.Slides) {
             PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
@@ -142,7 +142,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             DetectShapeCollisions = false,
             DetectMissingVisualAssets = false,
             IncludeVisualSnapshotDiagnostics = false
-        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+        }).Findings, finding => finding.Code == "text-clipped" || finding.Code == "layout-shape-off-slide");
         foreach (PowerPointSlide slide in presentation.Slides) {
             PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
             for (int index = 1; index < boxes.Length; index++) {
@@ -172,7 +172,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             DetectShapeCollisions = false,
             DetectMissingVisualAssets = false,
             IncludeVisualSnapshotDiagnostics = false
-        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+        }).Findings, finding => finding.Code == "text-clipped" || finding.Code == "layout-shape-off-slide");
     }
 
     [Fact]

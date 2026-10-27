@@ -45,8 +45,8 @@ public sealed partial class PdfWorkspaceTests {
             await workspace.SaveAsync(croppedPath, CancellationToken.None);
             byte[] cropped = File.ReadAllBytes(croppedPath);
             Assert.True(cropped.AsSpan(0, original.Length).SequenceEqual(original));
-            Assert.Equal(PdfDocument.Load(original).Inspect().Security.RevisionCount + 1,
-                PdfDocument.Load(cropped).Inspect().Security.RevisionCount);
+            Assert.Equal(PdfDocument.Load(new System.IO.MemoryStream(original)).Inspect().Security.RevisionCount + 1,
+                PdfDocument.Load(new System.IO.MemoryStream(cropped)).Inspect().Security.RevisionCount);
             await workspace.ResetCropAsync([1], CancellationToken.None);
             Assert.Equal(width, workspace.Pages[0].Geometry.EffectiveBox!.Width, 6);
             await workspace.UndoAsync(CancellationToken.None);

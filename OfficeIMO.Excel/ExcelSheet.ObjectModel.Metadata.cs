@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        var (row, col) = A1.ParseCellRef(reference);
+                        var (row, col) = ExcelA1.ParseCellRef(reference);
                         if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
                             comment.Remove();
                             removedComment = true;
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var (row, col) = A1.ParseCellRef(reference);
+                var (row, col) = ExcelA1.ParseCellRef(reference);
                 if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
                     return true;
                 }
@@ -368,7 +368,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     int shiftedRow = row + rowDelta;
-                    if (shiftedRow <= 0 || shiftedRow > A1.MaxRows) {
+                    if (shiftedRow <= 0 || shiftedRow > ExcelA1.MaxRows) {
                         pageBreak.Remove();
                     } else {
                         pageBreak.Id = (uint)shiftedRow;
@@ -423,7 +423,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var cell = A1.ParseCellRef(reference);
+                var cell = ExcelA1.ParseCellRef(reference);
                 if (!TryRemapShiftedReferenceRows((cell.Row, cell.Col, cell.Row, cell.Col), firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
                     continue;
                 }
@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string newReference = A1.CellReference(remapped.Value.r1, remapped.Value.c1);
+                string newReference = ExcelA1.CellReference(remapped.Value.r1, remapped.Value.c1);
                 if (!string.Equals(reference, newReference, StringComparison.OrdinalIgnoreCase)) {
                     comment.Reference = newReference;
                     moved.Add((cell, (remapped.Value.r1, remapped.Value.c1)));
@@ -472,7 +472,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    (int Row, int Col) cell = A1.ParseCellRef(reference);
+                    (int Row, int Col) cell = ExcelA1.ParseCellRef(reference);
                     if (TryRemapShiftedReferenceRows(
                             (cell.Row, cell.Col, cell.Row, cell.Col),
                             firstAffectedRow,
@@ -510,7 +510,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    (int Row, int Col) cell = A1.ParseCellRef(reference);
+                    (int Row, int Col) cell = ExcelA1.ParseCellRef(reference);
                     if (!TryRemapShiftedReferenceRows(
                         (cell.Row, cell.Col, cell.Row, cell.Col),
                         firstAffectedRow,
@@ -526,7 +526,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string newReference = A1.CellReference(remapped.Value.r1, remapped.Value.c1);
+                    string newReference = ExcelA1.CellReference(remapped.Value.r1, remapped.Value.c1);
                     if (!string.Equals(reference, newReference, StringComparison.OrdinalIgnoreCase)) {
                         comment.Ref = newReference;
                         changed = true;
@@ -850,7 +850,7 @@ namespace OfficeIMO.Excel {
 
             int remappedFromZeroBasedRow = remapped.Value.r1 - 1;
             int remappedToZeroBasedRow = remapped.Value.r2 - (toMarkerInsideRow ? 1 : 0);
-            if (remappedFromZeroBasedRow < 0 || remappedToZeroBasedRow < remappedFromZeroBasedRow || remappedToZeroBasedRow > A1.MaxRows) {
+            if (remappedFromZeroBasedRow < 0 || remappedToZeroBasedRow < remappedFromZeroBasedRow || remappedToZeroBasedRow > ExcelA1.MaxRows) {
                 return false;
             }
 
@@ -886,7 +886,7 @@ namespace OfficeIMO.Excel {
             }
 
             int shiftedRow = zeroBasedRow + rowDelta;
-            if (shiftedRow < 0 || shiftedRow >= A1.MaxRows) {
+            if (shiftedRow < 0 || shiftedRow >= ExcelA1.MaxRows) {
                 return false;
             }
 

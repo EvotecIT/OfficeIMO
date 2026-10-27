@@ -35,7 +35,7 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -91,7 +91,7 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -143,7 +143,7 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -235,20 +235,20 @@ public partial class Word {
         RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Offset Footer");
         document.AddParagraph("Offset body");
 
-        byte[] lowOffsetBytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] lowOffsetBytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PdfOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 HeaderOffsetY = 6,
                 FooterOffsetY = 8
             }
-        });
-        byte[] highOffsetBytes = document.ToPdfBytes(new WordToPdfOptions {
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] highOffsetBytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PdfOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 HeaderOffsetY = 30,
                 FooterOffsetY = 28
             }
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using PdfPigDocument lowOffsetPdf = PdfPigDocument.Open(new MemoryStream(lowOffsetBytes));
         using PdfPigDocument highOffsetPdf = PdfPigDocument.Open(new MemoryStream(highOffsetBytes));

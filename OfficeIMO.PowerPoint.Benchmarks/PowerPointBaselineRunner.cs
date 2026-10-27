@@ -199,7 +199,7 @@ internal static class PowerPointBaselineRunner {
         if (string.Equals(operation, "OpenPdfExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
-            byte[] pdf = presentation.ToPdfBytes();
+            byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             return PowerPointOperationResult.Pdf(pdf,
                 presentation.Slides.Sum(slide => slide.Shapes.Count));
         }
@@ -271,7 +271,7 @@ internal static class PowerPointBaselineRunner {
 
     private static void ValidateRenderedCorpusPdf(byte[] pdf,
         PowerPointBenchmarkFixture fixture) {
-        PdfCore.PdfReadDocument parsed = PdfCore.PdfReadDocument.Open(pdf);
+        PdfCore.PdfDocument parsed = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         if (parsed.Pages.Count != fixture.SlideCount) {
             throw new InvalidOperationException(
                 $"PDF export produced {parsed.Pages.Count} pages; expected {fixture.SlideCount}.");
@@ -298,7 +298,7 @@ internal static class PowerPointBaselineRunner {
         }
 
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
-            PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
+            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
                     Format = PdfCore.PdfPageRenderFormat.Png,

@@ -17,7 +17,7 @@
       "officeimo.ai": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.reader.core": {

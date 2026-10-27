@@ -251,7 +251,7 @@ public sealed class PdfInlineRuleTests {
     public void PageContinuationRetainsTheFlexibleSourceAndItsLargeFontLineBox() {
         byte[] Render(bool rule) {
             var source = PdfTextRun.Normal("R", fontSize: 24D, font: PdfStandardFont.Helvetica);
-            var document = PdfDocument.Create(new PdfOptions {
+            var document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 140D, PageHeight = 80D, MarginLeft = 20D, MarginRight = 20D,
                 MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 8D,
                 DefaultFont = PdfStandardFont.Courier, CompressContentStreams = false
@@ -284,7 +284,7 @@ public sealed class PdfInlineRuleTests {
         Assert.Equal(-2D, additional.Y - primary.Y, 3);
     }
 
-    private static PdfDocument Create(double frameWidth) => PdfDocument.Create(new PdfOptions {
+    private static PdfDocument Create(double frameWidth) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = frameWidth + 40D, PageHeight = 240D, MarginLeft = 20D, MarginRight = 20D,
         MarginTop = 20D, MarginBottom = 20D, DefaultFont = PdfStandardFont.Courier,
         DefaultFontSize = 10D, CompressContentStreams = false
@@ -296,7 +296,7 @@ public sealed class PdfInlineRuleTests {
 
     private static byte[] RenderBuilderFontMetrics(bool rule, PdfStandardFont font, bool boldItalic,
         double pageHeight, PdfEmbeddedFontFamily? family = null) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 200D, PageHeight = pageHeight, MarginLeft = 10D, MarginRight = 10D,
             MarginTop = 10D, MarginBottom = 10D, CompressContentStreams = false
         };

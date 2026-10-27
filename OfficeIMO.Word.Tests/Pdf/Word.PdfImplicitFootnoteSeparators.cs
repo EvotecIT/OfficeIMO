@@ -93,7 +93,7 @@ public partial class WordPdfPageFootnoteTests {
         var frame = new PageFootnoteFrame(margin.Top!.Value / 20D, margin.Bottom!.Value / 20D,
             double.Parse(spacing.Line!.Value!, CultureInfo.InvariantCulture) / 20D, hasStoredSeparatorMark);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(actual, 0, 4));
         Assert.Equal(input, File.ReadAllBytes(inputPath));

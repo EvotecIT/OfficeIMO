@@ -19,13 +19,13 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("VisibleLine", pdf.GetPage(1).Text);
         if (!overflows) {
-            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
             Assert.False(report.HasLoss);
             return;
         }
 
         if (frame != "canvas") Assert.DoesNotContain("ClippedLine", pdf.GetPage(1).Text);
-        PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+        PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
         Assert.Equal("AuthoringProbe", warning.Converter);
         Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
@@ -52,14 +52,14 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
         Assert.Equal(overflows ? 36D : 12D, Assert.Single(field.Widgets).Height, 3);
         if (overflows) {
-            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "TableCellObjectOverflow");
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "table-cell-object-overflow");
             Assert.Equal(PdfConversionWarningSeverity.Information, warning.Severity);
             Assert.Equal(PdfLayoutDiagnosticKind.Overflow, warning.LayoutDiagnostic!.Kind);
             Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
         } else {
-            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellObjectOverflow");
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-object-overflow");
         }
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
         Assert.False(report.HasLoss);
     }
 
@@ -72,16 +72,16 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18,
             new PdfCanvasTextBoxStyle {
                 FontSize = 9, PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
-            })).ToBytes();
+            })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
         if (overflows) {
-            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "CanvasTextBoxContentClipped");
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-box-content-clipped");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
             Assert.Equal(24D, warning.LayoutDiagnostic.Y);
             Assert.True(report.HasLoss);
         } else {
-            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "CanvasTextBoxContentClipped");
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "canvas-text-box-content-clipped");
             Assert.False(report.HasLoss);
         }
     }
@@ -92,10 +92,10 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void PlainCanvasTextReportsFullyClippedLines(bool overflows) {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Text(
-            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18, fontSize: 9)).ToBytes();
+            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18, fontSize: 9)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
-        Assert.Equal(overflows, report.Warnings.Any(warning => warning.Code == "CanvasTextContentClipped"));
+        Assert.Equal(overflows, report.Warnings.Any(warning => warning.Code == "canvas-text-content-clipped"));
         Assert.Equal(overflows, report.HasLoss);
     }
 
@@ -130,10 +130,10 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         });
         PdfFormField field = Assert.Single(PdfInspector.Inspect(RenderTable(frame, report, cell, 18)).FormFields);
         Assert.True(Assert.Single(field.Widgets).Y1 < 0);
-        PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "TableCellObjectPageBoundsClipped");
+        PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "table-cell-object-page-bounds-clipped");
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.True(report.HasLoss);
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellObjectOverflow");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-object-overflow");
     }
 
     [Theory]
@@ -149,13 +149,13 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderTable(frame, report, cell, 18));
         Assert.Equal(1, pdf.NumberOfPages);
         if (overflows) {
-            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
             Assert.Equal(120D, warning.LayoutDiagnostic.Width);
             Assert.True(report.HasLoss);
         } else {
             Assert.Contains("Fits", pdf.GetPage(1).Text);
-            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
             Assert.False(report.HasLoss);
         }
     }
@@ -181,7 +181,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             Assert.InRange(letter.PointSize, 6D, (explicitFontSize ? 14D : 9D) - .01D);
             Assert.True(letter.BoundingBox.Right <= 144.01D);
         });
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
         Assert.False(report.HasLoss);
     }
 
@@ -194,7 +194,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderTable(frame, report, cell, null));
         Assert.True(pdf.NumberOfPages > 1);
         Assert.Contains("Line25", pdf.GetPage(pdf.NumberOfPages).Text);
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "TableCellContentClipped");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
         Assert.False(report.HasLoss);
     }
 
@@ -206,11 +206,11 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Table(new[] {
             new[] { new PdfTableCell("First\nHiddenOne") },
             new[] { new PdfTableCell("Second\nHiddenTwo") }
-        }, style: style).ToBytes();
+        }, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
         Assert.Contains("Second", pdf.GetPage(1).Text);
-        PdfConversionWarning[] warnings = report.Warnings.Where(warning => warning.Code == "TableCellContentClipped").ToArray();
+        PdfConversionWarning[] warnings = report.Warnings.Where(warning => warning.Code == "table-cell-content-clipped").ToArray();
         Assert.Equal(2, warnings.Length);
         Assert.NotEqual(warnings[0].Source, warnings[1].Source);
     }
@@ -220,22 +220,22 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var rows = new[] { new[] { cell } };
         PdfTableStyle style = CreateTableStyle(fixedHeight);
         return frame switch {
-            "flow" => document.Table(rows, style: style).ToBytes(),
+            "flow" => document.Table(rows, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)))))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(rows, 24, 24, 120, fixedHeight!.Value, style)).ToBytes(),
+                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => document.Canvas(canvas => canvas.Table(rows, 24, 24, 120, fixedHeight!.Value, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };
     }
 
-    private static PdfOptions CreateOptions(PdfConversionReport report) => new PdfOptions {
+    private static PdfCreateOptions CreateOptions(PdfConversionReport report) => new PdfCreateOptions {
         PageWidth = 260, PageHeight = 180,
         MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
     }.ReportDiagnosticsTo(report, "AuthoringProbe");
 
     private static PdfTableStyle CreateTableStyle(double? fixedHeight) {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.RepeatHeaderRowCount = 0;
         style.FontSize = 9;

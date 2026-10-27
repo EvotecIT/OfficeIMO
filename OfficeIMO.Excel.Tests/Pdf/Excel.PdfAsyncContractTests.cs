@@ -20,8 +20,6 @@ public sealed class ExcelPdfAsyncContractTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             workbook.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            workbook.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -35,7 +33,7 @@ public sealed class ExcelPdfAsyncContractTests {
         second.SetHeaderFooter(headerCenter: "&D");
         using var cancellation = new CancellationTokenSource();
         int providerCalls = 0;
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             HeaderFooterDateTimeProvider = () => {
                 providerCalls++;
                 cancellation.Cancel();

@@ -18,9 +18,9 @@ public sealed class PowerPointNativeThemeTintTests {
         OfficeRasterImage nativePng = VisualBaselineTestSupport.DecodePng(
             File.ReadAllBytes(Path.Combine(folder, "controls-native.png")), "Native color controls are not a valid PNG.");
         byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-controls.pdf"));
-        OfficeRasterImage nativePdf = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(reference).Pages[0].ToDrawing(),
+        OfficeRasterImage nativePdf = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(reference)).Pages[0].ToDrawing(),
             background: OfficeColor.White);
-        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(presentation.ToPdfBytes()).Pages[0].ToDrawing(),
+        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(),
             background: OfficeColor.White);
         OfficeColor[] expected = {
             OfficeColor.FromRgb(21, 96, 130), OfficeColor.FromRgb(204, 210, 216),
@@ -46,9 +46,9 @@ public sealed class PowerPointNativeThemeTintTests {
         OfficeRasterImage nativePng = VisualBaselineTestSupport.DecodePng(
             File.ReadAllBytes(Path.Combine(folder, "luminance-controls-native.png")), "Native luminance controls are not a valid PNG.");
         byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-luminance-controls.pdf"));
-        OfficeRasterImage nativePdf = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(reference).Pages[0].ToDrawing(),
+        OfficeRasterImage nativePdf = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(reference)).Pages[0].ToDrawing(),
             background: OfficeColor.White);
-        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(presentation.ToPdfBytes()).Pages[0].ToDrawing(),
+        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(),
             background: OfficeColor.White);
         OfficeColor[] expected = {
             OfficeColor.FromRgb(68, 114, 196), OfficeColor.FromRgb(32, 56, 100),
@@ -74,7 +74,7 @@ public sealed class PowerPointNativeThemeTintTests {
         byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-tables-charts.pdf"));
         OfficeRasterImage native = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(reference).Pages[1].ToDrawing(),
             background: OfficeColor.White);
-        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(presentation.ToPdfBytes()).Pages[1].ToDrawing(),
+        OfficeRasterImage managed = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[1].ToDrawing(),
             background: OfficeColor.White);
         // A clear point inside the second row, away from text and borders, in PDF page coordinates.
         Assert.Equal(expected, native.GetPixel(100, 185));

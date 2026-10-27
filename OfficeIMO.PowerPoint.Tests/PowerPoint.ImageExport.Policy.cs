@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(
                 exception.Diagnostics,
                 diagnostic =>
-                    diagnostic.Code == "unsupported-slide-background-image" &&
+                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage &&
                     diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 

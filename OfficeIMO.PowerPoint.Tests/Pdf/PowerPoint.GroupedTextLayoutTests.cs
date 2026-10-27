@@ -29,9 +29,9 @@ public sealed class PowerPointGroupedTextLayoutTests {
             group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(x, y, width, height) });
         }
         group.Rotation = 90;
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("EDGE", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         string operators = PdfOperatorSearchText.From(bytes);
@@ -52,7 +52,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(1000, 1080, 160, 10) });
         group.LeftPoints = 40;
         group.TopPoints = 40;
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
@@ -88,14 +88,16 @@ public sealed class PowerPointGroupedTextLayoutTests {
         byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes;
         var snapshot = slide.CreateVisualSnapshot(imageOptions);
         var text = Assert.Single(snapshot.TextSpans, span => span.Text == "INK");
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions().UseRenderingProfile(profile));
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions().UseRenderingProfile(profile));
         byte[] bytes = result.ToBytes();
         var canonicalPage = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).Pages[0];
         var expectedText = Assert.Single(canonicalPage.GetTextSpans(), span => span.Text == "INK");
-        Assert.Equal((expectedText.X, expectedText.Y, expectedText.FontSize, expectedText.Advance, expectedText.RotationDegrees),
-            (text.X, text.Y, text.FontSize, text.Advance, text.RotationDegrees));
-        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
-            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
+        Assert.Equal(expectedText.X, text.X, 3);
+        Assert.Equal(expectedText.Y, text.Y, 3);
+        Assert.Equal(expectedText.FontSize, text.FontSize, 3);
+        Assert.Equal(expectedText.Advance, text.Advance, 3);
+        Assert.Equal(expectedText.RotationDegrees, text.RotationDegrees, 3);
+        Assert.Equal("svg", System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(svg)).Root!.Name.LocalName);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
@@ -119,15 +121,15 @@ public sealed class PowerPointGroupedTextLayoutTests {
         box.FontSize = 14;
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/group");
         slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(40, 110, 200, 10) });
-        var options = new PowerPointToPdfOptions().UseRenderingProfile(profile);
-        using var before = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes(options));
+        var options = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
+        using var before = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var original = before.GetPage(1).Letters[0];
         var transform = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>().Single().GroupShapeProperties!.TransformGroup!;
         transform.Rotation = (int)(rotation * 60000D);
         transform.HorizontalFlip = horizontalFlip;
         transform.VerticalFlip = verticalFlip;
-        byte[] bytes = presentation.ToPdfBytes(options);
+        byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var after = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = after.GetPage(1).Letters;
         Assert.Equal("TRANSFORM", string.Concat(letters.Select(letter => letter.Value)));

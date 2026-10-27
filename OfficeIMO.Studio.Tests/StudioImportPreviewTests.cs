@@ -92,7 +92,7 @@ public sealed class StudioImportPreviewTests {
                     Assert.Null(model.ErrorMessage); Assert.Equal(5, model.SelectedPage!.PageNumber);
                     Assert.Equal(new[] { 1, 2, 3, 4 }, model.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber));
                     await model.SaveAsCommand.ExecuteAsync(null);
-                    Assert.Equal(new[] { 300D, 310D, 220D, 200D, 150D }, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().Pages.Select(page => page.Width));
+                    Assert.Equal(new[] { 300D, 310D, 220D, 200D, 150D }, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Inspect().Pages.Select(page => page.Width));
                     await model.UndoCommand.ExecuteAsync(null);
                     Assert.Single(model.Pages); Assert.False(model.CanUndo);
                     Assert.False(Assert.Single(services.Jobs.Entries).IsActive);

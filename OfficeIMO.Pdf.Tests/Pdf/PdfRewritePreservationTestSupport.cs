@@ -5,7 +5,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfRewritePreservationTestSupport {
     public static byte[] BuildPreservationProofPdf() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 IncludeXmpMetadata = true
             }
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)

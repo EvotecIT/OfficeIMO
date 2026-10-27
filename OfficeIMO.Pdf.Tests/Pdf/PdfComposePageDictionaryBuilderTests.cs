@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests.Pdf {
                 Array.Empty<(string Name, int Id)>(),
                 Array.Empty<int>(),
                 printProductionPageBoxes: new PdfPrintProductionPageBoxes(
-                    PageMargins.Uniform(9D),
-                    PageMargins.Uniform(3D)));
+                    PdfPageMargins.Uniform(9D),
+                    PdfPageMargins.Uniform(3D)));
 
             Assert.Contains("/TrimBox [9 9 603 783] /BleedBox [3 3 609 789]", page, StringComparison.Ordinal);
         }
@@ -377,8 +377,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageDictionaryBuilder_RejectsPrintProductionBoxCollapsedBySerialization() {
             var boxes = new PdfPrintProductionPageBoxes(
-                PageMargins.Uniform(49.9996D),
-                PageMargins.Uniform(0D));
+                PdfPageMargins.Uniform(49.9996D),
+                PdfPageMargins.Uniform(0D));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void VisualResourceDictionaryBuilder_SamplesNonlinearPrintGradientTransform() {
-            var options = new PdfOptions().ConfigurePdfXGroundwork(
+            var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51",

@@ -53,7 +53,7 @@ public partial class ExcelDocument {
                 or OfficeCompatibilityMode.PreservationOnly;
             if (!permitsVisualFallback) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.BinaryWriter.Unsupported",
+                    "excel-binary-writer-unsupported",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
@@ -88,7 +88,7 @@ public partial class ExcelDocument {
                     .Distinct(StringComparer.Ordinal)
                     .Take(8));
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.BinaryWriter.VisualFallbackUnavailable",
+                    "excel-binary-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     $"Native binary output is unsupported and the worksheet renderer has omissions ({codes}). Native writer: {exception.Message}",
@@ -100,7 +100,7 @@ public partial class ExcelDocument {
 
             if (sheets.Count == 0) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.BinaryWriter.VisualFallbackUnavailable",
+                    "excel-binary-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     "Native binary output is unsupported and the visual fallback found no worksheets to render. Native writer: " + exception.Message,
@@ -111,7 +111,7 @@ public partial class ExcelDocument {
             }
 
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "Excel.BinaryWriter.CellRasterFallback",
+                "excel-binary-writer-cell-raster-fallback",
                 OfficeConversionDiagnosticCategory.DataLoss,
                 OfficeConversionDiagnosticSeverity.Warning,
                 $"The workbook is represented by {sheets.Count} palette-quantized cell-raster worksheet(s) because the native binary writer rejected part of the editable model. {exception.Message}",
@@ -288,7 +288,7 @@ public partial class ExcelDocument {
         bool hasMacros,
         bool visualFallback) {
         diagnostics.Add(new OfficeConversionDiagnostic(
-            embedded ? "Excel.SourceCarrier.Embedded" : "Excel.SourceCarrier.NotEmbedded",
+            embedded ? "excel-source-carrier-embedded" : "excel-source-carrier-not-embedded",
             OfficeConversionDiagnosticCategory.DataLoss,
             OfficeConversionDiagnosticSeverity.Warning,
             embedded

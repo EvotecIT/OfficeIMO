@@ -23,10 +23,10 @@ public partial class Word {
         var configuredStyle = new OfficeIMO.Pdf.PdfTableStyle {
             MaxWidth = 100D, HeaderRowCount = 0, CellPaddingX = 0D, BorderColor = null
         };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions { DefaultTableStyle = configuredStyle }
-        }));
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { DefaultTableStyle = configuredStyle }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var left = Assert.Single(page.Letters, letter => letter.Value == "A");
         var right = Assert.Single(page.Letters, letter => letter.Value == "B");
@@ -48,7 +48,7 @@ public partial class Word {
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = (int)(width * 20D);
         table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         if (spacing >= 0) table.StyleDetails.CellSpacing = spacing;
         else table._tableProperties.TableCellSpacing = null;
         for (int column = 0; column < 2; column++) {
@@ -59,10 +59,10 @@ public partial class Word {
             cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
         }
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(325, 400), Margins = OfficeIMO.Pdf.PageMargins.Uniform(72)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(325, 400), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var left = Assert.Single(page.Letters, letter => letter.Value == "A");
         var right = Assert.Single(page.Letters, letter => letter.Value == "B");

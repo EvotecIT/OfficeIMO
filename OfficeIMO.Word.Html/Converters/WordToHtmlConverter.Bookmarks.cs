@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private void AppendAdditionalBookmarkAnchors(IElement parent, WordParagraph paragraph, WordToHtmlOptions options) {
+        private void AppendAdditionalBookmarkAnchors(IElement parent, WordParagraph paragraph, WordHtmlExportOptions options) {
             var emitted = new HashSet<string>(StringComparer.Ordinal);
             for (IElement? container = parent; container != null; container = container.ParentElement) {
                 string? primary = container.GetAttribute("id");
@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Html {
                 IElement anchor = CreateOutputElement(parent.Owner!, "span");
                 SetOutputAttribute(anchor, "id", name, "Bookmark:id");
                 parent.AppendChild(anchor);
-                AddExportDiagnostic(options, "BookmarkPositionProjected",
+                AddExportDiagnostic(options, "bookmark-position-projected",
                     "An additional or nested Word bookmark targets its containing HTML paragraph; its text remains in the static projection.",
                     OfficeConversionLossKind.Approximation);
             }

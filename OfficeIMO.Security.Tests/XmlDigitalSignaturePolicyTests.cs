@@ -61,7 +61,7 @@ public sealed class XmlDigitalSignaturePolicyTests {
         XmlDigitalSignatureVerificationResult result = OfficeSecurityProvider.Default.VerifyXmlSignature(request);
 
         Assert.Equal(SecurityValidationStatus.Indeterminate, result.Status);
-        Assert.Contains(result.Findings, finding => finding.Code == "UnsupportedSignedInfoTransform");
+        Assert.Contains(result.Findings, finding => finding.Code == "unsupported-signed-info-transform");
     }
 
     [Fact]

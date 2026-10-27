@@ -125,7 +125,7 @@ public sealed class RedactionReviewTests {
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Other private account")))));
         });
         byte[] source = document.ToBytes();
-        Assert.Single(PdfDocument.Load(source).Images.Placements());
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(source)).Images.Placements());
         await File.WriteAllBytesAsync(files.Input, source);
         using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
             pickSavePdf: _ => Task.FromResult<string?>(files.Output));
@@ -168,7 +168,7 @@ public sealed class RedactionReviewTests {
         Assert.False(model.HasError, model.ErrorMessage);
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
-        PdfDocument saved = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output));
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(await File.ReadAllBytesAsync(files.Output)));
         string savedText = saved.Read().Text;
         Assert.DoesNotContain("private account", savedText, StringComparison.Ordinal);
         if (model.RedactionSearchMatchedTextOnly) Assert.Contains("Before", savedText, StringComparison.Ordinal);
@@ -207,7 +207,7 @@ public sealed class RedactionReviewTests {
         Assert.False(model.HasError, model.ErrorMessage);
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
-        string text = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output)).Read().Text;
+        string text = PdfDocument.Load(new System.IO.MemoryStream(await File.ReadAllBytesAsync(files.Output))).Read().Text;
         Assert.Contains("Before", text, StringComparison.Ordinal);
         Assert.Contains("and", text, StringComparison.Ordinal);
         Assert.Contains("private account 456 after", text, StringComparison.Ordinal);
@@ -250,7 +250,7 @@ public sealed class RedactionReviewTests {
         await model.ExportRedactionEvidenceCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
         byte[] saved = await File.ReadAllBytesAsync(files.Output);
-        PdfDocumentReadResult read = PdfDocument.Load(saved).Read();
+        PdfDocumentReadResult read = PdfDocument.Load(new System.IO.MemoryStream(saved)).Read();
         Assert.DoesNotContain("private account", string.Join(" ", read.Pages[0].Elements.OfType<PdfLogicalTextBlock>().Select(block => block.Text)), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("private account", read.Text, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(source, await File.ReadAllBytesAsync(files.Input));

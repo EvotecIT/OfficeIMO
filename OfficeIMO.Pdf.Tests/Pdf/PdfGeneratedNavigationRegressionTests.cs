@@ -82,7 +82,7 @@ public sealed class PdfGeneratedNavigationRegressionTests {
                 else if (visible == "image") clipped.Image(image, 25, 25, 20, 20, alternativeText: "Visible sibling");
                 else clipped.CheckBox("visible", false, 25, 25, 20, 20, style: style);
             }))
-            .Paragraph(p => p.Text("Later outside paragraph ").LinkToBookmark("Return", "target")).ToBytes();
+            .Paragraph(p => p.Text("Later outside paragraph ").LinkToBookmark("Return", "target")).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         var raw = PdfReadDocument.Open(bytes).RawStructure();
         var link = Assert.Single(raw.Objects, obj => obj.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link");
@@ -92,11 +92,11 @@ public sealed class PdfGeneratedNavigationRegressionTests {
         Assert.Equal(firstSurvivingSibling.ObjectNumber, target);
     }
 
-    private static PdfOptions StrictOptions() {
+    private static PdfCreateOptions StrictOptions() {
         string? font = PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(font);
-        return new PdfOptions().UseFontFamily("Carlito", font!).UsePdfUa(PdfComplianceProfile.PdfUa2, "en");
+        return new PdfCreateOptions().UseFontFamily("Carlito", font!).UsePdfUa(PdfComplianceProfile.PdfUa2, "en");
     }
 
-    private static PdfOptions TaggedOptions() => new PdfOptions().ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en");
+    private static PdfCreateOptions TaggedOptions() => new PdfCreateOptions().ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en");
 }

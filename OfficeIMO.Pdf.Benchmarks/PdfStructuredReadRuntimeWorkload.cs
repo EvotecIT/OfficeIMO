@@ -12,7 +12,7 @@ public sealed class PdfStructuredReadRuntimeWorkload {
     private const string Header = "Running operations";
     private readonly byte[] _source;
     private readonly PdfLoadOptions _loadOptions = new() { Limits = PdfReadLimits.Default };
-    private readonly PdfReadOptions _readOptions = new() {
+    private readonly PdfLoadOptions _readOptions = new() {
         Profile = PdfReadProfile.Structured, Pipeline = PdfUnderstandingPipelineOptions.Structured()
     };
     private PdfDocumentReadResult? _result;
@@ -28,7 +28,7 @@ public sealed class PdfStructuredReadRuntimeWorkload {
                     .Text(Header, 36D + .02D * number, 36D, 300D, 24D, fontSize: 10D + .001D * number)
                     .Text(Body(number), 36D, 240D, 420D, 24D, fontSize: 12D)));
             }
-        }, new PdfOptions { CompressContentStreams = true, FileVersion = PdfFileVersion.Pdf17 })
+        }, new PdfCreateOptions { CompressContentStreams = true, FileVersion = PdfFileVersion.Pdf17 })
             .Meta(title: "OfficeIMO drifting header read corpus").ToBytes();
         SourceSha256 = Convert.ToHexString(SHA256.HashData(_source));
     }

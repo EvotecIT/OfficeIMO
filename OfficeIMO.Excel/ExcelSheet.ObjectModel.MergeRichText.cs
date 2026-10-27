@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// Merges the specified A1 range.
         /// </summary>
         public void MergeRange(string a1Range) {
-            A1.ParseRange(a1Range);
+            ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var merges = ws.GetFirstChild<MergeCells>();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
         /// Removes merge definitions that overlap the supplied A1 range.
         /// </summary>
         public void UnmergeRange(string a1Range) {
-            var bounds = A1.ParseRange(a1Range);
+            var bounds = ExcelA1.ParseRange(a1Range);
             WriteLock(() => UnmergeRangeCore(bounds));
         }
 

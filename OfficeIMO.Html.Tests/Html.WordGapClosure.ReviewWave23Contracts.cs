@@ -15,7 +15,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -28,7 +28,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_TransparentMarkClearsItsDefaultHighlightAndRoundTrips() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<mark style="background-color:transparent">Text</mark>""")
-            .ToWordDocument();
+            .ToWord();
         WordParagraph run = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");

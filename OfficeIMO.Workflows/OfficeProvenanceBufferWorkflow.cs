@@ -56,8 +56,8 @@ public static class OfficeProvenanceBufferWorkflow {
         return OfficeProvenanceRemover.Remove(data, name, options);
     }
     private static QualifiedBufferInput ValidateInput(byte[] data, string name) {
-        ArgumentNullException.ThrowIfNull(data);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if ((name == null || string.IsNullOrWhiteSpace(name))) throw new ArgumentException("A non-empty value is required.", nameof(name));
         OfficeProvenanceWorkflowCapability capability = OfficeProvenanceWorkflowCatalog.FindByPath(name) ??
             throw new NotSupportedException("This OfficeIMO format is not qualified for the memory-only provenance workflow.");
         OfficeProvenanceWorkflowFormat format = OfficeProvenanceWorkflowCatalog.FindMemoryOnlyFormatByPath(name) ??

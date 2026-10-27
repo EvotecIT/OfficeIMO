@@ -11,7 +11,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(true)]
     public void PdfDocument_FallbackPlanningPreservesEarlierDirectRunsInTheSameParagraph(bool fallbackOwned) {
         byte[] emoji = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x1F600);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()));
         options.RegisterEmbeddedFontFallbacks(fallbackOwned
             ? new PdfEmbeddedFontFallbackSet(new[] {
@@ -46,7 +46,7 @@ public partial class PdfFontFamilyTests {
         var slots = fallbackOwned
             ? new[] { PdfStandardFont.TimesRoman, PdfStandardFont.Helvetica }
             : new[] { PdfStandardFont.Helvetica };
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
         string directText = fallbackOwned ? "★" : "AB";
@@ -67,7 +67,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfDocument_NestedPanelPreservesFallbackSlotsAlreadyUsedByTheParent() {
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] {
@@ -92,7 +92,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfDocument_ClearingFallbacksReleasesOwnedSlotsForTheNextSet() {
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
@@ -112,7 +112,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PdfDocument_NestedPanelRetainsFallbackResolvedAfterFirstChild(bool followingFallback) {
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] { new PdfEmbeddedFontFallbackCandidate("Panel Emoji", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x1F600)) },
@@ -138,7 +138,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfDocument_IdenticalExplicitFaceRegistrationClaimsPreviousFallbackFamily() {
         byte[] symbols = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x2605);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] { new PdfEmbeddedFontFallbackCandidate("Old Symbols", symbols) },
@@ -160,7 +160,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(true)]
     public void PdfDocument_FallbackResolutionPreservesCallerFamilyWithIdenticalFontBytes(bool callerRegisteredAfterFallback) {
         byte[] emoji = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x1F600);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Primary", CreateRegistrationPrimaryFont()));
         var caller = new PdfEmbeddedFontFamily("Caller Emoji", emoji, italic: emoji);
         var fallback = new PdfEmbeddedFontFallbackSet(
@@ -181,7 +181,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfDocument_ReplacingFallbacksReclaimsOwnedSlotsOutsideTheNewRequestedMapping() {
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(

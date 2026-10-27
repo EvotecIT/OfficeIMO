@@ -279,7 +279,7 @@ namespace OfficeIMO.Word.Markdown {
         private static void ProcessInlinesOmd(
             Omd.InlineSequence inlines,
             WordParagraph paragraph,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             IReadOnlyDictionary<string, string>? footnoteDefs = null,
             double pageContentWidthPixels = 0,
@@ -307,7 +307,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private sealed class ParagraphInlineWriter : Omd.MarkdownVisitor {
             private readonly WordParagraph _paragraph;
-            private readonly MarkdownToWordOptions _options;
+            private readonly WordMarkdownImportOptions _options;
             private readonly WordDocument _document;
             private readonly IReadOnlyDictionary<string, string>? _footnoteDefs;
             private readonly InlineFormatState _fmt;
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word.Markdown {
 
             public ParagraphInlineWriter(
                 WordParagraph paragraph,
-                MarkdownToWordOptions options,
+                WordMarkdownImportOptions options,
                 WordDocument document,
                 IReadOnlyDictionary<string, string>? footnoteDefs,
                 InlineFormatState fmt,
@@ -548,7 +548,7 @@ namespace OfficeIMO.Word.Markdown {
             int currentDepth) {
             if (maxNestingDepth < 1) {
                 throw new ArgumentOutOfRangeException(
-                    nameof(MarkdownToWordOptions.MaxNestingDepth),
+                    nameof(WordMarkdownImportOptions.MaxNestingDepth),
                     maxNestingDepth,
                     "MaxNestingDepth must be greater than zero.");
             }
@@ -558,7 +558,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont, MarkdownToWordOptions options) {
+        private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont, WordMarkdownImportOptions options) {
             if (fmt.Bold) hyperlink.SetBold();
             if (fmt.Italic) hyperlink.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
@@ -570,7 +570,7 @@ namespace OfficeIMO.Word.Markdown {
             if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColorHex(accentHex!);
         }
 
-        private static void ApplyHyperlinkRunFormattingOmd(IEnumerable<WordParagraph> runs, MarkdownToWordOptions options) {
+        private static void ApplyHyperlinkRunFormattingOmd(IEnumerable<WordParagraph> runs, WordMarkdownImportOptions options) {
             string? accentHex = ResolveTheme(options)?.PaletteSnapshot.Accent.ToRgbHex();
             if (string.IsNullOrEmpty(accentHex)) {
                 return;

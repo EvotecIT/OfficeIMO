@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, A1.CellReference(row, column));
+                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
                 }
             }
         }

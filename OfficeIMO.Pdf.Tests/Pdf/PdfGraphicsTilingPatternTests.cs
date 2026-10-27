@@ -108,6 +108,6 @@ public sealed class PdfGraphicsTilingPatternTests {
             12D, 10D, repeatX, repeatY, transform, originX: 3D, originY: 5D);
     }
 
-    private static PdfOptions Options() => new PdfOptions { PageWidth = 90D, PageHeight = 60D,
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = 90D, PageHeight = 60D,
         MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
 }

@@ -74,7 +74,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     [Parameter]
     public SwitchParameter AllSheets { get; set; }
 
-    /// <summary>Optional A1 range to read. When omitted, the used range is imported.</summary>
+    /// <summary>Optional ExcelA1 range to read. When omitted, the used range is imported.</summary>
     [Parameter(ValueFromPipelineByPropertyName = true)]
     public string? Range { get; set; }
 
@@ -221,7 +221,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
         }
     }
 
-    private async Task WriteDataReaderAsync(ExcelReadOptions options)
+    private async Task WriteDataReaderAsync(ExcelReaderOptions options)
     {
         var reader = await CreateDataReaderAsync(options).ConfigureAwait(false);
         try
@@ -235,7 +235,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
         }
     }
 
-    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReadOptions options)
+    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReaderOptions options)
     {
         if (ParameterSetName == ParameterSetDocument)
         {
@@ -254,7 +254,8 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
                 throw new PSArgumentException("Workbook URI was not provided.", nameof(Uri));
             }
 
-            return await ExcelDocument.OpenDataReaderAsync(Uri, options, ExcelHttpLoadService.CreateOptions(AllowHttp), CancelToken)
+            options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+            return await ExcelDocument.OpenReaderAsync(Uri, options, CancelToken)
                 .ConfigureAwait(false);
         }
 
@@ -269,7 +270,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }
 
-        return ExcelDocument.OpenDataReader(resolvedPath, options);
+        return ExcelDocument.OpenReader(resolvedPath, options);
     }
 
     private string? ResolveRange()
@@ -301,7 +302,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
                 throw new PSArgumentException("StartColumn must be less than or equal to EndColumn.");
             }
 
-            return $"{A1.CellReference(StartRow.Value, StartColumn.Value)}:{A1.CellReference(EndRow.Value, EndColumn.Value)}";
+            return $"{ExcelA1.CellReference(StartRow.Value, StartColumn.Value)}:{ExcelA1.CellReference(EndRow.Value, EndColumn.Value)}";
         }
 
         return null;

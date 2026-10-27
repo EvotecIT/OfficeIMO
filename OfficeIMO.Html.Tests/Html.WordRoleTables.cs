@@ -16,7 +16,7 @@ public partial class Html {
             "<div role='row'><div role='cell'><p><b>Safe water</b></p></div><div role='cell'><p>Available when needed</p></div></div>" +
             "</div></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal("Terms to know", table.Title);
@@ -40,9 +40,9 @@ public partial class Html {
             "<div role='row'><div role='cell'>C</div><div role='cell'>D</div></div></div>";
 
         var exception = Assert.Throws<HtmlConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { MaxTableCells = 3 }));
+            HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { MaxTableCells = 3 }));
 
-        Assert.Equal("TableSizeLimitExceeded", exception.Code);
+        Assert.Equal("table-size-limit-exceeded", exception.Code);
         Assert.Equal(4, exception.Actual);
     }
 
@@ -51,7 +51,7 @@ public partial class Html {
         const string html = "<style>div[role='table'] > div[role='row'] > div[role='cell'] { background-color:#00ff00; }</style>" +
             "<div role='table'><div role='row'><div role='cell'>Styled cell</div></div></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
 
         Assert.Equal("00FF00", Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColorHex);
@@ -62,7 +62,7 @@ public partial class Html {
         const string html = "<style>html { font-size:20px; } div[role='cell'] { font-size:2rem; margin-inline-start:1em; }</style>" +
             "<div role='table'><div role='row'><div role='cell'>Sized cell</div></div></div>";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             Assert.Single(document.Tables).Rows[0].Cells[0].Paragraphs,
             candidate => candidate.Text == "Sized cell");
@@ -75,7 +75,7 @@ public partial class Html {
         const string html = "<style>div[role='cell'] { background-color:#00ff00; } td { background-color:#0000ff !important; }</style>" +
             "<div role='table'><div role='row'><div role='cell'>Original role cell</div></div></div>";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
         Assert.Equal("00FF00", Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColorHex);
     }
@@ -89,7 +89,7 @@ public partial class Html {
             "<img role='cell' src='" + pixel + "' alt='Pixel'>" +
             "</div></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
 
         Assert.Equal(2, Assert.Single(document.Tables).Rows[0].Cells.Count);
@@ -103,7 +103,7 @@ public partial class Html {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
         using WordDocument document = HtmlConversionDocument.Parse(html)
-            .ToWordDocument(new HtmlToWordOptions { MaxHtmlDepth = 5 });
+            .ToWord(new WordHtmlImportOptions { MaxHtmlDepth = 5 });
 
         Assert.Single(document.Tables);
     }
@@ -112,7 +112,7 @@ public partial class Html {
     public void HtmlToWord_UnsupportedAriaRoleTable_ReportsApproximation() {
         const string html = "<div role='table'><p>Unstructured content</p><div role='row'><div role='cell'>Value</div></div></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
 
         Assert.Empty(document.Tables);
@@ -124,7 +124,7 @@ public partial class Html {
     public void HtmlToWord_AriaRoleTable_PreservesSourceSelectorsOutsideTable() {
         const string html = "<style>div[role=table] + p {color:red} table + p {color:blue}</style>"
             + "<div role='table'><div role='row'><div role='cell'>A</div></div></div><p>After</p>";
-        using var document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using var document = HtmlConversionDocument.Parse(html).ToWord();
         var paragraph = Assert.Single(document.Paragraphs, p => p.Text == "After");
         Assert.Equal("FF0000", paragraph.GetRuns().First().ColorHex);
     }

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_SplitsSingleTallRowsAcrossPages() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
@@ -57,7 +57,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_SplitRowsUseMeasuredRichLineHeights() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -67,7 +67,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         var richRuns = new[] {
@@ -98,7 +98,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_SplitRowsUseMeasuredRichLineHeights() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -108,7 +108,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         var richRuns = new[] {
@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_SplitsSingleTallRowsAcrossPages() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -154,7 +154,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_PageContinuationSpacingBefore_OffsetsContinuationPages() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 20,
@@ -221,7 +221,7 @@ public partial class PdfDocumentVisualQualityTests {
             rows.Add(new[] { "Row" + row.ToString("D2", CultureInfo.InvariantCulture), "Value" + row.ToString("D2", CultureInfo.InvariantCulture) });
         }
 
-        var normalStyle = TableStyles.Minimal();
+        var normalStyle = PdfTableStyles.Minimal();
         normalStyle.ColumnWidthPoints = new List<double?> { 70, null };
 
         var spacedStyle = normalStyle.Clone();
@@ -246,7 +246,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_KeepsFinalTwoBodyRowsTogetherAtPageBreak() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 200,
             MarginLeft = 20,
@@ -257,7 +257,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = 9
         };
 
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
         style.MinRowHeight = 18D;
@@ -286,7 +286,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_KeepsFinalTwoBodyRowsTogetherAtPageBreak() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 200,
             MarginLeft = 20,
@@ -297,7 +297,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = 9
         };
 
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
         style.MinRowHeight = 18D;
@@ -349,14 +349,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_DisallowRowBreakRejectsSingleTallRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -377,7 +377,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowBreakPolicyAllowsSingleTallRows() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -387,7 +387,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, true };
         style.ColumnWidthPoints = new List<double?> { 70, null };
@@ -409,7 +409,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowBreakPolicyRejectsSingleTallRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = true;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, false };
         style.ColumnWidthPoints = new List<double?> { 70, null };
@@ -417,7 +417,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -438,7 +438,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowBreakPolicyAllowsSingleTallRows() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 180,
             MarginLeft = 30,
@@ -448,7 +448,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, true };
         style.ColumnWidthPoints = new List<double?> { 70, null };
@@ -475,14 +475,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_DisallowRowBreakRejectsSingleTallRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.ColumnWidthPoints = new List<double?> { 70, null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -508,7 +508,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowBreakPolicyRejectsSingleTallRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = true;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, false };
         style.ColumnWidthPoints = new List<double?> { 70, null };
@@ -516,7 +516,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -540,7 +540,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Table row height exceeds the available page content height and row splitting is disabled.", exception.Message, StringComparison.Ordinal);
     }
 
-    private static PdfOptions CreateRowSplitRemainderOptions() =>
+    private static PdfCreateOptions CreateRowSplitRemainderOptions() =>
         new() {
             PageWidth = 360,
             PageHeight = 210,
@@ -553,7 +553,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
     private static PdfTableStyle CreateRowSplitRemainderStyle() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
         style.ColumnWidthPoints = new List<double?> { 70, null };

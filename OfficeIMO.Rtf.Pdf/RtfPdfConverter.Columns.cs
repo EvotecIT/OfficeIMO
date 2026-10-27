@@ -4,8 +4,8 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void ReportContinuousSectionSettings(RtfDocument document, RtfSection section, RtfSection currentPageSection,
-        PdfCore.PdfOptions current, PdfCore.PdfOptions defaults, RtfToPdfOptions options) {
-        PdfCore.PdfOptions requested = defaults.Clone();
+        PdfCore.PdfCreateOptions current, PdfCore.PdfCreateOptions defaults, RtfToPdfOptions options) {
+        PdfCore.PdfCreateOptions requested = defaults.Clone();
         RtfPageSetup setup = document.GetPageSetup(section);
         ApplyPageSetup(document, setup, requested);
         // Do not emit the document-wide skipped-story diagnostic a second time.

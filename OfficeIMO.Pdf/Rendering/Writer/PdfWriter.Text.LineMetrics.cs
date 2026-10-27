@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
     // Rebuild its owned metrics from the segments that will actually paint,
     // while keeping the caller's line break and exact-spacing policy intact.
     private static double RefreshRichLineMetrics(RichLine line, PdfStandardFont baseFont,
-        double fontSize, double leading, PdfOptions options, PdfLineSpacing? spacing) {
+        double fontSize, double leading, PdfCreateOptions options, PdfLineSpacing? spacing) {
         double advance = leading;
         if (spacing?.IsExact != true) {
             double textAscent = 0D, textDescent = 0D, bodyAscent = 0D;
@@ -101,13 +101,13 @@ internal static partial class PdfWriter {
     }
 
     private static void RefreshRichLinePlacementMetrics(RichLine line, PdfStandardFont baseFont,
-        double fontSize, PdfOptions? options, PdfLineSpacing? spacing) {
+        double fontSize, PdfCreateOptions? options, PdfLineSpacing? spacing) {
         foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, spacing);
         line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, spacing);
         line.MinimumContentHeight = 0D;
         line.FrameFitHeight = null;
         if (spacing == null) {
-            GetRichLineInkMetrics(line, options ?? new PdfOptions(), out _, out double descent);
+            GetRichLineInkMetrics(line, options ?? new PdfCreateOptions(), out _, out double descent);
             line.MinimumContentHeight = line.BaselineOffset + descent;
         }
         if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.Multiple)
@@ -116,7 +116,7 @@ internal static partial class PdfWriter {
 
     private static double ResolveRichLineBaselineOffset(
         IReadOnlyList<RichSeg> segments, PdfStandardFont baseFont, double fontSize,
-        PdfOptions? options, PdfLineSpacing? spacing) {
+        PdfCreateOptions? options, PdfLineSpacing? spacing) {
         double fallbackAscent = GetAscenderForOptions(baseFont, fontSize, options);
         if (spacing?.IsExact == true) return spacing.FixedLineBoxBaselineOffset ?? fallbackAscent;
 
@@ -160,7 +160,7 @@ internal static partial class PdfWriter {
     }
 
     private static void GetRichRunLineMetrics(PdfStandardFont font, PdfNamedFontFace? namedFont,
-        double fontSize, PdfTextBaseline baseline, PdfOptions? options, PdfLineSpacing? spacing,
+        double fontSize, PdfTextBaseline baseline, PdfCreateOptions? options, PdfLineSpacing? spacing,
         out double ascent, out double descent) {
         double size = EffectiveRichFontSize(fontSize, baseline);
         double rise = TextRiseForBaseline(fontSize, baseline);
@@ -181,7 +181,7 @@ internal static partial class PdfWriter {
     // A source glyph keeps its text line-box policy even when its ink is owned
     // by an editable widget. Its annotation rectangle is a separate paint box.
     private static void GetInlineFormWidgetLineMetrics(PdfInlineFormWidget widget, PdfStandardFont baseFont,
-        double fontSize, PdfOptions? options, PdfLineSpacing? spacing, out double ascent, out double descent) {
+        double fontSize, PdfCreateOptions? options, PdfLineSpacing? spacing, out double ascent, out double descent) {
         ascent = 0D;
         descent = 0D;
         foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { widget.SourceRun! }, baseFont, options)) {
@@ -197,7 +197,7 @@ internal static partial class PdfWriter {
     }
 
     private static OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? ResolveFontLineMetrics(
-        PdfStandardFont font, PdfNamedFontFace? namedFont, PdfOptions? options) {
+        PdfStandardFont font, PdfNamedFontFace? namedFont, PdfCreateOptions? options) {
         if (options == null) return null;
         if (namedFont.HasValue) {
             if (options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? namedTrueType) && namedTrueType != null)
@@ -213,7 +213,7 @@ internal static partial class PdfWriter {
     }
 
     private static double AdjustRichLineBaseline(double baseline, IReadOnlyList<RichSeg> segments,
-        PdfOptions options, double fontSize, PdfStandardFont? baselineFont = null) {
+        PdfCreateOptions options, double fontSize, PdfStandardFont? baselineFont = null) {
         double baseAscent = GetAscenderForOptions(baselineFont ?? ChooseNormal(options.DefaultFont), fontSize, options);
         if (segments is RichLine line) return baseline + baseAscent - line.BaselineOffset;
 
@@ -227,7 +227,7 @@ internal static partial class PdfWriter {
         return baseline - Math.Max(0D, requiredAscent - baseAscent);
     }
 
-    private static void GetRichLineInkMetrics(IReadOnlyList<RichSeg> line, PdfOptions options,
+    private static void GetRichLineInkMetrics(IReadOnlyList<RichSeg> line, PdfCreateOptions options,
         out double ascender, out double descender) {
         ascender = 0D; descender = 0D;
         foreach (RichSeg segment in line) {

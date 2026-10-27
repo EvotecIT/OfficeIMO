@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static string? ResolveUrl(string url, MarkdownReaderOptions? options) {
+internal static partial class MarkdownReader {
+    private static string? ResolveUrl(string url, MarkdownLoadOptions? options) {
         if (url.Length == 0) return string.Empty;
         if (string.IsNullOrWhiteSpace(url)) return null;
         url = url.Trim();

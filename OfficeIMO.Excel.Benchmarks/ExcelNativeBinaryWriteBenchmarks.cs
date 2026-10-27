@@ -178,7 +178,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
     }
 
     private void Validate(byte[] workbook) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
         string[] headers = ["Id", "Region", "Owner", "Amount", "Active"];
         if (reader.FieldCount != headers.Length) {
             throw new InvalidDataException($"{Format} exposed {reader.FieldCount} fields instead of {headers.Length}.");

@@ -640,12 +640,12 @@ public sealed class PdfRedactionPlan {
         identity.Append(':').Append(resource.SourceIdentity);
     }
 
-    private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeColor? color) {
+    private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.OfficeColor? color) {
         if (!color.HasValue) {
             identity.Append(":null");
             return;
         }
-        OfficeIMO.Drawing.OfficeColor value = color.Value;
+        OfficeIMO.OfficeColor value = color.Value;
         identity.Append(':').Append(value.R).Append(',').Append(value.G).Append(',').Append(value.B).Append(',').Append(value.A);
     }
 

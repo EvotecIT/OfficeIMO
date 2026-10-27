@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.OpenDocument.Odp.Pdf;
 using OfficeIMO.OpenDocument.Ods.Pdf;
 using OfficeIMO.OpenDocument.Odt.Pdf;
@@ -39,7 +40,7 @@ public sealed class PdfOpenDocumentBridgeTests {
 
         Assert.True(result.HasLoss);
         Assert.Contains(result.Report.PdfReport.Warnings, warning =>
-            warning.Code == "PdfFormWidgetPlaceholder" &&
+            warning.Code == "pdf-form-widget-placeholder" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
@@ -66,7 +67,7 @@ public sealed class PdfOpenDocumentBridgeTests {
 
     [Fact]
     public void PdfToOdp_DefaultsToEditableContentAndProducesValidOdfPackage() {
-        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -93,7 +94,7 @@ public sealed class PdfOpenDocumentBridgeTests {
 
         PdfOdpConversionResult result = pdf.ToOdpPresentationResult();
 
-        Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.PdfReport.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.PdfReport.Mode);
         Assert.Equal(2, result.Value.Slides.Count);
         Assert.Equal(2, result.Report.PdfReport.EditablePages.Count);
         Assert.All(result.Report.PdfReport.EditablePages, page => Assert.True(page.TextBoxCount >= 1));

@@ -212,19 +212,19 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (page.RotationDegrees != 0) confidence -= 0.03D;
             var evidence = new List<PdfInferenceEvidence> {
                 new PdfInferenceEvidence(
-                    item.HasGeometry ? "reading-order.visible-geometry" : "reading-order.source-sequence-fallback",
+                    item.HasGeometry ? "reading-order-visible-geometry" : "reading-order-source-sequence-fallback",
                     item.HasGeometry ? "The item was ordered from visible page geometry." : "The item has no placement geometry and retains source sequence after positioned content.",
                     item.HasGeometry ? 0.8D : -0.2D),
                 new PdfInferenceEvidence(
-                    item.SpansColumns ? "reading-order.spanning-band" : "reading-order.column-band",
+                    item.SpansColumns ? "reading-order-spanning-band" : "reading-order-column-band",
                     item.SpansColumns ? "The item spans the page column band." : "The item was assigned to column " + item.ColumnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".",
                     item.SpansColumns ? 0.7D : 0.6D)
             };
             if (page.RotationDegrees != 0) {
-                evidence.Add(new PdfInferenceEvidence("reading-order.page-rotation", "Geometry was normalized through the page's " + page.RotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture) + " degree rotation.", 0.7D));
+                evidence.Add(new PdfInferenceEvidence("reading-order-page-rotation", "Geometry was normalized through the page's " + page.RotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture) + " degree rotation.", 0.7D));
             }
             if (item.IsClipped) {
-                evidence.Add(new PdfInferenceEvidence("reading-order.crop-clipped", "Source geometry was clipped to the visible crop boundary.", -0.4D));
+                evidence.Add(new PdfInferenceEvidence("reading-order-crop-clipped", "Source geometry was clipped to the visible crop boundary.", -0.4D));
             }
             result[index] = new PdfLogicalReadingOrderItem(
                 item.Kind, item.SourceIndex, item.PlacementIndex, index, item.ColumnIndex, item.SpansColumns,
@@ -338,7 +338,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (ordered[index].Matched) {
                 evidence = item.Evidence.Concat(new[] {
                     new PdfInferenceEvidence(
-                        "reading-order.canonical-understanding",
+                        "reading-order-canonical-understanding",
                         "The item's position is owned by the canonical PDF understanding pipeline.",
                         0.9D)
                 }).ToArray();

@@ -38,12 +38,12 @@ public partial class Word {
         middle.Borders.TopSpace = shape == "box-top" || shape == "top-left" ? 3U : 0U;
         middle.Borders.BottomSpace = shape == "box-bottom" || shape == "bottom-right" ? 3U : 0U;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
             FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
         double first = Assert.Single(words, word => word.Text == "Before").Letters[0].StartBaseLine.Y;
@@ -67,12 +67,12 @@ public partial class Word {
         paragraph.Borders.TopSpace = 3;
         ConfigureAsymmetricBorderParagraph(source.AddParagraph("After"));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 300),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(36),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36),
             FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         for (int index = 1; index <= 30; index++) {
             int page = index <= 13 ? 1 : index <= 27 ? 2 : 3;

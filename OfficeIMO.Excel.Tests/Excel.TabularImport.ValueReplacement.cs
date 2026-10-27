@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = standardWriter });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(3, 2).NumberFormatCode);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(1));
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 XlsbUseSharedStrings = format == ExcelFileFormat.Xlsb ? useSharedStrings : null
             });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             for (int row = 1; row <= 140; row++) {
                 Assert.True(reader.Read());
                 Assert.False(reader.IsDBNull(0));
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValues(cells, mode: mode);
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var written = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 1).NumberFormatCode);
             Assert.Equal("@", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data", HasHeaderRow = source != "CellValues", A1Range = source == "CellValues" ? "A2:B21" : null });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data", HasHeaderRow = source != "CellValues", A1Range = source == "CellValues" ? "A2:B21" : null });
             Assert.True(reader.Read());
             Assert.False(reader.IsDBNull(0));
             Assert.False(reader.IsDBNull(1));
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = standardWriter });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             }
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Contains("yy", loaded.Sheets[0].GetCellStyle(1, 2).NumberFormatCode, StringComparison.OrdinalIgnoreCase);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             for (int row = 0; row < 2; row++) {
                 Assert.True(reader.Read());

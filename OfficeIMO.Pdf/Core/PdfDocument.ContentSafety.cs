@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Inspects decoded PDF text for exact paint, clipping, geometry, contrast, and Unicode evidence.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
         PdfLoadOptions? readOptions = null) {
@@ -17,7 +17,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Inspects encoded PDF bytes without treating concealment as evidence of AI authorship.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] pdf,
         OfficeContentSafetyOptions? options = null,
         PdfLoadOptions? readOptions = null) {

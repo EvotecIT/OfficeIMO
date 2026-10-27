@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (!projectable) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-FEATHDR11-SHORT",
+                        "xls-biff-feathdr11-short",
                         "The FeatHdr11 table-definition header is shorter than expected.",
                         sheetName: sheet.Name,
                         recordOffset: record.Offset,
@@ -68,13 +68,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsWorksheet sheet,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             if (record.Payload.Length < List12HeaderSize) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-SHORT", "The List12 table-definition record is shorter than expected.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-short", "The List12 table-definition record is shorter than expected.");
                 return false;
             }
 
             ushort embeddedRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
             if (embeddedRecordType != record.Type) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-HEADER-MISMATCH", "The List12 record has an unexpected future-record header.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-header-mismatch", "The List12 record has an unexpected future-record header.");
                 return false;
             }
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsImportDiagnostic> diagnostics,
             uint idList) {
             if (record.Payload.Length < List12HeaderSize + List12BlockLevelFixedSize) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-SHORT", "The List12 block-level formatting record is shorter than expected.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-block-level-short", "The List12 block-level formatting record is shorter than expected.");
                 return false;
             }
 
@@ -117,12 +117,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 totalBorderDxfByteCount
             };
             if (byteCounts.Any(count => count < 0)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-SIZE-INVALID", "The List12 block-level formatting record contains an invalid negative DXF byte count.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-block-level-size-invalid", "The List12 block-level formatting record contains an invalid negative DXF byte count.");
                 return false;
             }
 
             if (byteCounts.Any(count => count > 0)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-DXF-UNSUPPORTED", "List12 block-level DXF payloads are not yet projected.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-block-level-dxf-unsupported", "List12 block-level DXF payloads are not yet projected.");
                 return false;
             }
 
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ToOptionalStyleRecordIndex(totalStyleRecordIndex),
                 totalStyleName);
             if (!sheet.TryApplyTableDefinitionBlockLevelFormatting(idList, formatting)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-TABLE-MISSING", "The List12 block-level formatting record did not match a projected table definition.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-block-level-table-missing", "The List12 block-level formatting record did not match a projected table definition.");
                 return false;
             }
 
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsImportDiagnostic> diagnostics,
             uint idList) {
             if (record.Payload.Length < List12HeaderSize + 3) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-STYLE-SHORT", "The List12 table-style record is shorter than expected.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-style-short", "The List12 table-style record is shorter than expected.");
                 return false;
             }
 
@@ -164,12 +164,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             try {
                 styleName = BiffStringReader.ReadUnicodeString(record.Payload, ref styleNameOffset);
             } catch (InvalidDataException ex) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-STYLE-INVALID", "The List12 table-style name could not be read. " + ex.Message);
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-style-invalid", "The List12 table-style name could not be read. " + ex.Message);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(styleName)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-STYLE-MISSING", "The List12 table-style record does not contain a usable style name.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-style-missing", "The List12 table-style record does not contain a usable style name.");
                 return false;
             }
 
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 (flags & 0x0002) != 0,
                 (flags & 0x0004) != 0,
                 (flags & 0x0008) != 0)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-TABLE-MISSING", "The List12 table-style record did not match a projected table definition.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-table-missing", "The List12 table-style record did not match a projected table definition.");
                 return false;
             }
 
@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsImportDiagnostic> diagnostics,
             uint idList) {
             if (record.Payload.Length < List12HeaderSize + 6) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-DISPLAY-NAME-SHORT", "The List12 display-name record is shorter than expected.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-display-name-short", "The List12 display-name record is shorter than expected.");
                 return false;
             }
 
@@ -204,17 +204,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 displayName = BiffStringReader.ReadUnicodeString(record.Payload, ref offset);
                 comment = BiffStringReader.ReadUnicodeString(record.Payload, ref offset);
             } catch (InvalidDataException ex) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-DISPLAY-NAME-INVALID", "The List12 display-name record could not be read. " + ex.Message);
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-display-name-invalid", "The List12 display-name record could not be read. " + ex.Message);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(displayName) && string.IsNullOrWhiteSpace(comment)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-DISPLAY-NAME-MISSING", "The List12 display-name record does not contain a usable display name or comment.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-display-name-missing", "The List12 display-name record does not contain a usable display name or comment.");
                 return false;
             }
 
             if (!sheet.TryApplyTableDefinitionDisplayMetadata(idList, displayName, comment)) {
-                AddWarning(record, sheet.Name, diagnostics, "XLS-BIFF-LIST12-DISPLAY-NAME-TABLE-MISSING", "The List12 display-name record did not match a projected table definition.");
+                AddWarning(record, sheet.Name, diagnostics, "xls-biff-list12-display-name-table-missing", "The List12 display-name record did not match a projected table definition.");
                 return false;
             }
 
@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             if (styleRecordIndex < -1) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-STYLE-INDEX-INVALID", $"The List12 block-level {regionName} style index is invalid.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-list12-block-level-style-index-invalid", $"The List12 block-level {regionName} style index is invalid.");
                 return false;
             }
 
@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 styleName = BiffStringReader.ReadUnicodeString(record.Payload, ref offset);
                 return true;
             } catch (InvalidDataException ex) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-LIST12-BLOCK-LEVEL-STYLE-NAME-INVALID", $"The List12 block-level {regionName} style name could not be read. {ex.Message}");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-list12-block-level-style-name-invalid", $"The List12 block-level {regionName} style name could not be read. {ex.Message}");
                 return false;
             }
         }
@@ -259,20 +259,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out LegacyXlsTableDefinition? tableDefinition) {
             tableDefinition = null;
             if (record.Payload.Length < FeatureHeaderSize + 8 + TableFeatureFixedSize + 3) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-SHORT", "The table definition record is shorter than the supported Feature11/Feature12 shape.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-short", "The table definition record is shorter than the supported Feature11/Feature12 shape.");
                 return false;
             }
 
             ushort embeddedRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
             if (embeddedRecordType != record.Type
                 || (embeddedRecordType != Feature11RecordType && embeddedRecordType != Feature12RecordType)) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-HEADER-MISMATCH", "The table definition record has an unexpected future-record header.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-header-mismatch", "The table definition record has an unexpected future-record header.");
                 return false;
             }
 
             ushort referenceCount = BiffRecordReader.ReadUInt16(record.Payload, 19);
             if (referenceCount != 1) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-RANGE-COUNT", "Only single-range legacy table definitions are supported for projection.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-range-count", "Only single-range legacy table definitions are supported for projection.");
                 return false;
             }
 
@@ -284,26 +284,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             uint fixedSize = BiffRecordReader.ReadUInt32(record.Payload, tableFeatureOffset + 20);
             uint flags = BiffRecordReader.ReadUInt32(record.Payload, tableFeatureOffset + 28);
             if (sourceType != 0 || idList == 0 || fixedSize != TableFeatureFixedSize || headerRows > 1 || totalRows > 1) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-SUBSET", "Only local worksheet tables with optional header row and up to one totals row are supported for projection.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-subset", "Only local worksheet tables with optional header row and up to one totals row are supported for projection.");
                 return false;
             }
 
             int stringOffset = tableFeatureOffset + TableFeatureFixedSize;
             string tableName = BiffStringReader.ReadUnicodeString(record.Payload, ref stringOffset);
             if (string.IsNullOrWhiteSpace(tableName)) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-NAME-MISSING", "The table definition does not contain a usable table name.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-name-missing", "The table definition does not contain a usable table name.");
                 return false;
             }
 
             if (stringOffset + 2 > record.Payload.Length) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-COLUMNS-MISSING", "The table definition does not contain the declared field count.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-columns-missing", "The table definition does not contain the declared field count.");
                 return false;
             }
 
             ushort fieldCount = BiffRecordReader.ReadUInt16(record.Payload, stringOffset);
             string range = ReadReference(record.Payload, FeatureHeaderSize);
             if (!TryGetColumnCount(range, out int rangeColumnCount) || fieldCount > 0 && fieldCount != rangeColumnCount) {
-                AddWarning(record, sheetName, diagnostics, "XLS-BIFF-TABLE-DEFINITION-COLUMN-MISMATCH", "The table definition field count does not match its range.");
+                AddWarning(record, sheetName, diagnostics, "xls-biff-table-definition-column-mismatch", "The table definition field count does not match its range.");
                 return false;
             }
 
@@ -326,13 +326,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort firstColumn = BiffRecordReader.ReadUInt16(payload, offset + 4);
             ushort lastColumn = BiffRecordReader.ReadUInt16(payload, offset + 6);
             return firstRow == lastRow && firstColumn == lastColumn
-                ? A1.CellReference(firstRow + 1, firstColumn + 1)
-                : $"{A1.CellReference(firstRow + 1, firstColumn + 1)}:{A1.CellReference(lastRow + 1, lastColumn + 1)}";
+                ? ExcelA1.CellReference(firstRow + 1, firstColumn + 1)
+                : $"{ExcelA1.CellReference(firstRow + 1, firstColumn + 1)}:{ExcelA1.CellReference(lastRow + 1, lastColumn + 1)}";
         }
 
         private static bool TryGetColumnCount(string range, out int columnCount) {
             columnCount = 0;
-            if (!A1.TryParseStrictRange(range, out _, out int startColumn, out _, out int endColumn)) {
+            if (!ExcelA1.TryParseStrictRange(range, out _, out int startColumn, out _, out int endColumn)) {
                 return false;
             }
 

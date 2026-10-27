@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
     // column needs the last line's font box, including the paragraph mark and
     // inline objects, without reserving that trailing distance below it.
     private static double ResolveImportedLineFrameFitHeight(RichLine line,
-        PdfStandardFont baseFont, double fontSize, PdfOptions? options, PdfLineSpacing spacing) {
+        PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options, PdfLineSpacing spacing) {
         double descent = 0D;
         bool hasDescent = false;
         foreach (RichSeg segment in line) {

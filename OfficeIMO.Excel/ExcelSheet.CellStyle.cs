@@ -7,27 +7,27 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets a read-only snapshot of the cell's visual style.
         /// </summary>
-        public ExcelCellStyleSnapshot GetStyle() => Sheet.GetCellStyle(Row, Column);
+        public ExcelCellStyleInfo GetStyle() => Sheet.GetCellStyle(Row, Column);
     }
 
     public partial class ExcelSheet {
         /// <summary>
         /// Gets a read-only snapshot of the visual style assigned to a worksheet cell.
         /// </summary>
-        public ExcelCellStyleSnapshot GetCellStyle(int row, int column) {
+        public ExcelCellStyleInfo GetCellStyle(int row, int column) {
             Cell? cell = TryGetExistingCell(row, column);
             if (cell == null) {
-                return new ExcelCellStyleSnapshot();
+                return new ExcelCellStyleInfo();
             }
 
             return GetCellStyleByIndex(cell.StyleIndex?.Value ?? 0U);
         }
 
-        internal ExcelCellStyleSnapshot GetCellStyleByIndex(uint styleIndex) {
+        internal ExcelCellStyleInfo GetCellStyleByIndex(uint styleIndex) {
             WorkbookPart? workbookPart = _excelDocument.WorkbookPartRoot;
             Stylesheet? stylesheet = workbookPart?.WorkbookStylesPart?.Stylesheet;
             if (stylesheet == null) {
-                return new ExcelCellStyleSnapshot {
+                return new ExcelCellStyleInfo {
                     StyleIndex = styleIndex
                 };
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
             string? numberFormatCode = GetNumberFormatCode(stylesheet, numberFormatId);
             bool hasSimpleGradient = ExcelGradientFillResolver.TryResolveSimpleLinearGradient(fill, workbookPart, out ExcelGradientFillInfo gradient);
 
-            return new ExcelCellStyleSnapshot {
+            return new ExcelCellStyleInfo {
                 StyleIndex = styleIndex,
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = numberFormatCode,
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = fill?.GradientFill != null && !hasSimpleGradient,
                 FillGradientStartColorArgb = hasSimpleGradient ? gradient.StartColorArgb : null,
                 FillGradientEndColorArgb = hasSimpleGradient ? gradient.EndColorArgb : null,
-                FillGradientStops = hasSimpleGradient ? CreateGradientStopSnapshots(gradient) : Array.Empty<ExcelGradientFillStopSnapshot>(),
+                FillGradientStops = hasSimpleGradient ? CreateGradientStopSnapshots(gradient) : Array.Empty<ExcelGradientFillStopInspectionInfo>(),
                 FillGradientDegree = hasSimpleGradient ? gradient.Degree : null,
                 Border = BuildBorderSnapshot(border, workbookPart),
                 HorizontalAlignment = format.Alignment?.Horizontal?.InnerText,
@@ -77,8 +77,8 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static IReadOnlyList<ExcelGradientFillStopSnapshot> CreateGradientStopSnapshots(ExcelGradientFillInfo gradient) =>
-            gradient.Stops.Select(stop => new ExcelGradientFillStopSnapshot(stop.Offset, stop.ColorArgb)).ToArray();
+        private static IReadOnlyList<ExcelGradientFillStopInspectionInfo> CreateGradientStopSnapshots(ExcelGradientFillInfo gradient) =>
+            gradient.Stops.Select(stop => new ExcelGradientFillStopInspectionInfo(stop.Offset, stop.ColorArgb)).ToArray();
 
         private static int? ToTextRotation(uint? value) {
             if (!value.HasValue) {
@@ -130,23 +130,23 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrEmpty(text) ? string.Empty : char.ToLowerInvariant(text[0]) + text.Substring(1);
         }
 
-        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(Border? border, WorkbookPart? workbookPart) {
+        private static ExcelCellBorderInfo? BuildBorderSnapshot(Border? border, WorkbookPart? workbookPart) {
             if (border == null) {
                 return null;
             }
 
-            ExcelBorderSideSnapshot? left = BuildBorderSideSnapshot(border.LeftBorder, workbookPart);
-            ExcelBorderSideSnapshot? right = BuildBorderSideSnapshot(border.RightBorder, workbookPart);
-            ExcelBorderSideSnapshot? top = BuildBorderSideSnapshot(border.TopBorder, workbookPart);
-            ExcelBorderSideSnapshot? bottom = BuildBorderSideSnapshot(border.BottomBorder, workbookPart);
-            ExcelBorderSideSnapshot? diagonal = BuildBorderSideSnapshot(border.DiagonalBorder, workbookPart);
+            ExcelBorderSideInfo? left = BuildBorderSideSnapshot(border.LeftBorder, workbookPart);
+            ExcelBorderSideInfo? right = BuildBorderSideSnapshot(border.RightBorder, workbookPart);
+            ExcelBorderSideInfo? top = BuildBorderSideSnapshot(border.TopBorder, workbookPart);
+            ExcelBorderSideInfo? bottom = BuildBorderSideSnapshot(border.BottomBorder, workbookPart);
+            ExcelBorderSideInfo? diagonal = BuildBorderSideSnapshot(border.DiagonalBorder, workbookPart);
             bool diagonalUp = border.DiagonalUp?.Value == true;
             bool diagonalDown = border.DiagonalDown?.Value == true;
             if (left == null && right == null && top == null && bottom == null && (!diagonalUp && !diagonalDown || diagonal == null)) {
                 return null;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = left,
                 Right = right,
                 Top = top,
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(BorderPropertiesType? borderSide, WorkbookPart? workbookPart) {
+        private static ExcelBorderSideInfo? BuildBorderSideSnapshot(BorderPropertiesType? borderSide, WorkbookPart? workbookPart) {
             if (borderSide == null) {
                 return null;
             }
@@ -168,7 +168,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return new ExcelBorderSideSnapshot {
+            return new ExcelBorderSideInfo {
                 Style = style,
                 ColorArgb = colorArgb
             };

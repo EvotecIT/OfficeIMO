@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = true });
+            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = true });
             object?[,] values = reader.GetSheet("Formula").ReadRange("A1:A1", ExcelExecutionMode.Sequential);
 
             Assert.Equal("SUM(1,2)", values[0, 0]);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
                 spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
             }
 
-            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { NumericAsDecimal = true });
+            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { NumericAsDecimal = true });
             object?[,] values = reader.GetSheet("Data").ReadRange("A1:E1", ExcelExecutionMode.Sequential);
 
             var date = Assert.IsType<DateTime>(values[0, 0]);
@@ -1015,7 +1015,7 @@ namespace OfficeIMO.Tests {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(filePath, null, cancellation.Token));
         }
 
@@ -1053,7 +1053,7 @@ namespace OfficeIMO.Tests {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(filePath, null, cancellation.Token));
         }
 
@@ -1068,7 +1068,7 @@ namespace OfficeIMO.Tests {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(destination, options: null, cancellationToken: cancellation.Token));
         }
 
@@ -1200,7 +1200,7 @@ namespace OfficeIMO.Tests {
             AssertMissingSpreadsheetCell(cells, "C3");
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(File.ReadAllBytes(filePath));
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Alpha", reader.GetString(0));
@@ -1244,7 +1244,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:B4", tableDefinition.Reference!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(File.ReadAllBytes(filePath));
             Assert.Equal(2, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Alpha", reader.GetString(0));
@@ -4333,8 +4333,8 @@ namespace OfficeIMO.Tests {
                     ("Score", row => row.Score),
                     ("Created", row => row.Created));
                 sheet.AddConditionalRule("B2:B4", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.AddConditionalColorScale("B2:B4", OfficeIMO.Drawing.OfficeColor.LightPink, OfficeIMO.Drawing.OfficeColor.LightGreen);
-                sheet.AddConditionalDataBar("B2:B4", OfficeIMO.Drawing.OfficeColor.SteelBlue);
+                sheet.AddConditionalColorScale("B2:B4", OfficeIMO.OfficeColor.LightPink, OfficeIMO.OfficeColor.LightGreen);
+                sheet.AddConditionalDataBar("B2:B4", OfficeIMO.OfficeColor.SteelBlue);
                 sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 100);
                 sheet.Freeze(topRows: 1, leftCols: 1);
                 sheet.AddAutoFilter("A1:C4");
@@ -7234,7 +7234,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 memory,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Data",
                     CreateTable = true,
                     TableName = "ReaderTable",
@@ -7296,14 +7296,14 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             var dataSet = new DataSet();
             var table = new DataTable("TooWide");
-            for (int i = 0; i <= A1.MaxColumns; i++) {
+            for (int i = 0; i <= ExcelA1.MaxColumns; i++) {
                 table.Columns.Add("Column" + i.ToString(CultureInfo.InvariantCulture));
             }
 
             dataSet.Tables.Add(table);
 
             var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains(A1.MaxColumns.ToString(CultureInfo.InvariantCulture), exception.Message);
+            Assert.Contains(ExcelA1.MaxColumns.ToString(CultureInfo.InvariantCulture), exception.Message);
         }
 
         private sealed class PerformanceObjectExportRow {

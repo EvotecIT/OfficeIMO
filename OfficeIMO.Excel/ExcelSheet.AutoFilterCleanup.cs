@@ -14,13 +14,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 var tableAutoFilter = table!.Elements<AutoFilter>().FirstOrDefault();
-                if (!A1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
+                if (!ExcelA1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
                     tableAutoFilter?.Remove();
                     DeferPartSave(tableDefinitionPart);
                     continue;
                 }
 
-                tableRanges.Add(A1.ParseRange(tableRange!));
+                tableRanges.Add(ExcelA1.ParseRange(tableRange!));
                 if (tableAutoFilter == null) {
                     continue;
                 }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             }
 
             string? worksheetRange = worksheetAutoFilter.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(worksheetRange) || !A1.TryParseRange(worksheetRange!, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
+            if (string.IsNullOrWhiteSpace(worksheetRange) || !ExcelA1.TryParseRange(worksheetRange!, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
                 ws.RemoveChild(worksheetAutoFilter);
                 return;
             }

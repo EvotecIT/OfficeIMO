@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableBodyText_ResetsFillColorAfterColoredHeader() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             })
@@ -42,14 +42,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_CanControlGenericHeaderBodyAndFooterTypography() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.FontSize = 8;
         style.LineHeight = 1.1;
         style.HeaderFontSize = 12;
         style.FooterFontSize = 10;
         style.FooterRowCount = 1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9
             })
@@ -69,7 +69,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_UsesConfiguredCellLineHeight() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 200,
             MarginLeft = 30,
@@ -95,7 +95,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTableStyle_UsesConfiguredCellLineHeight() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 200,
             MarginLeft = 30,
@@ -121,7 +121,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_UsesConfiguredCellPaddingSides() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -150,7 +150,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTableStyle_UsesConfiguredCellPaddingSides() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_UsesConfiguredPerCellPadding() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -208,7 +208,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTableStyle_UsesConfiguredPerCellPadding() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 30,
@@ -237,7 +237,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_UsesConfiguredPerCellAlignment() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 280,
             PageHeight = 200,
             MarginLeft = 30,
@@ -266,7 +266,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTableStyle_UsesConfiguredPerCellAlignment() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 280,
             PageHeight = 200,
             MarginLeft = 30,
@@ -297,7 +297,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TableStyle_UsesConfiguredCellSpacing(bool useRowColumnFlow) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 240,
             MarginLeft = 30,
@@ -326,12 +326,12 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_CanDisableHeaderAndFooterBoldWithoutChangingDocumentFont() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderBold = false;
         style.FooterBold = false;
         style.FooterRowCount = 1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9
             })

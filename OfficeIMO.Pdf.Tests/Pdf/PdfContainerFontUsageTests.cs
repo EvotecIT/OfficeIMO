@@ -10,7 +10,7 @@ public class PdfContainerFontUsageTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath == null) return;
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions())
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions())
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "Panel CFF")
             .Panel(content => content
                 .Paragraph(paragraph => paragraph.Text("PlainBox"))
@@ -33,9 +33,9 @@ public class PdfContainerFontUsageTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("Panel Font", fontData);
-        PdfOptions options = namedFont
-            ? new PdfOptions().RegisterNamedFontFamily(family)
-            : new PdfOptions().UseFontFamily(family);
+        PdfCreateOptions options = namedFont
+            ? new PdfCreateOptions().RegisterNamedFontFamily(family)
+            : new PdfCreateOptions().UseFontFamily(family);
         byte[] pdf = PdfDocument.Create(options)
             .Panel(content => content
                 .Paragraph(paragraph => {

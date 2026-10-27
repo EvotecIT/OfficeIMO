@@ -268,7 +268,7 @@ var neighbors = page.ShapesIntersecting(bounds);
 
 Imported connectors with an explicit cached text frame retain its position, dimensions, local pin and angle relative to the preserved native connector frame. Translating endpoints moves the label with the curve; rotating or uniformly scaling the retained curve transforms the cached text box. Font sizes and margins keep their physical size. Saving materializes the projected frame in native text cells without changing the imported caches, source formatting or text markers. SVG, PNG, label layout and resolved inspection pins use the same projection.
 
-`PlaceLabelAt()` and explicit `LabelPlacement.PinX/PinY` assignments select fixed page placement when both pins are set. Clearing a pin restores path placement. `PlaceLabel()` retains its path position and page-coordinate offsets when a file is reopened. These placement choices survive VDX/VSDX reopening and copying. An explicit change to `TextStyle.TextAngle` retains its page angle while an imported native pin continues to follow the connector. The placement properties retain imported cached values; `CreateInspectionSnapshot()` exposes the currently resolved page pin separately.
+`PlaceLabelAt()` and explicit `LabelPlacement.PinX/PinY` assignments select fixed page placement when both pins are set. Clearing a pin restores path placement. `PlaceLabel()` retains its path position and page-coordinate offsets when a file is reopened. These placement choices survive VDX/VSDX reopening and copying. An explicit change to `TextStyle.TextAngle` retains its page angle while an imported native pin continues to follow the connector. The placement properties retain imported cached values; `Inspect()` exposes the currently resolved page pin separately.
 
 `ResizeLabelToText()` measures the box at the current connector scale, and later native scaling starts from that fitted size. Label overlap cleanup retains the native pin and angle binding when it moves a label; an unsuccessful search leaves the placement untouched. Reopened native previews use stored placement without implicit collision cleanup. A collapsed native frame requires explicit label placement before fitting or layout editing.
 
@@ -458,7 +458,7 @@ shape; token-first overloads remain available for source and binary compatibilit
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 VisioDocument.Load("operations.vsdx")
     .AsFluent()
@@ -594,7 +594,7 @@ VisioDocument.Create("roadmap.vsdx")
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 var document = VisioDocument.Create("architecture.vsdx");
 var page = document.AddPage("Architecture");

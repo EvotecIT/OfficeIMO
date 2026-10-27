@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests.Pdf {
             var doc = PdfDocument.Create();
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Size(PageSizes.A4);
+                    page.Size(PdfPageSizes.A4);
                     page.Margin(36);
                     page.DefaultTextStyle(style => style.Font(PdfStandardFont.Helvetica).FontSize(14));
                     page.Content(content =>
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests.Pdf {
                             col.Item().Paragraph(p => p.Text("First page body."))));
                 });
                 c.Page(page => {
-                    page.Size(PageSizes.Letter);
+                    page.Size(PdfPageSizes.Letter);
                     page.Margin(18, 24, 30, 36);
                     page.DefaultTextStyle(style => style.Font(PdfStandardFont.TimesRoman).FontSize(11));
                     page.Footer(f => f.PageNumber());
@@ -62,12 +62,12 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PdfDocumentPage_CreatesPageScopedFlowWithoutComposeWrapper() {
             var doc = PdfDocument.Create()
-                .Size(PageSizes.Letter)
-                .Margin(PageMargins.Normal)
+                .Size(PdfPageSizes.Letter)
+                .Margin(PdfPageMargins.Normal)
                 .Header(header => header.Text("Document header {page}/{pages}"))
                 .Page(page => {
-                    page.Size(PageSizes.A5);
-                    page.Margin(PageMargins.Narrow);
+                    page.Size(PdfPageSizes.A5);
+                    page.Margin(PdfPageMargins.Narrow);
                     page.Header(header => header.Text("Small page {page}/{pages}"));
                     page.Content(content =>
                         content.Column(column =>
@@ -118,15 +118,15 @@ namespace OfficeIMO.Tests.Pdf {
                         }));
                 })
                 .Section(section => {
-                    section.Size(PageSizes.A5.Landscape());
-                    section.Margin(PageMargins.Narrow);
+                    section.Size(PdfPageSizes.A5.Landscape());
+                    section.Margin(PdfPageMargins.Narrow);
                     section.Header(header => header.Text("Wide section {page}/{pages}"));
                     section.Content(content =>
                         content.Column(column =>
                             column.Item().Paragraph(p => p.Text("Wide section body."))));
                 });
 
-            using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
+            using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
             Assert.True(pdf.NumberOfPages >= 3, "The first section should flow across multiple physical pages.");
 
             int widePageNumber = Enumerable.Range(1, pdf.NumberOfPages)
@@ -152,18 +152,18 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PageSizeOrientationHelpers_ReturnExpectedDimensionsAndRejectInvalidOrientation() {
-            PageSize portrait = PageSizes.A4.Portrait();
-            PageSize landscape = PageSizes.A4.Landscape();
+            PdfPageSize portrait = PdfPageSizes.A4.Portrait();
+            PdfPageSize landscape = PdfPageSizes.A4.Landscape();
 
             Assert.InRange(portrait.Width, 594.0, 596.0);
             Assert.InRange(portrait.Height, 841.0, 843.0);
             Assert.InRange(landscape.Width, 841.0, 843.0);
             Assert.InRange(landscape.Height, 594.0, 596.0);
-            Assert.Equal(landscape.Width, new PageSize(842, 595).Landscape().Width);
-            Assert.Equal(landscape.Height, new PageSize(842, 595).Landscape().Height);
+            Assert.Equal(landscape.Width, new PdfPageSize(842, 595).Landscape().Width);
+            Assert.Equal(landscape.Height, new PdfPageSize(842, 595).Landscape().Height);
 
             var exception = Assert.Throws<ArgumentException>(() =>
-                PageSizes.A4.WithOrientation((OfficePageOrientation)99));
+                PdfPageSizes.A4.WithOrientation((OfficePageOrientation)99));
 
             Assert.Equal("orientation", exception.ParamName);
             Assert.Contains("PDF page orientation must be Portrait or Landscape.", exception.Message, StringComparison.Ordinal);
@@ -175,14 +175,14 @@ namespace OfficeIMO.Tests.Pdf {
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Size(PageSizes.A4);
+                    page.Size(PdfPageSizes.A4);
                     page.Landscape();
                     page.Content(content =>
                         content.Column(column =>
                             column.Item().Paragraph(p => p.Text("Landscape page body."))));
                 });
                 c.Page(page => {
-                    page.Size(PageSizes.A4.Landscape());
+                    page.Size(PdfPageSizes.A4.Landscape());
                     page.Portrait();
                     page.Content(content =>
                         content.Column(column =>

@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfLogicalTableTextExportTests {
     [Fact]
     public void PdfTables_ExtractMarkdownTables_AppliesPageRangesAndRowCaps() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -60,7 +60,7 @@ public class PdfLogicalTableTextExportTests {
 
     [Fact]
     public void PdfTables_ExtractHtmlTables_ExportsSemanticTablesAndEscapesCells() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -103,7 +103,7 @@ public class PdfLogicalTableTextExportTests {
 
     [Fact]
     public void PdfTables_ExtractHtmlTables_DoesNotInventAHeaderForUnknownSchema() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -138,7 +138,7 @@ public class PdfLogicalTableTextExportTests {
 
     [Fact]
     public void PdfTables_ToMarkdownTables_EscapesMarkdownTableSyntax() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 36,

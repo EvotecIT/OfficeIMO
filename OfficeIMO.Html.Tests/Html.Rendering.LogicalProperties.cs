@@ -236,19 +236,19 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderEffectGroup vertical = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderEffectGroup>(),
             group => group.Source == "div#vertical:vertical-writing");
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
-        });
+        })).ToBytes();
 
         Assert.Equal(m11, vertical.Transform.M11, 6);
         Assert.Equal(m12, vertical.Transform.M12, 6);
         Assert.Equal(m21, vertical.Transform.M21, 6);
         Assert.Equal(m22, vertical.Transform.M22, 6);
-        Assert.Contains("Vertical text", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Vertical text", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -259,18 +259,18 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToList();
         IReadOnlyList<HtmlRenderText> text = visuals.OfType<HtmlRenderText>().ToList();
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             PageSize = new OfficePageSize(160D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
-        });
+        })).ToBytes();
 
         Assert.Contains(text, glyph => glyph.Text == "縦");
         Assert.Contains(text, glyph => glyph.Text == "書");
         Assert.Contains(visuals.OfType<HtmlRenderEffectGroup>(), group =>
             group.Visuals.OfType<HtmlRenderText>().Any(glyph => glyph.Text == "L")
             && group.Transform.M12 == 1D);
-        Assert.Contains("縦書きLatin", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Replace(" ", string.Empty), StringComparison.Ordinal);
+        Assert.Contains("縦書きLatin", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Replace(" ", string.Empty), StringComparison.Ordinal);
     }
 
     [Theory]

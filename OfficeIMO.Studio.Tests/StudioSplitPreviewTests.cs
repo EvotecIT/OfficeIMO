@@ -121,7 +121,7 @@ public sealed class StudioSplitPreviewTests {
                 await model.DuplicateSelectedCommand.ExecuteAsync(null);
                 await model.SplitCommand.ExecuteAsync(null);
                 Assert.True(model.IsDirty);
-                Assert.Equal(4, PdfDocument.Load(File.ReadAllBytes(source)).Inspect().PageCount);
+                Assert.Equal(4, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source))).Inspect().PageCount);
                 if (changeDuringReview) {
                     Assert.NotNull(model.ErrorMessage); Assert.Null(completed); Assert.Empty(services.Jobs.Entries);
                     Assert.False(Directory.Exists(folder));
@@ -130,7 +130,7 @@ public sealed class StudioSplitPreviewTests {
                     Assert.NotNull(completed);
                     Assert.Equal(3, completed.Files.Count);
                     Assert.Equal(new[] { 200D, 200D, 210D, 220D, 230D }, completed.Files
-                        .SelectMany(file => PdfDocument.Load(File.ReadAllBytes(file.Path)).Inspect().Pages).Select(page => page.Width));
+                        .SelectMany(file => PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(file.Path))).Inspect().Pages).Select(page => page.Width));
                     var job = Assert.Single(services.Jobs.Entries);
                     Assert.False(job.IsActive); Assert.True(job.HasOutput); Assert.False(job.HasRecovery);
                 }

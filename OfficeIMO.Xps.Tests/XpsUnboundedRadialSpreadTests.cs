@@ -45,7 +45,7 @@ public sealed class XpsUnboundedRadialSpreadTests {
     }
     internal static void AssertPdfMatchesNative(XpsDocument document, params (int X, int Y)[] points) {
         Assert.True(OfficeRasterImageDecoder.TryDecode(document.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var native));
-        var page = PdfReadDocument.Open(document.ToPdf()).Pages[0];
+        var page = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages[0];
         Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png,
             new PdfImageExportOptions { Scale = 4D / 3D }).Bytes, out var reopened));
         foreach (var point in points) {

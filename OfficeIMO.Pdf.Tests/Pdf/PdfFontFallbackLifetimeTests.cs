@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfFontFallbackLifetimeTests {
     [Fact]
     public void ResettingAutomaticNamedFallbackReleasesFontBytesAndParsedProgram() {
-        (PdfOptions Options, WeakReference[] ReleasedOwners) references = RegisterAndResetAutomaticFallback();
+        (PdfCreateOptions Options, WeakReference[] ReleasedOwners) references = RegisterAndResetAutomaticFallback();
         for (int attempt = 0; attempt < 10 && references.ReleasedOwners.Any(reference => reference.IsAlive); attempt++) {
             GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
             GC.WaitForPendingFinalizers();
@@ -18,8 +18,8 @@ public sealed class PdfFontFallbackLifetimeTests {
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static (PdfOptions Options, WeakReference[] ReleasedOwners) RegisterAndResetAutomaticFallback() {
-        var options = new PdfOptions();
+    private static (PdfCreateOptions Options, WeakReference[] ReleasedOwners) RegisterAndResetAutomaticFallback() {
+        var options = new PdfCreateOptions();
         options.RegisterAutomaticFontFallbackCandidates(new[] {
             new PdfEmbeddedFontFallbackCandidate("Automatic lifetime", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A'))
         }, new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier });

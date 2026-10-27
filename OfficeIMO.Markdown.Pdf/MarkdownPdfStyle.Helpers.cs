@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 public sealed partial class MarkdownPdfStyle {
     private static PdfCore.PdfTableStyle TechnicalTable() {
-        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.TableStyles.Light(), 9.75, 9.75, 1.2, 6, 5, 6, 10);
+        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.PdfTableStyles.Light(), 9.75, 9.75, 1.2, 6, 5, 6, 10);
         style.HeaderFill = PdfCore.PdfColor.FromRgb(15, 23, 42);
         style.HeaderTextColor = PdfCore.PdfColor.White;
         style.RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252);
@@ -16,7 +16,7 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle GitHubTable() {
-        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.TableStyles.Light(), 10, 10, 1.22, 6, 5, 6, 10);
+        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.PdfTableStyles.Light(), 10, 10, 1.22, 6, 5, 6, 10);
         style.HeaderFill = PdfCore.PdfColor.FromRgb(246, 248, 250);
         style.HeaderTextColor = PdfCore.PdfColor.FromRgb(36, 41, 47);
         style.TextColor = PdfCore.PdfColor.FromRgb(36, 41, 47);
@@ -27,13 +27,13 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle CompactTable() {
-        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.TableStyles.ListTable1Light(), 9, 9, 1.12, 4, 3, 4, 7);
+        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.PdfTableStyles.ListTable1Light(), 9, 9, 1.12, 4, 3, 4, 7);
         style.RowSeparatorColor = PdfCore.PdfColor.FromRgb(226, 232, 240);
         return style;
     }
 
     private static PdfCore.PdfTableStyle ReportTable() {
-        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.TableStyles.Light(), 9.25, 9.25, 1.18, 5, 4, 6, 10);
+        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.PdfTableStyles.Light(), 9.25, 9.25, 1.18, 5, 4, 6, 10);
         style.HeaderFill = PdfCore.PdfColor.FromRgb(30, 64, 175);
         style.HeaderTextColor = PdfCore.PdfColor.White;
         style.RowStripeFill = PdfCore.PdfColor.FromRgb(239, 246, 255);
@@ -43,7 +43,7 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle FrontMatterTable() {
-        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.TableStyles.Minimal(), 10, 10, 1.18, 6, 5, 0, 10);
+        PdfCore.PdfTableStyle style = MarkdownTable(PdfCore.PdfTableStyles.Minimal(), 10, 10, 1.18, 6, 5, 0, 10);
         style.HeaderFill = PdfCore.PdfColor.FromRgb(241, 245, 249);
         style.HeaderTextColor = PdfCore.PdfColor.FromRgb(15, 23, 42);
         style.RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252);
@@ -64,7 +64,7 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle DefinitionTable(int borderR, int borderG, int borderB, double borderWidth, double paddingX, double paddingY) {
-        PdfCore.PdfTableStyle style = PdfCore.TableStyles.Minimal();
+        PdfCore.PdfTableStyle style = PdfCore.PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = paddingX;
         style.CellPaddingY = paddingY;
@@ -76,7 +76,7 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle ChecklistTable(int borderR, int borderG, int borderB, int textR, int textG, int textB, double fontSize, double paddingY) {
-        PdfCore.PdfTableStyle style = PdfCore.TableStyles.Minimal();
+        PdfCore.PdfTableStyle style = PdfCore.PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.RepeatHeaderRowCount = 0;
         style.BorderColor = null;

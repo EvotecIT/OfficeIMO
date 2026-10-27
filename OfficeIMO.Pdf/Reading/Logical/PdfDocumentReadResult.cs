@@ -1106,19 +1106,19 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>
     internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.Load(pdf).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from bytes with explicit read limits or credentials and returns the logical read model.</summary>
     internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf, readOptions).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.Load(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from a file path and returns the logical read model.</summary>
     internal static PdfDocumentReadResult Load(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return PdfDocument.Load(path).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.Load(path).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>
@@ -1127,7 +1127,7 @@ public sealed partial class PdfDocumentReadResult {
     /// </summary>
     internal static PdfDocumentReadResult Load(Stream stream, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return PdfDocument.Load(stream).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.Load(stream).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
@@ -1138,7 +1138,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
     internal static PdfDocumentReadResult LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        return PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             LayoutOptions = options ?? new PdfTextLayoutOptions(),
             PageSelection = PdfPageSelection.FromRanges(pageRanges)
         });
@@ -1152,7 +1152,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
     internal static PdfDocumentReadResult LoadPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return PdfDocument.Load(path).Read(new PdfReadOptions {
+        return PdfDocument.Load(path).Read(new PdfLoadOptions {
             LayoutOptions = options ?? new PdfTextLayoutOptions(),
             PageSelection = PdfPageSelection.FromRanges(pageRanges)
         });
@@ -1172,7 +1172,7 @@ public sealed partial class PdfDocumentReadResult {
     /// </summary>
     internal static PdfDocumentReadResult LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(stream, nameof(stream));
-        return PdfDocument.Load(stream).Read(new PdfReadOptions {
+        return PdfDocument.Load(stream).Read(new PdfLoadOptions {
             LayoutOptions = options ?? new PdfTextLayoutOptions(),
             PageSelection = PdfPageSelection.FromRanges(pageRanges)
         });
@@ -1181,7 +1181,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Builds the logical read model from an already parsed PDF document.</summary>
     internal static PdfDocumentReadResult From(PdfReadDocument document, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(document, nameof(document));
-        return PdfDocumentReadEngine.Read(document, new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocumentReadEngine.Read(document, new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     internal static PdfDocumentReadResult From(
@@ -1190,7 +1190,7 @@ public sealed partial class PdfDocumentReadResult {
         CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
         return PdfDocumentReadEngine.Read(document,
-            new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() }, cancellationToken);
+            new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() }, cancellationToken);
     }
 
     /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
@@ -1201,7 +1201,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
     internal static PdfDocumentReadResult FromPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
-        return PdfDocumentReadEngine.Read(document, new PdfReadOptions {
+        return PdfDocumentReadEngine.Read(document, new PdfLoadOptions {
             LayoutOptions = options ?? new PdfTextLayoutOptions(),
             PageSelection = PdfPageSelection.FromRanges(pageRanges)
         });

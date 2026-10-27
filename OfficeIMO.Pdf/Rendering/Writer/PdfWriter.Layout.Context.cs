@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
         private readonly bool isRunningContent;
         private bool pageContentsTransferred;
         private readonly System.Collections.Generic.List<LayoutResult.Page> pages = new System.Collections.Generic.List<LayoutResult.Page>();
-        private readonly System.Collections.Generic.Stack<PdfOptions> optionsStack = new System.Collections.Generic.Stack<PdfOptions>();
+        private readonly System.Collections.Generic.Stack<PdfCreateOptions> optionsStack = new System.Collections.Generic.Stack<PdfCreateOptions>();
         private readonly System.Collections.Generic.Stack<int> pageGroupStack = new System.Collections.Generic.Stack<int>();
         private readonly System.Collections.Generic.HashSet<string> emittedTableCellNamedDestinations = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
         private readonly bool emitGeneratedStructure;
@@ -25,9 +25,9 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
         private readonly HashSet<string> tableOfContentsDestinations = new(StringComparer.Ordinal);
-        private PdfOptions currentOpts;
-        private PdfOptions currentPageBaseOptions;
-        private readonly Dictionary<PdfOptions, PdfOptions> mirroredPageOptions = new();
+        private PdfCreateOptions currentOpts;
+        private PdfCreateOptions currentPageBaseOptions;
+        private readonly Dictionary<PdfCreateOptions, PdfCreateOptions> mirroredPageOptions = new();
         private readonly HashSet<int> emittedPageGroups = new();
         private readonly Dictionary<int, int> emittedPageGroupCounts = new();
         private int previousVisiblePageNumber;
@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
         private bool pageHasBodyContent;
         private int runningNonContentObjectCount;
         private int? currentRunningSectionId;
-        private PdfOptions? nextRunningPageOptions;
+        private PdfCreateOptions? nextRunningPageOptions;
         // Body emission records logical ownership at the same point as page
         // dirtiness, after any paragraph/table pagination has taken place.
         private bool pageDirty {
@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText, string? Language, PdfListNumbering? Numbering), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string, string?, PdfListNumbering?), PageStructElement>();
 
         public LayoutContext(
-            PdfOptions options,
+            PdfCreateOptions options,
             System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null,
             System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null,
             System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null,
@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
             if (ownsPageContents && !pageContentsTransferred) pageContents.Dispose();
         }
 
-        private void StartPage(PdfOptions options) {
+        private void StartPage(PdfCreateOptions options) {
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             if (nextRunningPageOptions != null) {
                 options = nextRunningPageOptions;
@@ -155,7 +155,7 @@ internal static partial class PdfWriter {
             if (options.MirrorMargins && currentVisiblePageNumber % 2 == 0) {
                 // Keep one effective frame per source options instance. Deep copies
                 // retain document assets and font state, so they must not grow per page.
-                if (!mirroredPageOptions.TryGetValue(options, out PdfOptions? mirrored)) {
+                if (!mirroredPageOptions.TryGetValue(options, out PdfCreateOptions? mirrored)) {
                     mirrored = options.Clone();
                     mirrored.MarginLeft = options.MarginRight;
                     mirrored.MarginRight = options.MarginLeft;
@@ -190,14 +190,14 @@ internal static partial class PdfWriter {
             if (currentPage == null) StartPage(currentPageBaseOptions);
         }
 
-        private void PadSectionStart(PdfOptions sectionOptions) {
+        private void PadSectionStart(PdfCreateOptions sectionOptions) {
             PdfPageParity? parity = sectionOptions.PageStartParity;
             if (!parity.HasValue || pages.Count == 0) return;
             int nextNumber = sectionOptions.UseContinuingPageNumberForStartParity ? previousVisiblePageNumber + 1 : pages.Count + 1;
             bool nextPageIsEven = nextNumber % 2 == 0;
             if (nextPageIsEven == (parity == PdfPageParity.Even)) return;
-            PdfOptions previous = pages[pages.Count - 1].Options;
-            StartPage(new PdfOptions {
+            PdfCreateOptions previous = pages[pages.Count - 1].Options;
+            StartPage(new PdfCreateOptions {
                 PageWidth = previous.PageWidth,
                 PageHeight = previous.PageHeight,
                 MarginLeft = previous.MarginLeft,

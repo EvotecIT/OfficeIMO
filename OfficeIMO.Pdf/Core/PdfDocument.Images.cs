@@ -55,7 +55,9 @@ public sealed class PdfImageDocumentSource {
 }
 
 /// <summary>Options for creating one PDF page per source image.</summary>
-public sealed class PdfImageDocumentOptions {
+public sealed class PdfImageImportOptions {
+    /// <summary>Rejects fidelity loss before returning PDF or writing its destination.</summary>
+    public bool FailOnLoss { get; set; }
     /// <summary>Maximum encoded bytes accepted from each image source. Defaults to 128 MiB.</summary>
     public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
 
@@ -63,10 +65,10 @@ public sealed class PdfImageDocumentOptions {
     /// Optional fixed paper size. When omitted, each page uses the image physical dimensions derived from its DPI.
     /// Images without usable dimensions fall back to <see cref="FallbackPageSize"/>.
     /// </summary>
-    public PageSize? FixedPageSize { get; set; }
+    public PdfPageSize? FixedPageSize { get; set; }
 
     /// <summary>Fallback paper size for an image whose physical dimensions cannot be determined.</summary>
-    public PageSize FallbackPageSize { get; set; } = PageSizes.A4;
+    public PdfPageSize FallbackPageSize { get; set; } = PdfPageSizes.A4;
 
     /// <summary>Automatically rotates a fixed or fallback paper size to match the image orientation.</summary>
     public bool AutoOrientPage { get; set; } = true;
@@ -80,7 +82,7 @@ public sealed class PdfImageDocumentOptions {
     /// <summary>Maximum generated page width or height in points.</summary>
     public double MaximumPageDimension { get; set; } = 14_400D;
 
-    internal PdfImageDocumentOptions CloneAndValidate() {
+    internal PdfImageImportOptions CloneAndValidate() {
         PdfImageInput.ValidateMaximum(MaximumEncodedImageBytes);
         if (Margin < 0D || double.IsNaN(Margin) || double.IsInfinity(Margin)) {
             throw new ArgumentOutOfRangeException(nameof(Margin));
@@ -93,7 +95,8 @@ public sealed class PdfImageDocumentOptions {
         }
         ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize), validatePrintableArea: false);
         if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize), validatePrintableArea: true);
-        return new PdfImageDocumentOptions {
+        return new PdfImageImportOptions {
+            FailOnLoss = FailOnLoss,
             MaximumEncodedImageBytes = MaximumEncodedImageBytes,
             FixedPageSize = FixedPageSize,
             FallbackPageSize = FallbackPageSize,
@@ -104,7 +107,7 @@ public sealed class PdfImageDocumentOptions {
         };
     }
 
-    private void ValidatePageSize(PageSize size, string name, bool validatePrintableArea) {
+    private void ValidatePageSize(PdfPageSize size, string name, bool validatePrintableArea) {
         if (size.Width > MaximumPageDimension || size.Height > MaximumPageDimension) {
             throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension:N0} points.");
         }
@@ -116,22 +119,22 @@ public sealed class PdfImageDocumentOptions {
 
 public sealed partial class PdfDocument {
     /// <summary>Creates one PDF page per image file in caller order.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<string> imagePaths,
-        PdfImageDocumentOptions? options = null) {
+        PdfImageImportOptions? options = null) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes)), effective, CancellationToken.None);
     }
 
     /// <summary>Creates one PDF page per image file in caller order with cooperative cancellation.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<string> imagePaths,
-        PdfImageDocumentOptions? options,
+        PdfImageImportOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(
             imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes, cancellationToken)),
             effective,
@@ -139,26 +142,26 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Creates one PDF page per encoded image source in caller order.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions? options = null) {
+        PdfImageImportOptions? options = null) {
         return CreateFromImages(images, options, CancellationToken.None);
     }
 
     /// <summary>Creates one PDF page per encoded image source in caller order with cooperative cancellation.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions? options,
+        PdfImageImportOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNull(images, nameof(images));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(images, effective, cancellationToken);
     }
 
     private static PdfDocument CreateFromImagesCore(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions effective,
+        PdfImageImportOptions effective,
         CancellationToken cancellationToken) {
         var document = new PdfDocument();
         int sourceCount = 0;
@@ -169,7 +172,7 @@ public sealed partial class PdfDocument {
             byte[] sourceBytes = source.GetBytes(cancellationToken);
             PreparedImage prepared = PrepareImageDocumentSource(sourceBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            PageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
+            PdfPageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
             double frameWidth = pageSize.Width - effective.Margin * 2D;
             double frameHeight = pageSize.Height - effective.Margin * 2D;
             string? alternativeText = string.IsNullOrWhiteSpace(source.Name) ? null : source.Name;
@@ -200,12 +203,12 @@ public sealed partial class PdfDocument {
         byte[] sourceBytes,
         CancellationToken cancellationToken) => PrepareImageBytes(sourceBytes, cancellationToken);
 
-    private static PageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageDocumentOptions options) {
+    private static PdfPageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageImportOptions options) {
         double dpiX = ResolveImageDpi(info.DpiX);
         double dpiY = ResolveImageDpi(info.DpiY);
         bool isLandscape = info.Width > 0 && info.Height > 0 &&
             info.Width / dpiX > info.Height / dpiY;
-        PageSize pageSize;
+        PdfPageSize pageSize;
         if (options.FixedPageSize.HasValue) {
             pageSize = options.FixedPageSize.Value;
         } else if (info.Width > 0 && info.Height > 0) {
@@ -216,7 +219,7 @@ public sealed partial class PdfDocument {
                 throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
             }
             double scale = Math.Min(1D, maximumContentDimension / Math.Max(width, height));
-            pageSize = new PageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
+            pageSize = new PdfPageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
             return pageSize;
         } else {
             pageSize = options.FallbackPageSize;

@@ -117,7 +117,7 @@ public partial class PdfPageImageRendererTests {
     public void ReauthoringAffineGlyphDrawingFailsExplicitlyWhileOrdinaryTextRemainsSupported() {
         OfficeDrawing Read(double shear) => PdfReadDocument.Open(
             BuildAffineOutlineTextPdf(1D, 0D, shear, 1D, "B")).Pages[0].ToDrawing();
-        byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+        byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 240D, PageHeight = 200D, MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
         }).Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 240D, 200D)).ToBytes();
 

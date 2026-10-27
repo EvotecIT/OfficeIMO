@@ -283,8 +283,8 @@ namespace OfficeIMO.Excel {
                         leftColumn,
                         rightRow,
                         rightColumn,
-                        A1.CellReference(leftRow, leftColumn),
-                        A1.CellReference(rightRow, rightColumn),
+                        ExcelA1.CellReference(leftRow, leftColumn),
+                        ExcelA1.CellReference(rightRow, rightColumn),
                         leftValue,
                         rightValue));
                 }
@@ -700,11 +700,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string a1) {
-            if (A1.TryParseRange(a1, out int r1, out int c1, out int r2, out int c2)) {
+            if (ExcelA1.TryParseRange(a1, out int r1, out int c1, out int r2, out int c2)) {
                 return (r1, c1, r2, c2);
             }
 
-            (int row, int column) = A1.ParseCellRef(a1);
+            (int row, int column) = ExcelA1.ParseCellRef(a1);
             if (row > 0 && column > 0) {
                 return (row, column, row, column);
             }
@@ -713,14 +713,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ToRange((int r1, int c1, int r2, int c2) range) {
-            return A1.CellReference(range.r1, range.c1) + ":" + A1.CellReference(range.r2, range.c2);
+            return ExcelA1.CellReference(range.r1, range.c1) + ":" + ExcelA1.CellReference(range.r2, range.c2);
         }
 
         private static string BuildMergeTargetRange(int startRow, int startColumn, int rowCount, int columnCount) {
             int effectiveRows = Math.Max(1, rowCount);
             int effectiveColumns = Math.Max(1, columnCount);
-            return A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + effectiveRows - 1, startColumn + effectiveColumns - 1);
+            return ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + effectiveRows - 1, startColumn + effectiveColumns - 1);
         }
 
         private static void EnsureMergeTargetCanWrite(
@@ -744,7 +744,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    cellsToWrite.Add(A1.CellReference(targetStartRow + rowOffset, targetStartColumn + columnOffset));
+                    cellsToWrite.Add(ExcelA1.CellReference(targetStartRow + rowOffset, targetStartColumn + columnOffset));
                 }
             }
 
@@ -818,8 +818,8 @@ namespace OfficeIMO.Excel {
 
             int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
             int targetHeaderRow = GetMergeTargetHeaderRow(targetSheet, options);
-            string targetHeaderRange = A1.CellReference(targetHeaderRow, targetStartColumn) + ":" +
-                A1.CellReference(targetHeaderRow, targetStartColumn + sourceColumnCount - 1);
+            string targetHeaderRange = ExcelA1.CellReference(targetHeaderRow, targetStartColumn) + ":" +
+                ExcelA1.CellReference(targetHeaderRow, targetStartColumn + sourceColumnCount - 1);
             object?[,] targetHeaders;
             using (var targetReader = targetSheet.Document.CreateReader()) {
                 targetHeaders = targetReader.GetSheet(targetSheet.Name).ReadRange(targetHeaderRange);
@@ -844,7 +844,7 @@ namespace OfficeIMO.Excel {
             for (int column = 0; column < sourceColumnCount; column++) {
                 string targetHeader = NormalizeHeaderText(targetHeaders[0, column]);
                 if (targetHeader.Length == 0) {
-                    throw new ArgumentException($"Target header at {A1.CellReference(targetHeaderRow, targetStartColumn + column)} is empty.", nameof(options));
+                    throw new ArgumentException($"Target header at {ExcelA1.CellReference(targetHeaderRow, targetStartColumn + column)} is empty.", nameof(options));
                 }
 
                 if (!sourceColumns.TryGetValue(targetHeader, out int sourceColumn)) {
@@ -901,7 +901,7 @@ namespace OfficeIMO.Excel {
 
         private static int GetAppendStartRow(ExcelSheet targetSheet, int blankRowsBefore) {
             string usedRange = targetSheet.UsedRangeA1;
-            var (_, _, endRow, _) = A1.ParseRange(usedRange);
+            var (_, _, endRow, _) = ExcelA1.ParseRange(usedRange);
             if (IsWorksheetEffectivelyEmpty(targetSheet, usedRange)) {
                 return 1 + blankRowsBefore;
             }

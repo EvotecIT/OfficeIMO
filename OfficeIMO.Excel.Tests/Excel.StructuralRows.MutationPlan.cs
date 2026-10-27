@@ -586,7 +586,7 @@ namespace OfficeIMO.Tests {
             for (int column = 1; column <= 128; column++) {
                 sheet.CellValue(1, column, column);
             }
-            sheet.CellFormula(1, 129, $"A{A1.MaxRows}");
+            sheet.CellFormula(1, 129, $"A{ExcelA1.MaxRows}");
             Assert.True(document.HasPendingDirectCellValues);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(

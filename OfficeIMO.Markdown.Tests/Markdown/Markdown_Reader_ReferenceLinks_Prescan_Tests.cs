@@ -14,8 +14,8 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
 [x][ref]
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("href=\"https://evil.example", html, StringComparison.OrdinalIgnoreCase);
     }
@@ -28,8 +28,8 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
 [x][ref]
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("href=\"https://evil.example", html, StringComparison.OrdinalIgnoreCase);
     }
@@ -42,8 +42,8 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
 [x][ref]
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("href=\"https://evil.example", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("[x][ref]", html, StringComparison.Ordinal);
@@ -57,8 +57,8 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
 [x][ref]
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("href=\"https://example.com/\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal);
@@ -71,11 +71,11 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
 a. item
 [x]: /url
 """;
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.ListExtras = true;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("href=\"/url\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<ol type=\"a\">", html, StringComparison.Ordinal);
@@ -89,10 +89,10 @@ a. item
 > intro
 > [x]: /url
 """;
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("href=\"/url\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("[x]", html, StringComparison.Ordinal);
@@ -107,11 +107,11 @@ body
 :::
 [x]: /url
 """;
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.CustomContainers = true;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("href=\"/url\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.IsType<CustomContainerBlock>(doc.Blocks[1]);

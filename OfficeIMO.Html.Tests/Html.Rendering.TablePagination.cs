@@ -62,11 +62,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(repeatedHeaderCells.Select(group => group.StructureElementKey).Where(key => key != null).Distinct());
 
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(
-            PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
                 PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
                 Margins = HtmlRenderMargins.All(0D),
                 HonorCssPageRules = true
-            })).TaggedContent);
+            })).ToBytes()).TaggedContent);
         Assert.Equal(4, tagged.StructureElements.Count(element => element.StructureType == "TH"));
     }
 
@@ -125,11 +125,11 @@ public sealed partial class HtmlRenderingTests {
             }
         }
 
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             PageSize = new OfficePageSize(220D / HtmlRenderOptions.CssPixelsPerInch, 65D / HtmlRenderOptions.CssPixelsPerInch),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = true
-        })).ExtractText();
+        })).ToBytes()).ExtractText();
         Assert.Contains("ShortFooter", pdfText, StringComparison.Ordinal);
         Assert.Contains("LongFooter", pdfText, StringComparison.Ordinal);
     }
@@ -230,7 +230,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(rendered.Pages.Count, pngArchive.Manifest.Pages.Count);
         Assert.Equal(rendered.Pages.Count, svgZip.Entries.Count(entry => entry.FullName.EndsWith(".svg", StringComparison.Ordinal)));
         Assert.Equal(rendered.Pages.Count, pngZip.Entries.Count(entry => entry.FullName.EndsWith(".png", StringComparison.Ordinal)));
-        string pdfText = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes()).ExtractText();
         Assert.Contains("A1", pdfText, StringComparison.Ordinal);
         Assert.Contains("A6", pdfText, StringComparison.Ordinal);
         Assert.Contains("B1", pdfText, StringComparison.Ordinal);

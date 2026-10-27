@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             sheet.AddSparklines("F2:G2", "H2:H2", displayMarkers: true, seriesColor: "#DC2626");
 
             ExcelRange range = sheet.Range("A1:E2");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             sheet.AddSparklines("A2:C2", "D2", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#6B7280");
 
             ExcelRange range = sheet.Range("A1:D2");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal(2, snapshot.Sparklines.Count);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 3, 100);
             sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: "#2563EB");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
             Assert.Equal(2, snapshot.Sparklines.Count);
             Assert.All(snapshot.Sparklines, sparkline => {
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             summary.AddSparklines("'Data'!A1:C1", "A1", displayMarkers: true);
 
             ExcelRange range = summary.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
 
             Assert.Empty(snapshot.Sparklines);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "Z1000");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
             Assert.Empty(snapshot.Sparklines);
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Source == "Sparklines!Z1000");
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "B1");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
 
             Assert.Empty(snapshot.Sparklines);
             Assert.Contains(

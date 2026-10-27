@@ -35,7 +35,7 @@ public partial class Word {
         }
         using var source = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(source);
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         for (int index = 1; index <= 3; index++) {
             bool even = (startNumber + index - 1) % 2 == 0;

@@ -13,12 +13,6 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Default aggregate embedded-image bytes retained by one slide export.</summary>
         public const long DefaultMaximumTotalEmbeddedImageBytes = 256L * 1024 * 1024;
 
-        /// <summary>Shared slide layout settings used by PDF and image exports.</summary>
-        public Pdf.PowerPointToPdfOptions LayoutOptions { get; set; } = new Pdf.PowerPointToPdfOptions();
-
-        internal OfficeIMO.Pdf.PdfImageExportOptions ToPdfImageOptions() =>
-            CopyImageExportOptionsTo(new OfficeIMO.Pdf.PdfImageExportOptions());
-
         /// <inheritdoc />
         public override double LogicalUnitsPerInch => 72D;
 
@@ -69,9 +63,7 @@ namespace OfficeIMO.PowerPoint {
             CopyPowerPointOptionsTo(new PowerPointImageExportOptions());
 
         internal T CopyPowerPointOptionsTo<T>(T target) where T : PowerPointImageExportOptions {
-            if (LayoutOptions == null) throw new ArgumentNullException(nameof(LayoutOptions));
             CopyImageExportOptionsTo(target);
-            target.LayoutOptions = LayoutOptions.Clone();
             target.IncludeSlideBackground = IncludeSlideBackground;
             target.IncludeSlideContent = IncludeSlideContent;
             target.IncludePictures = IncludePictures;

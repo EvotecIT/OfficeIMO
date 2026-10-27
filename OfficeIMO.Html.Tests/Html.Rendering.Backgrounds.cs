@@ -158,7 +158,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
         OfficeImageExportResult svg = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.EndsWith(":background-image", background.Source, StringComparison.Ordinal);
         Assert.Equal(30D, background.Width, 3);
@@ -173,7 +173,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.Equal(18D, background.X, 3);
         Assert.Equal(18D, background.Y, 3);
@@ -221,7 +221,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBackgroundColorAlpha_FlowsThroughThePdfDrawingAdapter() {
         const string html = "<div style='width:80px;height:40px;background:rgba(255,255,255,.2)'>Alpha</div>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/Type /ExtGState /ca 0.2 /CA 1", rawPdf, StringComparison.Ordinal);
@@ -249,7 +249,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         OfficeDrawing pdfDrawing = PdfCore.PdfPageImageRenderer.RenderPage(pdf);
 
@@ -272,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, pdfRaster.GetPixel(9, 19));
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Theory]
@@ -343,7 +343,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(2, layers.Count);
         Assert.EndsWith(":background-image[1]", layers[0].Source, StringComparison.Ordinal);
@@ -425,7 +425,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(9L, pattern.Pattern.EstimatedTileCount);
         Assert.Single(drawing.ImagePatterns);
@@ -440,7 +440,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(9, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(8D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(11D, pattern.Pattern.HorizontalStep, 3);
@@ -497,7 +497,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(7.5D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(7.5D, pattern.Pattern.HorizontalStep, 3);

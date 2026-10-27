@@ -11,7 +11,7 @@ public partial class Html {
     public void HtmlToWord_TableAccessibilityMetadata_RoundTrips() {
         const string html = "<table aria-label=\"Quarterly results\" aria-description=\"Revenue by region\"><tr><td>North</td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal("Quarterly results", table.Title);
@@ -26,7 +26,7 @@ public partial class Html {
     public void HtmlToWord_TableAccessibilityName_ResolvesAriaLabelledBy() {
         const string html = "<p id=\"table-name\">Regional totals</p><table aria-labelledby=\"table-name\" summary=\"Legacy description\"><tr><td>North</td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal("Regional totals", table.Title);
@@ -37,7 +37,7 @@ public partial class Html {
     public void HtmlToWord_TableTitleFallbackIsNotDuplicatedAsDescription() {
         const string html = "<table title=\"Quarterly results\"><tr><td>North</td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal("Quarterly results", table.Title);
@@ -51,7 +51,7 @@ public partial class Html {
     public void HtmlToWord_EmptyDescriptionMetadataFallsBackToTheFirstNonEmptyCarrier() {
         const string html = "<table aria-description=\"  \" summary=\"Legacy description\" title=\"Table title\"><tr><td>North</td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal("Table title", table.Title);
@@ -119,7 +119,7 @@ public partial class Html {
     public void WordToHtml_NestedTableInsideListItem_PreservesBlockOrder() {
         const string html = "<table><tr><td><ol><li>Before<table><tr><td>Nested</td></tr></table></li><li>After</li></ol></td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         string roundTrip = document.ToHtml();
         int beforeIndex = roundTrip.IndexOf("Before", StringComparison.Ordinal);
@@ -139,7 +139,7 @@ public partial class Html {
     public void WordToHtml_SiblingTableAfterClosedListRemainsOutsideListItem() {
         const string html = "<table><tr><td><ol><li>List item</li></ol><table><tr><td>Sibling table</td></tr></table></td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
 
         Assert.Empty(parsed.QuerySelectorAll("li table"));
@@ -150,7 +150,7 @@ public partial class Html {
     public void WordToHtml_NestedTableAsLastListItemChildUsesExactRoundTripMarker() {
         const string html = "<table><tr><td><ol><li>List item<table><tr><td>Nested table</td></tr></table></li></ol></td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
 
         Assert.Single(parsed.QuerySelectorAll("li > table"));
@@ -160,7 +160,7 @@ public partial class Html {
     public void WordToHtml_OuterListTableMarkerDoesNotLeakToDescendantSiblingTable() {
         const string html = "<table><tr><td><ol><li>Outer<table><tr><td><ol><li>Inner</li></ol><table><tr><td>Inner sibling table</td></tr></table></td></tr></table></li></ol></td></tr></table>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         var parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
 
         var listTables = parsed.QuerySelectorAll("li > table");

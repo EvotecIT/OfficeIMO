@@ -100,14 +100,14 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectOpening(IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
             ICollection<PowerPointDeckRhythmFinding> findings) {
             if (slides.Count == 0) {
-                findings.Add(new PowerPointDeckRhythmFinding("Rhythm.EmptyDeck",
+                findings.Add(new PowerPointDeckRhythmFinding("rhythm-empty-deck",
                     PowerPointDeckRhythmSeverity.Error, -1, "The plan contains no slides."));
                 return;
             }
             PowerPointDeckPlanSlideKind kind = slides[0].Kind;
             if (kind != PowerPointDeckPlanSlideKind.Section &&
                 kind != PowerPointDeckPlanSlideKind.ExecutiveSummary) {
-                findings.Add(new PowerPointDeckRhythmFinding("Rhythm.WeakOpening",
+                findings.Add(new PowerPointDeckRhythmFinding("rhythm-weak-opening",
                     PowerPointDeckRhythmSeverity.Warning, 0,
                     "Consider opening with a section or executive-summary slide before detailed content."));
             }
@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 1; index < slides.Count; index++) {
                 streak = slides[index].Kind == slides[index - 1].Kind ? streak + 1 : 1;
                 if (streak == options.MaximumRepeatedKind + 1) {
-                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.RepeatedKind",
+                    findings.Add(new PowerPointDeckRhythmFinding("rhythm-repeated-kind",
                         PowerPointDeckRhythmSeverity.Warning, index,
                         streak + " consecutive " + slides[index].Kind + " slides reduce visual variety."));
                 }
@@ -136,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
                         StringComparison.Ordinal);
                 streak = same ? streak + 1 : 1;
                 if (streak == options.MaximumRepeatedKind + 1) {
-                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.RepeatedVariant",
+                    findings.Add(new PowerPointDeckRhythmFinding("rhythm-repeated-variant",
                         PowerPointDeckRhythmSeverity.Warning, index,
                         "The same " + slides[index].LayoutVariant + " composition repeats without a visual break."));
                 }
@@ -149,7 +149,7 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 0; index < slides.Count; index++) {
                 streak = IsDense(slides[index]) ? streak + 1 : 0;
                 if (streak == options.MaximumDenseStreak + 1) {
-                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.DenseStreak",
+                    findings.Add(new PowerPointDeckRhythmFinding("rhythm-dense-streak",
                         PowerPointDeckRhythmSeverity.Warning, index,
                         "Several information-dense slides appear back to back; add a visual or section reset."));
                 }
@@ -181,14 +181,14 @@ namespace OfficeIMO.PowerPoint {
                 hasLight |= !dark;
                 streak = dark == IsDark(slides[index - 1]) ? streak + 1 : 1;
                 if (streak == options.MaximumSameToneStreak + 1) {
-                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.SameToneStreak",
+                    findings.Add(new PowerPointDeckRhythmFinding("rhythm-same-tone-streak",
                         PowerPointDeckRhythmSeverity.Warning, index,
                         "The deck stays in the same " + (dark ? "dark" : "light") +
                         " tonal role for too long without a contrast reset."));
                 }
             }
             if (slides.Count >= options.ClosingExpectedAtSlideCount && (!hasLight || !hasDark)) {
-                findings.Add(new PowerPointDeckRhythmFinding("Rhythm.FlatTone",
+                findings.Add(new PowerPointDeckRhythmFinding("rhythm-flat-tone",
                     PowerPointDeckRhythmSeverity.Warning, slides.Count - 1,
                     "The resolved deck has no light/dark tonal contrast across its section and story roles."));
             }
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 sinceAnchor++;
                 if (sinceAnchor == options.MaximumSlidesBetweenAnchors + 1) {
-                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.LongSection",
+                    findings.Add(new PowerPointDeckRhythmFinding("rhythm-long-section",
                         PowerPointDeckRhythmSeverity.Warning, index,
                         "The deck runs more than " + options.MaximumSlidesBetweenAnchors +
                         " detail slides without a section or closing anchor."));
@@ -231,7 +231,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckRhythmOptions options, ICollection<PowerPointDeckRhythmFinding> findings) {
             if (slides.Count >= options.ClosingExpectedAtSlideCount &&
                 slides.All(slide => slide.Kind != PowerPointDeckPlanSlideKind.Closing)) {
-                findings.Add(new PowerPointDeckRhythmFinding("Rhythm.MissingClosing",
+                findings.Add(new PowerPointDeckRhythmFinding("rhythm-missing-closing",
                     PowerPointDeckRhythmSeverity.Warning, slides.Count - 1,
                     "A deck of this length should end with a takeaway, decision, or next action."));
             }

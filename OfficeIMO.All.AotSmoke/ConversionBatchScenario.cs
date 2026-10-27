@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -24,32 +25,35 @@ internal static class ConversionBatchScenario {
             slides.AddSlide().AddTextBoxPoints("Native checkpoint slide", 40, 40, 500, 60); slides.Save();
         }
         const string password = "Native smoke output password";
-        var request = new OfficeConversionBatchRequest {
-            InputDirectory = input, OutputDirectory = output, CheckpointDirectory = state,
+        var request = new OfficeBatchOptions {
+            InputDirectory = input, OutputDirectory = output, ResumeFrom = Path.Combine(state, "batch.json"),
             ConversionOptions = new() {
-                PlainText = new() { PdfOptions = new PdfOptions().SetEncryption(password, "Native smoke owner password") },
-                Word = new() { Title = "Native Word" }, Excel = new() { IncludeSheetHeadings = true },
-                PowerPoint = new() { IncludeHiddenSlides = true }, Html = new() { InteractiveFormControls = false },
-                Markdown = new() { Title = "Native Markdown" }, Rtf = new() { IncludeHiddenText = true }
+                PlainText = new() { PdfOptions = new PdfCreateOptions().SetEncryption(password, "Native smoke owner password") },
+                Word = new() { Title = "Native Word" },
+                Excel = new() { IncludeSheetHeadings = true },
+                PowerPoint = new() { IncludeHiddenSlides = true },
+                Html = new() { InteractiveFormControls = false },
+                Markdown = new() { Title = "Native Markdown" },
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { IncludeHiddenText = true } }
             }
         };
-        var runner = new OfficeWorkflowRunner();
+        OfficeWorkflow.RegisterConversions();
         var items = new BatchItems();
-        OfficeConversionBatchResult first = await runner.RunBatchAsync(request, items);
-        if (first.Completed != 7 || first.Failed != 0) throw new InvalidOperationException("Native checkpoint conversion failed: " + items.Summary);
+        OfficeBatchReport first = await OfficeConverter.ConvertAsync(request, items);
+        if (first.Summary.Completed != 7 || first.Summary.Failed != 0) throw new InvalidOperationException("Native checkpoint conversion failed: " + items.Summary);
         foreach (string file in Directory.GetFiles(output, "*.pdf")) {
             var pdf = PdfDocument.Load(file, new PdfLoadOptions { Password = password });
             if (pdf.Read().Pages.Count == 0) throw new InvalidOperationException("Native batch produced an empty PDF.");
         }
-        OfficeConversionBatchResult resumed = await runner.RunBatchAsync(request);
-        if (resumed.Reused != 7 || resumed.Failed != 0) throw new InvalidOperationException("Native checkpoint reuse failed.");
+        OfficeBatchReport resumed = await OfficeConverter.ConvertAsync(request);
+        if (resumed.Summary.Reused != 7 || resumed.Summary.Failed != 0) throw new InvalidOperationException("Native checkpoint reuse failed.");
         Console.WriteLine("PASS | Native conversion batch: seven format option bags, encrypted TXT, verified checkpoint reuse.");
     }
 
-    private sealed class BatchItems : IProgress<OfficeConversionBatchItemResult> {
+    private sealed class BatchItems : IProgress<OfficeBatchItemReport> {
         internal string Summary = string.Empty;
-        public void Report(OfficeConversionBatchItemResult item) {
-            if (item.Status != OfficeWorkflowStatus.Completed) lock (this) Summary += item.Summary + "\n";
+        public void Report(OfficeBatchItemReport item) {
+            if (item.Status != OfficeBatchItemStatus.Completed) lock (this) Summary += item.Summary + "\n";
         }
     }
 }

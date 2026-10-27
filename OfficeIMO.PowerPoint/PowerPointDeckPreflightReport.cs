@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox? bounds = null,
             double? resolvedFontSizePoints = null) {
             Severity = severity;
-            Code = string.IsNullOrWhiteSpace(code) ? "Preflight.Unknown" : code;
+            Code = string.IsNullOrWhiteSpace(code) ? "preflight-unknown" : code;
             Message = message ?? string.Empty;
             SlideIndex = slideIndex;
             ShapeIndex = shapeIndex;

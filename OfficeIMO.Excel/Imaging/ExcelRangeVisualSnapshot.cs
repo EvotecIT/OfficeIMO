@@ -5,8 +5,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Format-neutral visual snapshot for a worksheet range.
     /// </summary>
-    public sealed class ExcelRangeVisualSnapshot {
-        internal ExcelRangeVisualSnapshot(
+    public sealed class ExcelRangeVisualInfo {
+        internal ExcelRangeVisualInfo(
             string sheetName,
             string range,
             int firstRow,
@@ -163,9 +163,9 @@ namespace OfficeIMO.Excel {
             double width,
             double height,
             string text,
-            ExcelCellStyleSnapshot style,
+            ExcelCellStyleInfo style,
             bool coveredByMerge,
-            ExcelHyperlinkSnapshot? hyperlink = null,
+            ExcelHyperlinkInfo? hyperlink = null,
             IReadOnlyList<ExcelVisualTextRun>? richTextRuns = null,
             ExcelVisualCellValueKind valueKind = ExcelVisualCellValueKind.Text) {
             Row = row;
@@ -204,13 +204,13 @@ namespace OfficeIMO.Excel {
         public string Text { get; }
 
         /// <summary>Resolved cell style.</summary>
-        public ExcelCellStyleSnapshot Style { get; }
+        public ExcelCellStyleInfo Style { get; }
 
         /// <summary>Whether this cell is hidden by another merged cell in the snapshot.</summary>
         public bool CoveredByMerge { get; }
 
         /// <summary>Hyperlink metadata attached to this cell, when available.</summary>
-        public ExcelHyperlinkSnapshot? Hyperlink { get; }
+        public ExcelHyperlinkInfo? Hyperlink { get; }
 
         /// <summary>Rich text runs attached to this cell, when available.</summary>
         public IReadOnlyList<ExcelVisualTextRun> RichTextRuns { get; }
@@ -1014,7 +1014,7 @@ namespace OfficeIMO.Excel {
     /// Positioned worksheet chart metadata in an Excel range snapshot.
     /// </summary>
     public sealed class ExcelVisualChart {
-        internal ExcelVisualChart(ExcelChartSnapshot snapshot, int order, double x, double y, double width, double height) {
+        internal ExcelVisualChart(ExcelChartInfo snapshot, int order, double x, double y, double width, double height) {
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
             Order = order;
             X = x;
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Chart snapshot.</summary>
-        public ExcelChartSnapshot Snapshot { get; }
+        public ExcelChartInfo Snapshot { get; }
 
         /// <summary>Zero-based source drawing layer order.</summary>
         public int Order { get; }

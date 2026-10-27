@@ -12,7 +12,7 @@ public partial class Excel {
 
         PdfCore.PdfDocument pdfDocument;
         PdfCore.PdfColor expectedAccent;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(10, 8, "Column1");
             sheet.Cell(10, 9, "SamAccountName");
@@ -33,7 +33,7 @@ public partial class Excel {
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 4, 2), 16),
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 2, 2), 16));
 
-            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
+            pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
             });
@@ -59,7 +59,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_BoundedReadPreservesDirectStylesWithoutLoadingWorksheetDom() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStreaming.xlsx");
-        using (ExcelDocument source = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = source.Sheets[0];
             sheet.Cell(1, 1, "Name");
             sheet.Cell(1, 2, "Status");
@@ -77,7 +77,7 @@ public partial class Excel {
         var worksheetPart = Assert.Single(document.OpenXmlDocument.WorkbookPart!.WorksheetParts);
         Assert.False(worksheetPart.IsRootElementLoaded);
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -85,7 +85,7 @@ public partial class Excel {
         });
 
         Assert.False(worksheetPart.IsRootElementLoaded);
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "WorksheetBoundedRead");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "worksheet-bounded-read");
         PdfCore.PageBlock page = Assert.IsType<PdfCore.PageBlock>(Assert.Single(conversion.Value.Blocks));
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(table.Style);
@@ -104,7 +104,7 @@ public partial class Excel {
         sheet.Cell(2, 1, "Platform");
         sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -123,7 +123,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_BoundedReadIgnoresStaleDefaultWorksheetDimension() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStaleDimension.xlsx");
-        using (ExcelDocument source = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             source.Sheets[0].Cell(3, 2, "Preserved");
             source.Save();
         }
@@ -139,7 +139,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Load(
             workbookPath,
             new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,

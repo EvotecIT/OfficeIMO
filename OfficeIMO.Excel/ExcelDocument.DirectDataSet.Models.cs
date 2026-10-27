@@ -329,7 +329,7 @@ namespace OfficeIMO.Excel {
                     ValidateWorksheetBounds(tableModel, rowCount, requestedName);
                     string range = importResult?.Range ?? (tableModel.ColumnCount == 0 || rowCount == 0
                         ? string.Empty
-                        : "A1:" + A1.CellReference(rowCount, tableModel.ColumnCount));
+                        : "A1:" + ExcelA1.CellReference(rowCount, tableModel.ColumnCount));
 
                     bool hasTable = createTables && range.Length > 0;
                     double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
@@ -413,12 +413,12 @@ namespace OfficeIMO.Excel {
             }
 
             private static void ValidateWorksheetBounds(DirectDataSetTableModel table, int rowCount, string requestedName) {
-                if (table.ColumnCount > A1.MaxColumns) {
-                    throw new ArgumentException($"DataTable '{requestedName}' has {table.ColumnCount.ToString(CultureInfo.InvariantCulture)} columns, exceeding Excel's maximum of {A1.MaxColumns.ToString(CultureInfo.InvariantCulture)} columns.", nameof(table));
+                if (table.ColumnCount > ExcelA1.MaxColumns) {
+                    throw new ArgumentException($"DataTable '{requestedName}' has {table.ColumnCount.ToString(CultureInfo.InvariantCulture)} columns, exceeding Excel's maximum of {ExcelA1.MaxColumns.ToString(CultureInfo.InvariantCulture)} columns.", nameof(table));
                 }
 
-                if (rowCount > A1.MaxRows) {
-                    throw new ArgumentException($"DataTable '{requestedName}' has {rowCount.ToString(CultureInfo.InvariantCulture)} worksheet rows including headers, exceeding Excel's maximum of {A1.MaxRows.ToString(CultureInfo.InvariantCulture)} rows.", nameof(table));
+                if (rowCount > ExcelA1.MaxRows) {
+                    throw new ArgumentException($"DataTable '{requestedName}' has {rowCount.ToString(CultureInfo.InvariantCulture)} worksheet rows including headers, exceeding Excel's maximum of {ExcelA1.MaxRows.ToString(CultureInfo.InvariantCulture)} rows.", nameof(table));
                 }
             }
 

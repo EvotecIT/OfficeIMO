@@ -9,7 +9,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeBlock_SourceField_Snapshots_Expose_Normalized_And_Original_Source_Text() {
         var native = MarkdownNativeDocument.Parse(
             "# Title\r\n\r\n> [!NOTE] Heads up\r\n> Body",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var snapshot = native.ToSnapshot();
         var headingText = Assert.Single(snapshot.Blocks[0].SourceFields, field => field.Name == "text");
@@ -47,7 +47,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeInline_Metadata_Snapshots_Expose_Normalized_And_Original_Source_Text() {
         var native = MarkdownNativeDocument.Parse(
             "See [docs](https://example.com \"Docs\") and \\* &copy;",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var snapshot = native.ToSnapshot();
         var link = Assert.Single(snapshot.Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
@@ -123,7 +123,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 - alpha **one**
 
   beta [two](https://example.com)
-""", new MarkdownReaderOptions { PreserveTrivia = true });
+""", new MarkdownLoadOptions { PreserveTrivia = true });
         var item = Assert.Single(native.EnumerateListItems());
 
         var paragraphs = item.Paragraphs.ToArray();
@@ -198,7 +198,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeDocument_SourceTrivia_SourceSlices_Address_Blank_And_Horizontal_Whitespace() {
         var native = MarkdownNativeDocument.Parse(
             "# Title  \r\n\tIndented text\t \r\n   \r\nParagraph",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var trivia = native.SourceTrivia.Where(item => item.Kind != MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
         var trailingTrivia = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.TrailingWhitespace).ToArray();
@@ -264,7 +264,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeDocument_SourceTrivia_SourceSlices_Address_Line_Endings_With_Original_Mapping() {
         var native = MarkdownNativeDocument.Parse(
             "# Title\r\nParagraph\rTail\nEnd",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var lineEndings = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
 
@@ -320,7 +320,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeDocument_SourceTrivia_Line_Endings_Are_Source_Edit_Targets() {
         var native = MarkdownNativeDocument.Parse(
             "Alpha\r\nBeta\rGamma\nDelta",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
         var lineEndings = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
 
         var normalizedEdit = native.CreateReplaceEdit(lineEndings[1], "\n\n");
@@ -335,7 +335,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeDocument_SourceTrivia_Columns_Expand_Tabs_Like_Source_Map() {
         var native = MarkdownNativeDocument.Parse(
             "\tTabbed\t \n\t\nDone",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var leadingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LeadingWhitespace));
         var trailingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.TrailingWhitespace));
@@ -371,7 +371,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 | Name | Value |
 | ---- | ----- |
 | One  | Two   |
-""", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+""", MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var cell = native.EnumerateTableCells().Single(candidate => !candidate.IsHeader && candidate.ColumnIndex == 1);
         var row = native.EnumerateTableRows().Single(candidate => !candidate.IsHeader);
 
@@ -397,7 +397,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 
     [Fact]
     public void NativeDefinitionList_SourceSlices_Address_Group_Term_And_Definition_Body() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         options.PreserveTrivia = true;
         var native = MarkdownNativeDocument.Parse("""
@@ -442,7 +442,7 @@ Term
 
     [Fact]
     public void NativeDefinitionList_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         var native = MarkdownNativeDocument.Parse("""
 Term
@@ -492,7 +492,7 @@ Term
     public void ReferenceDefinition_Field_Snapshots_Expose_Normalized_And_Original_Source_Text() {
         var native = MarkdownNativeDocument.Parse(
             "[hero]: https://example.com/docs \"Docs title\"",
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
 
         var snapshot = Assert.Single(native.ToSnapshot().ReferenceLinkDefinitions);
         var openingMarker = Assert.Single(snapshot.SourceFields, field => field.Name == "openingMarker");
@@ -524,7 +524,7 @@ Term
             MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
             referenceUrl.OriginalSourceFailureReason);
 
-        var abbreviationOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var abbreviationOptions = MarkdownLoadOptions.CreatePortableProfile();
         abbreviationOptions.Abbreviations = true;
         var abbreviationNative = MarkdownNativeDocument.Parse("*[HTML]: Hyper Text", abbreviationOptions);
         var abbreviationSnapshot = Assert.Single(abbreviationNative.ToSnapshot().AbbreviationDefinitions);

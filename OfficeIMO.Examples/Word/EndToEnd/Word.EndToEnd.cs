@@ -69,14 +69,14 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
 
                 // 3) Export to Markdown
                 string mdPath = Path.Combine(outDir, "EndToEnd.md");
-                doc.SaveAsMarkdown(mdPath, new WordToMarkdownOptions());
+                doc.SaveAsMarkdown(mdPath, new WordMarkdownExportOptions());
                 Console.WriteLine($"✓ Markdown: {mdPath}");
 
                 // 4) Export to styled HTML (via Markdown) with TOC at top using simple options
                 string htmlPath = Path.Combine(outDir, "EndToEnd.html");
-                doc.ToMarkdownDocument().SaveAsHtml(htmlPath, new HtmlOptions {
-                    Kind = HtmlKind.Document,
-                    Style = HtmlStyle.Word,
+                doc.ToMarkdown().SaveAsHtml(htmlPath, new MarkdownHtmlExportOptions {
+                    Kind = MarkdownHtmlKind.Document,
+                    Style = MarkdownHtmlStyle.Word,
                     Title = "End-to-End Demo",
                     IncludeAnchorLinks = true,
                     BackToTopLinks = true,
@@ -94,19 +94,19 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             // 5) Load the generated Markdown back into Word
             string mdIn = Path.Combine(outDir, "EndToEnd.md");
             string fromMdDocx = Path.Combine(outDir, "EndToEnd.FromMarkdown.docx");
-            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDoc.Load(mdIn).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" })) {
+            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Load(mdIn).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" })) {
                 fromMarkdown.Save(fromMdDocx);
                 Console.WriteLine($"✓ Markdown → Word: {fromMdDocx}");
             }
 
             // 6) Quick sanity: convert the round-tripped doc back to Markdown/HTML
             using (var round = WordDocument.Load(fromMdDocx)) {
-                string md2 = round.ToMarkdown();
+                string md2 = (round.ToMarkdown()).ToMarkdown();
                 File.WriteAllText(Path.Combine(outDir, "EndToEnd.RoundTrip.md"), md2);
                 string rtHtmlPath = Path.Combine(outDir, "EndToEnd.RoundTrip.html");
-                round.ToMarkdownDocument().SaveAsHtml(rtHtmlPath, new HtmlOptions {
-                    Kind = HtmlKind.Document,
-                    Style = HtmlStyle.Word,
+                round.ToMarkdown().SaveAsHtml(rtHtmlPath, new MarkdownHtmlExportOptions {
+                    Kind = MarkdownHtmlKind.Document,
+                    Style = MarkdownHtmlStyle.Word,
                     Title = "End-to-End Demo (Round-Trip)",
                     IncludeAnchorLinks = true,
                     BackToTopLinks = true,

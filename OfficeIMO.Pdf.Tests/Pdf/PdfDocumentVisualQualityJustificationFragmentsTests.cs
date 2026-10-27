@@ -34,7 +34,7 @@ public partial class PdfDocumentVisualQualityTests {
         List<List<Letter>> expected = FragmentJustificationLines(controlPdf, columns: false);
         Assert.True(expected.Count > 10, "The paragraph must exceed one physical page or column frame.");
 
-        PdfOptions options = FragmentJustificationOptions(140);
+        PdfCreateOptions options = FragmentJustificationOptions(140);
         if (owner == "BodyColumns") options.PageWidth = 500;
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
@@ -99,7 +99,7 @@ public partial class PdfDocumentVisualQualityTests {
         }
     }
 
-    private static PdfOptions FragmentJustificationOptions(double height) => new() {
+    private static PdfCreateOptions FragmentJustificationOptions(double height) => new() {
         PageWidth = 260, PageHeight = height, MarginLeft = 20, MarginRight = 20,
         MarginTop = 20, MarginBottom = 20, DefaultFontSize = 8, DefaultFont = PdfStandardFont.Helvetica,
         CompressContentStreams = false

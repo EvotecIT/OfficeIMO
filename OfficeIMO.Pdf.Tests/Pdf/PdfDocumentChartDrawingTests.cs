@@ -1917,7 +1917,7 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
         Assert.False(report.HasIssues, string.Join("; ", report.Issues.Select(issue => issue.ToString())));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 460,
                 PageHeight = 310,
                 MarginLeft = 36,
@@ -2056,7 +2056,7 @@ public class PdfDocumentChartDrawingTests {
         Assert.True(axisTitle.Font.IsBold);
         Assert.False(axisTitle.Font.IsItalic);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 280,
                 MarginLeft = 36,
@@ -2259,7 +2259,7 @@ public class PdfDocumentChartDrawingTests {
         Assert.Equal(3, verticalGridLines);
         Assert.Equal(0, horizontalGridLines);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 280,
                 MarginLeft = 36,
@@ -2297,7 +2297,7 @@ public class PdfDocumentChartDrawingTests {
             widthPoints: 340D,
             heightPoints: 210D));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 440,
                 PageHeight = 300,
                 MarginLeft = 36,

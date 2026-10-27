@@ -19,7 +19,7 @@ public partial class Word {
         CreateBorderFrameControl(source, 2, columns, spacing);
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = pdf.GetPage(1);
         var boxes = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -47,7 +47,7 @@ public partial class Word {
             if (minimum) row.MinimumHeight = height;
             else row.Height = height;
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         Assert.Equal(6, words.Length); // The first exact-height cell retains its partial line.
         double[] baseline = Enumerable.Range(0, 3).Select(row =>
@@ -71,7 +71,7 @@ public partial class Word {
                 cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = 4U;
                 cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
             }
-        string raw = PdfOperatorSearchText.From(document.ToPdfBytes(BorderFramePdfOptions()));
+        string raw = PdfOperatorSearchText.From(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("1 0 0 RG", raw);
         Assert.Contains("0 0 1 RG", raw);
         Assert.Contains("0 1 0 RG", raw);
@@ -86,7 +86,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 2, 120);
         table.Alignment = alignment;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var first = pdf.GetPage(1).GetWords().Single(word => word.Text == "Frame0");
         Assert.Equal(firstTextX, first.Letters[0].StartBaseLine.X, 2);
     }
@@ -95,7 +95,7 @@ public partial class Word {
     public void SaveAsPdf_SpacedTableDoubleCellBordersReserveTheirWholePaintWidth() {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 2, 120);
-        using PdfPigDocument before = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument before = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double textX = before.GetPage(1).GetWords().Single(word => word.Text == "Frame0").Letters[0].StartBaseLine.X;
         foreach (WordTableRow row in table.Rows)
             foreach (WordTableCell cell in row.Cells) {
@@ -103,7 +103,7 @@ public partial class Word {
                 cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = 12U;
                 cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
             }
-        using PdfPigDocument after = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument after = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double borderedX = after.GetPage(1).GetWords().Single(word => word.Text == "Frame0").Letters[0].StartBaseLine.X;
         Assert.Equal(6D, borderedX - textX, 3);
         Assert.Equal(4, after.GetPage(1).GetWords().Count());
@@ -124,7 +124,7 @@ public partial class Word {
                 table.Rows[row].Cells[column].Paragraphs[0].Text = $"M{row * 2 + column}";
         }
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = repeatHeader;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
         Assert.Equal(80, words.Select(word => word.Text).Distinct().Count());
@@ -151,7 +151,7 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         if (exact) foreach (WordTableRow row in table.Rows) row.Height = 480;
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = repeatHeader;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double initial = pdf.GetPage(1).GetWords().Single(word => word.Text == "Frame0" && word.BoundingBox.Left < 306D).Letters[0].StartBaseLine.Y;
         var continuation = columns
             ? pdf.GetPage(1).GetWords().Where(word => word.BoundingBox.Left > 306D)
@@ -176,7 +176,7 @@ public partial class Word {
             if (inheritOne) row.Cells[0].MarginBottomWidth = null;
         }
         if (merge) for (int row = 0; row < 3; row++) table.MergeCells(row, 0, 1, 2, copyParagraphs: false);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double[] baseline = Enumerable.Range(0, 3).Select(row => pdf.GetPage(1).GetWords()
             .Single(word => word.Text == $"Frame{row * 2}").Letters[0].StartBaseLine.Y).ToArray();
         Assert.Equal(48D + effective, baseline[0] - baseline[1], 3);
@@ -191,7 +191,7 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
         if (exact) foreach (WordTableRow row in table.Rows) row.Height = 480;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         double? header = null;
         var markers = new HashSet<string>();
@@ -208,7 +208,7 @@ public partial class Word {
         Assert.Equal(80, markers.Count);
     }
 
-    private static WordToPdfOptions BorderFramePdfOptions() => new() {
+    private static WordPdfExportOptions BorderFramePdfOptions() => new() {
         IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
     };
 
@@ -232,7 +232,7 @@ public partial class Word {
             foreach (WordTableCell cell in row.Cells) cell.ShadingFillColorHex = "FFFFFF";
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = imported.ToPdfBytes(BorderFramePdfOptions());
+        byte[] bytes = imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         string raw = PdfOperatorSearchText.From(bytes);
         if (clear) Assert.DoesNotContain("0.502 0.753 1 rg", raw);

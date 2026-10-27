@@ -48,7 +48,7 @@ public partial class Word {
             styles.Elements<Style>().Single(s => s.StyleId?.Value == "GapChild").Append(properties);
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Supported cells";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Supported cells", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Equal(mode.Contains("spacing") ? (short)0 : (short)120, restored.Tables[0].StyleDetails!.CellSpacing);
@@ -68,7 +68,7 @@ public partial class Word {
         grid.Append(new TableStyleProperties(new TableStyleConditionalFormattingTableProperties(
             new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) { Type = TableStyleOverrideValues.FirstRow });
         // Word 16 ignores gap shading inside tblStylePr/tblPr even when the region is active.
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Conditional gap", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
@@ -94,7 +94,7 @@ public partial class Word {
             Type = StyleValues.Table, StyleId = "GapClear", CustomStyle = true
         });
         table._tableProperties.TableStyle = new TableStyle { Val = "GapClear" };
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
     }

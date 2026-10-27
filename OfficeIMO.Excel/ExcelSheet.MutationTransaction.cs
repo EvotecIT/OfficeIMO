@@ -549,7 +549,7 @@ namespace OfficeIMO.Excel {
             foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument, cancellationToken)) {
                 if (diagnostics.Count >= maximumDiagnostics) break;
                 diagnostics.Add(new ExcelMutationDiagnostic(
-                    "OPENXML_VALIDATION",
+                    "openxml-validation",
                     ExcelMutationDiagnosticSeverity.Error,
                     error.Description ?? "Open XML validation error.",
                     error.Part?.Uri.ToString()));

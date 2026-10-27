@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public static partial class ProjectReportWorkflow {
     private static void ValidateOfficeOptions(ProjectOfficeReportOptions options) {
-        ArgumentNullException.ThrowIfNull(options); ArgumentNullException.ThrowIfNull(options.Images);
+        if (options == null) throw new ArgumentNullException(nameof(options)); if (options.Images == null) throw new ArgumentNullException("options.Images");
         if (!options.IncludeCharts && !options.IncludeDataTables) throw new ArgumentException("Select charts, data tables, or both.", nameof(options));
     }
 

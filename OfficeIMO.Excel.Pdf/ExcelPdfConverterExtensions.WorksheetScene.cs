@@ -9,13 +9,13 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfDocument pdf,
             ExcelDocument document,
             IReadOnlyList<WorksheetPdfExportPlan> plans,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily) {
             WorksheetPdfExportPlan firstPlan = plans[0];
-            PdfCore.PageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
-            PdfCore.PageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
+            PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
+            PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
             double headingHeight = options.IncludeSheetHeadings ? WorksheetHeadingHeight : 0D;
             double availableWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
             double availableHeight = Math.Max(1D, pageSize.Height - margins.Top - margins.Bottom - headingHeight);
@@ -64,11 +64,11 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageCanvas canvas,
             WorksheetPdfExportPlan plan,
             TableChunk chunk,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily,
-            PdfCore.PageMargins margins,
+            PdfCore.PdfPageMargins margins,
             double availableWidth,
             double availableHeight,
             double worksheetScale,
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel.Pdf {
             WorksheetPdfExportPlan plan,
             SheetExportData data,
             TableChunk chunk,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             IReadOnlyList<double> columnWidths,
             IReadOnlyList<double> rowHeights,
             double scale) {
@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel.Pdf {
             double width = geometry.DefaultColumnWidth;
             bool hasExplicitWidth = geometry.HasExplicitDefaultColumnWidth;
             for (int index = geometry.Columns.Count - 1; index >= 0; index--) {
-                ExcelColumnSnapshot definition = geometry.Columns[index];
+                ExcelColumnInfo definition = geometry.Columns[index];
                 if (sourceColumn < definition.StartIndex || sourceColumn > definition.EndIndex) {
                     continue;
                 }
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static double GetWorksheetRowHeightPoints(WorksheetGeometryData geometry, int sourceRow) {
             for (int index = geometry.Rows.Count - 1; index >= 0; index--) {
-                ExcelRowSnapshot definition = geometry.Rows[index];
+                ExcelRowInfo definition = geometry.Rows[index];
                 if (definition.Index != sourceRow) {
                     continue;
                 }
@@ -362,7 +362,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             foreach (WorksheetChartExportData chart in plan.Charts) {
-                ExcelChartSnapshot snapshot = chart.Snapshot;
+                ExcelChartInfo snapshot = chart.Snapshot;
                 if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y)) {
                     continue;
                 }
@@ -416,14 +416,14 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageCanvas canvas,
             WorksheetPdfExportPlan plan,
             TableChunk chunk,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             IReadOnlyList<double> columnWidths,
             IReadOnlyList<double> rowHeights,
             double sceneX,
             double sceneY,
             double scale) {
             foreach (WorksheetChartExportData chart in plan.Charts) {
-                ExcelChartSnapshot snapshot = chart.Snapshot;
+                ExcelChartInfo snapshot = chart.Snapshot;
                 if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y)) {
                     continue;
                 }

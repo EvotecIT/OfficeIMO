@@ -15,7 +15,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(3, false)]
     [InlineData(3, true)]
     public void ContinuedHeadingRetainsOneLogicalHeadingElement(int level, bool linked) {
-        var options = new PdfOptions { PageWidth = 220, PageHeight = 160, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25 };
+        var options = new PdfCreateOptions { PageWidth = 220, PageHeight = 160, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25 };
         PdfDocument document = PdfDocument.Create(options).TaggedPdfCatalogMarkers();
         string text = string.Join(" ", Enumerable.Repeat("Heading content", 100)) + " FINAL-MARKER";
         string? link = linked ? "https://example.test/heading" : null;
@@ -47,7 +47,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(180, 220)]
     [InlineData(320, 160)]
     public void OversizedHeadingPaginatesTextAndLinksWithinThePageFrame(double pageWidth, double pageHeight) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = pageWidth, PageHeight = pageHeight,
             MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25,
             CreateOutlineFromHeadings = true
@@ -85,13 +85,13 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(50.1)]
     [InlineData(83.5995)]
     public void ParagraphLineLargerThanTheFrameFailsWithoutUnboundedPagination(double pageHeight) {
-        var options = new PdfOptions { PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 24 };
+        var options = new PdfCreateOptions { PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 24 };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
     }
 
     [Fact]
     public void SmallPositiveFrameAcceptsALineThatFits() {
-        var options = new PdfOptions { PageHeight = 50.2, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 0.1 };
+        var options = new PdfCreateOptions { PageHeight = 50.2, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 0.1 };
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Fits")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -100,14 +100,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void HeadingRequiredTopSpacingCannotBeSilentlyDroppedToFitALine() {
-        var options = new PdfOptions { PageHeight = 150, MarginTop = 25, MarginBottom = 25 };
+        var options = new PdfCreateOptions { PageHeight = 150, MarginTop = 25, MarginBottom = 25 };
         var style = new PdfHeadingStyle { FontSize = 24, LineHeight = 1.25, SpacingBefore = 90, SpacingAfter = 0, ApplySpacingBeforeAtTop = true };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall", style: style).ToBytes());
     }
 
     [Fact]
     public void HeadingLineLargerThanTheFrameFailsWithoutUnboundedPagination() {
-        var options = new PdfOptions { PageHeight = 70, MarginTop = 25, MarginBottom = 25 };
+        var options = new PdfCreateOptions { PageHeight = 70, MarginTop = 25, MarginBottom = 25 };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall").ToBytes());
     }
 }

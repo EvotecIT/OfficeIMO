@@ -8,16 +8,16 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Context supplied to HTML element block converters.
 /// </summary>
-public sealed class HtmlElementBlockConversionContext {
+public sealed class MarkdownHtmlBlockConversionContext {
     private readonly Func<IEnumerable<INode>, IReadOnlyList<IMarkdownBlock>> _convertNodesToBlocks;
     private readonly Func<IEnumerable<INode>, InlineSequence> _convertNodesToInlineSequence;
     private readonly Func<string?, string> _normalizeBlockText;
     private readonly IElement _nativeElement;
     private HtmlElement? _element;
 
-    internal HtmlElementBlockConversionContext(
+    internal MarkdownHtmlBlockConversionContext(
         IElement element,
-        HtmlToMarkdownOptions options,
+        MarkdownHtmlImportOptions options,
         Func<IEnumerable<INode>, IReadOnlyList<IMarkdownBlock>> convertNodesToBlocks,
         Func<IEnumerable<INode>, InlineSequence> convertNodesToInlineSequence,
         Func<string?, string> normalizeBlockText) {
@@ -32,7 +32,7 @@ public sealed class HtmlElementBlockConversionContext {
     public HtmlElement Element => _element ??= NativeDomBridge.Wrap(_nativeElement);
 
     /// <summary>Effective HTML-to-markdown options.</summary>
-    public HtmlToMarkdownOptions Options { get; }
+    public MarkdownHtmlImportOptions Options { get; }
 
     /// <summary>Converts the supplied nodes using the base block converter, skipping null entries.</summary>
     public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<HtmlNode?> nodes) => _convertNodesToBlocks(ToNativeNodes(nodes));
@@ -57,14 +57,14 @@ public sealed class HtmlElementBlockConversionContext {
 /// <summary>
 /// Ordered host/plugin seam for reinterpreting custom HTML elements during HTML-to-markdown conversion.
 /// </summary>
-public sealed class HtmlElementBlockConverter {
-    private readonly Func<HtmlElementBlockConversionContext, IReadOnlyList<IMarkdownBlock>?> _convert;
+public sealed class MarkdownHtmlBlockConverter {
+    private readonly Func<MarkdownHtmlBlockConversionContext, IReadOnlyList<IMarkdownBlock>?> _convert;
 
     /// <summary>Create a new HTML element block converter.</summary>
-    public HtmlElementBlockConverter(
+    public MarkdownHtmlBlockConverter(
         string id,
         string name,
-        Func<HtmlElementBlockConversionContext, IReadOnlyList<IMarkdownBlock>?> convert) {
+        Func<MarkdownHtmlBlockConversionContext, IReadOnlyList<IMarkdownBlock>?> convert) {
         if (string.IsNullOrWhiteSpace(id)) {
             throw new ArgumentException("Converter id is required.", nameof(id));
         }
@@ -85,7 +85,7 @@ public sealed class HtmlElementBlockConverter {
     public string Name { get; }
 
     /// <summary>Attempts to create blocks from the supplied HTML element conversion context.</summary>
-    public IReadOnlyList<IMarkdownBlock>? TryConvert(HtmlElementBlockConversionContext context) {
+    public IReadOnlyList<IMarkdownBlock>? TryConvert(MarkdownHtmlBlockConversionContext context) {
         if (context == null) {
             throw new ArgumentNullException(nameof(context));
         }

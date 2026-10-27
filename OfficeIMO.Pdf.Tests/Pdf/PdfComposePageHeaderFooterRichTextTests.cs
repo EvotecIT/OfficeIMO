@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void HeaderFooterRichText_RendersStylesAndStyledPageTokens() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 HeaderFont = PdfStandardFont.Helvetica,
                 FooterFont = PdfStandardFont.Helvetica
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests.Pdf {
             }
 
             const string familyName = "Rich Header Family";
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
 
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void StyledHeaderZonesAnalyzeEachSegmentsEffectiveFont() {
             const string familyName = "Styled Header Diagnostic Family";
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('\u0105', ' ');
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font));
             PdfDocument document = PdfDocument.Create(options)
                 .Header(header => header.StyledZones(
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Footer(footer => footer.Text(text => text.Run(inline))));
             Assert.Throws<ArgumentException>(() =>
-                FooterSegment.PageNumber(PdfTextRun.Tab()));
+                PdfFooterSegment.PageNumber(PdfTextRun.Tab()));
         }
     }
 }

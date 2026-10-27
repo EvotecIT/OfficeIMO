@@ -139,13 +139,13 @@ public sealed class WordPdfLigatureTests {
                 defaults.Append(element);
             }
         }
-        var options = new PdfOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: feature, scriptTag: "latn")));
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
-        return loaded.ToPdfBytes(new WordToPdfOptions {
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
+        return loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static W14.Ligatures Ligatures(string value) => new() {

@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expected, sheet.CellAt(1, 1).GetValue().Value);
             byte[] bytes = document.ToBytes();
             foreach (string? selection in new string?[] { null, "Data" }) {
-                using var reader = ExcelDocument.OpenDataReader(new MemoryStream(bytes),
-                    new ExcelReadOptions { SheetName = selection, A1Range = "A1:A1", HasHeaderRow = false });
+                using var reader = ExcelDocument.OpenReader(new MemoryStream(bytes),
+                    new ExcelReaderOptions { SheetName = selection, A1Range = "A1:A1", HasHeaderRow = false });
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }

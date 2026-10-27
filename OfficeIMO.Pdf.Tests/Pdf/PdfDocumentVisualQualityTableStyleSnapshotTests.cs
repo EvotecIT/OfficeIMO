@@ -23,7 +23,7 @@ public partial class PdfDocumentVisualQualityTests {
         var cellVertical = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
             [(1, 1)] = PdfCellVerticalAlign.Bottom
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
 
         style.Alignments = horizontal;
         style.VerticalAlignments = vertical;
@@ -53,7 +53,7 @@ public partial class PdfDocumentVisualQualityTests {
         var weights = new List<double> { 1, 2 };
         var rowMinHeights = new List<double?> { 18, null, 36 };
         var rowBreakPolicies = new List<bool?> { false, null, true };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
 
         style.ColumnWidthPoints = fixedWidths;
         style.ColumnMinWidthPoints = minWidths;
@@ -141,7 +141,7 @@ public partial class PdfDocumentVisualQualityTests {
         var cellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = cellPadding
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
 
         style.BodyColumnFills = columnFills;
         style.CellFills = cellFills;
@@ -205,7 +205,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_TypographySettingsSurviveClone() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.FontSize = 8;
         style.LineHeight = 1.6;
         style.HeaderFontSize = 12;

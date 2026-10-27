@@ -419,7 +419,7 @@ namespace OfficeIMO.Excel {
                     _excelDocument.MaterializeDeferredDataSetImport();
                 }
 
-                if (!A1.TryParseStrictRange(range, out int startRowIndex, out int startColumnIndex, out int endRowIndex, out int endColumnIndex)) {
+                if (!ExcelA1.TryParseStrictRange(range, out int startRowIndex, out int startColumnIndex, out int endRowIndex, out int endColumnIndex)) {
                     throw new ArgumentException("Invalid range format", nameof(range));
                 }
 
@@ -443,7 +443,7 @@ namespace OfficeIMO.Excel {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                         var existingRange = existingPart.Table?.Reference?.Value;
                         if (string.IsNullOrEmpty(existingRange)) continue;
-                        if (!A1.TryParseStrictRange(existingRange!, out int existingStartRow, out int existingStartColumn, out int existingEndRow, out int existingEndColumn)) continue;
+                        if (!ExcelA1.TryParseStrictRange(existingRange!, out int existingStartRow, out int existingStartColumn, out int existingEndRow, out int existingEndColumn)) continue;
 
                         bool overlaps = startColumnIndex <= existingEndColumn &&
                                         endColumnIndex >= existingStartColumn &&

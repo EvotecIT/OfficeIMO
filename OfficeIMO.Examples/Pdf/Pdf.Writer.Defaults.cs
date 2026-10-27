@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Pdf {
     internal static class WriterDefaults {
         public static void Example_Pdf_DefaultStyles(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.DefaultStyles.pdf");
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Pdf {
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
-                DefaultTableStyle = TableStyles.Light()
+                DefaultTableStyle = PdfTableStyles.Light()
             };
 
             var rows = new[] {

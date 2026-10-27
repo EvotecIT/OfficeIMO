@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 using Assert = OfficeIMO.VerifyTests.TestAssert;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
 

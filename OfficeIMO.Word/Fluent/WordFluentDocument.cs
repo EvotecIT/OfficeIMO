@@ -98,32 +98,32 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 1 (alias mirrors MarkdownDoc.H1).
+        /// Adds a heading paragraph styled as Heading 1 (alias mirrors MarkdownDocument.H1).
         /// </summary>
         public WordFluentDocument H1(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading1); return this; }
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 2 (alias mirrors MarkdownDoc.H2).
+        /// Adds a heading paragraph styled as Heading 2 (alias mirrors MarkdownDocument.H2).
         /// </summary>
         public WordFluentDocument H2(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading2); return this; }
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 3 (alias mirrors MarkdownDoc.H3).
+        /// Adds a heading paragraph styled as Heading 3 (alias mirrors MarkdownDocument.H3).
         /// </summary>
         public WordFluentDocument H3(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading3); return this; }
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 4 (alias mirrors MarkdownDoc.H4).
+        /// Adds a heading paragraph styled as Heading 4 (alias mirrors MarkdownDocument.H4).
         /// </summary>
         public WordFluentDocument H4(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading4); return this; }
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 5 (alias mirrors MarkdownDoc.H5).
+        /// Adds a heading paragraph styled as Heading 5 (alias mirrors MarkdownDocument.H5).
         /// </summary>
         public WordFluentDocument H5(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading5); return this; }
         /// <summary>
-        /// Adds a heading paragraph styled as Heading 6 (alias mirrors MarkdownDoc.H6).
+        /// Adds a heading paragraph styled as Heading 6 (alias mirrors MarkdownDocument.H6).
         /// </summary>
         public WordFluentDocument H6(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading6); return this; }
 
         /// <summary>
-        /// Adds a bulleted list using the list builder (alias mirrors MarkdownDoc.Ul).
+        /// Adds a bulleted list using the list builder (alias mirrors MarkdownDocument.Ul).
         /// </summary>
         public WordFluentDocument Ul(Action<ListBuilder> action) {
             var lb = new ListBuilder(this).Bulleted();
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Adds a numbered list using the list builder (alias mirrors MarkdownDoc.Ol).
+        /// Adds a numbered list using the list builder (alias mirrors MarkdownDocument.Ol).
         /// </summary>
         public WordFluentDocument Ol(Action<ListBuilder> action) {
             var lb = new ListBuilder(this).Numbered();
@@ -141,7 +141,7 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Adds a monospace code paragraph (alias mirrors MarkdownDoc.Code).
+        /// Adds a monospace code paragraph (alias mirrors MarkdownDocument.Code).
         /// </summary>
         /// <param name="language">Optional language hint (not used for styling).</param>
         /// <param name="content">Code text.</param>
@@ -222,11 +222,11 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         public WordFluentDocument Callout(string kind, string title, string body) {
             var color = kind?.ToLowerInvariant() switch {
-                "info" => OfficeIMO.Drawing.OfficeColor.LightBlue,
-                "warning" => OfficeIMO.Drawing.OfficeColor.Khaki,
-                "danger" => OfficeIMO.Drawing.OfficeColor.MistyRose,
-                "tip" => OfficeIMO.Drawing.OfficeColor.Honeydew,
-                _ => OfficeIMO.Drawing.OfficeColor.LightGray
+                "info" => OfficeIMO.OfficeColor.LightBlue,
+                "warning" => OfficeIMO.OfficeColor.Khaki,
+                "danger" => OfficeIMO.OfficeColor.MistyRose,
+                "tip" => OfficeIMO.OfficeColor.Honeydew,
+                _ => OfficeIMO.OfficeColor.LightGray
             };
             var p1 = Document.AddParagraph();
             p1.ShadingFillColor = color;

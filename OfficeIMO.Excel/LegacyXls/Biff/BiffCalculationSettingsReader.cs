@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (mode == null) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CALC-MODE-UNKNOWN",
+                    "xls-biff-calc-mode-unknown",
                     $"A CalcMode record contains unknown mode value {value}.",
                     sheetName: sheetName,
                     recordOffset: record.Offset,
@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int expectedBytes) {
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Warning,
-                "XLS-BIFF-CALC-SETTING-SHORT",
+                "xls-biff-calc-setting-short",
                 $"A calculation setting record was too short to parse. Expected at least {expectedBytes} payload bytes.",
                 sheetName: sheetName,
                 recordOffset: record.Offset,

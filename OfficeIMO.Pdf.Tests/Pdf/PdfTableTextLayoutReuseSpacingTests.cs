@@ -24,7 +24,7 @@ public sealed class PdfTableTextLayoutReuseSpacingTests {
             ColumnWidthPoints = new() { 200D },
             CellPaddingX = 0D,
             CellPaddingY = 0D
-        })), new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D }).ToBytes();
+        })), new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D }).ToBytes();
 
         using var document = PdfPigDocument.Open(bytes);
         var rows = document.GetPage(1).Letters

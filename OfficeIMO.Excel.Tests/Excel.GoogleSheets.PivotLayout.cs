@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(fields, valuesOnRows ? metadata.RowSourceFields : metadata.ColumnSourceFields);
             var batch = document.BuildGoogleSheetsBatch();
             Assert.Empty(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
-            Assert.Single(batch.Report.Notices, n => n.Code == "SHEETS.PIVOT_TABLE.UNSUPPORTED");
+            Assert.Single(batch.Report.Notices, n => n.Code == "sheets-pivot-table-unsupported");
         }
 
         [Theory]
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             var emitted = batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>().ToArray();
             Assert.Equal(8, emitted.Length);
             Assert.DoesNotContain(emitted, p => p.SheetName.EndsWith("Outer", StringComparison.Ordinal));
-            Assert.Equal(4, batch.Report.Notices.Count(n => n.Code == "SHEETS.PIVOT_TABLE.UNSUPPORTED"));
+            Assert.Equal(4, batch.Report.Notices.Count(n => n.Code == "sheets-pivot-table-unsupported"));
         }
     }
 }

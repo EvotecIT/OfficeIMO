@@ -12,10 +12,10 @@ public sealed partial class BookProject {
         "FR-H",
         "GB-ENG GB-NIR GB-SCT GB-WLS",
         "US-AK US-AL US-AR US-AZ US-CA US-CO US-CT US-DC US-DE US-FL US-GA US-HI US-IA US-ID US-IL US-IN US-KS US-KY US-LA US-MA US-MD US-ME US-MI US-MN US-MO US-MS US-MT US-NC US-ND US-NE US-NH US-NJ US-NM US-NV US-NY US-OH US-OK US-OR US-PA US-RI US-SC US-SD US-TN US-TX US-UT US-VA US-VT US-WA US-WI US-WV US-WY"
-    }).Split(' ', StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+    }).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
 
     private static HashSet<string> ReadOnixSubregions(IReadOnlyList<string> regions) {
-        ArgumentNullException.ThrowIfNull(regions);
+        if (regions == null) throw new ArgumentNullException(nameof(regions));
         if (regions.Count > 250) throw new ArgumentException("A territory subregion list cannot exceed 250 codes.", nameof(regions));
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (string code in regions) {

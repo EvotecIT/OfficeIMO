@@ -109,7 +109,7 @@ public sealed partial class OfficeVisualIntegrationTests {
                 Assert.Equal(86D, picture.LeftPoints, 3);
                 Assert.Equal("Two measured requests.", picture.Description);
             }
-            var pdfOptions = new PdfOptions { CompressContentStreams = false };
+            var pdfOptions = new PdfCreateOptions { CompressContentStreams = false };
             pdfOptions.EnableTaggedPdfCatalogMarkers();
             byte[] pdf = PdfDocument.Create(document => document.Content(content => content.AddVisualArtifact(artifact)), pdfOptions)
                 .ToBytes();

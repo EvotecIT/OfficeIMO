@@ -226,7 +226,7 @@ public sealed class ReaderAsyncTests {
         using (PowerPointPresentation source =
                PowerPointPresentation.Create()) {
             source.AddSlide().AddTextBox("Encrypted cancellation probe");
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAfterFirstAsyncReadStream(encrypted,
@@ -248,7 +248,7 @@ public sealed class ReaderAsyncTests {
         using (PowerPointPresentation source =
                PowerPointPresentation.Create()) {
             source.AddSlide().AddTextBox("Encrypted sync cancellation probe");
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAfterFirstSyncReadStream(encrypted,

@@ -10,7 +10,7 @@ public partial class WordTableStyleDetails {
     /// <param name="style">Border style for all sides</param>
     /// <param name="size">Border size for all sides</param>
     /// <param name="color">Border color for all sides</param>
-    public void SetBordersForAllSides(WordBorderStyle style, uint size, OfficeIMO.Drawing.OfficeColor color) {
+    public void SetBordersForAllSides(WordBorderStyle style, uint size, OfficeIMO.OfficeColor color) {
         _table.CheckTableProperties();
 
         string colorHex = color.ToRgbHex();
@@ -37,8 +37,8 @@ public partial class WordTableStyleDetails {
     /// <param name="insideSize">Size for inside borders</param>
     /// <param name="insideColor">Color for inside borders</param>
     public void SetBordersOutsideInside(
-        WordBorderStyle outsideStyle, uint outsideSize, OfficeIMO.Drawing.OfficeColor outsideColor,
-        WordBorderStyle insideStyle, uint insideSize, OfficeIMO.Drawing.OfficeColor insideColor) {
+        WordBorderStyle outsideStyle, uint outsideSize, OfficeIMO.OfficeColor outsideColor,
+        WordBorderStyle insideStyle, uint insideSize, OfficeIMO.OfficeColor insideColor) {
         _table.CheckTableProperties();
 
         string outsideColorHex = outsideColor.ToRgbHex();
@@ -60,12 +60,12 @@ public partial class WordTableStyleDetails {
     /// Creates a TableBorders object with custom settings for each side
     /// </summary>
     public void SetCustomBorders(
-        WordBorderStyle? topStyle = null, uint? topSize = null, OfficeIMO.Drawing.OfficeColor? topColor = null,
-        WordBorderStyle? bottomStyle = null, uint? bottomSize = null, OfficeIMO.Drawing.OfficeColor? bottomColor = null,
-        WordBorderStyle? leftStyle = null, uint? leftSize = null, OfficeIMO.Drawing.OfficeColor? leftColor = null,
-        WordBorderStyle? rightStyle = null, uint? rightSize = null, OfficeIMO.Drawing.OfficeColor? rightColor = null,
-        WordBorderStyle? insideHStyle = null, uint? insideHSize = null, OfficeIMO.Drawing.OfficeColor? insideHColor = null,
-        WordBorderStyle? insideVStyle = null, uint? insideVSize = null, OfficeIMO.Drawing.OfficeColor? insideVColor = null) {
+        WordBorderStyle? topStyle = null, uint? topSize = null, OfficeIMO.OfficeColor? topColor = null,
+        WordBorderStyle? bottomStyle = null, uint? bottomSize = null, OfficeIMO.OfficeColor? bottomColor = null,
+        WordBorderStyle? leftStyle = null, uint? leftSize = null, OfficeIMO.OfficeColor? leftColor = null,
+        WordBorderStyle? rightStyle = null, uint? rightSize = null, OfficeIMO.OfficeColor? rightColor = null,
+        WordBorderStyle? insideHStyle = null, uint? insideHSize = null, OfficeIMO.OfficeColor? insideHColor = null,
+        WordBorderStyle? insideVStyle = null, uint? insideVSize = null, OfficeIMO.OfficeColor? insideVColor = null) {
         _table.CheckTableProperties();
 
         // Get existing borders or create new

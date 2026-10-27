@@ -1,12 +1,12 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Placeholder that is replaced with a generated Table of Contents at render time.
+/// Placeholder that is replaced with a generated MarkdownTable of Contents at render time.
 /// </summary>
 internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
-    public TocOptions Options { get; }
+    public MarkdownTocOptions Options { get; }
     public bool TitleHeadingAlreadyInserted { get; }
-    public TocPlaceholderBlock(TocOptions options, bool titleHeadingAlreadyInserted = false) {
+    public TocPlaceholderBlock(MarkdownTocOptions options, bool titleHeadingAlreadyInserted = false) {
         Options = options;
         TitleHeadingAlreadyInserted = titleHeadingAlreadyInserted;
     }
@@ -14,18 +14,18 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
     string IMarkdownBlock.RenderHtml() => string.Empty; // Replaced during render
 
     bool IBodySidebarMarkdownBlock.UsesSidebarLayout() =>
-        Options.Layout == TocLayout.SidebarLeft || Options.Layout == TocLayout.SidebarRight;
+        Options.Layout == MarkdownTocLayout.SidebarLeft || Options.Layout == MarkdownTocLayout.SidebarRight;
 
     bool IBodySidebarMarkdownBlock.SuppressesPrecedingHeadingTitle() =>
         Options.IncludeTitle &&
-        (Options.Layout == TocLayout.SidebarLeft ||
-         Options.Layout == TocLayout.SidebarRight ||
-         Options.Layout == TocLayout.Panel);
+        (Options.Layout == MarkdownTocLayout.SidebarLeft ||
+         Options.Layout == MarkdownTocLayout.SidebarRight ||
+         Options.Layout == MarkdownTocLayout.Panel);
 
     bool ITocPlaceholderMarkdownBlock.RequiresScrollSpy() => Options.ScrollSpy;
 
     string IBodySidebarMarkdownBlock.WrapSidebarLayoutHtml(string navigationHtml, string contentHtml) {
-        var side = Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
+        var side = Options.Layout == MarkdownTocLayout.SidebarLeft ? "left" : "right";
         string widthStyle = Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {Options.WidthPx.Value}px\"" : string.Empty;
         var sb = new System.Text.StringBuilder();
         sb.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
@@ -128,17 +128,17 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             return sbWrap.ToString();
         }
 
-        bool enhanced = Options.Layout != TocLayout.List || Options.ScrollSpy || Options.Sticky;
+        bool enhanced = Options.Layout != MarkdownTocLayout.List || Options.ScrollSpy || Options.Sticky;
         if (enhanced) {
             var classes = new System.Text.StringBuilder("md-toc");
-            if (Options.Layout == TocLayout.Panel) classes.Append(" panel");
-            if (Options.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
-            if (Options.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
+            if (Options.Layout == MarkdownTocLayout.Panel) classes.Append(" panel");
+            if (Options.Layout == MarkdownTocLayout.SidebarRight) classes.Append(" sidebar right");
+            if (Options.Layout == MarkdownTocLayout.SidebarLeft) classes.Append(" sidebar left");
             if (Options.Sticky) classes.Append(" sticky");
             if (Options.ScrollSpy) classes.Append(" md-scrollspy autoscroll");
-            if (Options.Chrome == TocChrome.None) classes.Append(" no-chrome");
-            if (Options.Chrome == TocChrome.Outline) classes.Append(" outline");
-            if (Options.Chrome == TocChrome.Panel) classes.Append(" panel");
+            if (Options.Chrome == MarkdownTocChrome.None) classes.Append(" no-chrome");
+            if (Options.Chrome == MarkdownTocChrome.Outline) classes.Append(" outline");
+            if (Options.Chrome == MarkdownTocChrome.Panel) classes.Append(" panel");
             if (Options.HideOnNarrow) classes.Append(" hide-narrow");
             string aria = HtmlTextEncoder.Encode(Options.AriaLabel ?? "Table of Contents", context.Options);
             var sb = new System.Text.StringBuilder();

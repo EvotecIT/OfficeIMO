@@ -118,7 +118,7 @@ public sealed class StudioMobileProtectionTests {
                     await WaitUntil(() => view.FindControl<ContentControl>("DialogContent")!.Content is PdfProtectionDialogContent {
                         DataContext: PdfProtectionPreviewViewModel { HasResult: true }
                     }, save, () => document.ErrorMessage);
-                    Assert.Equal(3, PdfDocument.Load(File.ReadAllBytes(outputPath), new PdfLoadOptions { Password = "reader" }).Inspect().Pages.Count);
+                    Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(outputPath)), new PdfLoadOptions { Password = "reader" }).Inspect().Pages.Count);
                     Assert.Equal(original, File.ReadAllBytes(document.DocumentPath!));
                     Click(window, (Control)view.FindControl<ContentControl>("DialogContent")!.Content!, services.Localizer.Get("Common.Close"));
                     await save;

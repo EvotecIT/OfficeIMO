@@ -340,7 +340,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string column = A1.ColumnIndexToLetters(i + 1);
+                string column = ExcelA1.ColumnIndexToLetters(i + 1);
                 sheet.FormatRange(
                     column + startRow.ToString(CultureInfo.InvariantCulture) + ":" + column + endRow.ToString(CultureInfo.InvariantCulture),
                     numberFormat!);
@@ -466,7 +466,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static Cell GetOrCreateDirectOverlayCell(Row row, int rowIndex, int columnIndex) {
-            string reference = A1.CellReference(rowIndex, columnIndex);
+            string reference = ExcelA1.CellReference(rowIndex, columnIndex);
             Cell? insertAfter = null;
             foreach (Cell cell in row.Elements<Cell>()) {
                 if (string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal)) {

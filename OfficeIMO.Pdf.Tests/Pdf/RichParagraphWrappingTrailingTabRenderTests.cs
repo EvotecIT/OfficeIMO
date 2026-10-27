@@ -85,7 +85,7 @@ public partial class RichParagraphWrappingTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0D };
         style.AddTabStop(firstStop, leader: PdfTabLeaderStyle.Dots);
         style.AddTabStop(secondStop, leader: PdfTabLeaderStyle.Underscores);
-        PdfOptions options = TrailingTabOptions();
+        PdfCreateOptions options = TrailingTabOptions();
         options.DefaultFont = PdfStandardFont.Courier;
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => {
             p.Text("A").Tab().Text(" ").Tab();
@@ -291,7 +291,7 @@ public partial class RichParagraphWrappingTests {
     [InlineData(true, 112D)]
     public void ParagraphTabs_WidowCarriedLeaderRefreshesItsFontBox(bool exact, double stop) {
         byte[] Render(int count, bool floating) {
-            PdfOptions options = TrailingTabInkOptions();
+            PdfCreateOptions options = TrailingTabInkOptions();
             options.PageWidth = 400D; options.PageHeight = 240D;
             options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40D;
             var document = PdfDocument.Create(options);
@@ -337,7 +337,7 @@ public partial class RichParagraphWrappingTests {
     [Fact]
     public void ParagraphTabs_ContinuationRetainsTheEffectiveSourceStyle() {
         const string family = "Tab Continuation";
-        PdfOptions options = TrailingTabInkOptions();
+        PdfCreateOptions options = TrailingTabInkOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 200, 200,
                 Enumerable.Range(32, 95).ToArray())));
@@ -365,7 +365,7 @@ public partial class RichParagraphWrappingTests {
     public void ParagraphTabs_RelativeContinuationRetainsItsFrameBinding() {
         PdfTextRun source = PdfTextRun.RelativeTab(PdfTabAlignment.Right,
             PdfTabLeaderStyle.Underscores, .5D, -4D);
-        PdfOptions options = TrailingTabInkOptions();
+        PdfCreateOptions options = TrailingTabInkOptions();
         object wrapped = InvokeWrapRichRunsWithOptions(new[] { source }, 288D, 24D, PdfStandardFont.Helvetica, options);
         object lines = wrapped.GetType().GetField("Item1")!.GetValue(wrapped)!;
         var restored = InvokePrivateFontMethod<System.Collections.Generic.List<PdfTextRun>>(
@@ -377,14 +377,14 @@ public partial class RichParagraphWrappingTests {
         var resizedTab = Assert.Single(Assert.Single(ExtractLines(resized)));
         Assert.Equal(96D, ExtractLeadingAdvance(resizedTab), 3);
     }
-    private static PdfOptions TrailingTabInkOptions() {
-        PdfOptions options = TrailingTabOptions();
+    private static PdfCreateOptions TrailingTabInkOptions() {
+        PdfCreateOptions options = TrailingTabOptions();
         options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 200, 200,
                 Enumerable.Range(32, 95).ToArray())));
         return options;
     }
-    private static PdfOptions TrailingTabOptions() => new PdfOptions {
+    private static PdfCreateOptions TrailingTabOptions() => new PdfCreateOptions {
         PageWidth = 360D, PageHeight = 220D,
         MarginLeft = 36D, MarginRight = 36D, MarginTop = 36D, MarginBottom = 36D,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D

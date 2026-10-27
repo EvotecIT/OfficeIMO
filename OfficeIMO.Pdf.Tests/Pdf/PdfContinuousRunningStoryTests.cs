@@ -162,7 +162,7 @@ public sealed class PdfContinuousRunningStoryTests {
         return document;
     }
 
-    private static PdfOptions Presentation(string header) => new() {
+    private static PdfCreateOptions Presentation(string header) => new() {
         PageWidth = 240, PageHeight = 320,
         MarginTop = 32, MarginBottom = 32, MarginLeft = 24, MarginRight = 24,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10,

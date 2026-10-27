@@ -70,15 +70,15 @@ public sealed class WordChartPointStylesTests {
             }
             using WordDocument reopened = WordDocument.Load(path);
             WordChart chart = Assert.Single(reopened.Charts);
-            Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
             Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
             Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
             Assert.Equal(OfficeStrokeLineJoin.Round, snapshot.Data.Series[0].PointStyles![1]!.OutlineJoin);
             Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
             Assert.Empty(reopened.ValidateDocument());
-            var options = new WordToPdfOptions { IncludePageNumbers = false };
-            byte[] pdf = reopened.ToPdfBytes(options);
-            Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            var options = new WordPdfExportOptions { IncludePageNumbers = false };
+            byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            Assert.DoesNotContain(options.Warnings, warning => warning.Code == "native-body-chart-unsupported");
             var page = Assert.Single(PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions { Dpi = 72, MaxPages = 1, ContinueOnError = false }));
             Assert.True(OfficePngReader.TryDecode(page.Bytes!, out OfficeRasterImage? raster));

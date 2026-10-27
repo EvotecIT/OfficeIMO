@@ -37,7 +37,7 @@ public partial class Word {
         string originalStyles = styles.OuterXml;
         string originalBody = source._wordprocessingDocument.MainDocumentPart.Document.OuterXml;
 
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
         Assert.Equal(originalStyles, styles.OuterXml);
         Assert.Equal(originalBody, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);

@@ -49,7 +49,7 @@ public sealed class WordSharedChartAuthoringTests {
         restored.SetData(kind, Data(kind, 10));
         Assert.Equal("Status chart", restored.Name);
         Assert.Equal("Status distribution", restored.AltText);
-        Assert.True(restored.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+        Assert.True(restored.TryGetLayoutSnapshot(out WordDrawingLayoutInfo layout));
         Assert.Equal(270D, layout.WidthPoints);
         Assert.Equal(135D, layout.HeightPoints);
         C.ChartSpace space = restored.ChartPart!.ChartSpace!;

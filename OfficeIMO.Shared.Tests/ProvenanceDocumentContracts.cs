@@ -832,7 +832,7 @@ public sealed partial class ProvenanceDocumentContracts {
             package = output.ToArray();
         }
 
-        OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(package);
+        OfficeIMO.Security.OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(package);
 
         Assert.Equal(1, info.OriginRelationshipCount);
         Assert.Equal(0, info.OriginPartCount);

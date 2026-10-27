@@ -1598,8 +1598,8 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(A1.MaxRows + 1, save: false));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualColumnPageBreak(A1.MaxColumns + 1, save: false));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(ExcelA1.MaxRows + 1, save: false));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualColumnPageBreak(ExcelA1.MaxColumns + 1, save: false));
 
                 sheet.AddManualRowPageBreak(3, save: false);
                 sheet.AddManualRowPageBreak(6, save: false);

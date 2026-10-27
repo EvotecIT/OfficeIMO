@@ -76,7 +76,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken =>
             ConvertCore(document, prepared, resolved, operationCancellationToken)
-                .Document.ToBytes(operationCancellationToken));
+                .Document.SerializeBytes(operationCancellationToken));
     }
 
     internal static async Task<byte[]> ConvertToBytesAsync(
@@ -89,7 +89,7 @@ internal static partial class HtmlPdfRenderedConverter {
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlPdfRenderResult rendered = await ConvertCoreAsync(
                 document, prepared, resolved, operationCancellationToken).ConfigureAwait(false);
-            return rendered.Document.ToBytes(operationCancellationToken);
+            return rendered.Document.SerializeBytes(operationCancellationToken);
         }).ConfigureAwait(false);
     }
 
@@ -129,7 +129,7 @@ internal static partial class HtmlPdfRenderedConverter {
         renderOptions.AutoFitWidePrintRoot = renderOptions.AutoFitWidePrintContent
             && renderOptions.PrintLayoutWidthCssPixels == null
             && request.Profile == HtmlRenderIntentProfile.PrintPaged;
-        PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
+        PdfCore.PdfCreateOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
@@ -254,7 +254,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 
         var conversionReport = new PdfCore.PdfConversionReport();
-        PdfCore.PdfOptions documentOptions = options.PdfOptions.Clone();
+        PdfCore.PdfCreateOptions documentOptions = options.PdfOptions.Clone();
         documentOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         documentOptions.UseContentStreamCompressionByDefault();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
@@ -347,8 +347,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel * printLayoutScale;
                     double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel * printLayoutScale;
                     page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
-                        PdfCore.PageMargins.Uniform(trimInset),
-                        PdfCore.PageMargins.Uniform(bleedInset)));
+                        PdfCore.PdfPageMargins.Uniform(trimInset),
+                        PdfCore.PdfPageMargins.Uniform(bleedInset)));
                 }
                 page.Canvas(canvas => {
                     // The retained HTML surface already clips its paint at the page edge.
@@ -389,7 +389,7 @@ internal static partial class HtmlPdfRenderedConverter {
             // Font providers can decline only when the PDF writer paints a run.
             // Qualify that stage before returning a strict model or image scene,
             // as well as before exposing bytes through the direct PDF routes.
-            _ = pdf.ToBytes(cancellationToken);
+            _ = pdf.SerializeBytes(cancellationToken);
         }
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss && conversionReport.HasLoss) {
             throw new HtmlConversionException(diagnostics.Concat(conversionReport.Warnings

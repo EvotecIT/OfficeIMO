@@ -95,7 +95,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.RepeatHeaderRowAtTheTopOfEachPage = true;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -201,10 +201,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 closing.SetFontSize(8);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PageSize(612, 792),
-                    PdfOptions = new PdfOptions { CompressContentStreams = false }
+                    PageSize = new PdfPageSize(612, 792),
+                    PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }
 
@@ -237,10 +237,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PageSize(612, 360),
-                    Margins = PageMargins.Uniform(36)
+                    PageSize = new PdfPageSize(612, 360),
+                    Margins = PdfPageMargins.Uniform(36)
                 });
             }
 
@@ -328,12 +328,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SetPrintArea(details, "A1:B3");
                 document.Save();
 
-                document.SaveAsPdf(pdfPath, new ExcelToPdfOptions {
+                document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions {
                     IncludeSheetHeadings = true,
                     HeaderRowCount = 2,
-                    PageSize = new PageSize(792, 612),
-                    Margins = PageMargins.FromInches(0.35, 0.55, 0.35, 0.55),
-                    PdfOptions = new PdfOptions { CompressContentStreams = false }
+                    PageSize = new PdfPageSize(792, 612),
+                    Margins = PdfPageMargins.FromInches(0.35, 0.55, 0.35, 0.55),
+                    PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }
 
@@ -392,14 +392,14 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 ```
 """, new UTF8Encoding(false));
 
-            var options = new MarkdownToPdfOptions {
+            var options = new MarkdownPdfExportOptions {
                 DefaultImageWidth = 104,
                 DefaultImageHeight = 36,
                 ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = workDir
             };
 
-            byte[] pdf = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfBytes(options);
+            byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Load(markdownPath).ToPdf(options)).ToBytes();
             if (options.Warnings.Count != 0) {
                 throw new InvalidOperationException("Markdown raster fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
             }
@@ -412,11 +412,11 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 
     private static byte[] CreateMarkdownThemeGallery(OfficeVisualThemeKind themeKind) {
         string markdown = CreateMarkdownThemeGallerySource(themeKind);
-        var options = new MarkdownToPdfOptions {
+        var options = new MarkdownPdfExportOptions {
             Style = MarkdownPdfStyle.Create(themeKind)
         };
 
-        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfBytes(options);
+        byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(options)).ToBytes();
         if (options.Warnings.Count != 0) {
             throw new InvalidOperationException("Markdown theme gallery fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
         }

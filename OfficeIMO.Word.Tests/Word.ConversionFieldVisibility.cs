@@ -32,9 +32,9 @@ public sealed class WordConversionFieldVisibilityTests {
         for (int index = 0; index < 65; index++)
             visible._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
-        WordParagraphSnapshot[] paragraphs = snapshot.Sections[0].Elements.OfType<WordParagraphSnapshot>().ToArray();
-        WordInlineFieldSnapshot[] fields = paragraphs.SelectMany(paragraph => paragraph.InlineFields).ToArray();
+        WordDocumentInfo snapshot = document.Inspect();
+        WordParagraphInfo[] paragraphs = snapshot.Sections[0].Elements.OfType<WordParagraphInfo>().ToArray();
+        WordInlineFieldInfo[] fields = paragraphs.SelectMany(paragraph => paragraph.InlineFields).ToArray();
         Assert.DoesNotContain(fields, field => field.ResultText == "Secret" && !field.IsHiddenInstructionContent);
         Assert.Contains(fields, field => field.ResultText == "Visible" && !field.IsHiddenInstructionContent);
         Assert.DoesNotContain("Secret", document.ToHtml(), StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public sealed class WordConversionFieldVisibilityTests {
 
         Assert.Equal("Prefix BeforeShownAfter", string.Concat(paragraph.GetRuns().Select(run => run.Text)));
         Assert.DoesNotContain("Hidden", document.ToHtml(), StringComparison.Ordinal);
-        Assert.DoesNotContain("Hidden", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class WordConversionFieldVisibilityTests {
         Assert.Null(run.Image);
         Assert.Empty(run.GetPositionedImages());
         Assert.DoesNotContain("<img", document.ToHtml(), StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(document.ToPdfDocumentResult().Warnings, warning =>
+        Assert.DoesNotContain(document.ConvertToPdfWithEvidence().Warnings, warning =>
             warning.Code.Contains("image", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -117,7 +117,7 @@ public sealed class WordConversionFieldVisibilityTests {
             new Text("Cell result"),
             new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        Assert.DoesNotContain(document.ToPdfDocumentResult().Warnings, warning =>
+        Assert.DoesNotContain(document.ConvertToPdfWithEvidence().Warnings, warning =>
             warning.Code.Contains("image", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -211,9 +211,9 @@ public sealed class WordConversionFieldVisibilityTests {
 
         Assert.Empty(instruction.GetRuns());
         Assert.DoesNotContain("Hidden instruction", document.ToHtml(), StringComparison.Ordinal);
-        Assert.DoesNotContain("Hidden instruction", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden instruction", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains("Visible", document.ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("Visible", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("Visible", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -242,8 +242,8 @@ public sealed class WordConversionFieldVisibilityTests {
         Assert.Equal("Prefix Visible", string.Concat(paragraph.GetRuns().Select(run => run.Text)));
         Assert.DoesNotContain("Hidden", document.ToHtml(), StringComparison.Ordinal);
         Assert.Contains("Visible", document.ToHtml(), StringComparison.Ordinal);
-        Assert.DoesNotContain("Hidden", document.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains("Visible", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("Visible", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -262,6 +262,6 @@ public sealed class WordConversionFieldVisibilityTests {
         Assert.All(runs.Skip(1), run => Assert.Equal("https://example.com/", run.Hyperlink?.Uri?.ToString()));
         Assert.Contains("href=\"https://example.com/\"", document.ToHtml(), StringComparison.Ordinal);
         Assert.Contains("Linked", document.ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("[Linked]", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("[Linked]", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
     }
 }

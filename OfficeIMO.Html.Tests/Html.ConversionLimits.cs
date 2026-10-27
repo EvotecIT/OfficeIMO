@@ -326,7 +326,7 @@ public sealed class HtmlConversionLimitTests {
         HtmlRenderText text = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
             visual => visual.Text.Contains("Body", StringComparison.Ordinal));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, text.Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Red, text.Color);
     }
 
     [Fact]

@@ -18,9 +18,9 @@ public partial class Excel {
     public void Reader_NumericReplay_PreservesSampledAndUnsampledSerials(ExcelDateSystem system, string format) {
         string path = CreateNumericReplayWorkbook(system, format);
         for (int api = 0; api < 4; api++) {
-            var options = new ExcelReadOptions { SheetName = "Data", InferSchema = true, SchemaSampleRows = 1,
+            var options = new ExcelReaderOptions { SheetName = "Data", InferSchema = true, SchemaSampleRows = 1,
                 TypeConverter = (value, _, _) => { Assert.IsType<DateTime>(value); return (false, null); } };
-            using var reader = ExcelDocument.OpenDataReader(path, options);
+            using var reader = ExcelDocument.OpenReader(path, options);
             Assert.Equal(typeof(DateTime), reader.GetFieldType(0));
             Action<RowMapper<NumericFallbackRow>> map = mapper => mapper.FromColumn<double?>("Value", (row, value) => { row.Value = value; return row; });
             var parallel = new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 };
@@ -48,7 +48,7 @@ public partial class Excel {
             part.Worksheet.Save();
         }
         int calls = 0;
-        using var document = ExcelDocumentReader.Open(path, new ExcelReadOptions {
+        using var document = ExcelDocumentReader.Open(path, new ExcelReaderOptions {
             CellValueConverter = context => { if (context.RawText is "1.5" or "60.5") calls++; return ExcelCellValue.NotHandled; }
         });
         using var reader = (DbDataReader)document.GetSheet("Data").ReadRangeAsDataReader("A1:A4098", schemaSampleRows: 0);
@@ -76,7 +76,7 @@ public partial class Excel {
             cell.StyleIndex = part.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Skip(1).First().Elements<Cell>().Single().StyleIndex?.Value;
             part.Worksheet.Save();
         }
-        using var document = ExcelDocumentReader.Open(path, new ExcelReadOptions { NormalizeHeaders = false, CellValueConverter = _ => ExcelCellValue.NotHandled });
+        using var document = ExcelDocumentReader.Open(path, new ExcelReaderOptions { NormalizeHeaders = false, CellValueConverter = _ => ExcelCellValue.NotHandled });
         using var reader = document.GetSheet("Data").ReadRangeAsDataReader($"A1:{(char)('A' + width - 1)}4098", schemaSampleRows: samples);
         Assert.Equal(DateTime.FromOADate(1.5d).ToString(), reader.GetName(0));
         Assert.True(reader.Read());
@@ -93,7 +93,7 @@ public partial class Excel {
         string path = CreateNumericReplayWorkbook(ExcelDateSystem.NineteenFour, "[h]:mm");
         foreach (bool numericFirst in new[] { false, true }) {
             foreach (bool parallel in new[] { false, true }) {
-                using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     InferSchema = true, SchemaSampleRows = 1,
                     TypeConverter = (value, _, _) => { Assert.IsType<DateTime>(value); return (false, null); }
                 });

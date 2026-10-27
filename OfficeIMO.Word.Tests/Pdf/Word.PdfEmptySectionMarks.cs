@@ -40,7 +40,7 @@ public partial class Word {
         source.AddHyperLink("Go to second target", "SecondEmptyTarget");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var logical = PdfDocumentReadResult.Load(bytes);
         var destination = Assert.Single(logical.NamedDestinations, d => d.Name == "EmptySectionTarget");
@@ -86,9 +86,9 @@ public partial class Word {
         }
         AddLine(reference, "A").AddBreak(WordBreakType.Page);
         AddLine(reference, "B");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
-        using var actual = PdfPigDocument.Open(document.ToPdfBytes(options));
-        using var expected = PdfPigDocument.Open(reference.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        using var actual = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var expected = PdfPigDocument.Open(reference.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, actual.NumberOfPages);
         for (int page = 1; page <= 2; page++) Assert.Equal(
             expected.GetPage(page).Letters.Select(letter => (letter.Value, letter.StartBaseLine)),

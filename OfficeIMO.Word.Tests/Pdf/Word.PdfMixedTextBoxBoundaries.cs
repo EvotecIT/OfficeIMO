@@ -39,7 +39,7 @@ public partial class Word {
         document.AddParagraph("TARGET").AddBookmark("equation_target");
         string original = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         string visible = string.Concat(letters.Select(letter => letter.Value));
         int previous = -1;
@@ -79,7 +79,7 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] bytes = result.Value.ToBytes();
         if (chart) {
             using var pdf = PdfDocument.Open(bytes);
@@ -104,7 +104,7 @@ public partial class Word {
             paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
             paragraph.AddText("SUFFIX");
             document.AddParagraph("AFTER").LineSpacingBeforePoints = 0D;
-            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             return Assert.Single(pdf.Pages.SelectMany(page => page.GetTextSpans()),
                 span => span.Text.Contains(before ? "PREFIX" : "AFTER")).Y;
         }
@@ -130,7 +130,7 @@ public partial class Word {
             document.AddParagraph("BODY");
         }
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in equationOnlyPrefix ? new[] { "MATH", "BOX", "SUFFIX" } : new[] { "PREFIX", "MATH", "BOX", "SUFFIX" })
             Assert.Equal(1, visible.Split(new[] { token }, StringSplitOptions.None).Length - 1);
@@ -169,7 +169,7 @@ public partial class Word {
         }
         string before = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Equal(2, visible.Count(character => character == '1')); // Anchor and note-body label.
         Assert.Contains("NOTEBODY", visible);
@@ -188,7 +188,7 @@ public partial class Word {
         shape.FillColorHex = "#CCB399";
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("0.8 0.702 0.6 rg", PdfOperatorSearchText.From(bytes));
     }
 
@@ -203,8 +203,8 @@ public partial class Word {
             using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
             paragraph.AddImage(image, "picture" + index + ".png", 16D, 32D);
         }
-        var options = new WordToPdfOptions { IncludePageNumbers = false, MaxImagesPerParagraph = limit };
-        if (limit <= 0) Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdfBytes(options));
-        else Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, MaxImagesPerParagraph = limit };
+        if (limit <= 0) Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        else Assert.Throws<InvalidDataException>(() => document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 }

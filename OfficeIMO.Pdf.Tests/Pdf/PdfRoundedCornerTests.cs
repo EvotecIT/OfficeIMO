@@ -83,7 +83,7 @@ public class PdfRoundedCornerTests {
     [Fact]
     public void CanvasTableCornerRadius_RoundsTheFixedPositionOuterBox() {
         var style = CalloutStyle(8);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -98,14 +98,14 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void DeferredTableCornerRadius_UsesLogicalEdgesRegardlessOfBatchSize() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CornerRadius = 7;
 
-        byte[] oneRowBatches = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] oneRowBatches = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TableDeferred(CreateRows, batchSize: 1, style: style)
             .ToBytes();
-        byte[] threeRowBatches = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] threeRowBatches = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TableDeferred(CreateRows, batchSize: 3, style: style)
             .ToBytes();
 
@@ -120,7 +120,7 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void RoundedCellBorder_PreservesDashDoubleLineAndDiagonals() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.CornerRadius = 8;
@@ -135,7 +135,7 @@ public class PdfRoundedCornerTests {
             }
         };
 
-        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Border contract" } }, style: style)
             .ToBytes());
 
@@ -146,7 +146,7 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void CornerRadius_DoesNotRoundInteriorCellCorners() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.HeaderFill = null;
@@ -157,11 +157,11 @@ public class PdfRoundedCornerTests {
             [(0, 1)] = new PdfCellBorder { Color = PdfColor.FromRgb(68, 85, 102), Width = 1 }
         };
 
-        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Left", "Middle", "Right" } }, style: style)
             .ToBytes());
         style.CellBorders = null;
-        string withoutCellBorder = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string withoutCellBorder = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Left", "Middle", "Right" } }, style: style)
             .ToBytes());
 
@@ -174,7 +174,7 @@ public class PdfRoundedCornerTests {
             new[] { PdfTableCell.Merge(string.Empty, rowSpan: 2), PdfTableCell.TextCell(string.Empty) },
             new[] { PdfTableCell.TextCell(string.Empty) }
         };
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.CornerRadius = 10;
@@ -184,7 +184,7 @@ public class PdfRoundedCornerTests {
         style.FixedRowHeights = new List<double?> { 30, 30 };
         style.CellFills = new Dictionary<(int, int), PdfColor> { [(0, 0)] = PdfColor.FromRgb(255, 0, 0) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 160,
                 PageHeight = 120,
                 MarginLeft = 20,
@@ -206,16 +206,16 @@ public class PdfRoundedCornerTests {
             new[] { PdfTableCell.TextCell(string.Empty) }
         };
 
-        byte[] expectedFlow = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] expectedFlow = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(rows, style: CreateStyle(10))
             .ToBytes();
-        byte[] oversizedFlow = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] oversizedFlow = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(rows, style: CreateStyle(100))
             .ToBytes();
-        byte[] expectedCanvas = PdfDocument.Create(new PdfOptions { PageWidth = 180, PageHeight = 120, MarginLeft = 10, MarginRight = 10, MarginTop = 10, MarginBottom = 10, CompressContentStreams = false })
+        byte[] expectedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = 180, PageHeight = 120, MarginLeft = 10, MarginRight = 10, MarginTop = 10, MarginBottom = 10, CompressContentStreams = false })
             .Canvas(canvas => canvas.Table(rows, 20, 20, 120, 60, CreateStyle(10)))
             .ToBytes();
-        byte[] oversizedCanvas = PdfDocument.Create(new PdfOptions { PageWidth = 180, PageHeight = 120, MarginLeft = 10, MarginRight = 10, MarginTop = 10, MarginBottom = 10, CompressContentStreams = false })
+        byte[] oversizedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = 180, PageHeight = 120, MarginLeft = 10, MarginRight = 10, MarginTop = 10, MarginBottom = 10, CompressContentStreams = false })
             .Canvas(canvas => canvas.Table(rows, 20, 20, 120, 60, CreateStyle(100)))
             .ToBytes();
 
@@ -223,7 +223,7 @@ public class PdfRoundedCornerTests {
         Assert.Equal(expectedCanvas, oversizedCanvas);
 
         static PdfTableStyle CreateStyle(double radius) {
-            PdfTableStyle style = TableStyles.Minimal();
+            PdfTableStyle style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.BorderColor = PdfColor.FromRgb(68, 85, 102);
             style.BorderWidth = 1;

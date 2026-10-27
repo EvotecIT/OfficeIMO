@@ -149,8 +149,8 @@ public sealed partial class HtmlRenderingTests {
             + "<p>Before <span style='float:" + side + ";float-reference:page;height:20px'>Floating </span>After</p>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("Before Floating After", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new OfficeIMO.Html.Pdf.HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new OfficeIMO.Html.Pdf.HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("Before Floating After", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
     }
 
@@ -162,8 +162,8 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='-officeimo-pdf-tag-type:artifact'>Hidden </span>After</p><p>Last</p></section>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("First Before Floating After Last", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("First Before Floating After Last", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
         var info = OfficeIMO.Pdf.PdfInspector.Inspect(pdf);
         Assert.Contains("https://example.test/before", info.LinkUris);
@@ -177,8 +177,8 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='float:bottom;float-reference:page;height:20px'>Bottom </span>After</p>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("Before Top Between Bottom After", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("Before Top Between Bottom After", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
     }
 

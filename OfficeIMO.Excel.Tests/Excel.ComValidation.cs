@@ -7,7 +7,7 @@ using System.Runtime.Versioning;
 #endif
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {

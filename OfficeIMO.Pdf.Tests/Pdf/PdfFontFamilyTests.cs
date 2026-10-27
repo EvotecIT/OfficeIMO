@@ -29,7 +29,7 @@ public partial class PdfFontFamilyTests {
             ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-BoldItalic.ttf"))
             : null;
         var family = new PdfEmbeddedFontFamily("Oblique Proof", regular, bold, italic, boldItalic);
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         if (namedFamily) options.RegisterNamedFontFamily(family);
         else options.RegisterFontFamily(PdfStandardFont.Helvetica, family);
 
@@ -63,7 +63,7 @@ public partial class PdfFontFamilyTests {
     public void MissingItalicFace_SlantsTextWatermark() {
         string regularPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont());
         var family = new PdfEmbeddedFontFamily("Oblique Watermark", File.ReadAllBytes(regularPath));
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .RegisterFontFamily(PdfStandardFont.Helvetica, family))
             .Watermark("DRAFT", fontSize: 32, rotationAngle: 0, bold: false, italic: true)
             .Paragraph(paragraph => paragraph.Text("Watermark proof"))
@@ -82,7 +82,7 @@ public partial class PdfFontFamilyTests {
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false
         }
             .UseFontFamily(new PdfEmbeddedFontFamily("Configured Default", fontData))
@@ -107,7 +107,7 @@ public partial class PdfFontFamilyTests {
         }
 
         const string familyName = "Named Only";
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
 
@@ -131,7 +131,7 @@ public partial class PdfFontFamilyTests {
 
         const string familyName = "Premium Named";
         byte[] fontData = File.ReadAllBytes(fontPath);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false,
             ShowHeader = true,
             HeaderFormat = "Header",
@@ -173,14 +173,14 @@ public partial class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         string[] families = { "Named Alpha", "Named Bravo", "Named Charlie", "Named Delta", "Named Echo" };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false
         };
         foreach (string family in families) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData));
         }
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         var runs = families
             .Select((family, index) => new PdfTextRun(
                 (index == 0 ? string.Empty : " ") + family,
@@ -210,7 +210,7 @@ public partial class PdfFontFamilyTests {
         regular[0] = 255;
         bold[5] = 255;
 
-        PdfOptions options = new PdfOptions().UseFontFamily(family);
+        PdfCreateOptions options = new PdfCreateOptions().UseFontFamily(family);
         byte[] readback = family.Regular;
         readback[0] = 127;
 
@@ -232,8 +232,8 @@ public partial class PdfFontFamilyTests {
         }
         Assert.NotNull(family);
 
-        PdfOptions options = new PdfOptions().UseFontFamily(family!);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        PdfCreateOptions options = new PdfCreateOptions().UseFontFamily(family!);
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily(family)
@@ -283,7 +283,7 @@ public partial class PdfFontFamilyTests {
             .Take(2)
             .ToArray();
         if (installed.Length < 2) return;
-        var options = new PdfOptions().RegisterNamedFontFamily(installed[1]);
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(installed[1]);
 
         Assert.True(options.TryRegisterNamedOfficeFontFamily(
             installed[0].FamilyName + ", " + installed[1].FamilyName,
@@ -294,7 +294,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_UseOfficeFontFamilyFallsBackThroughFamilyListToStandardFont() {
-        PdfOptions options = new PdfOptions()
+        PdfCreateOptions options = new PdfCreateOptions()
             .UseOfficeFontFamily("OfficeIMO Missing Display, Consolas, monospace", embedSystemFont: false);
 
         Assert.Equal(PdfStandardFont.Courier, options.DefaultFont);
@@ -309,7 +309,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.UseTextFallbacks(
             PdfTextFallbackFeatures.SymbolAndEmojiFonts,
             new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman },
@@ -326,7 +326,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
             HeaderFont = PdfStandardFont.TimesRoman,
             FooterFont = PdfStandardFont.TimesRoman
@@ -348,8 +348,8 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions()
-            .UseOfficeFontFamily(PdfOptions.DefaultDocumentFontFamilyFallback)
+        var options = new PdfCreateOptions()
+            .UseOfficeFontFamily(PdfCreateOptions.DefaultDocumentFontFamilyFallback)
             .UseTextFallbacks();
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
@@ -365,7 +365,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_TryUseDefaultDocumentFontFallbackEmbedsUnicodeCapableGeneratedText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false
         };
         if (!options.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
@@ -388,7 +388,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_TryRegisterDefaultDocumentMonospaceFontFallbackEmbedsCourierSlotWhenAvailable() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (!options.TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: true)) {
             return;
         }
@@ -398,9 +398,9 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_UseTextFallbacksReturnsOptionsForFluentConfiguration() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
-        PdfOptions returned = options.UseTextFallbacks(PdfTextFallbackFeatures.None);
+        PdfCreateOptions returned = options.UseTextFallbacks(PdfTextFallbackFeatures.None);
 
         Assert.Same(options, returned);
         Assert.Null(options.EmbeddedFontFallbacks);
@@ -431,9 +431,9 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
-        PdfOptions returned = options.UseEmbeddedFontFallbacksFromSystem("OfficeIMO Missing Font, " + family.FamilyName, maxFallbackFonts: 1);
+        PdfCreateOptions returned = options.UseEmbeddedFontFallbacksFromSystem("OfficeIMO Missing Font, " + family.FamilyName, maxFallbackFonts: 1);
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
         Assert.Same(options, returned);
@@ -449,7 +449,7 @@ public partial class PdfFontFamilyTests {
         var explicitFallback = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Explicit Fallback", CreateMinimalOpenTypeCffFont()) },
             new[] { PdfStandardFont.TimesRoman });
-        var options = new PdfOptions().RegisterEmbeddedFontFallbacks(explicitFallback);
+        var options = new PdfCreateOptions().RegisterEmbeddedFontFallbacks(explicitFallback);
 
         Assert.True(options.TryRegisterEmbeddedFontFallbacksFromSystem("Arial, DejaVu Sans", maxFallbackFonts: 1));
 
@@ -461,7 +461,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_CreateRegisteredFontFamilySlotsNormalizesConfiguredAndEmbeddedFamilies() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
             HeaderFont = PdfStandardFont.TimesItalic,
             FooterFont = PdfStandardFont.CourierBoldOblique
@@ -484,15 +484,15 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_TryAddOfficeFontFamilyKeyTrimsNormalizesAndDeduplicatesFamilies() {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        Assert.True(PdfOptions.TryAddOfficeFontFamilyKey("  Aptos Display  ", registeredFamilies, value => value.ToUpperInvariant(), out string trimmedFamilyName));
+        Assert.True(PdfCreateOptions.TryAddOfficeFontFamilyKey("  Aptos Display  ", registeredFamilies, value => value.ToUpperInvariant(), out string trimmedFamilyName));
         Assert.Equal("Aptos Display", trimmedFamilyName);
-        Assert.False(PdfOptions.TryAddOfficeFontFamilyKey("aptos display", registeredFamilies, value => value.ToUpperInvariant(), out _));
-        Assert.False(PdfOptions.TryAddOfficeFontFamilyKey("   ", registeredFamilies, value => value, out _));
+        Assert.False(PdfCreateOptions.TryAddOfficeFontFamilyKey("aptos display", registeredFamilies, value => value.ToUpperInvariant(), out _));
+        Assert.False(PdfCreateOptions.TryAddOfficeFontFamilyKey("   ", registeredFamilies, value => value, out _));
     }
 
     [Fact]
     public void PdfOptions_TryRegisterMappedOfficeFontFamilyRegistersMappedSlotOnce() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         var registeredFontSlots = new HashSet<PdfStandardFont>();
 
         Assert.True(options.TryRegisterMappedOfficeFontFamily("Times New Roman", registeredFontSlots, embedSystemFont: false, out PdfStandardFont firstSlot));
@@ -508,21 +508,21 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_TrySelectAvailableFontFamilySlotUsesMappedFamilyBeforeSharedPreferenceOrder() {
         var registeredFontSlots = new HashSet<PdfStandardFont>();
 
-        Assert.True(PdfOptions.TrySelectAvailableFontFamilySlot("Courier New", registeredFontSlots, out PdfStandardFont mappedSlot));
+        Assert.True(PdfCreateOptions.TrySelectAvailableFontFamilySlot("Courier New", registeredFontSlots, out PdfStandardFont mappedSlot));
         Assert.Equal(PdfStandardFont.Courier, mappedSlot);
 
         registeredFontSlots.Add(PdfStandardFont.Courier);
-        Assert.True(PdfOptions.TrySelectAvailableFontFamilySlot("Courier New", registeredFontSlots, out PdfStandardFont fallbackSlot));
+        Assert.True(PdfCreateOptions.TrySelectAvailableFontFamilySlot("Courier New", registeredFontSlots, out PdfStandardFont fallbackSlot));
         Assert.Equal(PdfStandardFont.TimesRoman, fallbackSlot);
 
         registeredFontSlots.Add(PdfStandardFont.TimesRoman);
         registeredFontSlots.Add(PdfStandardFont.Helvetica);
-        Assert.False(PdfOptions.TrySelectAvailableFontFamilySlot("Aptos", registeredFontSlots, out _));
+        Assert.False(PdfCreateOptions.TrySelectAvailableFontFamilySlot("Aptos", registeredFontSlots, out _));
     }
 
     [Fact]
     public void PdfOptions_GetAvailableEmbeddedFallbackFontSlotsSkipsDocumentReservedAndEmbeddedFamilies() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
             HeaderFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.HelveticaOblique
@@ -544,7 +544,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false
         }.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
@@ -930,7 +930,7 @@ public partial class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("OfficeIMO Object Font", fontData);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily(family)
@@ -965,7 +965,7 @@ public partial class PdfFontFamilyTests {
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
@@ -1018,7 +1018,7 @@ public partial class PdfFontFamilyTests {
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
             new PdfEmbeddedFontFamily("Idempotent Serif", fontData));
@@ -1050,7 +1050,7 @@ public partial class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { candidate },
             new[] { PdfStandardFont.TimesRoman });
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
         fallbackSet.RegisterFonts(options);
 
@@ -1073,7 +1073,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = true })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = true })
             .UseFontFamily(new PdfEmbeddedFontFamily("Shared Page Font", fontData))
             .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(firstMarker)))))
             .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(secondMarker)))))
@@ -1092,7 +1092,7 @@ public partial class PdfFontFamilyTests {
         Assert.NotNull(fontPath);
 
         byte[] fontData = File.ReadAllBytes(fontPath!);
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             })
@@ -1193,7 +1193,7 @@ public partial class PdfFontFamilyTests {
         }
 
         var family = PdfEmbeddedFontFamily.FromFiles("OfficeIMO Page Font", fontPath);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Before page font"))
@@ -1222,7 +1222,7 @@ public partial class PdfFontFamilyTests {
         }
 
         var family = PdfEmbeddedFontFamily.FromFiles("OfficeIMO Page Form Font", fontPath);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Page(page => page
@@ -1246,7 +1246,7 @@ public partial class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("OfficeIMO Style Font", fontData);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
@@ -1274,7 +1274,7 @@ public partial class PdfFontFamilyTests {
         }
 
         const string polish = "Zażółć gęślą jaźń Łódź";
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Unicode Font", fontPath)
@@ -1305,7 +1305,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .UseFontFamily("OfficeIMO Diagnostic Font", fontPath);
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(
@@ -1324,7 +1324,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .UseFontFamily("OfficeIMO Diagnostic Font", fontPath);
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(
             "Snowman \u2603",
@@ -1384,7 +1384,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .UseFontFamily("OfficeIMO Diagnostic Family", fontPath);
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
@@ -1403,7 +1403,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfTextDiagnostics_UsesEmbeddedFallbacksForNamedFontRuns() {
         const string primaryFamily = "OfficeIMO Named Primary";
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 primaryFamily,
                 ManagedTextShapingTestAssets.CreateFont(' ', 'A')))
@@ -1493,7 +1493,7 @@ public partial class PdfFontFamilyTests {
         Assert.Contains("Conversion result", PdfReadDocument.Open(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();
-        PdfSaveResult saveResult = processed.SaveResult(output);
+        PdfSaveResult saveResult = processed.TrySaveWithEvidence(output);
 
         Assert.True(saveResult.Succeeded);
         Assert.True(saveResult.BytesWritten > 0);
@@ -1544,7 +1544,7 @@ public partial class PdfFontFamilyTests {
         report.Clear();
 
         using var stream = new MemoryStream();
-        PdfSaveResult streamResult = await result.SaveResultAsync(stream);
+        PdfSaveResult streamResult = await result.TrySaveWithEvidenceAsync(stream);
 
         Assert.True(streamResult.Succeeded);
         Assert.True(streamResult.BytesWritten > 0);
@@ -1566,7 +1566,7 @@ public partial class PdfFontFamilyTests {
             string tryPath = Path.Combine(directory, "try-save.pdf");
             string savePath = Path.Combine(directory, "save.pdf");
 
-            PdfSaveResult pathResult = await result.SaveResultAsync(tryPath);
+            PdfSaveResult pathResult = await result.TrySaveWithEvidenceAsync(tryPath);
             PdfSaveResult pathSaveResult = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
@@ -1607,7 +1607,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfOptions_ReportDiagnosticsToSurfacesAdvancedTextLayoutWarningsBeforeWinAnsiFailure() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
@@ -1629,7 +1629,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_ReportDiagnosticsToResetsTextDiagnosticDeduplicationForNewReport() {
         var first = new PdfConversionReport();
         var second = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(first, "OfficeIMO.Tests");
@@ -1733,7 +1733,7 @@ public partial class PdfFontFamilyTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 TextShapingMode = PdfTextShapingMode.UnicodeScalar,
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
@@ -1743,7 +1743,7 @@ public partial class PdfFontFamilyTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("office"))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.NotEmpty(bytes);
         PdfConversionWarning warning = Assert.Single(report.Warnings, item => item.Code == "unsupported-font-ligature-substitution");
@@ -1843,7 +1843,7 @@ public partial class PdfFontFamilyTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }
@@ -1876,7 +1876,7 @@ public partial class PdfFontFamilyTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] fontBytes = File.ReadAllBytes(fontPath!);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO First CFF");
 
         Assert.True(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? firstProgram));
@@ -1902,7 +1902,7 @@ public partial class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Source Serif CFF", File.ReadAllBytes(fontPath!)) },
             new[] { PdfStandardFont.TimesRoman });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false,
             CompressEmbeddedFonts = false
         }.RegisterEmbeddedFontFallbacks(fallbackSet);
@@ -1930,7 +1930,7 @@ public partial class PdfFontFamilyTests {
         Assert.True(plan.IsFullyCovered);
         Assert.Empty(plan.Diagnostics);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             })
@@ -1958,7 +1958,7 @@ public partial class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Source Serif CFF", File.ReadAllBytes(fontPath!)) },
             new[] { PdfStandardFont.TimesRoman });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false,
             CompressEmbeddedFonts = false,
             EmbeddedFontFallbacks = fallbackSet
@@ -1981,7 +1981,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfOptions_ReportDiagnosticsToSurfacesMalformedOpenTypeCffFontBeforeThrowing() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
@@ -2268,7 +2268,7 @@ public partial class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesBoldItalic });
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
         options.RegisterEmbeddedFontFallbacks(fallbackSet);
 
@@ -2288,10 +2288,10 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Reusable Fallback", fontData)
         ]);
 
-        var first = new PdfOptions()
+        var first = new PdfCreateOptions()
             .RegisterFontFamily(PdfStandardFont.Helvetica, family)
             .RegisterEmbeddedFontFallbacks(fallbackSet);
-        var second = new PdfOptions()
+        var second = new PdfCreateOptions()
             .RegisterFontFamily(PdfStandardFont.Helvetica, family)
             .RegisterEmbeddedFontFallbacks(fallbackSet);
 
@@ -2312,7 +2312,7 @@ public partial class PdfFontFamilyTests {
         byte[] font = File.ReadAllBytes(fontPath);
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Portable Fallback", font) });
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Sans", font));
         options.RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Document Serif", font));
         options.RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", font));
@@ -2353,7 +2353,7 @@ public partial class PdfFontFamilyTests {
             "word:paragraph[8]",
             PdfTextRun.Bolded("template"));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2486,7 +2486,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.Helvetica });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2518,7 +2518,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2545,13 +2545,13 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] topLevelBytes = PdfDocument.Create(new PdfOptions {
+        byte[] topLevelBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .H1("Zażółć gęślą jaźń")
             .ToBytes();
-        byte[] rowColumnBytes = PdfDocument.Create(new PdfOptions {
+        byte[] rowColumnBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2580,7 +2580,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2608,16 +2608,16 @@ public partial class PdfFontFamilyTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
-        var topLevelStyle = TableStyles.Minimal();
+        var topLevelStyle = PdfTableStyles.Minimal();
         topLevelStyle.Caption = "Tabela Łódź Zażółć";
         topLevelStyle.CaptionFontSize = 10;
         topLevelStyle.CaptionSpacingAfter = 4;
-        var rowColumnStyle = TableStyles.Minimal();
+        var rowColumnStyle = PdfTableStyles.Minimal();
         rowColumnStyle.Caption = "Tabela kolumna Łódź";
         rowColumnStyle.CaptionFontSize = 10;
         rowColumnStyle.CaptionSpacingAfter = 4;
 
-        byte[] topLevelBytes = PdfDocument.Create(new PdfOptions {
+        byte[] topLevelBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2626,7 +2626,7 @@ public partial class PdfFontFamilyTests {
                 new[] { "Alpha", "1" }
             }, style: topLevelStyle)
             .ToBytes();
-        byte[] rowColumnBytes = PdfDocument.Create(new PdfOptions {
+        byte[] rowColumnBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2658,7 +2658,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -2693,7 +2693,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 180
             })
@@ -2717,7 +2717,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2750,7 +2750,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 FlattenVisualAnnotations = true
             })
@@ -2784,7 +2784,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2816,7 +2816,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2980,7 +2980,7 @@ public partial class PdfFontFamilyTests {
 
             byte[] bytes;
             try {
-                bytes = PdfDocument.Create(new PdfOptions {
+                bytes = PdfDocument.Create(new PdfCreateOptions {
                         CompressContentStreams = false
                     })
                     .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary Fallback")
@@ -3019,7 +3019,7 @@ public partial class PdfFontFamilyTests {
             var fallbackSet = new PdfEmbeddedFontFallbackSet(
                 new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", File.ReadAllBytes(fallbackPath)) },
                 new[] { PdfStandardFont.TimesRoman });
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary")
                 .RegisterEmbeddedFontFallbacks(fallbackSet);
 
@@ -3059,7 +3059,7 @@ public partial class PdfFontFamilyTests {
 
             byte[] bytes;
             try {
-                var options = new PdfOptions {
+                var options = new PdfCreateOptions {
                     CompressContentStreams = false
                 };
                 options.RegisterEmbeddedFontFallbacks(fallbackSet);
@@ -3130,7 +3130,7 @@ public partial class PdfFontFamilyTests {
 
             byte[] bytes;
             try {
-                bytes = PdfDocument.Create(new PdfOptions {
+                bytes = PdfDocument.Create(new PdfCreateOptions {
                         CompressContentStreams = false
                     })
                     .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -3159,7 +3159,7 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Watermark Font", fontPath)
@@ -3185,7 +3185,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
             new[] { PdfStandardFont.TimesRoman });
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -3206,7 +3206,7 @@ public partial class PdfFontFamilyTests {
         foreach (string fontPath in EnumerateLocalNonBmpTrueTypeFonts()) {
             byte[] bytes;
             try {
-                bytes = PdfDocument.Create(new PdfOptions {
+                bytes = PdfDocument.Create(new PdfCreateOptions {
                     CompressContentStreams = false,
                     PageWidth = 120,
                     MarginLeft = 24,
@@ -3244,7 +3244,7 @@ public partial class PdfFontFamilyTests {
     }
 
     private static byte[] CreateMultilingualBusinessReport(string fontPath) =>
-        PdfDocument.Create(new PdfOptions {
+        PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             })

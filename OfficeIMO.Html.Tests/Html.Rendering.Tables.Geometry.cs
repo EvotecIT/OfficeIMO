@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((60D, 120D), (TableGeometryShape(rendered, "td#wide").X, TableGeometryShape(rendered, "td#wide").Width));
         Assert.Equal(0D, TableGeometryShape(rendered, "td#last").X, 3);
         Assert.Equal(new[] { "First", "Wide", "Last", "SecondRow" }, rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(item => item.Text));
-        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions()));
+        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes());
         // Content spans follow the authored stream; plain-text extraction may
         // choose geometric left-to-right order for these English labels.
         string pdfText = string.Concat(pdf.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));

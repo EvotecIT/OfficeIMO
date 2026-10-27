@@ -16,7 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PanelParagraph_LeavesBreathingRoomBeforeFollowingParagraph() {
         const double fontSize = 10;
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 220,
                 MarginLeft = 20,
@@ -51,7 +51,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnPanelParagraph_LeavesBreathingRoomBeforeFollowingParagraph() {
         const double fontSize = 10;
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 220,
                 MarginLeft = 20,
@@ -90,7 +90,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnPanelParagraph_UsesDefaultPanelStyleWhenStyleIsNotProvided() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -127,7 +127,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_UsesConfiguredSpacingBeforeAndAfter() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 260,
             MarginLeft = 30,
@@ -208,7 +208,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Panel spacing after must be a non-negative finite value.", invalidSpacingAfterException.Message, StringComparison.Ordinal);
 
         var paddingException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 120,
                     MarginLeft = 20,
                     MarginRight = 20
@@ -223,7 +223,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_RejectsPaddingThatLeavesNoCompleteContentFrame() {
-        var exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfOptions {
+        var exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 180,
                 PageHeight = 110,
                 MarginLeft = 20,
@@ -248,7 +248,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_OversizedContentSplitsAcrossPagesWhenAllowed() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 180,
                 PageHeight = 130,
                 MarginLeft = 20,
@@ -285,7 +285,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 180,
                     PageHeight = 100,
                     MarginLeft = 20,
@@ -307,7 +307,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PanelParagraph_KeepTogetherRejectsSingleLineWhenBottomPaddingCannotFit() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 180,
                     PageHeight = 110,
                     MarginLeft = 20,
@@ -330,7 +330,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnPanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 180,
                     PageHeight = 100,
                     MarginLeft = 20,
@@ -397,7 +397,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Panel_ComposesChecklistTablesAsReadableTaskStates() {
-        var checklistStyle = TableStyles.Minimal();
+        var checklistStyle = PdfTableStyles.Minimal();
         checklistStyle.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.CheckBoxChecked,
@@ -539,7 +539,7 @@ public partial class PdfDocumentVisualQualityTests {
             KeepWithNext = true
         };
 
-        var doc = PdfDocument.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 160,
                 MarginLeft = 20,

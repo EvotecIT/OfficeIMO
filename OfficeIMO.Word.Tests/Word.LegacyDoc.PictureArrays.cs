@@ -15,7 +15,7 @@ public partial class Word {
         using var imageStream = new MemoryStream(png);
         source.AddParagraph("Inline picture").AddImage(imageStream, "picture.png", 40, 20);
         source.Images[0].CropLeft = 25000;
-        byte[] original = source.ToBytes(WordFileFormat.Doc);
+        byte[] original = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         using WordDocument control = WordDocument.Load(new MemoryStream(original));
         Assert.Equal(png, Assert.Single(control.Images).ToBytes());
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? compound, out string? error), error);

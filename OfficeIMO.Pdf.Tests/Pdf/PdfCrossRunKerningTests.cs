@@ -46,7 +46,7 @@ public sealed class PdfCrossRunKerningTests {
             callbackCalls++;
             return new[] { 2, 4, 6 };
         }
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 20D,
             PageWidth = 100D, PageHeight = 250D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
@@ -211,7 +211,7 @@ public sealed class PdfCrossRunKerningTests {
     }
 
     private static byte[] Create(double width, PdfAlign align, PdfTextRun[] runs, byte[] font) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFontSize = 20D, PageWidth = width + 40D, PageHeight = 250D,
             TextShapingMode = PdfTextShapingMode.OpenTypeLigatures,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D

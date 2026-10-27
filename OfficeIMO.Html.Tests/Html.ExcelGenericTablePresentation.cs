@@ -22,7 +22,7 @@ public partial class HtmlOfficeAdapters {
 
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         byte[] bytes = artifact.ToArray();
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(bytes), false)) {
             WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
@@ -57,7 +57,7 @@ public partial class HtmlOfficeAdapters {
             + "<tr><td colspan='5'>" + note + "</td></tr></table>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         Assert.Equal("A4:E4", Assert.Single(sheet.GetMergedRanges()).A1Range);

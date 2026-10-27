@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Excel {
     internal static partial class FluentWorkbook {

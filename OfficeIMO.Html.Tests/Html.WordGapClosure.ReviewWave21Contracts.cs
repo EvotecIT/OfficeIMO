@@ -25,7 +25,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTableCell cell = Assert.Single(Assert.Single(document.Tables).Rows).Cells[0];
 
         Assert.Equal("800080", cell.ShadingFillColorHex);
@@ -41,7 +41,7 @@ public partial class HtmlWordGapClosure {
             <img width="100" src="data:image/png;base64,{{ValidPng}}" alt="Sized">
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordImage image = Assert.Single(document.Images);
 
         Assert.Equal(100D, Math.Round(image.Width!.Value));
@@ -58,7 +58,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph lead = Assert.Single(
             document.Paragraphs,
             paragraph => paragraph.Text == "Lead");
@@ -85,7 +85,7 @@ public partial class HtmlWordGapClosure {
             </blockquote>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph one = Assert.Single(
             document.Paragraphs,
             paragraph => paragraph.Text == "One");

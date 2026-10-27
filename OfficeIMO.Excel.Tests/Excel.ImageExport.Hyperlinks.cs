@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false,
                 ShowHyperlinkHints = false
             });
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
             Assert.NotNull(snapshot.Cells[0].Hyperlink);
             Assert.True(snapshot.Cells[0].Hyperlink!.IsExternal);
@@ -48,10 +48,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                ExcelWorksheetSnapshot worksheet = snapshot.Worksheets.Single();
-                ExcelCellSnapshot first = worksheet.Cells.Single(cell => cell.Row == 1 && cell.Column == 1);
-                ExcelCellSnapshot second = worksheet.Cells.Single(cell => cell.Row == 1 && cell.Column == 2);
+                ExcelWorkbookInfo snapshot = document.Inspect();
+                ExcelWorksheetInfo worksheet = snapshot.Worksheets.Single();
+                ExcelCellInfo first = worksheet.Cells.Single(cell => cell.Row == 1 && cell.Column == 1);
+                ExcelCellInfo second = worksheet.Cells.Single(cell => cell.Row == 1 && cell.Column == 2);
 
                 Assert.NotNull(first.Hyperlink);
                 Assert.NotNull(second.Hyperlink);

@@ -72,9 +72,9 @@ public partial class Word {
         }
         Assert.Empty(document.ValidateDocument());
         string before = footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
         Assert.Equal("MMMMX", string.Concat(text.Select(letter => letter.Value)));
         Assert.All(text, letter => Assert.Equal(text[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));

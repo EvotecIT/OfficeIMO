@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || atom == null || atom.Version != 2 || atom.Instance != 0
                 || atom.PayloadLength != 12) {
                 HasVbaContent = true;
-                AddDiagnostic("PPT-VBA-INFO-MALFORMED",
+                AddDiagnostic("ppt-vba-info-malformed",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The VBA information container is malformed and remains preserve-only.",
                     vbaInfo.Offset);
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || !package.PersistObjects.TryGetValue(persistId,
                     out LegacyPptPersistObject? persistObject)
                 || persistObject.RecordType != RecordExternalOleObjectStorage) {
-                AddDiagnostic("PPT-VBA-STORAGE-MISSING",
+                AddDiagnostic("ppt-vba-storage-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The VBA information references invalid persist object {persistId}; it remains preserve-only.",
                     atom.Offset);
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     projectBytes);
             } catch (Exception exception) when (exception is InvalidDataException
                                                 or NotSupportedException) {
-                AddDiagnostic("PPT-VBA-STORAGE-MALFORMED",
+                AddDiagnostic("ppt-vba-storage-malformed",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The VBA project storage remains preserve-only: {exception.Message}",
                     unchecked((long)persistObject.StreamOffset));

@@ -17,7 +17,7 @@ public class HtmlMultiFormatReport {
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
         string originalHtml = report.SourceHtml;
 
-        byte[] pdfBytes = report.ToPdfBytes();
+        byte[] pdfBytes = (report.ToPdf()).ToBytes();
         using (var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfBytes)) {
             Assert.Equal(1, pdf.NumberOfPages);
             string text = string.Join(" ", pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text));
@@ -26,10 +26,10 @@ public class HtmlMultiFormatReport {
             Assert.Contains("00130", text, StringComparison.Ordinal);
         }
 
-        HtmlToWordResult wordResult = report.ToWordDocumentResult();
+        HtmlToWordResult wordResult = report.ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
         wordResult.RequireValue();
-        using MemoryStream wordArtifact = word.ToStream();
+        using MemoryStream wordArtifact = new System.IO.MemoryStream(word.ToBytes());
         using (WordprocessingDocument package = WordprocessingDocument.Open(wordArtifact, false)) {
             var errors = new OpenXmlValidator().Validate(package).ToArray();
             Assert.True(errors.Length == 0, string.Join(Environment.NewLine,
@@ -51,7 +51,7 @@ public class HtmlMultiFormatReport {
         });
         using ExcelDocument excel = excelResult.Value;
         excelResult.RequireValue();
-        using MemoryStream excelArtifact = excel.ToStream();
+        using MemoryStream excelArtifact = new System.IO.MemoryStream(excel.ToBytes());
         byte[] excelBytes = excelArtifact.ToArray();
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(excelBytes), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package));
@@ -66,7 +66,7 @@ public class HtmlMultiFormatReport {
             usage.GetMergedRanges().Select(range => range.A1Range).OrderBy(range => range).ToArray());
         Assert.Equal("Service usage", usage.CellAt(8, 1).GetValue<string>());
         ExcelSheet actions = Assert.Single(reopened.Sheets, sheet => sheet.Name == "Next actions");
-        Assert.True(actions.TryGetCellValueSnapshot(2, 3, out ExcelCellValueSnapshot? due));
+        Assert.True(actions.TryGetCellValueSnapshot(2, 3, out ExcelNativeCellValueInfo? due));
         Assert.Equal(new DateTime(2026, 9, 8), due!.DateTimeValue);
         Assert.Contains(reopened.Sheets, sheet => sheet.Name == "Imported");
         Assert.Equal(0, excelResult.Formulas);

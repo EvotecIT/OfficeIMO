@@ -1191,7 +1191,7 @@ public class PdfReadLimitTests {
         Assert.False(preflight.CanReadLogicalObjects);
         Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.ContentStreamDecodeFailure);
         Assert.False(plan.Preflight.CanReadLogicalObjects);
-        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionPlanBlocked");
+        Assert.Contains(plan.Findings, finding => finding.Code == "redaction-plan-blocked");
         Assert.Contains("Read.ContentStreamDecodeFailure", exception.Plan.BlockerCodes);
     }
 
@@ -1241,7 +1241,7 @@ public class PdfReadLimitTests {
         Assert.False(preflight.CanReadLogicalObjects);
         Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.UnsupportedContentStreamFilter);
         Assert.False(plan.Preflight.CanReadLogicalObjects);
-        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionPlanBlocked");
+        Assert.Contains(plan.Findings, finding => finding.Code == "redaction-plan-blocked");
         Assert.Contains("Read.UnsupportedContentStreamFilter", exception.Plan.BlockerCodes);
     }
 

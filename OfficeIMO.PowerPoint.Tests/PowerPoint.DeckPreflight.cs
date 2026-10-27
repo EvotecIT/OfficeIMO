@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             });
 
             PowerPointDeckPreflightFinding finding = Assert.Single(report.Findings,
-                item => item.Code == "Text.Clipped");
+                item => item.Code == "text-clipped");
             Assert.Equal(PowerPointDeckPreflightSeverity.Error, finding.Severity);
             Assert.Equal(0, finding.SlideIndex);
             Assert.NotNull(finding.Bounds);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
 
             string json = report.ToJson(indented: false);
             Assert.Contains("\"schemaVersion\": 1", json, StringComparison.Ordinal);
-            Assert.Contains("Text.Clipped", json, StringComparison.Ordinal);
+            Assert.Contains("text-clipped", json, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "Text.Clipped" && finding.ShapeId == text.Id);
+                finding.Code == "text-clipped" && finding.ShapeId == text.Id);
         }
 
         [Fact]
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
                 IncludeVisualSnapshotDiagnostics = false
             });
 
-            Assert.Contains(report.Findings, finding => finding.Code == "Text.UnreadableFontReduction");
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Text.Clipped");
+            Assert.Contains(report.Findings, finding => finding.Code == "text-unreadable-font-reduction");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "text-clipped");
         }
 
         [Fact]
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "Layout.ShapeCollision" && finding.ShapeIndex == 0 &&
+                finding.Code == "layout-shape-collision" && finding.ShapeIndex == 0 &&
                 finding.ShapeId != group.Id);
         }
 
@@ -121,8 +121,8 @@ namespace OfficeIMO.Tests {
                 MinimumCollisionOverlapRatio = 0.1D
             });
 
-            Assert.Contains(report.Findings, finding => finding.Code == "Layout.ShapeCollision");
-            Assert.Contains(report.Findings, finding => finding.Code == "Layout.ShapeOffSlide");
+            Assert.Contains(report.Findings, finding => finding.Code == "layout-shape-collision");
+            Assert.Contains(report.Findings, finding => finding.Code == "layout-shape-off-slide");
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                     PowerPointDeckPreflightException exception = Assert.Throws<PowerPointDeckPreflightException>(
                         () => presentation.SaveWithPreflight(options));
                     Assert.Contains(exception.Report.Findings,
-                        finding => finding.Code == "Layout.ShapeOffSlide");
+                        finding => finding.Code == "layout-shape-off-slide");
                 }
 
                 using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -172,8 +172,8 @@ namespace OfficeIMO.Tests {
                 IncludeVisualSnapshotDiagnostics = false
             });
 
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Text.Clipped");
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Layout.ShapeCollision");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "text-clipped");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "layout-shape-collision");
             Assert.True(report.IsSuccessful);
         }
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(report.Findings, finding => finding.ShapeName == "Intentional plane");
             Assert.Contains(report.Findings, finding => finding.ShapeName == "Outside content" &&
-                finding.Code == "Layout.ShapeOffSlide");
+                finding.Code == "layout-shape-off-slide");
         }
     }
 }

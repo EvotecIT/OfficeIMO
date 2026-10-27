@@ -36,7 +36,7 @@ public sealed class PdfCanvasRotatedImageClipTests {
     }
 
     private static byte[] RenderClippedDrawing(OfficeDrawing drawing, double rotationAngle = 0D) =>
-        PdfDocument.Create(new PdfOptions {
+        PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 120D,
                 PageHeight = 120D,
                 MarginLeft = 0D,

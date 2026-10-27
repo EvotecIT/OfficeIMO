@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        internal static void ValidateDocumentLimits(IDocument document, HtmlToWordOptions options) {
+        internal static void ValidateDocumentLimits(IDocument document, WordHtmlImportOptions options) {
             try {
                 HtmlConversionInputGuard.ValidateDocument(document, options.Limits);
             } catch (HtmlDomLimitException exception) {
@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
 
         private void ValidateCssLimit(long bytes, string? source) {
             if (_options.MaxCssBytes.HasValue && bytes > _options.MaxCssBytes.Value) {
-                ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source ?? "stylesheet", bytes, _options.MaxCssBytes.Value);
+                ThrowLimitExceeded(_options, "css-size-limit-exceeded", "CSS size exceeded the configured conversion limit.", source ?? "stylesheet", bytes, _options.MaxCssBytes.Value);
             }
 
             ReserveCssBytes(bytes, source ?? "stylesheet");
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html {
 
             var remaining = _options.MaxTotalCssBytes.Value - _cssBytesUsed;
             if (length > remaining) {
-                ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + length, _options.MaxTotalCssBytes.Value);
+                ThrowLimitExceeded(_options, "css-total-size-limit-exceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + length, _options.MaxTotalCssBytes.Value);
             }
 
             _cssBytesUsed += length;
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Html {
             if (_options.MaxTotalCssBytes.HasValue) {
                 var remaining = _options.MaxTotalCssBytes.Value - _cssBytesUsed;
                 if (remaining <= 0) {
-                    ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", "MaxTotalCssBytes", _cssBytesUsed, _options.MaxTotalCssBytes.Value);
+                    ThrowLimitExceeded(_options, "css-total-size-limit-exceeded", "Total CSS size exceeded the configured conversion limit.", "MaxTotalCssBytes", _cssBytesUsed, _options.MaxTotalCssBytes.Value);
                 }
 
                 if (!limit.HasValue || remaining < limit.Value) {
@@ -56,18 +56,18 @@ namespace OfficeIMO.Word.Html {
             return (limit, limitedByTotalBudget);
         }
 
-        private void ValidateTableLimit(HtmlToWordOptions options, int rows, long columns) {
+        private void ValidateTableLimit(WordHtmlImportOptions options, int rows, long columns) {
             if (!options.MaxTableCells.HasValue) {
                 return;
             }
 
             var cells = (long)rows * columns;
             if (cells > options.MaxTableCells.Value) {
-                ThrowLimitExceeded(options, "TableSizeLimitExceeded", "HTML table size exceeded the configured conversion limit.", "MaxTableCells", cells, options.MaxTableCells.Value);
+                ThrowLimitExceeded(options, "table-size-limit-exceeded", "HTML table size exceeded the configured conversion limit.", "MaxTableCells", cells, options.MaxTableCells.Value);
             }
         }
 
-        internal static void ThrowLimitExceeded(HtmlToWordOptions options, string code, string message, string source, long actual, long limit) {
+        internal static void ThrowLimitExceeded(WordHtmlImportOptions options, string code, string message, string source, long actual, long limit) {
             var detail = $"Actual={actual}; Limit={limit}";
             AddDiagnostic(options, code, message, source, new HtmlConversionLimitException(code, message, source, actual, limit, detail), HtmlDiagnosticSeverity.Error);
             throw new HtmlConversionLimitException(code, message, source, actual, limit, detail);

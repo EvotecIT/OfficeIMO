@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
-            WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns,
+            WorksheetPdfExportPlan plan, ExcelPdfExportOptions options, int columns,
             double availableWidth, double availableHeight, double scale) {
             // A constrained fit axis controls its breaks; the unlimited axis retains manual breaks.
             IReadOnlyList<TableChunk> requested = CreateTableChunks(plan, options, columns,

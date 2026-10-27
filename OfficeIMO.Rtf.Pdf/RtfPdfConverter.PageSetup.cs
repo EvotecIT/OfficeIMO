@@ -15,7 +15,7 @@ internal static partial class RtfPdfConverter {
             keywords: document.Info.Keywords);
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options) {
+    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options) {
         if (setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) {
             options.PageWidth = RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value);
         }
@@ -61,11 +61,11 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfCreateOptions inheritedOptions) {
         ApplyPageSetup(document, section, page.Options, inheritedOptions);
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfOptions options, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfCreateOptions options, PdfCore.PdfCreateOptions inheritedOptions) {
         RtfPageSetup setup = document.GetPageSetup(section);
         options.PageWidth = inheritedOptions.PageWidth;
         options.PageHeight = inheritedOptions.PageHeight;
@@ -88,7 +88,7 @@ internal static partial class RtfPdfConverter {
                 : null;
     }
 
-    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options, RtfToPdfOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
+    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options, RtfToPdfOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }

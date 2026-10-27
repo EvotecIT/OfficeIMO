@@ -21,7 +21,7 @@ public partial class Excel {
                 Array.Empty<ExcelSerialDateStyle>(),
                 uses1904DateSystem: false,
                 hasHeaderRow: true,
-                new ExcelReadOptions(),
+                new ExcelReaderOptions(),
                 new XlsbImportOptions(),
                 new XlsbRecordReadBudget(100),
                 new XlsbCellReadBudget(100),
@@ -214,7 +214,7 @@ public partial class Excel {
             Array.Empty<string>(),
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = true,
                 SchemaSampleRows = 2
             });
@@ -296,7 +296,7 @@ public partial class Excel {
             Array.Empty<string>(),
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 TreatDatesUsingNumberFormat = true
             },
             dateStyle: true);
@@ -338,7 +338,7 @@ public partial class Excel {
             Array.Empty<string>(),
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions { NumericAsDecimal = true });
+            new ExcelReaderOptions { NumericAsDecimal = true });
 
         Assert.True(reader.Read());
         double value = Assert.IsType<double>(reader.GetValue(0));
@@ -352,9 +352,9 @@ public partial class Excel {
         string path = GetDataReaderXlsbFixture("basic-values-formula.xlsb");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     HasHeaderRow = false,
                     MaxXlsbCells = 1
                 });
@@ -721,7 +721,7 @@ public partial class Excel {
             new[] { "ignored" },
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 CellValueConverter = static _ => new ExcelCellValue(new byte[] { 1, 2, 3, 4 })
             })) {
             Assert.True(reader.Read());
@@ -737,7 +737,7 @@ public partial class Excel {
             Array.Empty<string>(),
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = true,
                 SchemaSampleRows = 1024,
                 MaxDataReaderBufferedCells = 1000
@@ -760,7 +760,7 @@ public partial class Excel {
             new[] { "missing", "value" },
             hasHeaderRow: false,
             new XlsbCellReadBudget(10),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = true,
                 CellValueConverter = static context =>
                     context.RawText == "0"
@@ -793,7 +793,7 @@ public partial class Excel {
             Assert.Throws<OperationCanceledException>(() =>
                 ExcelDocumentReader.Open(
                     path,
-                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+                    new ExcelReaderOptions { CancellationToken = cancellation.Token }));
 
             using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
             Assert.True(exclusive.CanRead);
@@ -807,7 +807,7 @@ public partial class Excel {
         IReadOnlyList<string> sharedStrings,
         bool hasHeaderRow,
         XlsbCellReadBudget cellBudget,
-        ExcelReadOptions? options = null,
+        ExcelReaderOptions? options = null,
         XlsbRecordReadBudget? recordBudget = null,
         bool dateStyle = false,
         XlsbLogicalRowReadBudget? logicalRowBudget = null) =>
@@ -817,7 +817,7 @@ public partial class Excel {
             new[] { dateStyle ? ExcelSerialDateStyle.Calendar : ExcelSerialDateStyle.None },
             uses1904DateSystem: false,
             hasHeaderRow,
-            options ?? new ExcelReadOptions(),
+            options ?? new ExcelReaderOptions(),
             new XlsbImportOptions(),
             recordBudget ?? new XlsbRecordReadBudget(100),
             cellBudget,

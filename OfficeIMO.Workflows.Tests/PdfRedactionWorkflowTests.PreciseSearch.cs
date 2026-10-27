@@ -11,7 +11,7 @@ namespace OfficeIMO.Workflows.Tests {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf"), output = scope.PathFor("redacted.pdf");
             OfficeIMO.Drawing.OfficeShape background = OfficeIMO.Drawing.OfficeShape.Rectangle(300D, 60D);
-            background.FillColor = OfficeIMO.Drawing.OfficeColor.Blue;
+            background.FillColor = OfficeIMO.OfficeColor.Blue;
             PdfDocument.Create(pdf => pdf.Page(page => page.Canvas(canvas => {
                 canvas.Shape(background, 60D, 50D);
                 canvas.Text("Alpha secret Omega", 72D, 65D, 260D, 25D, fontSize: 20D);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Workflows.Tests {
             });
             Assert.False(result.Succeeded);
             Assert.Empty(result.Candidates);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("RedactionSearchUnselectedTextIntersection", StringComparison.Ordinal));
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("redaction-search-unselected-text-intersection", StringComparison.Ordinal));
             Assert.False(File.Exists(evidence));
             Assert.Contains("AB", PdfDocument.Load(input).Reader.Text(), StringComparison.Ordinal);
         }

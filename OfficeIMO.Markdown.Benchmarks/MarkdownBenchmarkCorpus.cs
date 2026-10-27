@@ -56,7 +56,7 @@ OfficeIMO.Markdown can build, parse, inspect, and render Markdown for chat, docs
 ## Example
 
 ```csharp
-var doc = MarkdownDoc.Create();
+var doc = MarkdownDocument.Create();
 doc.H1("Status");
 doc.P("Everything is working.");
 ```

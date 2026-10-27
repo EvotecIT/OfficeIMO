@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Controls whether Word visual content that can be rendered by OfficeIMO is emitted as Markdown images.
     /// </summary>
-    public enum MarkdownVisualFallbackMode {
+    public enum WordMarkdownVisualFallbackMode {
         /// <summary>Do not render visual fallbacks. Use unsupported-content handling instead.</summary>
         None,
 

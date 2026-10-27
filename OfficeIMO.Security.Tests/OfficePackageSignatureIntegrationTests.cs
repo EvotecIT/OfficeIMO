@@ -128,11 +128,11 @@ public sealed class OfficePackageSignatureIntegrationTests {
             CreatePackage(path, "docx");
             WriteApplicationProperties(path,
                 "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><x:DigSig xmlns:x=\"urn:not-office\" /></ep:Properties>");
-            Assert.False(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+            Assert.False(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasApplicationSignatureMetadata);
 
             WriteApplicationProperties(path,
                 "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><ep:DigSig /></ep:Properties>");
-            Assert.True(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+            Assert.True(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasApplicationSignatureMetadata);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -218,9 +218,9 @@ public sealed class OfficePackageSignatureIntegrationTests {
     };
 
     private static OfficePackageSignatureInfo Inspect(string path, string extension) => extension switch {
-        "docx" => WordDocument.InspectPackageSignatures(path),
-        "xlsx" => ExcelDocument.InspectPackageSignatures(path),
-        "pptx" => PowerPointPresentation.InspectPackageSignatures(path),
+        "docx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
+        "xlsx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
+        "pptx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
         "vsdx" => VisioDocument.InspectPackageSignatures(path),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, group.ChildCount);
                 Assert.True(paragraph.IsShapeGroup);
                 Assert.False(paragraph.IsShape);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? layout));
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Inline, layout.Placement);
                 Assert.True(layout.IsGroup);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                     new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
                     new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? layout));
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
                 Assert.Equal(24D, layout.HorizontalOffsetPoints!.Value, 6);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordShapeGroup imported = Assert.IsType<WordShapeGroup>(Assert.Single(reloaded.Paragraphs).ShapeGroup);
             Assert.Equal(3, imported.ChildCount);
-            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? persisted));
+            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? persisted));
             Assert.NotNull(persisted);
             Assert.Equal(WordDrawingPlacementKind.Anchored, persisted.Placement);
             Assert.Equal(224D, persisted.WidthPoints, 6);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, 30, 20, 10, 10);
                 WordChart chart = document.AddChart("ID allocation");
                 chart.AddCategories(new List<string> { "A" });
-                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.OfficeColor.Blue);
                 document.AddSmartArt(WordSmartArtType.BasicProcess);
                 document.AddParagraph().AddImage(
                     System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),

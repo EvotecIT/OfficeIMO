@@ -1,6 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Drawing;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
 

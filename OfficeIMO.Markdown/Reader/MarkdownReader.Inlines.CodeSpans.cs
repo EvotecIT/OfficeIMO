@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static string NormalizeCodeSpanContent(string inner) {
         if (inner == null) return string.Empty;
 

@@ -556,19 +556,19 @@ public static class PdfReadPageExtensions {
     /// </summary>
     /// <param name="page">Source page.</param>
     /// <param name="options">Optional layout options.</param>
-    public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
+    public static PdfStructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
         return ExtractStructured(page, spans, options, CancellationToken.None);
     }
 
-    internal static StructuredPage ExtractStructured(
+    internal static PdfStructuredPage ExtractStructured(
         this PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
         PdfTextLayoutOptions? options,
         CancellationToken cancellationToken,
         Action<long>? consumeWork = null,
         Action? cancellationCheck = null,
-        IReadOnlyList<StructuredTable>? precomputedTables = null) {
+        IReadOnlyList<PdfStructuredTable>? precomputedTables = null) {
         cancellationToken.ThrowIfCancellationRequested();
         cancellationCheck?.Invoke();
         var (_, pageHeight) = page.GetPageSize();
@@ -582,7 +582,7 @@ public static class PdfReadPageExtensions {
         }
 
         var engineOpts = options?.ToEngineOptions();
-        StructuredPage result = ContentStructureExtractor.Extract(
+        PdfStructuredPage result = ContentStructureExtractor.Extract(
             spans,
             engineOpts ?? new TextLayoutEngine.Options(),
             pageHeight,

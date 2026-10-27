@@ -45,7 +45,7 @@ public class PdfOutlineTests {
 
     [Fact]
     public void CreateOutlineFromHeadings_WritesNestedBookmarksAndInspectorReadsThem() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
                 DefaultFont = PdfStandardFont.Helvetica
             })
@@ -96,13 +96,13 @@ public class PdfOutlineTests {
 
     [Fact]
     public void OutlineExpansionLevel_CollapsesGeneratedOutlineBranchesAndInspectorReadsState() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CreateOutlineFromHeadings = true,
             OutlineExpansionLevel = 0,
             DefaultFont = PdfStandardFont.Helvetica
         };
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         Assert.Equal(0, clone.OutlineExpansionLevel);
 
         byte[] bytes = PdfDocument.Create(options)
@@ -131,14 +131,14 @@ public class PdfOutlineTests {
 
     [Fact]
     public void OutlineExpansionLevel_RejectsNegativeValues() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions {
             OutlineExpansionLevel = -1
         });
     }
 
     [Fact]
     public void CreateOutlineFromHeadings_DefaultsToOffForMinimalOutput() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica
             })
             .H1("Heading")

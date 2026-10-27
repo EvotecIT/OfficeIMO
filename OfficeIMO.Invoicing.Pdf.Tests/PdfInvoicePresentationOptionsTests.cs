@@ -26,12 +26,12 @@ public sealed class PdfInvoicePresentationOptionsTests {
         var options = Options(); options.PageWidth = 842; options.PageHeight = 595;
         byte[] pdf = snapshot.ToPdfBytes(options);
         WriteEvidence(modern ? "presentation-modern" : "presentation-classic", pdf);
-        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
         foreach (string label in new[] { "Numer", "pozycji", "Line ID", "Opis", "Description", "C62", "sztuka", "piece" }) Assert.Contains(label, text);
         Assert.Contains("Przelew SEPA / SEPA credit transfer", text);
         foreach (string value in new[] { "DescriptionMarker", "project-cost", "service-1", "buyer-service-1", "0721-880X", "Line discount", "Pay within thirty days.", "prior-invoice" }) Assert.Contains(value, text);
         Assert.Equal(1, text.Split(new[] { "DescriptionMarker" }, StringSplitOptions.None).Length - 1);
-        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
+        Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Attachments.Extract()).Bytes);
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         options.DifferentOddAndEvenPagesHeaderFooter = true; options.EvenPageHeaderFormat = "EVEN-HEADER";
         options.FirstPageFooterFormat = "OLD-FIRST-FOOTER"; options.EvenPageFooterFormat = "OLD-EVEN-FOOTER";
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options);
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.True(document.Pages.Count > 2);
         for (int index = 0; index < document.Pages.Count; index++) {
             string text = document.Pages[index].ExtractUnwrappedText();
@@ -89,7 +89,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
             InvoicePdfLineColumn.BuyerItem, InvoicePdfLineColumn.StandardItem, InvoicePdfLineColumn.AccountingReference, priceColumn,
             InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
         var options = Options(); options.PageWidth = 1191; options.PageHeight = 842;
-        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options)).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options))).ExtractUnwrappedText();
         foreach (string value in new[] { "SELLERKEY", "BUYERKEY", "1234567890128", "project-cost", "2026-08-31", "2026-09-10", price }) Assert.Contains(value, text);
         Assert.Equal(1, text.Split(new[] { "SELLERKEY" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, text.Split(new[] { "BUYERKEY" }, StringSplitOptions.None).Length - 1);
@@ -107,15 +107,15 @@ public sealed class PdfInvoicePresentationOptionsTests {
         invoice.Payments[0].MeansCode = "999"; invoice.Payments[0].MeansText = "AUTHORED-MEANS-MARKER";
         var layout = new InvoicePdfLayoutOptions { UnitCodeDisplay = InvoicePdfCodeDisplay.Description, PaymentCodeDisplay = InvoicePdfCodeDisplay.Description };
         layout.Languages.Clear(); layout.Languages.Add(pack);
-        string text = PdfReadDocument.Open(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(Options())).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(Options()))).ExtractUnwrappedText();
         Assert.Contains("CustomUnit", text);
         Assert.Contains("999 AUTHORED-MEANS-MARKER", text);
     }
 
     private static InvoiceXmlOptions Contract() => new(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Cii, InvoiceProfile.En16931);
-    private static PdfOptions Options() {
+    private static PdfCreateOptions Options() {
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        return new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif").EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Source Serif");
+        return new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif").EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Source Serif");
     }
     private static void WriteEvidence(string name, byte[] pdf) {
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");

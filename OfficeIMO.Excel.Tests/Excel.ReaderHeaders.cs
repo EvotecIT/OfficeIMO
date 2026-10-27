@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OperationThresholds["ReadRangeAsDataTable"] = 1;
                 options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
 
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
                 options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
 
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests {
                     worksheetPart.Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions { StrictTypedMapping = true };
+                var options = new ExcelReaderOptions { StrictTypedMapping = true };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjectsStream<StrictMappedRow>("A1:A2"));
 
@@ -833,7 +833,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocument.OpenDataReader(filePath, new ExcelReadOptions { SheetName = "Data" });
+                using var reader = ExcelDocument.OpenReader(filePath, new ExcelReaderOptions { SheetName = "Data" });
                 Assert.True(reader.Read());
                 Assert.Equal("Alpha", reader["Name"]);
                 Assert.Equal(12.5d, reader["Amount"]);
@@ -1449,7 +1449,7 @@ namespace OfficeIMO.Tests {
 
                 using var loadedDocument = ExcelDocument.Load(filePath);
                 var loadedSheet = loadedDocument.GetSheet("Data");
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => {
                         if (context.TypeHint is null && context.RawText == "10") {
                             throw new InvalidOperationException("Header map should not read data rows.");
@@ -1595,7 +1595,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions { NormalizeHeaders = false };
+                var options = new ExcelReaderOptions { NormalizeHeaders = false };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:C2"));
@@ -1692,7 +1692,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL")
                 });
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjects<CultureDoubleTypedRow>("A1:A2"));
@@ -2040,7 +2040,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) =>
                         targetType == typeof(double) ? (true, null) : (false, null)
                 };
@@ -2073,7 +2073,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context =>
                         context.RawText == serialValue.ToString(CultureInfo.InvariantCulture)
                             ? new ExcelCellValue("not-a-number")
@@ -2139,7 +2139,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("100") : ExcelCellValue.NotHandled
                 };
 
@@ -2166,7 +2166,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL")
                 });
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjectsStream<CultureDoubleTypedRow>("A1:A2"));
@@ -2191,7 +2191,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("100") : ExcelCellValue.NotHandled
                 };
 
@@ -2219,7 +2219,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context =>
                         context.RawText == "42" && context.StyleIndex != null
                             ? new ExcelCellValue("100")
@@ -2258,7 +2258,7 @@ namespace OfficeIMO.Tests {
                     worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context =>
                         context.RawText == null && context.StyleIndex != null
                             ? new ExcelCellValue("100")
@@ -2319,7 +2319,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 4, 123.45);
             }
 
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
 
             using var reader = ExcelDocumentReader.Open(memory.ToArray(), options);
@@ -2422,7 +2422,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) =>
                         targetType == typeof(int) ? (true, 7) : (false, null)
                 };
@@ -2485,7 +2485,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var cts = new CancellationTokenSource();
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) => {
                         cts.Cancel();
                         return (false, null);
@@ -2516,7 +2516,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var cts = new CancellationTokenSource();
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) => {
                         cts.Cancel();
                         return (false, null);
@@ -2546,7 +2546,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var cts = new CancellationTokenSource();
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) => {
                         cts.Cancel();
                         return (false, null);
@@ -2576,7 +2576,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var cts = new CancellationTokenSource();
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     TypeConverter = (value, targetType, culture) => {
                         cts.Cancel();
                         return (false, null);
@@ -2606,7 +2606,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 var diagnostics = new List<string>();
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OnInfo = diagnostics.Add;
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -2638,7 +2638,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions { StrictTypedMapping = true };
+                var options = new ExcelReaderOptions { StrictTypedMapping = true };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var exception = Assert.Throws<InvalidOperationException>(() => reader.GetSheet("Data").ReadObjects<StrictMappedRow>("A1:B2").ToList());
 
@@ -2664,7 +2664,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions { StrictTypedMapping = true };
+                var options = new ExcelReaderOptions { StrictTypedMapping = true };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var exception = Assert.Throws<InvalidOperationException>(() => reader.GetSheet("Data").ReadObjects<AmbiguousAttributedHeaderRow>("A1:A2").ToList());
 

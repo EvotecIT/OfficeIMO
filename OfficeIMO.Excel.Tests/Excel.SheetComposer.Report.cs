@@ -344,8 +344,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument doc = ExcelDocument.Load(filePath)) {
-                ExcelCellStyleSnapshot firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
-                ExcelCellStyleSnapshot secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
+                ExcelCellStyleInfo firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
+                ExcelCellStyleInfo secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
                 Assert.True(firstHeader.Bold);
                 Assert.True(secondHeader.Bold);
                 Assert.EndsWith("F2F2F2", firstHeader.FillColorArgb, StringComparison.OrdinalIgnoreCase);
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
             });
             report!.CellAt(1, 1).SetGradientFill("C00000", "00A000", 45D);
 
-            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
             string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -458,7 +458,7 @@ namespace OfficeIMO.Tests {
                 c.Finish(autoFitColumns: false);
             });
 
-            ExcelRangeVisualSnapshot snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
             string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
             string borderArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(0U, -0.35D));
             string expectedBorder = borderArgb.Substring(borderArgb.Length - 6);
@@ -479,7 +479,7 @@ namespace OfficeIMO.Tests {
             });
             report!.CellAt(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
 
-            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
             string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -490,7 +490,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TableHeaderVisualStyleResolver_PreservesDirectPatternFill() {
-            var directStyle = new ExcelCellStyleSnapshot {
+            var directStyle = new ExcelCellStyleInfo {
                 StyleIndex = 1U,
                 FillPatternType = "darkGrid",
                 FillPatternForegroundColorArgb = "FFC00000",
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
             };
             var tableStyle = new ExcelTableHeaderVisualStyle("FF4472C4", "FFFFFFFF", bold: true, borderColorArgb: "FF4472C4");
 
-            ExcelCellStyleSnapshot resolved = ExcelTableHeaderVisualStyleResolver.Apply(directStyle, tableStyle);
+            ExcelCellStyleInfo resolved = ExcelTableHeaderVisualStyleResolver.Apply(directStyle, tableStyle);
 
             Assert.Equal("darkGrid", resolved.FillPatternType);
             Assert.Equal("FFC00000", resolved.FillPatternForegroundColorArgb);

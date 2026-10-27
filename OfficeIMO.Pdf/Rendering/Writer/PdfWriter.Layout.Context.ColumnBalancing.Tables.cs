@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private List<ColumnBalanceUnit>? MeasureTableColumnBalanceUnits(TableBlock table, ColumnFlowScope scope, double frameWidth) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) return new();
             if (style.Position != null || !style.ConsumesVerticalFlow) return null;

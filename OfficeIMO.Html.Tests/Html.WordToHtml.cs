@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Result contract");
 
-            HtmlTextConversionResult result = doc.ToHtmlResult();
+            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
 
             Assert.True(result.Succeeded);
             Assert.False(result.HasLoss);
@@ -35,16 +35,16 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Comment target").AddComment("Reviewer", "R", "Review note");
             doc.AddParagraph("Author: ").AddField(WordFieldType.Author);
 
-            HtmlTextConversionResult result = doc.ToHtmlResult();
+            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
 
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
             Assert.Contains("Tracked text", result.RequireValue(), StringComparison.Ordinal);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionsProjected" &&
+                diagnostic.Code == "tracked-revisions-projected" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "comments-omitted");
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "field-instructions-flattened");
         }
 
         [Fact]
@@ -56,17 +56,17 @@ namespace OfficeIMO.Tests {
                 .AddParagraph("Tracked header ")
                 .AddInsertedText("revision", "Reviewer");
 
-            HtmlTextConversionResult excluded = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult excluded = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 ExportHeadersAndFooters = false
             });
-            HtmlTextConversionResult included = document.ToHtmlResult(new WordToHtmlOptions {
+            HtmlTextConversionResult included = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 ExportHeadersAndFooters = true
             });
 
             Assert.DoesNotContain(excluded.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionsProjected");
+                diagnostic.Code == "tracked-revisions-projected");
             Assert.Contains(included.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionsProjected");
+                diagnostic.Code == "tracked-revisions-projected");
             Assert.Contains("Tracked header revision", included.RequireValue(), StringComparison.Ordinal);
         }
 
@@ -77,15 +77,15 @@ namespace OfficeIMO.Tests {
             documentWithHeader.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Omitted header");
             using var plainDocument = WordDocument.Create();
             plainDocument.AddParagraph("Plain document body");
-            var options = new WordToHtmlOptions();
+            var options = new WordHtmlExportOptions();
 
             for (int i = 0; i < 20; i++) {
-                Task<HtmlTextConversionResult> withHeader = Task.Run(() => documentWithHeader.ToHtmlResult(options));
-                Task<HtmlTextConversionResult> plain = Task.Run(() => plainDocument.ToHtmlResult(options));
+                Task<HtmlTextConversionResult> withHeader = Task.Run(() => documentWithHeader.ConvertToHtmlWithEvidence(options));
+                Task<HtmlTextConversionResult> plain = Task.Run(() => plainDocument.ConvertToHtmlWithEvidence(options));
                 HtmlTextConversionResult[] results = await Task.WhenAll(withHeader, plain);
 
-                Assert.Contains(results[0].Report.Diagnostics, diagnostic => diagnostic.Code == "HeadersFootersOmitted");
-                Assert.DoesNotContain(results[1].Report.Diagnostics, diagnostic => diagnostic.Code == "HeadersFootersOmitted");
+                Assert.Contains(results[0].Report.Diagnostics, diagnostic => diagnostic.Code == "headers-footers-omitted");
+                Assert.DoesNotContain(results[1].Report.Diagnostics, diagnostic => diagnostic.Code == "headers-footers-omitted");
                 Assert.False(results[1].HasLoss);
             }
         }
@@ -94,11 +94,11 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_EnforcesOutputCharacterBudget() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Budgeted output");
-            var options = new WordToHtmlOptions { MaxOutputCharacters = 10 };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = 10 };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Equal(10, exception.Limit);
         }
 
@@ -107,11 +107,11 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
-            var options = new WordToHtmlOptions { MaxEmbeddedImageBytes = 1 };
+            var options = new WordHtmlExportOptions { MaxEmbeddedImageBytes = 1 };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordImageSizeLimitExceeded", exception.Code);
+            Assert.Equal("word-image-size-limit-exceeded", exception.Code);
             Assert.Equal(1, exception.Limit);
         }
 
@@ -120,11 +120,11 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph().AddImage(assetPath, 20, 20);
-            var options = new WordToHtmlOptions { MaxOutputCharacters = 4096 };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = 4096 };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Contains("OfficeIMO.png", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -137,11 +137,11 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
-            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters + 100L };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = imageDataUriCharacters + 100L };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Contains("OfficeIMO.png", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > imageDataUriCharacters);
         }
@@ -154,11 +154,11 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph().AddImage(assetPath, 20, 20);
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
-            var options = new WordToHtmlOptions { MaxOutputCharacters = imageDataUriCharacters * 2L };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = imageDataUriCharacters * 2L };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Contains("OfficeIMO.png", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > imageDataUriCharacters * 2L);
         }
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Plain font contract");
 
-            string html = doc.ToHtml(new WordToHtmlOptions {
+            string html = doc.ToHtml(new WordHtmlExportOptions {
                 FontFamily = "OfficeIMO Contract Font",
                 IncludeFontStyles = true
             });
@@ -182,11 +182,11 @@ namespace OfficeIMO.Tests {
             string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
             doc.AddParagraph(new string('x', 32));
             doc.AddParagraph().AddImage(assetPath, 20, 20);
-            var options = new WordToHtmlOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -195,11 +195,11 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_RejectsLargeTextBeforeConstructingHtmlDom() {
             using var doc = WordDocument.Create();
             doc.AddParagraph(new string('x', 8192));
-            var options = new WordToHtmlOptions { MaxOutputCharacters = 256 };
+            var options = new WordHtmlExportOptions { MaxOutputCharacters = 256 };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.Equal("word-html-output-limit-exceeded", exception.Code);
             Assert.Contains("document.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
             Assert.True(exception.Actual > exception.Limit);
         }
@@ -219,11 +219,11 @@ namespace OfficeIMO.Tests {
                     Author = "Reviewer"
                 });
             }
-            var options = new WordToHtmlOptions { MaxDocumentElements = 100 };
+            var options = new WordHtmlExportOptions { MaxDocumentElements = 100 };
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordElementLimitExceeded", exception.Code);
+            Assert.Equal("word-element-limit-exceeded", exception.Code);
             Assert.Contains("comments.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -242,18 +242,18 @@ namespace OfficeIMO.Tests {
                 });
             }
             sourceCustomPart.Properties.Save();
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeCustomProperties = true,
                 MaxDocumentElements = 100
             };
-            using MemoryStream package = doc.ToStream();
+            using MemoryStream package = new System.IO.MemoryStream(doc.ToBytes());
             using WordDocument loaded = WordDocument.Load(package);
             CustomFilePropertiesPart customPart = Assert.IsType<CustomFilePropertiesPart>(loaded._wordprocessingDocument.CustomFilePropertiesPart);
             Assert.True(customPart.Properties!.Descendants().Count() > 100);
 
-            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => loaded.ToHtmlResult(options));
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => loaded.ConvertToHtmlWithEvidence(options));
 
-            Assert.Equal("WordElementLimitExceeded", exception.Code);
+            Assert.Equal("word-element-limit-exceeded", exception.Code);
             Assert.Contains("custom.xml", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -263,10 +263,10 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Landscape content");
             doc.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
 
-            HtmlTextConversionResult result = doc.ToHtmlResult();
+            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "SectionLayoutFlattened" &&
+                diagnostic.Code == "section-layout-flattened" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
         }
@@ -277,10 +277,10 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Application signature metadata only");
             doc.ApplicationProperties.HasDigitalSignatureMetadata = true;
 
-            HtmlTextConversionResult result = doc.ToHtmlResult();
+            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
 
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "PackageSignaturesOmitted" &&
+                diagnostic.Code == "package-signatures-omitted" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
         }
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_RunLanguage_RoundTripsLangAttributes() {
             const string sourceHtml = "<html lang=\"en-US\"><body><p>Hello <span lang=\"pl-PL\">Czesc</span></p></body></html>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWord();
 
             Assert.Equal("en-US", doc.Settings.Language);
             Assert.Contains(doc.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<span lang=\"pl-PL\">Czesc</span>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("lang=\"en-US\">Hello", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Contains(roundTrip.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
         }
@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             var roundTripTable = roundTrip.Tables[0];
             Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
@@ -514,7 +514,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<p>Total</p>", html, StringComparison.OrdinalIgnoreCase);
             Assert.True(html.IndexOf("<tbody>", StringComparison.OrdinalIgnoreCase) < html.IndexOf("<tfoot>", StringComparison.OrdinalIgnoreCase));
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.True(roundTrip.Tables[0].ConditionalFormattingLastRow);
         }
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCaption_ExportsCaptionElementAndRoundTrips() {
             const string sourceHtml = "<table><caption>Score summary</caption><tr><td>Ada</td><td>42</td></tr></table>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWord();
 
             Assert.Contains(doc.Paragraphs, paragraph =>
                 string.Equals(paragraph.StyleId, "Caption", StringComparison.OrdinalIgnoreCase) &&
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<caption>Score summary</caption>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<p>Score summary</p><table", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Single(roundTrip.Tables);
             Assert.Contains(roundTrip.Paragraphs, paragraph =>
@@ -545,11 +545,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_TableCaptionBelow_ExportsCaptionElementWithoutDuplicateParagraph() {
             const string sourceHtml = "<table><caption>Totals</caption><tr><td>42</td></tr></table>";
-            var options = new HtmlToWordOptions {
-                TableCaptionPosition = TableCaptionPosition.Below
+            var options = new WordHtmlImportOptions {
+                TableCaptionPosition = WordHtmlTableCaptionPosition.Below
             };
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWordDocument(options);
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWord(options);
 
             string html = doc.ToHtml();
 
@@ -561,7 +561,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TopLevelTable_DoesNotExportPlaceholderParagraph() {
             const string sourceHtml = "<table><tr><td>42</td></tr></table>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToWord();
 
             string html = doc.ToHtml();
 
@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
             string defaultHtml = doc.ToHtml();
             Assert.DoesNotContain("<colgroup>", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeTableColumnGroups = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeTableColumnGroups = true });
 
             Assert.Contains("<table style=\"width:100%\"><colgroup>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<col style=\"width:13.5%\">", html, StringComparison.OrdinalIgnoreCase);
@@ -621,7 +621,7 @@ namespace OfficeIMO.Tests {
             table.Rows[0].Cells[1].Width = null;
             table.Rows[0].Cells[1].Paragraphs[0].Text = "B";
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeTableColumnGroups = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeTableColumnGroups = true });
 
             Assert.Contains("<colgroup>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<col style=\"width:160px\">", html, StringComparison.OrdinalIgnoreCase);
@@ -644,7 +644,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("Header text", defaultHtml, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Footer text", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
 
             Assert.Contains("<header class=\"word-header word-header-default\" data-section-index=\"0\" data-type=\"default\"><p>Header text</p></header>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<p>Body text</p>", html, StringComparison.OrdinalIgnoreCase);
@@ -659,9 +659,9 @@ namespace OfficeIMO.Tests {
             section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Header text");
             section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer text");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Body text", StringComparison.Ordinal));
             Assert.DoesNotContain(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Header text", StringComparison.Ordinal));
@@ -684,9 +684,9 @@ namespace OfficeIMO.Tests {
             second.AddParagraph("Second body");
             second.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Second header");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.True(roundTrip.Sections.Count >= 2);
             Assert.DoesNotContain(roundTrip.Sections[0].Header.Default?.Paragraphs ?? new List<WordParagraph>(),
@@ -725,7 +725,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.AddParagraph();
             paragraph.AddImage(assetPath, 20, 20);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { EmbedImagesAsBase64 = false });
+            string html = doc.ToHtml(new WordHtmlExportOptions { EmbedImagesAsBase64 = false });
 
             Assert.DoesNotContain("data:image", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(Path.GetFileName(assetPath), html, StringComparison.OrdinalIgnoreCase);
@@ -751,7 +751,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("Intro");
             list.AddItem("Body");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("<ol start=\"1\" type=\"I\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
@@ -769,7 +769,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("data-word-list-definitions", defaultHtml, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("word-list-l0-ol-upper-roman", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListDefinitions = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListDefinitions = true });
 
             Assert.Contains("data-word-list-definitions=\"true\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<ol start=\"1\" type=\"I\" class=\"word-list-l0-ol-upper-roman", html, StringComparison.OrdinalIgnoreCase);
@@ -788,16 +788,16 @@ namespace OfficeIMO.Tests {
             list.AddItem("Intro");
             list.AddItem("Body");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListDefinitions = true });
-            var options = new HtmlToWordOptions {
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListDefinitions = true });
+            var options = new WordHtmlImportOptions {
+                UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
             using var roundTrip = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Intro", StringComparison.Ordinal));
         }
 
@@ -806,16 +806,16 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Normal paragraph");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
-            var options = new HtmlToWordOptions {
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
+            var options = new WordHtmlImportOptions {
+                UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
             using var roundTrip = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
         }
 
@@ -824,7 +824,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Premium review");
 
-            WordToHtmlOptions options = WordToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report);
+            WordHtmlExportOptions options = WordHtmlExportOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report);
             string html = doc.ToHtml(options);
 
             Assert.Equal(OfficeHtmlConversionProfile.WordPrintReview, options.Profile);
@@ -844,7 +844,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Profile boundary");
 
-            var options = new WordToHtmlOptions();
+            var options = new WordHtmlExportOptions();
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 options.Profile = OfficeHtmlConversionProfile.ExcelSemanticTables);
         }
@@ -870,7 +870,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("alpha");
             list.AddItem("beta");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("<ol start=\"1\" type=\"a\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:lower-alpha", html, StringComparison.OrdinalIgnoreCase);
@@ -885,7 +885,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("three");
             list.AddItem("four");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("<ol", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("start=\"3\"", html, StringComparison.OrdinalIgnoreCase);
@@ -900,7 +900,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("alpha");
             list.AddItem("beta");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("<ol", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:lower-russian", html, StringComparison.OrdinalIgnoreCase);
@@ -914,7 +914,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("One");
             list.AddItem("Two");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("type=\"disc\"", html, StringComparison.OrdinalIgnoreCase);
@@ -931,7 +931,7 @@ namespace OfficeIMO.Tests {
             plusList.Numbering.Levels[0]._level.LevelText!.Val = "+";
             plusList.AddItem("Plus");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("list-style-type:'*'", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:'+'", html, StringComparison.OrdinalIgnoreCase);
@@ -947,7 +947,7 @@ namespace OfficeIMO.Tests {
             diamondList.Numbering.Levels[0]._level.LevelText!.Val = "◆";
             diamondList.AddItem("Diamond");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
             Assert.Contains("list-style-type:'✓'", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:'◆'", html, StringComparison.OrdinalIgnoreCase);
@@ -1031,7 +1031,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddStructuredDocumentTag("Line one\nLine two", "Review notes", "notes");
 
             string html = doc.ToHtml();
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             var control = Assert.Single(roundTrip.StructuredDocumentTags);
             Assert.Equal("Line one\nLine two", control.Text);
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
             dropDown.SelectedValue = "Visible label";
 
             string html = doc.ToHtml();
-            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             WordDropDownList imported = Assert.Single(roundTrip.DropDownLists);
             Assert.Equal(new[] { "Visible label" }, imported.Items.ToArray());
@@ -1119,7 +1119,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<option value=\"Visible label\" label=\"Visible label\" data-word-value=\"internal-id\"", html,
                 StringComparison.OrdinalIgnoreCase);
 
-            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             WordComboBox imported = Assert.Single(roundTrip.ComboBoxes);
             ListItem importedItem = Assert.Single(imported._sdtRun.SdtProperties!
                 .GetFirstChild<SdtContentComboBox>()!
@@ -1216,7 +1216,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("border-spacing:12pt", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("border-collapse:separate", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
         }
@@ -1254,7 +1254,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("vertical-align:middle", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Equal(WordTableVerticalAlignment.Center, roundTrip.Tables[0].Rows[0].Cells[0].VerticalAlignment);
         }
@@ -1314,7 +1314,7 @@ namespace OfficeIMO.Tests {
             doc.BuiltinDocumentProperties.Creator = "Tester";
             doc.AddParagraph("Content");
 
-            var options = new WordToHtmlOptions();
+            var options = new WordHtmlExportOptions();
             options.AdditionalMetaTags.Add(("viewport", "width=device-width"));
             options.AdditionalLinkTags.Add(("stylesheet", "styles.css"));
 
@@ -1338,7 +1338,7 @@ namespace OfficeIMO.Tests {
             string defaultHtml = doc.ToHtml();
             Assert.DoesNotContain("word:custom:ReviewStatus", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeCustomProperties = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeCustomProperties = true });
 
             Assert.Contains("name=\"word:custom:ReviewStatus\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("content=\"Approved\"", html, StringComparison.OrdinalIgnoreCase);
@@ -1363,9 +1363,9 @@ namespace OfficeIMO.Tests {
             doc.CustomDocumentProperties["Score"] = new WordCustomProperty(6.15);
             doc.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeCustomProperties = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeCustomProperties = true });
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Equal("Approved", roundTrip.CustomDocumentProperties["ReviewStatus"].Text);
             Assert.True(roundTrip.CustomDocumentProperties["IsFinal"].Bool);
@@ -1385,7 +1385,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.Equal("Round Trip Title", roundTrip.BuiltinDocumentProperties.Title);
             Assert.Equal("Ada", roundTrip.BuiltinDocumentProperties.Creator);
@@ -1398,7 +1398,7 @@ namespace OfficeIMO.Tests {
         public void Test_HtmlToWord_HeadStyles_AreParsedBeforeBodyImport() {
             string html = "<html><head><style>.title{font-weight:bold;font-size:24pt}</style></head><body><p class=\"title\">Title</p></body></html>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             var paragraph = Assert.Single(doc.Paragraphs, paragraph => string.Equals(paragraph.Text, "Title", StringComparison.Ordinal));
             Assert.Equal(WordParagraphStyles.Heading2, paragraph.Style);
@@ -1411,7 +1411,7 @@ namespace OfficeIMO.Tests {
             p.Style = WordParagraphStyles.Heading1;
             p.AddText(" run").CharacterStyleId = "Heading1Char";
 
-            var options = new WordToHtmlOptions { IncludeParagraphClasses = true, IncludeRunClasses = true };
+            var options = new WordHtmlExportOptions { IncludeParagraphClasses = true, IncludeRunClasses = true };
             string html = doc.ToHtml(options);
 
             Assert.Contains("<h1 class=\"Heading1\"", html, StringComparison.OrdinalIgnoreCase);
@@ -1421,7 +1421,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(".Heading1Char {", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("color:#2f5496", html, StringComparison.OrdinalIgnoreCase);
 
-            string htmlNoClasses = doc.ToHtml(new WordToHtmlOptions());
+            string htmlNoClasses = doc.ToHtml(new WordHtmlExportOptions());
             Assert.DoesNotContain("class=\"Heading1\"", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Heading1Char", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
         }
@@ -1437,7 +1437,7 @@ namespace OfficeIMO.Tests {
             doc._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
             doc.AddParagraph("Automatic color").SetStyleId("AutoColorStyle");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true });
 
             Assert.Contains(".AutoColorStyle {", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("color:#auto", html, StringComparison.OrdinalIgnoreCase);
@@ -1451,7 +1451,7 @@ namespace OfficeIMO.Tests {
             run.ColorHex = "FF0000";
             run.Highlight = WordHighlightColor.Cyan;
 
-            string html = doc.ToHtml(new WordToHtmlOptions {
+            string html = doc.ToHtml(new WordHtmlExportOptions {
                 IncludeRunColorStyles = true,
                 IncludeRunHighlightStyles = true
             });
@@ -1467,7 +1467,7 @@ namespace OfficeIMO.Tests {
             run.ColorHex = "FF0000";
             run.Highlight = WordHighlightColor.Cyan;
 
-            string html = doc.ToHtml(new WordToHtmlOptions());
+            string html = doc.ToHtml(new WordHtmlExportOptions());
 
             Assert.Contains("color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("background-color:#00ffff", html, StringComparison.OrdinalIgnoreCase);
@@ -1484,7 +1484,7 @@ namespace OfficeIMO.Tests {
             p.IndentationAfter = 720;
             p.IndentationFirstLine = 360;
 
-            string html = doc.ToHtml(new WordToHtmlOptions {
+            string html = doc.ToHtml(new WordHtmlExportOptions {
                 IncludeParagraphSpacingStyles = true,
                 IncludeParagraphIndentationStyles = true
             });
@@ -1512,7 +1512,7 @@ namespace OfficeIMO.Tests {
             string defaultHtml = doc.ToHtml();
             Assert.DoesNotContain("class=\"word-section\"", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeSectionMetadata = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
 
             Assert.Contains("class=\"word-section\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-word-section=\"1\"", html, StringComparison.OrdinalIgnoreCase);
@@ -1532,19 +1532,19 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Only section");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeSectionMetadata = true });
-            var options = new HtmlToWordOptions {
-                SectionTagHandling = SectionTagHandling.WordSection,
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
+            var options = new WordHtmlImportOptions {
+                SectionTagHandling = WordHtmlSectionTagHandling.WordSection,
+                UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
             using var roundTrip = conversion.Value;
 
             Assert.Single(roundTrip.Sections);
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Only section", StringComparison.Ordinal));
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -1560,13 +1560,13 @@ namespace OfficeIMO.Tests {
             second.Margins.Right = 1200;
             second.AddParagraph("Second section");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { IncludeSectionMetadata = true });
-            var options = new HtmlToWordOptions {
-                SectionTagHandling = SectionTagHandling.WordSection,
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
+            var options = new WordHtmlImportOptions {
+                SectionTagHandling = WordHtmlSectionTagHandling.WordSection,
+                UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
             using var roundTrip = conversion.Value;
 
@@ -1583,7 +1583,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(paragraph.IndentationAfter);
             Assert.Null(paragraph.LineSpacingBefore);
             Assert.Null(paragraph.LineSpacingAfter);
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

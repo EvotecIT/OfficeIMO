@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return;
             }
             if (lists.Length > 1) {
-                AddDiagnostic("PPT-HYPERLINK-LISTS", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-lists", LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple external-object lists; hyperlink edits remain loss-blocked.",
                     lists[1].Offset);
             }
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
             }
             if (list.Version != 0x0F || list.Instance != 0) {
-                AddDiagnostic("PPT-HYPERLINK-LIST", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-list", LegacyPptDiagnosticSeverity.Warning,
                     "An external-object list has an invalid record header; hyperlinks remain preserve-only.",
                     list.Offset);
                 return;
@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordExternalObjectListAtom).ToArray();
             if (listAtoms.Length != 1 || listAtoms[0].Version != 0
                 || listAtoms[0].Instance != 0 || listAtoms[0].PayloadLength != 4) {
-                AddDiagnostic("PPT-HYPERLINK-LIST-ATOM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-list-atom", LegacyPptDiagnosticSeverity.Warning,
                     "The external-object list has no unique valid ExObjListAtom; hyperlinks remain preserve-only.",
                     list.Offset);
                 return;
@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (hyperlink == null) continue;
                 greatestId = Math.Max(greatestId, hyperlink.Id);
                 if (_hyperlinksById.ContainsKey(hyperlink.Id)) {
-                    AddDiagnostic("PPT-HYPERLINK-ID-DUPLICATE",
+                    AddDiagnostic("ppt-hyperlink-id-duplicate",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Hyperlink identifier {hyperlink.Id} occurs more than once; later targets remain preserve-only.",
                         container.Offset);
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             uint seed = listAtoms[0].ReadUInt32(0);
             if (options.ReportUnsupportedContent && seed < greatestId) {
-                AddDiagnostic("PPT-HYPERLINK-ID-SEED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-id-seed", LegacyPptDiagnosticSeverity.Warning,
                     $"The external-object id seed {seed} is below hyperlink id {greatestId}; new targets require a repaired seed.",
                     listAtoms[0].Offset);
             }
@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private LegacyPptHyperlink? TryReadHyperlink(LegacyPptRecord container) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-HYPERLINK-CONTAINER", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-container", LegacyPptDiagnosticSeverity.Warning,
                     "An ExHyperlinkContainer has an invalid record header and remains preserve-only.",
                     container.Offset);
                 return null;
@@ -126,27 +126,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordExternalHyperlinkAtom).ToArray();
             if (atoms.Length != 1 || atoms[0].Version != 0 || atoms[0].Instance != 0
                 || atoms[0].PayloadLength != 4) {
-                AddDiagnostic("PPT-HYPERLINK-ATOM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-atom", LegacyPptDiagnosticSeverity.Warning,
                     "An ExHyperlinkContainer has no unique valid ExHyperlinkAtom and remains preserve-only.",
                     container.Offset);
                 return null;
             }
             uint id = atoms[0].ReadUInt32(0);
             if (id == 0) {
-                AddDiagnostic("PPT-HYPERLINK-ID", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-id", LegacyPptDiagnosticSeverity.Warning,
                     "A hyperlink uses reserved identifier zero and remains preserve-only.", atoms[0].Offset);
                 return null;
             }
             if (!TryReadHyperlinkString(container, 0, out string? friendlyName)
                 || !TryReadHyperlinkString(container, 1, out string? target)
                 || !TryReadHyperlinkString(container, 3, out string? location)) {
-                AddDiagnostic("PPT-HYPERLINK-STRING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-string", LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has duplicate or malformed text fields and remains preserve-only.",
                     container.Offset);
                 return null;
             }
             if (string.IsNullOrEmpty(target) && string.IsNullOrEmpty(location)) {
-                AddDiagnostic("PPT-HYPERLINK-TARGET", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-hyperlink-target", LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has no target or location and remains preserve-only.",
                     container.Offset);
                 return null;
@@ -201,7 +201,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
                 if (index + 1 >= children.Count
                     || children[index + 1].Type != RecordTextInteractiveInfoAtom) {
-                    AddDiagnostic("PPT-TEXT-ACTION-RANGE-MISSING",
+                    AddDiagnostic("ppt-text-action-range-missing",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A text interaction has no following TextInteractiveInfoAtom and remains preserve-only.",
                         actionRecord.Offset);
@@ -212,7 +212,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (interaction == null) continue;
                 if (range.Version != 0 || range.Instance != (ushort)interaction.Trigger
                     || range.PayloadLength != 8) {
-                    AddDiagnostic("PPT-TEXT-ACTION-RANGE", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-text-action-range", LegacyPptDiagnosticSeverity.Warning,
                         "A text interaction range has an invalid record header and remains preserve-only.",
                         range.Offset);
                     continue;
@@ -222,7 +222,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 int clippedEnd = Math.Min(end, exposedTextLength);
                 if (begin < 0 || end <= begin || begin >= exposedTextLength
                     || clippedEnd <= begin) {
-                    AddDiagnostic("PPT-TEXT-ACTION-BOUNDS", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-text-action-bounds", LegacyPptDiagnosticSeverity.Warning,
                         $"A text interaction range [{begin}, {end}) is outside the exposed text and remains preserve-only.",
                         range.Offset);
                     continue;
@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 HasRunProgramContent = true;
             }
             if (container.Version != 0x0F || container.Instance > 1) {
-                AddDiagnostic("PPT-ACTION-CONTAINER", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-container", LegacyPptDiagnosticSeverity.Warning,
                     "An InteractiveInfoContainer has an invalid trigger or record header and remains preserve-only.",
                     container.Offset);
                 return null;
@@ -249,7 +249,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordInteractiveInfoAtom).ToArray();
             if (atoms.Length != 1 || atoms[0].Version != 0 || atoms[0].Instance != 0
                 || atoms[0].PayloadLength != 16) {
-                AddDiagnostic("PPT-ACTION-ATOM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-atom", LegacyPptDiagnosticSeverity.Warning,
                     "An interaction has no unique valid InteractiveInfoAtom and remains preserve-only.",
                     container.Offset);
                 return null;
@@ -261,14 +261,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (actionValue > (byte)LegacyPptInteractionAction.CustomShow
                 || jumpValue > (byte)LegacyPptInteractionJump.EndShow
                 || !IsDefinedHyperlinkType(hyperlinkTypeValue)) {
-                AddDiagnostic("PPT-ACTION-ENUM", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-enum", LegacyPptDiagnosticSeverity.Warning,
                     "An InteractiveInfoAtom contains an undefined action, jump, or hyperlink type and remains preserve-only.",
                     atom.Offset);
                 return null;
             }
             byte flags = atom.ReadByte(11);
             if (options.ReportUnsupportedContent && (flags & 0xF0) != 0) {
-                AddDiagnostic("PPT-ACTION-RESERVED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-reserved", LegacyPptDiagnosticSeverity.Warning,
                     "An InteractiveInfoAtom has nonzero reserved flags that remain preserve-only.", atom.Offset);
             }
             uint hyperlinkId = atom.ReadUInt32(4);
@@ -276,7 +276,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptInteractionAction action = (LegacyPptInteractionAction)actionValue;
             if (action == LegacyPptInteractionAction.Hyperlink && hyperlinkId != 0
                 && hyperlink == null) {
-                AddDiagnostic("PPT-ACTION-HYPERLINK-MISSING",
+                AddDiagnostic("ppt-action-hyperlink-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"An interaction references missing hyperlink identifier {hyperlinkId} and remains preserve-only.",
                     atom.Offset);
@@ -288,7 +288,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 && (names[0].PayloadLength & 1) == 0) {
                 name = names[0].ReadUtf16Text().TrimEnd('\0');
             } else if (names.Length > 0) {
-                AddDiagnostic("PPT-ACTION-NAME", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-name", LegacyPptDiagnosticSeverity.Warning,
                     "An interaction has duplicate or malformed macro/program/show name data.",
                     container.Offset);
             }
@@ -304,7 +304,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 atom.ReadUInt32(0), hyperlinkId, atom.ReadByte(9), flags,
                 name, hyperlink, customShow);
             if (options.ReportUnsupportedContent && !IsNativelyProjectable(interaction)) {
-                AddDiagnostic("PPT-ACTION-PRESERVE-ONLY",
+                AddDiagnostic("ppt-action-preserve-only",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {interaction.Action} action cannot be represented by the current editable PowerPoint action surface and remains preserve-only.",
                     container.Offset);
@@ -363,7 +363,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (IGrouping<LegacyPptInteractionTrigger, LegacyPptInteraction> group
                      in interactions.GroupBy(interaction => interaction.Trigger)) {
                 if (group.Count() < 2) continue;
-                AddDiagnostic("PPT-ACTION-DUPLICATE", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-action-duplicate", LegacyPptDiagnosticSeverity.Warning,
                     $"A {owner} contains multiple {group.Key} interactions; only one can be projected natively.",
                     offset);
             }
@@ -376,7 +376,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 int previousEnd = -1;
                 foreach (LegacyPptTextInteraction item in group.OrderBy(item => item.Start)) {
                     if (item.Start < previousEnd) {
-                        AddDiagnostic("PPT-TEXT-ACTION-OVERLAP",
+                        AddDiagnostic("ppt-text-action-overlap",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"Text contains overlapping {group.Key} interaction ranges; the binary records remain preserve-only.",
                             offset);

@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
             + FixedClipLink() + "<input id='field' name='field' value='Field' style='position:fixed;left:20px;top:70px;width:60px;height:20px'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 30));
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 80));
@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
             + "width:100px;height:100px;clip:rect(10px,50px,40px,20px)'>" + FixedClipLink() + "</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedClipUri));
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(25, 25));
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
             + "width:80px;height:80px;clip:rect(0,20px,20px,0)'>" + FixedClipLink() + "</div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedClipUri));
 
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), raster.GetPixel(30, 30));
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
             + FixedClipLink("transform:translateX(15px)") + "</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedClipUri));
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(25, 35));
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
             + ";transform-origin:0 0'>" + FixedClipLink() + "</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         var links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedClipUri);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(40, 30));
@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
             + "width:1px;height:1px;overflow:hidden'>" + FixedClipLink() + "</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedClipUri));
 
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), raster.GetPixel(30, 30));

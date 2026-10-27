@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumnSeparator_RendersBetweenColumns() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowGap_RejectsWhenGapsExceedContentWidthDuringRender() {
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 120,
                 PageHeight = 160,
                 MarginLeft = 20,
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void MixedColumnSizing_RendersFixedAutoAndRelativeColumns() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 400,
                     PageHeight = 180,
                     MarginLeft = 20,
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void CommittedColumnWidths_RejectOverflowDuringLayout() {
-            PdfDocument doc = PdfDocument.Create(new PdfOptions {
+            PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 200,
                 PageHeight = 160,
                 MarginLeft = 20,
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RelativeColumnRejectsAZeroWidthRemainder() {
-            PdfDocument doc = PdfDocument.Create(new PdfOptions {
+            PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 200,
                 PageHeight = 160,
                 MarginLeft = 20,
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void AutomaticColumnMeasuresPanelContentAndPadding() {
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 400,
                     PageHeight = 180,
                     MarginLeft = 20,
@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowColumn_CanComposeTable() {
             var doc = PdfDocument.Create();
-            var style = TableStyles.Light();
+            var style = PdfTableStyles.Light();
 
             doc.Compose(compose =>
                 compose.Page(page =>

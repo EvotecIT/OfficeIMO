@@ -18,14 +18,14 @@ namespace OfficeIMO.Tests {
             owner.CellFormula = new CellFormula {
                 FormulaType = CellFormulaValues.DataTable,
                 Reference = "B1:B2",
-                R1 = $"A{A1.MaxRows}"
+                R1 = $"A{ExcelA1.MaxRows}"
             };
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", owner.CellFormula.R1!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", owner.CellFormula.R1!.Value);
             Assert.Equal("B1", owner.CellReference!.Value);
         }
 

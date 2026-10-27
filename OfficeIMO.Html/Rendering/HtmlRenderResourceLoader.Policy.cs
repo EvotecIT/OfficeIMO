@@ -47,8 +47,8 @@ internal static partial class HtmlRenderResourceLoader {
     }
 
     private static string GetPolicyRejectionCode(HtmlResourceKind kind) => kind switch {
-        HtmlResourceKind.Image => "ImageResourceRejectedByPolicy",
-        HtmlResourceKind.Stylesheet => "StylesheetResourceRejectedByPolicy",
+        HtmlResourceKind.Image => global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy,
+        HtmlResourceKind.Stylesheet => global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy,
         HtmlResourceKind.Hyperlink => "HyperlinkRejectedByPolicy",
         HtmlResourceKind.Script => "ScriptResourceRejectedByPolicy",
         HtmlResourceKind.Media => "MediaResourceRejectedByPolicy",

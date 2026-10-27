@@ -73,7 +73,7 @@ public partial class Excel {
             }
             byte[] bytes = utf16 ? Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray() : Encoding.UTF8.GetBytes(xml);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", bytes);
-            var options = new ExcelReadOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
+            var options = new ExcelReaderOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
             if (layout.EndsWith("Dom", StringComparison.Ordinal)) options.Culture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
             object?[,] expected = { { 42m, "Alpha", 7m }, { null, null, null }, { 43m, "Beta", 9m }, { 44m, "Gamma", 11m } };
             using var owner = ExcelDocumentReader.Open(path, options);
@@ -86,7 +86,7 @@ public partial class Excel {
                 case "OpenDataReader":
                 case "BufferedDataReader":
                 case "StreamingDataReader": {
-                    using var reader = api == "OpenDataReader" ? ExcelDocument.OpenDataReader(path, options)
+                    using var reader = api == "OpenDataReader" ? ExcelDocument.OpenReader(path, options)
                         : sheet.ReadRangeAsDataReader(api == "StreamingDataReader" ? (missingCells ? "A4:C4100" : "B4:D4100") : dataRange, headersInFirstRow: false, schemaSampleRows: 0);
                     for (int row = 0; row < 4; row++) {
                         Assert.True(reader.Read());

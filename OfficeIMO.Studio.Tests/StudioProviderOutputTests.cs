@@ -118,7 +118,7 @@ public sealed class StudioProviderOutputTests {
             if (consent) {
                 var job = Assert.Single(services.Jobs.Entries);
                 Assert.True(job.HasOutput, job.Summary);
-                Assert.Equal(2, PdfDocument.Load(target.Bytes).Inspect().PageCount);
+                Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(target.Bytes)).Inspect().PageCount);
                 await model.Jobs.OpenOutputCommand.ExecuteAsync(job);
                 Assert.Null(model.Jobs.ActionError);
                 Assert.Equal(destination, opened);

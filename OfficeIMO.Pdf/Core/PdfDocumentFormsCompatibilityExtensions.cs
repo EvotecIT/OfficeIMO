@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public static class PdfDocumentFormsCompatibilityExtensions {
     /// <summary>Attempts to fill string form values with explicit form options.</summary>
-    public static PdfOperationResult<PdfDocument> FillResult(
+    internal static PdfOperationResult<PdfDocument> FillResult(
         this PdfDocumentForms forms,
         IReadOnlyDictionary<string, string> fieldValues,
         PdfFormFillerOptions formOptions) {
@@ -15,7 +15,7 @@ public static class PdfDocumentFormsCompatibilityExtensions {
     }
 
     /// <summary>Attempts to fill typed form values with explicit form options.</summary>
-    public static PdfOperationResult<PdfDocument> FillResult(
+    internal static PdfOperationResult<PdfDocument> FillResult(
         this PdfDocumentForms forms,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions formOptions) {
@@ -24,7 +24,7 @@ public static class PdfDocumentFormsCompatibilityExtensions {
     }
 
     /// <summary>Attempts to flatten form fields with explicit form options.</summary>
-    public static PdfOperationResult<PdfDocument> FlattenResult(
+    internal static PdfOperationResult<PdfDocument> FlattenResult(
         this PdfDocumentForms forms,
         PdfFormFillerOptions formOptions) {
         Guard.NotNull(forms, nameof(forms));
@@ -32,7 +32,7 @@ public static class PdfDocumentFormsCompatibilityExtensions {
     }
 
     /// <summary>Attempts to fill and flatten string form values with explicit form options.</summary>
-    public static PdfOperationResult<PdfDocument> FillAndFlattenResult(
+    internal static PdfOperationResult<PdfDocument> FillAndFlattenResult(
         this PdfDocumentForms forms,
         IReadOnlyDictionary<string, string> fieldValues,
         PdfFormFillerOptions formOptions) {
@@ -41,7 +41,7 @@ public static class PdfDocumentFormsCompatibilityExtensions {
     }
 
     /// <summary>Attempts to fill and flatten typed form values with explicit form options.</summary>
-    public static PdfOperationResult<PdfDocument> FillAndFlattenResult(
+    internal static PdfOperationResult<PdfDocument> FillAndFlattenResult(
         this PdfDocumentForms forms,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions formOptions) {

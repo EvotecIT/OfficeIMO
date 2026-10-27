@@ -23,7 +23,7 @@ internal static class AsciiDocTableToMarkdownConverter {
                 if (sourceCell.GetBody() is AsciiDocDocument body) {
                     int remaining = options.MaximumBlockNestingDepth - depth - 1;
                     if (remaining < 1) throw new System.IO.InvalidDataException("AsciiDoc table conversion exceeds MaximumBlockNestingDepth.");
-                    var content = MarkdownDoc.Create();
+                    var content = MarkdownDocument.Create();
                     var attached = new HashSet<AsciiDocBlock>(body.BlocksOfType<AsciiDocListBlock>().SelectMany(list => list.Items).SelectMany(item => item.AttachedBlocks));
                     foreach (AsciiDocBlockContext context in body.GetBlockContextsFromSnapshot(attributes, true, remaining))
                         if (!attached.Contains(context.Block)) AsciiDocToMarkdownConverter.AddBlock(content, context.Block, context.Attributes, options, diagnostics, depth + 1);

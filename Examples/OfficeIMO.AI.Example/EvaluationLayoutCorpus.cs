@@ -5,7 +5,7 @@ using OfficeIMO.Pdf;
 
 internal static class EvaluationLayoutCorpus {
     public static IReadOnlyList<EvaluationCase> Create() {
-        var font = new PdfOptions { DefaultFontSize = 16 };
+        var font = new PdfCreateOptions { DefaultFontSize = 16 };
         if (!font.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) throw new InvalidOperationException("Evaluation requires an embeddable font.");
         byte[] columns = PdfDocument.Create(builder => builder.Content(content => content.Canvas(canvas => {
             canvas.Text("Regional dispatches", 50, 40, 480, 40, 22);
@@ -55,6 +55,6 @@ internal static class EvaluationLayoutCorpus {
 
     private static EvaluationCase Case(string id, string extension, byte[] source, OfficeAiRequest request, bool images, EvaluationGold gold) =>
         new(id, extension, source, request, images, "Independent layout/reserve gold; inspect source and citations", gold) { Split = "heldout" };
-    private static byte[] Raster(byte[] pdf) => PdfDocument.Load(pdf).ExportImages(OfficeImageExportFormat.Png,
+    private static byte[] Raster(byte[] pdf) => PdfDocument.Load(new MemoryStream(pdf)).ExportImages(OfficeImageExportFormat.Png,
         new PdfImageExportOptions { TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000 }).Single().Bytes;
 }

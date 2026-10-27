@@ -47,7 +47,7 @@ public class ExcelTextEscapingTests {
         foreach (string value in values) table.Rows.Add(value);
         using var stream = new MemoryStream();
         using (var reader = table.CreateDataReader()) {
-            ExcelDocument.WriteDataReader(stream, reader, new ExcelTabularWriteOptions {
+            ExcelDocument.WriteDataReader(stream, reader, new ExcelWriterOptions {
                 SheetName = "Data & '\"",
                 UseSharedStrings = sharedStrings,
                 IncludeCellReferences = cellReferences

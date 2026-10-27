@@ -37,7 +37,7 @@ internal static class CanopyExportVerifier {
         }
         bool excel = path.EndsWith(".xlsx", StringComparison.Ordinal);
         if (excel) WorkbookVerifier.Verify(path);
-        using DbDataReader reader = excel ? ExcelDocument.OpenDataReader(path, new ExcelReadOptions { HasHeaderRow = true }) : CsvDocument.OpenDataReader(path);
+        using DbDataReader reader = excel ? ExcelDocument.OpenReader(path, new ExcelReaderOptions { HasHeaderRow = true }) : CsvDocument.OpenDataReader(path);
         WorkbookVerifier.Require(reader.FieldCount == columns.Length, "Canopy exported column count differs.");
         for (int c = 0; c < columns.Length; c++) WorkbookVerifier.Require(reader.GetName(c) == columns[c].GetProperty("title").GetString(), "Canopy exported column order differs.");
         foreach (JsonElement row in rows) {

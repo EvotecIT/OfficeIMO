@@ -29,10 +29,10 @@ public sealed class HtmlWordChartTests {
             visibleDrawing,
             new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.End });
 
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Single(html.QuerySelectorAll("img"));
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Fact]
@@ -43,11 +43,11 @@ public sealed class HtmlWordChartTests {
         var outer = document.Paragraphs.First().GetRuns().First();
         Assert.Null(outer.Chart);
 
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Contains("Text box content", html.Body!.TextContent);
         Assert.Single(html.QuerySelectorAll("img"));
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
 
@@ -84,7 +84,7 @@ public sealed class HtmlWordChartTests {
             reference.Remove();
             targetRun.Append(reference);
         }
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportFootnotes = true, ExportEndnotes = true });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportFootnotes = true, ExportEndnotes = true });
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Equal(withChart ? 1 : 0, html.QuerySelectorAll("img").Length);
         Assert.Single(html.QuerySelectorAll("a[href='#" + (footnote ? "fn1" : "en1") + "']"));
@@ -105,7 +105,7 @@ public sealed class HtmlWordChartTests {
             reference.Remove();
             chartRun.Append(reference);
         }
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportComments = true });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportComments = true });
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Single(html.QuerySelectorAll("img"));
         Assert.Single(html.QuerySelectorAll("a[href='#comment1']"));
@@ -123,7 +123,7 @@ public sealed class HtmlWordChartTests {
         var reference = footnote ? source.AddFootNote("Note text") : source.AddEndNote("Note text");
         var note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() : reference.EndNote!.Paragraphs!.Skip(1).First();
         note.AddChart(OfficeChartKind.ColumnClustered, Data());
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportFootnotes = true, ExportEndnotes = true });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportFootnotes = true, ExportEndnotes = true });
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Single(html.QuerySelectorAll((footnote ? ".footnotes" : ".endnotes") + " img"));
         Assert.Contains("Note text", html.Body!.TextContent);
@@ -168,11 +168,11 @@ public sealed class HtmlWordChartTests {
             second.Footer.Default = new WordFooter(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._footer!, second);
             third.Footer.Default = first.Footer.Default;
         }
-        var options = new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup };
+        var options = new WordHtmlExportOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup };
         for (var attempt = 0; attempt < 2; attempt++) {
-            var result = document.ToHtmlResult(options);
+            var result = document.ConvertToHtmlWithEvidence(options);
             Assert.Equal(3, new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img").Length);
-            Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+            Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
         }
     }
     [Theory]
@@ -190,11 +190,11 @@ public sealed class HtmlWordChartTests {
         var paragraph = document.AddParagraph("Revision");
         var run = paragraph.GetRuns().Single()._run!; run.Remove();
         paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Review" });
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
         Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img"));
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
         Assert.True(chart.TryGetOfficeSnapshot(out _));
-        var repeated = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
+        var repeated = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
         Assert.Single(new HtmlParser().ParseDocument(repeated.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img"));
         Assert.Single(paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.InsertedRun>());
     }
@@ -217,12 +217,12 @@ public sealed class HtmlWordChartTests {
         } else {
             hyperlink.Append(run); content.Append(before, hyperlink, after); paragraph._paragraph.Append(control);
         }
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Single(html.QuerySelectorAll("a[href='#chart-target'] img"));
         Assert.Contains("Before", html.Body!.TextContent);
         Assert.Contains("After", html.Body.TextContent);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
     [Theory]
     [InlineData("HtmlDeletedText", "del")]
@@ -257,9 +257,9 @@ public sealed class HtmlWordChartTests {
         paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.SdtRun(
             new DocumentFormat.OpenXml.Wordprocessing.SdtProperties(),
             new DocumentFormat.OpenXml.Wordprocessing.SdtContentRun(run)));
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Theory]
@@ -273,7 +273,7 @@ public sealed class HtmlWordChartTests {
         run.Remove();
         if (inserted) paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Reviewer" });
         else paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(run) { Id = "1", Author = "Reviewer" });
-        var result = document.ToHtmlResult(new WordToHtmlOptions { TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup });
         Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll(inserted ? "ins img" : "del img"));
     }
 
@@ -287,9 +287,9 @@ public sealed class HtmlWordChartTests {
         paragraph.AddHyperLink("Link", new Uri("https://example.test/" + new string('a', 12000)));
         var hyperlink = paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single();
         hyperlink.RemoveAllChildren(); run.Remove(); hyperlink.Append(run);
-        var result = document.ToHtmlResult(new WordToHtmlOptions { MaxOutputCharacters = 5000 });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { MaxOutputCharacters = 5000 });
         Assert.DoesNotContain("<a ", result.RequireValue());
-        Assert.Single(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.Single(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public sealed class HtmlWordChartTests {
         }
         document.Paragraphs[1].Remove();
         document.Paragraphs[1].Remove();
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         var images = new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img");
         Assert.Equal(3, images.Length);
         Assert.Equal("data:image/gif;base64," + Convert.ToBase64String(first), images[1].GetAttribute("src"));
@@ -343,8 +343,8 @@ public sealed class HtmlWordChartTests {
         var extended = new DocumentFormat.OpenXml.OpenXmlUnknownElement("cx", "chart", "http://schemas.microsoft.com/office/drawing/2014/chartex");
         extended.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", reference.Id!.Value!));
         reference.Parent!.ReplaceChild(extended, reference);
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
-        Assert.Single(result.Report.Diagnostics, diagnostic => diagnostic.Code == "WordChartOmitted");
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
+        Assert.Single(result.Report.Diagnostics, diagnostic => diagnostic.Code == "word-chart-omitted");
         Assert.Empty(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
     }
     [Theory]
@@ -361,8 +361,8 @@ public sealed class HtmlWordChartTests {
             new DocumentFormat.OpenXml.Drawing.ListStyle(),
             new DocumentFormat.OpenXml.Drawing.Paragraph(Enumerable.Range(0, 1000).Select(index =>
                 new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Extra text"))))));
-        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordToHtmlOptions { MaxDocumentElements = 500 }));
-        Assert.Equal("WordElementLimitExceeded", error.Code);
+        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordHtmlExportOptions { MaxDocumentElements = 500 }));
+        Assert.Equal("word-element-limit-exceeded", error.Code);
         Assert.Contains("chart", error.LimitSource, StringComparison.OrdinalIgnoreCase);
     }
     [Fact]
@@ -372,8 +372,8 @@ public sealed class HtmlWordChartTests {
         string source = new HtmlParser().ParseDocument(document.ToHtml()).QuerySelector("img")!.GetAttribute("src")!;
         long exactLimit = Convert.FromBase64String(source.Substring("data:image/svg+xml;base64,".Length)).LongLength;
         document.AddChart(OfficeChartKind.ColumnClustered, Data());
-        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordToHtmlOptions { MaxTotalEmbeddedImageBytes = exactLimit }));
-        Assert.Equal("WordImageTotalSizeLimitExceeded", error.Code);
+        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordHtmlExportOptions { MaxTotalEmbeddedImageBytes = exactLimit }));
+        Assert.Equal("word-image-total-size-limit-exceeded", error.Code);
         Assert.Equal(exactLimit, error.Limit);
         Assert.True(error.Actual > exactLimit);
     }
@@ -403,10 +403,10 @@ public sealed class HtmlWordChartTests {
         if (supportedChoice) { choice.Append(drawing); fallback.Append(drawing.CloneNode(true)); }
         else { choice.Append(new DocumentFormat.OpenXml.Wordprocessing.Text("Unselected")); fallback.Append(drawing); }
         run.Append(new DocumentFormat.OpenXml.AlternateContent(choice, fallback));
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
         Assert.DoesNotContain("Unselected", result.RequireValue());
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Theory]
@@ -440,7 +440,7 @@ public sealed class HtmlWordChartTests {
         secondDrawing.Remove(); pictureDrawing.Remove();
         runs[0].PrependChild(pictureDrawing); runs[0].Append(secondDrawing);
         runs[1].Remove(); runs[2].Remove();
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         var images = new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img");
         Assert.Equal(3, images.Length);
         Assert.Equal(new[] { "Picture marker", "First chart", "Second chart" }, images.Select(image => image.GetAttribute("alt")));
@@ -454,7 +454,7 @@ public sealed class HtmlWordChartTests {
         var run = document.Paragraphs.Single().GetRuns().Single()._run!;
         run.PrependChild(new DocumentFormat.OpenXml.Wordprocessing.Text("Before chart "));
         run.Append(new DocumentFormat.OpenXml.Wordprocessing.Text(" after chart"));
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         string html = result.RequireValue();
         Assert.Contains("Before chart", html);
         Assert.Contains("after chart", html);
@@ -469,11 +469,11 @@ public sealed class HtmlWordChartTests {
         var source = document.Paragraphs.Single().GetRuns().Single()._run!;
         var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
         header._paragraph.Append(source.CloneNode(true));
-        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
         var dom = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.NotNull(dom.QuerySelector("header"));
         Assert.Null(dom.QuerySelector("header img"));
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Theory]
@@ -494,14 +494,14 @@ public sealed class HtmlWordChartTests {
         regionChart.Drawing!.Descendants<C.ChartReference>().Single().Id = id;
         using var stream = new MemoryStream(); document.Save(stream); stream.Position = 0;
         using var reopened = WordDocument.Load(stream);
-        var result = reopened.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        var result = reopened.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
         var dom = new HtmlParser().ParseDocument(result.RequireValue());
         var image = Assert.Single(dom.QuerySelectorAll(footer ? "footer img" : "header img"));
         Assert.Equal("Region", image.GetAttribute("alt"));
         string svg = Encoding.UTF8.GetString(Convert.FromBase64String(image.GetAttribute("src")!.Substring("data:image/svg+xml;base64,".Length)));
         Assert.Contains("#D97706", svg, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("#224466", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -517,7 +517,7 @@ public sealed class HtmlWordChartTests {
             : new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }, null, OfficeColor.Parse("#224466")) });
         document.AddChart(kind, data, title: "A <chart> & report", width: 600, height: 300);
         document.AddParagraph("After");
-        var result = document.ToHtmlResult();
+        var result = document.ConvertToHtmlWithEvidence();
         string html = result.RequireValue();
         var dom = new HtmlParser().ParseDocument(html);
         var image = Assert.Single(dom.QuerySelectorAll("img"));
@@ -531,8 +531,8 @@ public sealed class HtmlWordChartTests {
         Assert.Contains("#224466", svg, StringComparison.OrdinalIgnoreCase);
         Assert.True(html.IndexOf("Before", StringComparison.Ordinal) < html.IndexOf("data:image/svg+xml", StringComparison.Ordinal));
         Assert.True(html.IndexOf("data:image/svg+xml", StringComparison.Ordinal) < html.IndexOf("After", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "WordChartRenderedAsImage");
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "word-chart-rendered-as-image");
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
     }
 
     [Fact]
@@ -545,7 +545,7 @@ public sealed class HtmlWordChartTests {
         });
         var chart = document.AddChart(OfficeChartKind.Doughnut, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }));
         string native = chart.ChartPart!.ChartSpace!.OuterXml;
-        var result = document.ToHtmlResult(new WordToHtmlOptions { EmbedImagesAsBase64 = false });
+        var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { EmbedImagesAsBase64 = false });
         var image = new HtmlParser().ParseDocument(result.RequireValue()).QuerySelector("img")!;
         string svg = Encoding.UTF8.GetString(Convert.FromBase64String(image.GetAttribute("src")!.Substring("data:image/svg+xml;base64,".Length)));
         Assert.Contains("#224466", svg, StringComparison.OrdinalIgnoreCase);
@@ -568,8 +568,8 @@ public sealed class HtmlWordChartTests {
                 new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
             native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = "m/d/yyyy";
         } else chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
-        var result = document.ToHtmlResult();
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        var result = document.ConvertToHtmlWithEvidence();
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
         Assert.Empty(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
     }
 
@@ -580,12 +580,12 @@ public sealed class HtmlWordChartTests {
     public void Export_EnforcesImageAndOutputBudgets(string limit) {
         using var document = WordDocument.Create();
         document.AddChart(OfficeChartKind.ColumnClustered, Data());
-        var options = new WordToHtmlOptions { IncludeDefaultCss = false };
+        var options = new WordHtmlExportOptions { IncludeDefaultCss = false };
         if (limit == "image") options.MaxEmbeddedImageBytes = 16;
         if (limit == "aggregate") options.MaxTotalEmbeddedImageBytes = 16;
         if (limit == "output") options.MaxOutputCharacters = 1024;
         var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(options));
-        Assert.Equal(limit == "output" ? "WordHtmlOutputLimitExceeded" : limit == "image" ? "WordImageSizeLimitExceeded" : "WordImageTotalSizeLimitExceeded", error.Code);
+        Assert.Equal(limit == "output" ? "word-html-output-limit-exceeded" : limit == "image" ? "word-image-size-limit-exceeded" : "word-image-total-size-limit-exceeded", error.Code);
         Assert.Equal(limit == "output" ? options.MaxOutputCharacters : limit == "image" ? options.MaxEmbeddedImageBytes : options.MaxTotalEmbeddedImageBytes, error.Limit);
         Assert.True(error.Actual > error.Limit);
     }

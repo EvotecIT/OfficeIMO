@@ -32,7 +32,7 @@ public class RtfSectionHeaderFooterRegressionTests {
     [Fact]
     public void Pdf_Pages_Use_Each_Sections_Effective_Header_And_Inherited_Footer() {
         RtfDocument source = RtfDocument.Read(Input).Document;
-        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(source.ToPdfBytes());
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open((source.ToPdf()).ToBytes());
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Contains("H1", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.DoesNotContain("H2", pdf.GetPage(1).Text, StringComparison.Ordinal);

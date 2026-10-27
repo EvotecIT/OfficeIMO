@@ -18,7 +18,7 @@ public sealed class PdfDrawingSvgImageTests {
         for (int y = 0; y < 20; y++)
             for (int x = 20; x < 40; x++) pixels.SetPixel(x, y, OfficeColor.Blue);
         byte[] raster = OfficePngWriter.Encode(pixels);
-        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfOptions { PageWidth = 120, PageHeight = 120,
+        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfCreateOptions { PageWidth = 120, PageHeight = 120,
             MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0 }).Canvas(canvas =>
                 canvas.Image(bytes, 30, 40, 60, 30, new PdfImageStyle { Fit = fit,
                     SourceCrop = new PdfImageSourceCrop(.25D, 0D, 0D, 0D) },
@@ -47,11 +47,11 @@ public sealed class PdfDrawingSvgImageTests {
             OfficeShape cover = OfficeShape.Rectangle(40, 20);
             cover.FillColor = OfficeColor.Blue;
             canvas.Shape(cover, 0, 0);
-        }).ToBytes();
+        }).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
         Assert.Equal(OfficeColor.Red, actual.GetPixel(10, 10));
-        Assert.Contains(report.Warnings, warning => warning.Code == "SvgImageRasterFallback");
+        Assert.Contains(report.Warnings, warning => warning.Code == "svg-image-raster-fallback");
     }
 
     [Fact]
@@ -113,14 +113,14 @@ public sealed class PdfDrawingSvgImageTests {
         var report = new PdfConversionReport();
         var drawing = new OfficeDrawing(40D, 20D).AddImage(svg, "image/svg+xml",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 40D, 20D)));
-        byte[] pdf = PdfDocument.Create(Options().ReportDiagnosticsTo(report)).Drawing(drawing).ToBytes();
-        Assert.Contains(report.Warnings, warning => warning.Code == "SvgImageRasterFallback");
+        byte[] pdf = PdfDocument.Create(Options().ReportDiagnosticsTo(report)).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        Assert.Contains(report.Warnings, warning => warning.Code == "svg-image-raster-fallback");
         Assert.Single(PdfDocument.Load(pdf).Reader.Images());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 10));
     }
 
-    private static PdfOptions Options() => new PdfOptions { PageWidth = 40D, PageHeight = 30D,
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = 40D, PageHeight = 30D,
         MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
 }

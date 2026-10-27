@@ -21,7 +21,7 @@ document.AddParagraph("Hello, World!").Bold = true;
 var paragraph = document.AddParagraph("This document was created with OfficeIMO.");
 paragraph.FontFamily = "Calibri";
 paragraph.FontSize = 14;
-paragraph.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
+paragraph.Color = OfficeIMO.OfficeColor.DarkBlue;
 
 // Add a table
 var table = document.AddTable(3, 3, WordTableStyle.TableGrid);
@@ -94,7 +94,7 @@ workbook.Save();
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Project Status Report")
     .P("Generated automatically by OfficeIMO.Markdown.")
     .H2("Summary")

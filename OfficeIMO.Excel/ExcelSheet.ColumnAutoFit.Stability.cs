@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool[] stableColumns = new bool[A1.MaxColumns + 1];
+            bool[] stableColumns = new bool[ExcelA1.MaxColumns + 1];
             foreach (var column in columns.Elements<Column>()) {
                 if (column.Width == null
                     || column.CustomWidth?.Value != true
@@ -47,12 +47,12 @@ namespace OfficeIMO.Excel {
 
                 uint min = column.Min?.Value ?? 0U;
                 uint max = column.Max?.Value ?? 0U;
-                if (min == 0U || max < min || min > A1.MaxColumns) {
+                if (min == 0U || max < min || min > ExcelA1.MaxColumns) {
                     continue;
                 }
 
                 int start = (int)Math.Max(1U, min);
-                int end = (int)Math.Min((uint)A1.MaxColumns, max);
+                int end = (int)Math.Min((uint)ExcelA1.MaxColumns, max);
                 for (int i = start; i <= end; i++) {
                     stableColumns[i] = true;
                 }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
 
             foreach (int columnIndex in targetColumns) {
                 if (columnIndex <= 0
-                    || columnIndex > A1.MaxColumns
+                    || columnIndex > ExcelA1.MaxColumns
                     || !stableColumns[columnIndex]) {
                     return false;
                 }
@@ -165,12 +165,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (reference!.IndexOf(':') >= 0) {
-                return A1.TryParseRange(reference, out _, out firstColumn, out _, out lastColumn)
+                return ExcelA1.TryParseRange(reference, out _, out firstColumn, out _, out lastColumn)
                     && firstColumn > 0
                     && lastColumn >= firstColumn;
             }
 
-            var parsed = A1.ParseCellRef(reference);
+            var parsed = ExcelA1.ParseCellRef(reference);
             firstColumn = parsed.Col;
             lastColumn = parsed.Col;
             return firstColumn > 0;
@@ -186,7 +186,7 @@ namespace OfficeIMO.Excel {
                 || !uint.TryParse(maxText, NumberStyles.None, CultureInfo.InvariantCulture, out uint max)
                 || min == 0U
                 || max < min
-                || min > A1.MaxColumns) {
+                || min > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
             }
 
             start = (int)Math.Max(1U, min);
-            end = (int)Math.Min((uint)A1.MaxColumns, max);
+            end = (int)Math.Min((uint)ExcelA1.MaxColumns, max);
             return end >= start;
         }
 
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
         private static bool AreRequestedColumnsCovered(IReadOnlyList<int> requestedColumns, List<(int Start, int End)> stableSpans) {
             foreach (int columnIndex in requestedColumns) {
                 if (columnIndex <= 0
-                    || columnIndex > A1.MaxColumns
+                    || columnIndex > ExcelA1.MaxColumns
                     || !IsColumnCovered(columnIndex, stableSpans)) {
                     return false;
                 }
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool AreColumnRangeCovered(int firstColumn, int lastColumn, List<(int Start, int End)> stableSpans) {
-            if (firstColumn <= 0 || lastColumn < firstColumn || lastColumn > A1.MaxColumns) {
+            if (firstColumn <= 0 || lastColumn < firstColumn || lastColumn > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -251,11 +251,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (reference!.IndexOf(':') >= 0) {
-                if (!A1.TryParseRange(reference, out _, out firstColumn, out _, out lastColumn)) {
+                if (!ExcelA1.TryParseRange(reference, out _, out firstColumn, out _, out lastColumn)) {
                     return false;
                 }
             } else {
-                var parsed = A1.ParseCellRef(reference);
+                var parsed = ExcelA1.ParseCellRef(reference);
                 firstColumn = parsed.Col;
                 lastColumn = parsed.Col;
             }
@@ -280,7 +280,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var parsed = A1.ParseCellRef(reference!);
+                    var parsed = ExcelA1.ParseCellRef(reference!);
                     if (parsed.Col <= 0) {
                         continue;
                     }

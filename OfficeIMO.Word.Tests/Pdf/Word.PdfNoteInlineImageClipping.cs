@@ -43,7 +43,7 @@ public partial class Word {
         OpenXmlCompositeElement loaded = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string originalBody = main.Document.OuterXml;
         string originalNotes = loaded.OuterXml;
-        byte[] bytes = document.ToPdfBytes(FootnoteDiagnosticOptions());
+        byte[] bytes = document.ToPdf(FootnoteDiagnosticOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfImagePlacement image = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));
         Assert.Equal(48D, image.Width, 3);
         Assert.Equal(24D, image.Height, 3);

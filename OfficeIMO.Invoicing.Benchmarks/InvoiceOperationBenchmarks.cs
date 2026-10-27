@@ -67,5 +67,5 @@ public class InvoicePdfGenerationBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("pdf-generation")]
-    public byte[] GeneratePdf() => _snapshot.ToPdfBytes(_corpus.PdfOptions);
+    public byte[] GeneratePdf() => _snapshot.ToPdf(_corpus.PdfOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 }

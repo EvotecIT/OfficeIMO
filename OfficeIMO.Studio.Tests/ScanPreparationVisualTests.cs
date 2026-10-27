@@ -141,7 +141,7 @@ public sealed class ScanPreparationVisualTests {
                 prepared.BringIntoView(); window.UpdateLayout(); Capture(window, "scan-prepared-" + width);
                 await scan.SaveCommand.ExecuteAsync(null);
                 Assert.True(File.Exists(output), model.OcrWorkbench.ErrorMessage ?? scan.Status);
-                Assert.Equal(1, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().PageCount);
+                Assert.Equal(1, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Inspect().PageCount);
                 scan.Gamma = 1.5; Assert.False(scan.IsCurrent); Assert.False(scan.SaveCommand.CanExecute(null));
             } finally { window.Close(); }
             return true;

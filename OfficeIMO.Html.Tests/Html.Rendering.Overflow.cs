@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(viewport.ClipHorizontal);
@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Contains("RootPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes()).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(group.ClipHorizontal);
         Assert.True(group.ClipVertical);
@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Contains("ClippedPdfMarker", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
         Assert.Contains("ClippedPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(5D, clippedGroup.ClipX, 3);
         Assert.Equal(30D, clippedGroup.ClipWidth, 3);
@@ -218,7 +218,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(7, 15));
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

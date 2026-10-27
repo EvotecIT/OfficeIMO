@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static string ExpandReferenceLinks(string text, MarkdownReaderState state) {
         if (state == null || state.LinkRefs.Count == 0 || string.IsNullOrEmpty(text)) return text;
         var sb = new System.Text.StringBuilder(text.Length + 16);

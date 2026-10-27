@@ -445,15 +445,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int StartRow, int StartColumn, int EndRow, int EndColumn) ParseImageRange(string range) {
-            if (!A1.TryParseRange(range, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+            if (!ExcelA1.TryParseRange(range, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
                 throw new ArgumentException($"Invalid A1 range '{range}'. Use a range such as A1:C15.", nameof(range));
             }
 
-            if (endColumn >= A1.MaxColumns) {
+            if (endColumn >= ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(range), "Image range must end before the final Excel column so the two-cell end marker can use the boundary after the last cell.");
             }
 
-            if (endRow >= A1.MaxRows) {
+            if (endRow >= ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(range), "Image range must end before the final Excel row so the two-cell end marker can use the boundary after the last cell.");
             }
 

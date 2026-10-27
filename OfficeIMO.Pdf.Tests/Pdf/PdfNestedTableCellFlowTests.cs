@@ -377,7 +377,7 @@ public class PdfNestedTableCellFlowTests {
         AllowRowBreakAcrossPages = true, SpacingBefore = 0D, SpacingAfter = 0D
     };
 
-    private static PdfOptions Options(double height = 400D) => new() {
+    private static PdfCreateOptions Options(double height = 400D) => new() {
         PageWidth = 320D, PageHeight = height, MarginLeft = 20D, MarginRight = 20D,
         MarginTop = 20D, MarginBottom = 20D, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 8D
     };

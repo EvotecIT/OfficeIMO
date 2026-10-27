@@ -14,16 +14,16 @@ namespace OfficeIMO.Excel {
         /// <returns>A reader owned by the caller. The input file is closed before the task completes.</returns>
         /// <remarks>
         /// Asynchronous input is followed by synchronous decryption, integrity verification and workbook discovery.
-        /// Encrypted input and decrypted package sizes are each bounded by ExcelReadOptions.MaxInputBytes.
+        /// Encrypted input and decrypted package sizes are each bounded by ExcelReaderOptions.MaxInputBytes.
         /// Opening buffers both complete packages and copies options before input begins. Both cancellation
         /// tokens remain active until the reader is disposed. Only Office Agile encryption is supported.
         /// Legacy XLS password encryption uses LoadEncrypted.
         /// </remarks>
-        public static async Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
-            string path, string password, ExcelReadOptions? options = null, CancellationToken cancellationToken = default) {
+        internal static async Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
+            string path, string password, ExcelReaderOptions? options = null, CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            ExcelReadOptions effectiveOptions = (options ?? new ExcelReadOptions()).Clone();
+            ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             cancellationToken.ThrowIfCancellationRequested();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             using var source = new FileStream(
@@ -42,21 +42,21 @@ namespace OfficeIMO.Excel {
         /// <remarks>
         /// The input remains open on success, failure, and reader disposal. Seekable positions are restored;
         /// non-seekable sources advance through their remaining content. Both complete packages are buffered
-        /// and each is bounded by ExcelReadOptions.MaxInputBytes. Options are copied before asynchronous input.
+        /// and each is bounded by ExcelReaderOptions.MaxInputBytes. Options are copied before asynchronous input.
         /// Decryption, integrity verification and workbook discovery run synchronously after input is read.
         /// Both cancellation tokens remain active until reader disposal. This API supports Office Open XML packages protected by Agile encryption.
         /// </remarks>
-        public static Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
-            Stream stream, string password, ExcelReadOptions? options = null, CancellationToken cancellationToken = default) {
+        internal static Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
+            Stream stream, string password, ExcelReaderOptions? options = null, CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             return OpenEncryptedDataReaderAsyncCore(
-                stream, password, (options ?? new ExcelReadOptions()).Clone(), cancellationToken);
+                stream, password, (options ?? new ExcelReaderOptions()).Clone(), cancellationToken);
         }
 
         private static async Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsyncCore(
-            Stream source, string password, ExcelReadOptions options, CancellationToken cancellationToken) {
+            Stream source, string password, ExcelReaderOptions options, CancellationToken cancellationToken) {
             var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken, options.CancellationToken);
             try {

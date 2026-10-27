@@ -133,7 +133,7 @@ public partial class Word {
         using var result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(
             LegacyDocTestBuilder.CreateIndexedSectionColumnDoc(false, fault)));
         Assert.True(result.HasDocument);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DOC-SEPX-INVALID");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "doc-sepx-invalid");
         Assert.Empty(result.Document!.Sections[0].ColumnDefinitions);
         Assert.Contains("Indexed section columns", result.Document.Paragraphs[0].Text);
     }
@@ -143,7 +143,7 @@ public partial class Word {
         using var result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(
             LegacyDocTestBuilder.CreateIndexedSectionColumnDoc(false, "unused-cache")));
         Assert.True(result.HasDocument);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "DOC-SEPX-INVALID");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "doc-sepx-invalid");
         Assert.Equal(new[] { 3000, 4000 }, result.Document!.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
         Assert.Equal(new int?[] { 360, 0 }, result.Document.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfterTwips));
         Assert.Equal(2, result.Document.Sections[0].ColumnCount);

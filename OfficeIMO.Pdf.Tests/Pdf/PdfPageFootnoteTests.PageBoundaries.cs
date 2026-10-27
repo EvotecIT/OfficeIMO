@@ -12,7 +12,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("PageEntry")]
     [InlineData("PageExit")]
     public void ExplicitSectionAndPageBoundariesFinishNotesBeforeChangingTheBodyFrame(string boundary) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (boundary == "PageExit") options.PageHeight = 180;
         PdfDocument document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {

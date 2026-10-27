@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class ImageHtmlAttributes {
-    internal static string BuildImageAttributes(HtmlOptions? o, string? src) {
+    internal static string BuildImageAttributes(MarkdownHtmlExportOptions? o, string? src) {
         if (o == null) return string.Empty;
 
         var sb = new System.Text.StringBuilder();
@@ -15,7 +15,7 @@ internal static class ImageHtmlAttributes {
         return sb.ToString();
     }
 
-    internal static string BuildBlockedPlaceholder(string? alt, HtmlOptions? options) {
+    internal static string BuildBlockedPlaceholder(string? alt, MarkdownHtmlExportOptions? options) {
         // Keep markup minimal and safe.
         alt ??= string.Empty;
         var trimmed = alt.Trim();

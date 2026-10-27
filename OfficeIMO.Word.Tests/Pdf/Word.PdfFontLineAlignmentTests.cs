@@ -26,11 +26,11 @@ public partial class Word {
         paragraph.FontFamily = family; paragraph.FontSize = 8;
         paragraph.LineSpacingPoints = 30; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph._paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = new VerticalTextAlignmentValues(alignment) };
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(Assert.Single(letters, x => x.Value == "A").StartBaseLine.Y,
             Assert.Single(letters, x => x.Value == "B").StartBaseLine.Y, 3);
@@ -128,11 +128,11 @@ public partial class Word {
         // A direct spacing declaration must not erase alignment inherited from elsewhere.
         paragraph.LineSpacingPoints = 40;
         paragraph.LineSpacingRule = lineSpacingRule;
-        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        var options = new PdfOptions();
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        return document.ToPdfBytes(new WordToPdfOptions {
+        return document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

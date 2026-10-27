@@ -147,13 +147,13 @@ namespace OfficeIMO.Tests {
 
             int calculated = document.Calculate();
             Assert.True(sheet.TryGetCachedFormulaValue(1, 13, out string? directWholeColumnRows));
-            Assert.Equal(A1.MaxRows.ToString(), directWholeColumnRows);
+            Assert.Equal(ExcelA1.MaxRows.ToString(), directWholeColumnRows);
             Assert.True(sheet.TryGetCachedFormulaValue(1, 14, out string? directWholeRowColumns));
-            Assert.Equal(A1.MaxColumns.ToString(), directWholeRowColumns);
+            Assert.Equal(ExcelA1.MaxColumns.ToString(), directWholeRowColumns);
             Assert.True(sheet.TryGetCachedFormulaValue(1, 15, out string? qualifiedWholeColumnRows));
-            Assert.Equal(A1.MaxRows.ToString(), qualifiedWholeColumnRows);
+            Assert.Equal(ExcelA1.MaxRows.ToString(), qualifiedWholeColumnRows);
             Assert.True(sheet.TryGetCachedFormulaValue(1, 16, out string? qualifiedWholeRowColumns));
-            Assert.Equal(A1.MaxColumns.ToString(), qualifiedWholeRowColumns);
+            Assert.Equal(ExcelA1.MaxColumns.ToString(), qualifiedWholeRowColumns);
             ExcelFormulaInspection inspection = document.InspectFormulas();
             string[] unsupported = inspection.Formulas
                 .Where(formula => !formula.IsSupportedByOfficeIMO)
@@ -1040,8 +1040,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Shared!A1" }, Assert.Single(inspection.Formulas, formula => formula.CellReference == "B1").Dependencies);
                 Assert.Contains("Shared!B2", Assert.Single(inspection.Formulas, formula => formula.CellReference == "C2").Dependencies);
 
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                ExcelCellSnapshot snapshotFollower = Assert.Single(
+                ExcelWorkbookInfo snapshot = document.Inspect();
+                ExcelCellInfo snapshotFollower = Assert.Single(
                     Assert.Single(snapshot.Worksheets).Cells,
                     cell => cell.Row == 2 && cell.Column == 3);
                 Assert.Equal("SUM(B2,$A2,B$1,$A$1)", snapshotFollower.Formula);

@@ -69,7 +69,7 @@ public partial class Word {
             cell.Borders.RightSize = 8;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -103,10 +103,10 @@ public partial class Word {
             cell.Borders.RightSize = 20;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
             });
         }
 
@@ -153,10 +153,10 @@ public partial class Word {
             cell.Borders.TopRightToBottomLeftSize = 8;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
             });
         }
 

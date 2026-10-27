@@ -125,7 +125,7 @@ public sealed class PdfFormOcrReviewTests {
         var encryption = new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents
         };
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextField("Name", width: 180, height: 24).ToBytes();
         var source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = password });
         var widget = source.Inspect().FormFieldsByName["Name"].Widgets.Single();

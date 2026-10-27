@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Applies AST-safe inline normalization to an existing <see cref="MarkdownDoc"/>.
+/// Applies AST-safe inline normalization to an existing <see cref="MarkdownDocument"/>.
 /// </summary>
 /// <remarks>
 /// Use this when markdown or HTML has already been parsed into a document and you want to apply
@@ -23,7 +23,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
     public MarkdownInputNormalizationOptions Options { get; }
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

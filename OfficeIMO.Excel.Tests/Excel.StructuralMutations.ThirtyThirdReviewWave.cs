@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Dashboard");
             var series = Enumerable.Repeat(
                 new ExcelChartSeries("Value", new[] { 1d }),
-                A1.MaxColumns).ToArray();
+                ExcelA1.MaxColumns).ToArray();
             var data = new ExcelChartData(new[] { "A" }, series);
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => sheet.AddModernChart(

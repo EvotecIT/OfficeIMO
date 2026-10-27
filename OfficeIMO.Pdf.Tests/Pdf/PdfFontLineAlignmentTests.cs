@@ -14,7 +14,7 @@ public sealed class PdfFontLineAlignmentTests {
     [InlineData("Baseline", 0D, 0D)]
     public void ExactLineAlignmentUsesEachRunDeviceMetrics(string alignmentName, double small, double large) {
         var alignment = (PdfFontLineAlignment)Enum.Parse(typeof(PdfFontLineAlignment), alignmentName);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Device metrics", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
         var doc = PdfDocument.Create(options);
         doc.Paragraph(p => p.FontFamily("Device metrics").FontSize(8).Text("A")

@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         private static readonly OfficeColor LegacyCommentIndicatorColor = OfficeColor.FromRgb(192, 0, 0);
         private static readonly OfficeColor ThreadedCommentIndicatorColor = OfficeColor.FromRgb(124, 58, 237);
 
-        private static void RenderRasterCommentIndicators(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void RenderRasterCommentIndicators(OfficeRasterCanvas canvas, ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) {
             double scale = options.Scale;
             foreach (ExcelVisualCommentIndicator indicator in snapshot.CommentIndicators) {
                 double size = ResolveCommentIndicatorSize(indicator, scale);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgCommentIndicators(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             System.Threading.CancellationToken cancellationToken,
             OfficeSvgUtf8CompositionBudget? budget) {

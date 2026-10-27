@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSpecialMaster notesMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(LegacyPptPresentation.Load(bytes)
                 .NotesMaster);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-NOTES-MASTER-SHAPE");
+                finding.Code == "ppt-write-notes-master-shape");
         }
 
         [Fact]
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             Assert.Equal(16U, binary.DocumentSettings!.HandoutMasterPersistId);
             LegacyPptSpecialMaster handoutMaster = Assert.IsType<
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             LegacyPptBackground notesMasterBackground = Assert.IsType<
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
                 slide.Notes.Text = "Preserved picture background note";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("445566");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -299,7 +299,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
                 reopenedInput);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(savedBytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
                 slide.Notes.Text = "Notes page picture";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("123456");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-HANDOUT-MASTER-SHAPE");
+                finding.Code == "ppt-write-handout-master-shape");
         }
 
         private static HandoutMasterPart CreateHandoutMaster(

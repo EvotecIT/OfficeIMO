@@ -7,7 +7,7 @@ public sealed class LatexForwardOwnerTests {
 
     [Fact]
     public void PreservedPartsCannotShiftVisibleHeadingLevels() {
-        MarkdownDoc result = LatexDocument.Parse(Wrap("\\unknown{\\part{Hidden}}\\section{Visible}")).ToMarkdownDocument();
+        MarkdownDocument result = LatexDocument.Parse(Wrap("\\unknown{\\part{Hidden}}\\section{Visible}")).ToMarkdownDocument();
         Assert.Equal(1, Assert.Single(result.Blocks.OfType<HeadingBlock>()).Level);
         Assert.Contains("\\unknown{\\part{Hidden}}", Assert.Single(result.Blocks.OfType<CodeBlock>()).Content, StringComparison.Ordinal);
     }
@@ -21,11 +21,11 @@ public sealed class LatexForwardOwnerTests {
         Assert.Null(result.Value.FindFrontMatterEntry("date"));
         Assert.Equal("article", result.Value.FindFrontMatterEntry("documentclass")?.Value);
         Assert.Empty(result.Value.Blocks.OfType<HeadingBlock>());
-        string text = PdfReadDocument.Open(LatexDocument.Parse(Wrap("Public") + trailer).ToPdfBytes()).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(LatexDocument.Parse(Wrap("Public") + trailer).ToPdfBytes())).ExtractText();
         Assert.Contains("Public", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE", text, StringComparison.Ordinal);
         Assert.DoesNotContain("INERT", text, StringComparison.Ordinal);
-        MarkdownDoc active = LatexDocument.Parse("\\title{Active}\\author{Author}\\date{Today}" + Wrap("Body") + trailer).ToMarkdownDocument();
+        MarkdownDocument active = LatexDocument.Parse("\\title{Active}\\author{Author}\\date{Today}" + Wrap("Body") + trailer).ToMarkdownDocument();
         Assert.Equal("Active", active.FindFrontMatterEntry("title")?.Value);
         Assert.Equal("Author", active.FindFrontMatterEntry("author")?.Value);
         Assert.Equal("Today", active.FindFrontMatterEntry("date")?.Value);
@@ -53,7 +53,7 @@ public sealed class LatexForwardOwnerTests {
         const string source = "\\begin{tabular}{lcr}\\textbf{L}&\\textbf{C}&\\textbf{R}\\\\left&center&right\\\\\\end{tabular}";
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult();
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
-        Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
+        Assert.Equal(new[] { MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right }, table.Alignments);
         Assert.False(result.Report.HasLoss);
         MarkdownToLatexResult back = result.Value.ToLatexDocumentResult();
         Assert.Equal("lcr", Assert.Single(back.Value.Tables).ColumnSpecification);
@@ -82,22 +82,22 @@ public sealed class LatexForwardOwnerTests {
     }
 
     [Theory]
-    [InlineData(ColumnAlignment.Center, ColumnAlignment.None, "c")]
-    [InlineData(ColumnAlignment.Right, ColumnAlignment.None, "r")]
-    [InlineData(ColumnAlignment.Right, ColumnAlignment.Left, "l")]
-    [InlineData(ColumnAlignment.Left, ColumnAlignment.Right, "r")]
-    public void SpannedCellsInheritLogicalColumnAlignmentAndRespectCellOverrides(ColumnAlignment column, ColumnAlignment cellOverride, string expected) {
-        TableBlock table = Assert.Single(MarkdownReader.Parse("| H1 | H2 | H3 | H4 |\n| --- | --- | --- | --- |\n| First | Second | Third | Last |\n").Blocks.OfType<TableBlock>());
-        table.Alignments[0] = ColumnAlignment.Left;
-        table.Alignments[1] = ColumnAlignment.Left;
+    [InlineData(MarkdownColumnAlignment.Center, MarkdownColumnAlignment.None, "c")]
+    [InlineData(MarkdownColumnAlignment.Right, MarkdownColumnAlignment.None, "r")]
+    [InlineData(MarkdownColumnAlignment.Right, MarkdownColumnAlignment.Left, "l")]
+    [InlineData(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right, "r")]
+    public void SpannedCellsInheritLogicalColumnAlignmentAndRespectCellOverrides(MarkdownColumnAlignment column, MarkdownColumnAlignment cellOverride, string expected) {
+        TableBlock table = Assert.Single(MarkdownDocument.Parse("| H1 | H2 | H3 | H4 |\n| --- | --- | --- | --- |\n| First | Second | Third | Last |\n").Blocks.OfType<TableBlock>());
+        table.Alignments[0] = MarkdownColumnAlignment.Left;
+        table.Alignments[1] = MarkdownColumnAlignment.Left;
         table.Alignments[2] = column;
         TableCell first = table.GetCell(0, 0)!;
         first.ColumnSpan = 2;
         TableCell second = table.GetCell(0, 1)!;
         second.ColumnSpan = 2;
         second.Alignment = cellOverride;
-        table.GetCell(0, 2)!.Alignment = ColumnAlignment.Center;
-        MarkdownToLatexResult result = MarkdownDoc.Create().Add(table).ToLatexDocumentResult();
+        table.GetCell(0, 2)!.Alignment = MarkdownColumnAlignment.Center;
+        MarkdownToLatexResult result = MarkdownDocument.Create().Add(table).ToLatexDocumentResult();
         Assert.Contains("\\multicolumn{2}{" + expected + "}{Second}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\multicolumn{1}{c}{Third}", result.Source, StringComparison.Ordinal);
         Assert.False(result.Report.HasLoss);
@@ -141,13 +141,13 @@ public sealed class LatexForwardOwnerTests {
         Assert.Single(Assert.Single(list.Value.Blocks.OfType<UnorderedListBlock>()).Items);
         Assert.Contains("\\unknown{\\item Hidden}", list.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains(list.Report.Diagnostics, static item => item.Feature == "command:unknown");
-        MarkdownDoc figure = LatexDocument.Parse(Wrap("\\begin{figure}\\includegraphics{actual.png}\\unknown{\\caption{Hidden}}\\caption{Actual}\\end{figure}")).ToMarkdownDocument();
+        MarkdownDocument figure = LatexDocument.Parse(Wrap("\\begin{figure}\\includegraphics{actual.png}\\unknown{\\caption{Hidden}}\\caption{Actual}\\end{figure}")).ToMarkdownDocument();
         Assert.Equal("Actual", Assert.Single(figure.Blocks.OfType<ImageBlock>()).Caption);
         Assert.Contains("\\unknown{\\caption{Hidden}}", Assert.Single(figure.Blocks.OfType<CodeBlock>()).Content, StringComparison.Ordinal);
-        MarkdownDoc opaqueImage = LatexDocument.Parse(Wrap("\\begin{figure}\\phantom{\\includegraphics{hidden.png}}\\end{figure}")).ToMarkdownDocument();
+        MarkdownDocument opaqueImage = LatexDocument.Parse(Wrap("\\begin{figure}\\phantom{\\includegraphics{hidden.png}}\\end{figure}")).ToMarkdownDocument();
         Assert.Empty(opaqueImage.Blocks.OfType<ImageBlock>());
         Assert.Contains("\\phantom{\\includegraphics{hidden.png}}", Assert.Single(opaqueImage.Blocks.OfType<CodeBlock>()).Content, StringComparison.Ordinal);
-        MarkdownDoc theorem = LatexDocument.Parse(Wrap("\\begin{theorem}\\unknown{\\label{hidden}}\\label{actual}Body\\end{theorem}")).ToMarkdownDocument();
+        MarkdownDocument theorem = LatexDocument.Parse(Wrap("\\begin{theorem}\\unknown{\\label{hidden}}\\label{actual}Body\\end{theorem}")).ToMarkdownDocument();
         Assert.Equal("actual", Assert.Single(theorem.Blocks.OfType<CalloutBlock>()).Attributes.ElementId);
         Assert.Contains("\\unknown{\\label{hidden}}", theorem.ToMarkdown(), StringComparison.Ordinal);
         LatexToMarkdownResult opaqueLabel = LatexDocument.Parse(Wrap("\\begin{theorem}\\unknown{A\\label{x}B}\\end{theorem}")).ToMarkdownDocumentResult();

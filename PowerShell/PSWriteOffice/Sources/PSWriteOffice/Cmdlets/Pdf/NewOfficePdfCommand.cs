@@ -216,7 +216,7 @@ public sealed class NewOfficePdfCommand : PSCmdlet {
         }
 
         PdfCommandUtilities.EnsureDirectory(savePath!);
-        document.Save(savePath!).RequireSuccess();
+        document.Save(savePath!);
 
         if (Open.IsPresent) {
             FileOpenService.Open(savePath!);
@@ -227,8 +227,8 @@ public sealed class NewOfficePdfCommand : PSCmdlet {
         }
     }
 
-    private PdfOptions CreateOptions() {
-        var options = new PdfOptions();
+    private PdfCreateOptions CreateOptions() {
+        var options = new PdfCreateOptions();
         if (DefaultFont.HasValue) {
             options.DefaultFont = DefaultFont.Value;
         }
@@ -291,7 +291,7 @@ public sealed class NewOfficePdfCommand : PSCmdlet {
         return options;
     }
 
-    private void ConfigureViewerPreferences(PdfOptions options) {
+    private void ConfigureViewerPreferences(PdfCreateOptions options) {
         if (!DisplayDocTitle.IsPresent &&
             !FitWindow.IsPresent &&
             !CenterWindow.IsPresent &&

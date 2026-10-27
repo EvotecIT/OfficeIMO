@@ -160,11 +160,11 @@ public sealed partial class PdfLogicalPage {
             geometry,
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
-            BuildHeadings(pageNumber, analysis is null ? structured.Headings : new List<StructuredHeading>(), textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup, textBlockSourceIndex),
+            BuildHeadings(pageNumber, analysis is null ? structured.Headings : new List<PdfStructuredHeading>(), textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup, textBlockSourceIndex),
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,

@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
             var row = new Row { RowIndex = 1U };
             for (int column = 1; column <= 64; column++) {
                 row.Append(new Cell {
-                    CellReference = A1.CellReference(1, column),
+                    CellReference = ExcelA1.CellReference(1, column),
                     CellValue = new CellValue(column)
                 });
             }

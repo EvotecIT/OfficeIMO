@@ -128,13 +128,13 @@ internal static partial class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in source order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedText(string text, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedText(string text, PdfCreateOptions options, PdfStandardFont font, string source = "", string location = "") {
         return AnalyzeGeneratedTextCore(text, options, font, source, location, null);
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCore(
         string text,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfStandardFont font,
         string source,
         string location,
@@ -168,7 +168,7 @@ internal static partial class PdfTextDiagnostics {
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCoreSlow(
         string text,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfStandardFont font,
         string source,
         string location,
@@ -220,7 +220,7 @@ internal static partial class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<PdfTextRun> runs, PdfCreateOptions options, PdfStandardFont font, string source = "", string location = "") {
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(options, nameof(options));
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
@@ -304,7 +304,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static TryGetSelectedTextLength CreateSelectedCallerCoverage(
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfTextRun run,
         PdfTextShapingMode shapingMode) {
         if (options.ShouldPreferSelectedCallerFamily(run.FontFamily)

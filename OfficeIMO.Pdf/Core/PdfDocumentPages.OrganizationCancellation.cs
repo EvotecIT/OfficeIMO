@@ -29,21 +29,21 @@ public sealed partial class PdfDocumentPages {
         Delete(PdfPageSelection.FromRanges(pageRange), cancellationToken);
 
     /// <summary>Reports the delete operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Delete(selection, effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the delete operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Delete(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the delete operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DeleteResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Delete(PdfPageSelection.Parse(pageRanges), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -71,21 +71,21 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports the reorder operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Reorder(selection, effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the reorder operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Reorder(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the reorder operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> ReorderResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Reorder(PdfPageSelection.Parse(pageRanges), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -117,21 +117,21 @@ public sealed partial class PdfDocumentPages {
         Duplicate(PdfPageSelection.FromRanges(pageRange), cancellationToken);
 
     /// <summary>Reports the duplicate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Duplicate(selection, effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the duplicate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Duplicate(ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the duplicate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> DuplicateResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Duplicate(PdfPageSelection.Parse(pageRanges), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -163,21 +163,21 @@ public sealed partial class PdfDocumentPages {
         Move(insertBeforePageNumber, PdfPageSelection.FromRanges(pageRange), cancellationToken);
 
     /// <summary>Reports the move operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Move(insertBeforePageNumber, selection, effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the move operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Move(insertBeforePageNumber, ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the move operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages,
             () => Move(insertBeforePageNumber, PdfPageSelection.Parse(pageRanges), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -209,21 +209,21 @@ public sealed partial class PdfDocumentPages {
         Rotate(rotationDegrees, PdfPageSelection.FromRanges(pageRange), cancellationToken);
 
     /// <summary>Reports the rotate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => Rotate(rotationDegrees, selection, effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the rotate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => Rotate(rotationDegrees, ResolveSelector(selector, effective, cancellationToken), effective, cancellationToken), effective, cancellationToken: cancellationToken);
     }
 
     /// <summary>Reports the rotate operation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, string pageRanges, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges), effective, cancellationToken), effective, cancellationToken: cancellationToken);
@@ -259,7 +259,7 @@ public sealed partial class PdfDocumentPages {
             cancellationToken: cancellationToken);
 
     /// <summary>Resizes selected pages with cooperative cancellation.</summary>
-    public PdfDocument Resize(PageSize pageSize, CancellationToken cancellationToken, params int[] pageNumbers) =>
+    public PdfDocument Resize(PdfPageSize pageSize, CancellationToken cancellationToken, params int[] pageNumbers) =>
         Resize(new PdfPageResizeOptions(pageSize) { CancellationToken = cancellationToken }, pageNumbers);
 
     /// <summary>Crops and translates selected pages while retaining the source read options and observing cancellation.</summary>
@@ -296,7 +296,7 @@ public sealed partial class PdfDocumentPages {
         SetPageBox(PdfPageBoundaryBox.ArtBox, left, bottom, right, top, cancellationToken, pageNumbers);
 
     /// <summary>Reports a relative page rotation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => _document.ApplyMutation(input => PdfPageEditor.EditPageAttributes(input,
@@ -305,7 +305,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports a relative page rotation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => _document.ApplyMutation(input => PdfPageEditor.EditPageAttributes(input,
@@ -314,7 +314,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports a relative page rotation while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, string selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, string selector, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages,
             () => _document.ApplyMutation(input => PdfPageEditor.EditPageAttributes(input,
@@ -323,7 +323,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Reports a page-box edit while propagating cancellation as an exception.</summary>
-    public PdfOperationResult<PdfDocument> SetPageBoxResult(PdfPageBoundaryBox box, double left, double bottom, double right, double top,
+    internal PdfOperationResult<PdfDocument> SetPageBoxResult(PdfPageBoundaryBox box, double left, double bottom, double right, double top,
         PdfPageSelection selection, CancellationToken cancellationToken, PdfLoadOptions? options = null) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Set page box", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageAttributes,

@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             byte[] package = destination.ToArray();
             AssertXlsbStringStorage(package, sharedStrings, rows.ColumnCount + 2,
                 Enumerable.Range(0, rows.ColumnCount).Select(rows.ColumnNameAt).Concat(new[] { "Zażółć 🚀", "" }).ToArray());
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(rows.ColumnCount, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
             Assert.Equal("Number", reader.GetName(1));
@@ -73,11 +73,11 @@ namespace OfficeIMO.Tests {
             document.AddWorksheet("Data").InsertObjects(rows, includeHeaders, startRow: 1,
                 ("Id", static row => row.Id), ("Value", static row => row.Value), ("Enabled", static row => row.Enabled));
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = false });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package,
-                new ExcelReadOptions { HasHeaderRow = includeHeaders });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package,
+                new ExcelReaderOptions { HasHeaderRow = includeHeaders });
             Assert.Equal(3, reader.FieldCount);
             if (includeHeaders) {
                 Assert.Equal(new[] { "Id", "Value", "Enabled" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             Assert.True(XlsbNewPackageWriter.TryWriteDirectTabular(
                 document, source, destination, CancellationToken.None, sharedStrings));
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(destination.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(destination.ToArray());
             Assert.True(reader.Read());
             Assert.Equal("Fresh snapshot", reader.GetString(0));
             Assert.Equal(123.5D, reader.GetDouble(1));
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(destination.Length, destination.Position);
             byte[] package = destination.ToArray();
             AssertXlsbStringStorage(package, sharedStrings, 2, new[] { "Zażółć 🚀", "" });
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(rows.ColumnCount, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Zażółć 🚀", reader.GetString(0));

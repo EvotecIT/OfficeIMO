@@ -87,7 +87,7 @@ internal static class ScanQualityCorpus {
         await File.WriteAllBytesAsync(Path.Combine(output, id + ".pdf"), searchable, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-extracted.txt"), review.Ocr.Text, token);
-        string roundTrip = PdfDocument.Load(searchable).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Text;
+        string roundTrip = PdfDocument.Load(searchable).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
         await File.WriteAllTextAsync(Path.Combine(output, id + "-roundtrip.txt"), roundTrip, token);
         byte[] Render(byte[] bytes) => PdfDocument.Load(bytes).Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
             new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes

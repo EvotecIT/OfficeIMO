@@ -2,7 +2,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using SixColor = OfficeIMO.Drawing.OfficeColor;
+using SixColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {

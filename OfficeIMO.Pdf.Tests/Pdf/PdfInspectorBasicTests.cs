@@ -281,7 +281,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void InspectPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 36,

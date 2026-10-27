@@ -21,10 +21,10 @@ public sealed class XpsSearchablePdfTests {
         var spans = page.ToSvg().TextSpans;
         Assert.Equal(new[] { "fi ", "A", "😀" }, spans.Select(s => s.Text));
         var bytes = doc.ToPdf();
-        var pdf = PdfReadDocument.Open(bytes);
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal("fi A😀", pdf.ExtractText().Trim());
         var expected = OfficeDrawingRasterRenderer.Render(page.ToDrawing());
-        var actual = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(bytes).Render.Drawing(1), 96D / 72D);
+        var actual = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(bytes)).Render.Drawing(1), 96D / 72D);
         for (int y = 0; y < expected.Height; y++) for (int x = 0; x < expected.Width; x++)
             Assert.InRange(Math.Abs(expected.GetPixel(x, y).R - actual.GetPixel(x, y).R), 0, 8);
     }
@@ -45,7 +45,7 @@ public sealed class XpsSearchablePdfTests {
         var matrix = new OfficeTransform(1, .2, .3, 1, 5, 6).Then(new OfficeTransform(0, 1, -1, 0, 140, 10));
         Assert.Equal(matrix.TransformPoint(original.TopLeft), transformed.TopLeft);
         Assert.Equal(matrix.TransformPoint(original.BottomRight), transformed.BottomRight);
-        var pdf = PdfReadDocument.Open(doc.ToPdf());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         Assert.Equal("A", pdf.ExtractText().Trim());
     }
 
@@ -66,7 +66,7 @@ public sealed class XpsSearchablePdfTests {
         run.SetAttributeValue("Indices", "36,100;36,100,0,25"); page.ReplaceMarkup(xml);
         spans = page.ToSvg().TextSpans;
         Assert.Equal(spans[0].TopLeft.Y - 6, spans[1].TopLeft.Y, 8);
-        Assert.Equal("AA", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Replace("\n", "").Trim());
+        Assert.Equal("AA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Replace("\n", "").Trim());
     }
 
     [Theory]
@@ -90,7 +90,7 @@ public sealed class XpsSearchablePdfTests {
         run.SetAttributeValue("RenderTransform", "1,0.2,0.3,1,5,6"); page.ReplaceMarkup(xml);
         spans = page.ToSvg().TextSpans;
         for (int i = 1; i < spans.Count; i++) Assert.Equal(spans[i - 1].BottomRight, spans[i].BottomLeft);
-        Assert.Equal("AAA", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Trim());
+        Assert.Equal("AAA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class XpsSearchablePdfTests {
                 new XElement(ns + "VisualBrush.Visual", run)))));
         page.ReplaceMarkup(xml);
         Assert.Empty(page.ToSvg().TextSpans);
-        var pdf = PdfReadDocument.Open(doc.ToPdf()); Assert.Equal("", pdf.ExtractText().Trim());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); Assert.Equal("", pdf.ExtractText().Trim());
     }
 
     [Fact]
@@ -137,10 +137,10 @@ public sealed class XpsSearchablePdfTests {
     public void SourceTextSurvivesClippingButGlyphOnlyRunsDoNotInventUnicode() {
         var doc = Create(XpsFormat.Xps); var page = doc.Pages[0]; var xml = page.GetMarkup(); var run = xml.Elements().Single();
         run.SetAttributeValue("Clip", "M0,0H1V1H0Z"); run.SetAttributeValue("Opacity", "0"); page.ReplaceMarkup(xml);
-        Assert.Equal("Hello", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Trim());
+        Assert.Equal("Hello", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
         run.Attribute("UnicodeString")!.Remove(); run.SetAttributeValue("Indices", "36,100"); page.ReplaceMarkup(xml);
         Assert.Empty(page.ToSvg().TextSpans);
-        Assert.Equal("", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Trim());
+        Assert.Equal("", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
     }
 
     [Theory]
@@ -156,7 +156,7 @@ public sealed class XpsSearchablePdfTests {
     [Fact]
     public void BlankPagesRetainTheirSequenceAndSizes() {
         var doc = XpsDocument.Create(); doc.AddPage(100, 200); doc.AddPage(300, 400);
-        var pdf = PdfReadDocument.Open(doc.ToPdf());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         Assert.Equal(2, pdf.Pages.Count);
         Assert.Equal((75D, 150D), pdf.Pages[0].GetPageSize());
         Assert.Equal((225D, 300D), pdf.Pages[1].GetPageSize());

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] fontData = File.ReadAllBytes(fontPath!);
             var fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Feature Width Font");
             var provider = new ControlledAdvanceTextShapingProvider(fontProgram, featureAware: true);
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Feature Width Font")
                 .SetTextShapingProvider(provider);
             OfficeTextFeatureSettings features = OfficeTextFeatureSettings.Default.With("kern", 0);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] fontData = File.ReadAllBytes(fontPath!);
             var fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Chunk Width Font");
             var provider = new ControlledAdvanceTextShapingProvider(fontProgram, featureAware: false);
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Chunk Width Font")
                 .SetTextShapingProvider(provider);
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] fontData = File.ReadAllBytes(fontPath!);
             var fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Table Feature Width Font");
             var provider = new ControlledAdvanceTextShapingProvider(fontProgram, featureAware: true);
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Table Feature Width Font")
                 .SetTextShapingProvider(provider);
             OfficeTextFeatureSettings features = OfficeTextFeatureSettings.Default.With("kern", 0);

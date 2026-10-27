@@ -44,11 +44,10 @@
     <Using Include="System.Linq" />
     <Using Include="System.Threading" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 </Project>

@@ -16,7 +16,7 @@ public sealed class ExcelNativeEditingReviewContracts {
     public void Newly_authored_array_materializes_preexisting_empty_members(bool encrypted) {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D); sheet.CellBold(1, 2); sheet.CellBold(2, 2);
-        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(ExcelFileFormat.Xls)));
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         document.Sheets[0].SetArrayFormula("B1:B2", "SUM(A1:A2)");
         using var output = new MemoryStream();
         if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
@@ -26,7 +26,7 @@ public sealed class ExcelNativeEditingReviewContracts {
         Assert.Equal("B1:B2", array.Range); Assert.Equal(2, array.MatchedFormulaCellCount);
         Assert.All(native.Worksheets[0].Cells.Where(cell => cell.Column == 2), cell => Assert.True(cell.IsFormula));
         document.Sheets[0].CellValue(3, 1, "second save");
-        var second = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+        var second = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         Assert.Equal(2, Assert.Single(second.Worksheets[0].ArrayFormulaRecords).MatchedFormulaCellCount);
     }
 
@@ -88,7 +88,7 @@ public sealed class ExcelNativeEditingReviewContracts {
         seed.SetNamedRange("Value", "'First'!A1", save: false);
         seed.SetNamedRange("Value", "A1", first, save: false);
         seed.SetNamedRange("Value", "A1", second, save: false);
-        var model = OfficeIMO.Excel.Xlsb.XlsbWorkbookReader.Load(seed.ToBytes(ExcelFileFormat.Xlsb));
+        var model = OfficeIMO.Excel.Xlsb.XlsbWorkbookReader.Load(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
         for (int index = 0; index < model.DefinedNames.Count; index++) {
             var name = model.DefinedNames[index];
             byte[] token = new byte[] { 0x43 }.Concat(BitConverter.GetBytes((uint)index + 1)).ToArray();

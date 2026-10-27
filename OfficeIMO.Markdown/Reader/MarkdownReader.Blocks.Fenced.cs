@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool IsCodeFenceOpen(string line, out string infoString, out char fenceChar, out int fenceLength) =>
         IsCodeFenceOpen(line, out infoString, out fenceChar, out fenceLength, out _, out _);
 
@@ -83,7 +83,7 @@ public static partial class MarkdownReader {
         string content,
         bool isFenced,
         string? caption,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         int fenceIndentColumns = 0,
         int fenceLength = 3,
         int infoPaddingColumns = 0,

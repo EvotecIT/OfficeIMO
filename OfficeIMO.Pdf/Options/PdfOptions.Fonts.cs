@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private static readonly PdfStandardFont[] AdditionalFontFamilySlotPreference = {
         PdfStandardFont.TimesRoman,
         PdfStandardFont.Courier,
@@ -35,7 +35,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="familyName">Office, CSS, or system font family name such as <c>Aptos</c>, <c>Calibri</c>, or <c>Consolas</c>.</param>
     /// <param name="embedSystemFont">When true, installed TrueType faces are preferred over dependency-free standard PDF font aliases.</param>
-    public PdfOptions UseOfficeFontFamily(string? familyName, bool embedSystemFont = true) {
+    public PdfCreateOptions UseOfficeFontFamily(string? familyName, bool embedSystemFont = true) {
         TryUseOfficeFontFamilyCore(familyName, embedSystemFont, requireEmbeddedFont: false);
         return this;
     }
@@ -319,7 +319,7 @@ public sealed partial class PdfOptions {
     /// <param name="familyName">Office, CSS, or system font family name such as <c>Aptos</c>, <c>Georgia</c>, or <c>Consolas</c>.</param>
     /// <param name="baseFontFamily">The semantic standard family slot to back: Helvetica, Times-Roman, or Courier.</param>
     /// <param name="embedSystemFont">When true, installed TrueType faces are embedded into the selected semantic slot when available.</param>
-    public PdfOptions RegisterOfficeFontFamily(string? familyName, PdfStandardFont baseFontFamily, bool embedSystemFont = true) {
+    public PdfCreateOptions RegisterOfficeFontFamily(string? familyName, PdfStandardFont baseFontFamily, bool embedSystemFont = true) {
         if (string.IsNullOrWhiteSpace(familyName)) {
             return this;
         }
@@ -340,7 +340,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="baseFontFamily">The semantic standard family slot to back: Helvetica, Times-Roman, or Courier.</param>
     /// <param name="fontFamily">Reusable TrueType font family to embed into that semantic slot.</param>
-    public PdfOptions RegisterFontFamily(PdfStandardFont baseFontFamily, PdfEmbeddedFontFamily fontFamily) {
+    public PdfCreateOptions RegisterFontFamily(PdfStandardFont baseFontFamily, PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
         PdfEmbeddedFontFamily snapshot = fontFamily.Clone();
         return RegisterFontFamilyCore(
@@ -352,7 +352,7 @@ public sealed partial class PdfOptions {
             snapshot.BoldItalicSnapshot);
     }
 
-    internal PdfOptions RegisterFallbackFontFamily(
+    internal PdfCreateOptions RegisterFallbackFontFamily(
         PdfStandardFont baseFontFamily,
         string familyName,
         byte[] regular) {
@@ -384,7 +384,7 @@ public sealed partial class PdfOptions {
         return found;
     }
 
-    private PdfOptions RegisterFontFamilyCore(
+    private PdfCreateOptions RegisterFontFamilyCore(
         PdfStandardFont baseFontFamily,
         string familyName,
         byte[] regular,
@@ -404,7 +404,7 @@ public sealed partial class PdfOptions {
     /// Occupied compatibility slots are resolved when fallback runs are rendered.
     /// </summary>
     /// <param name="fallbackSet">Fallback set that pairs prioritized embedded font candidates with generated font slots.</param>
-    public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
+    public PdfCreateOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
         Guard.NotNull(fallbackSet, nameof(fallbackSet));
         SetCallerEmbeddedFontFallbacks(fallbackSet);
         return this;

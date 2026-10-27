@@ -46,7 +46,7 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         using PdfDocument pdf = PdfDocument.Open(pdfPath);

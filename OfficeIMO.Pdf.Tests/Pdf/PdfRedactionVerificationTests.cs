@@ -977,7 +977,7 @@ public class PdfRedactionVerificationTests {
         Assert.Equal(placement.ObjectNumber, match.ObjectNumber);
         Assert.Null(match.Text);
         PdfDiagnosticFinding finding = Assert.Single(plan.Findings, finding =>
-            finding.Code == "RedactionPlanImageIntersection" &&
+            finding.Code == "redaction-plan-image-intersection" &&
             finding.Severity == PdfDiagnosticSeverity.Warning &&
             finding.PageNumber == image.PageNumber);
         Assert.Contains("rewrites supported image pixels", finding.Message, StringComparison.Ordinal);
@@ -1394,7 +1394,7 @@ public class PdfRedactionVerificationTests {
     }
 
     private static byte[] BuildImageRedactionPlanningSource() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Visible image redaction planning marker"))

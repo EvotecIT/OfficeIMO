@@ -11,7 +11,7 @@ internal static partial class HtmlPdfRenderedConverter {
     /// <remarks>Dynamic host-face selection and caller shaping providers retain their ordinary callback behavior.</remarks>
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> ReuseTextMeasurement<TValue>(
         HtmlToPdfOptions options,
-        PdfCore.PdfOptions measurementOptions,
+        PdfCore.PdfCreateOptions measurementOptions,
         Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> measure) where TValue : struct {
         if (options.TextShapingProvider != null
             || options.ResourcePolicy.AllowSystemFontEmbedding && options.ResourcePolicy.AllowDocumentFontEmbedding) {
@@ -19,7 +19,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         var results = new Dictionary<(string Text, OfficeFontInfo Font, OfficeFontFaceDescriptor Face), TValue>();
-        PdfCore.PdfOptions? fontSnapshot = null;
+        PdfCore.PdfCreateOptions? fontSnapshot = null;
         return (text, font, descriptor) => {
             // Once bounded reuse is exhausted, the ordinary callback avoids
             // repeated font-identity scans and unsuccessful key lookups.

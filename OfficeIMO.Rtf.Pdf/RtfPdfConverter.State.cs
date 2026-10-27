@@ -7,13 +7,13 @@ internal static partial class RtfPdfConverter {
         private readonly List<PdfNoteReference> _noteReferences = new List<PdfNoteReference>();
 
         public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, OfficeIMO.Pdf.PdfStandardFont> fontSlots,
-            OfficeIMO.Pdf.PdfOptions fontOptions) {
+            OfficeIMO.Pdf.PdfCreateOptions fontOptions) {
             _numbering = new RtfListNumbering(document);
             _fontSlots = fontSlots;
             FontOptions = fontOptions;
         }
 
-        public OfficeIMO.Pdf.PdfOptions FontOptions { get; set; }
+        public OfficeIMO.Pdf.PdfCreateOptions FontOptions { get; set; }
 
         public IReadOnlyList<PdfNoteReference> NoteReferences => _noteReferences.AsReadOnly();
 
@@ -31,7 +31,7 @@ internal static partial class RtfPdfConverter {
         }
 
         /// <summary>Shares operation font slots while isolating running-story numbering and note references from body flow.</summary>
-        public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfOptions fontOptions) =>
+        public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfCreateOptions fontOptions) =>
             new PdfRenderState(document, _fontSlots, fontOptions);
 
         public OfficeIMO.Pdf.PdfStandardFont? ResolveFont(int? fontId, bool bold, bool italic) {

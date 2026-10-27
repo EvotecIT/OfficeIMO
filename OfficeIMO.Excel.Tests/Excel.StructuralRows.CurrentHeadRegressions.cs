@@ -24,13 +24,13 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 3, "A1048577+SUM(Table1[A3 Total])");
             sheet.SetHyperlink(2, 1, "https://example.org/book.xlsx", display: "External");
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
-            hyperlink.Location = $"Data!A{A1.MaxRows}";
+            hyperlink.Location = $"Data!A{ExcelA1.MaxRows}";
 
             sheet.InsertRows(2);
 
             Assert.Equal("A1048577+SUM(Table1[A3 Total])", sheet.GetFormulaText(1, 3));
             Assert.Equal("A3", hyperlink.Reference!.Value);
-            Assert.Equal($"Data!A{A1.MaxRows}", hyperlink.Location!.Value);
+            Assert.Equal($"Data!A{ExcelA1.MaxRows}", hyperlink.Location!.Value);
         }
 
         [Fact]

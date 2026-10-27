@@ -57,12 +57,12 @@ public partial class Word {
             paragraph.Text = index == 0 ? "Left" : "Right";
             ConfigurePartialColumnParagraph(paragraph);
         }
-        using var input = new MemoryStream(document.ToBytes(WordFileFormat.Docx));
+        using var input = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx }));
         using WordDocument loaded = WordDocument.Load(input);
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(612, 792),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
         Assert.Equal(2, words.Length);

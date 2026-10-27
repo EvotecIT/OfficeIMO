@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                     new A.PictureBullet(new A.Blip {
                         Embed = slide.SlidePart.GetIdOfPart(imagePart)
                     }));
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation generated =
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
             Assert.False(bullet.HasImportableImage);
             Assert.Contains(truncated.Diagnostics, diagnostic =>
                 diagnostic.Code
-                == "PPT-PICTURE-BULLET-BLIP-TRUNCATED");
+                == "ppt-picture-bullet-blip-truncated");
             using var input = new MemoryStream(truncatedBytes,
                 writable: false);
             using PowerPointPresentation projected =
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Editable picture bullet");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                addedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                addedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation added = LegacyPptPresentation.Load(
                 addedBytes);
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                changedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                changedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation changed = LegacyPptPresentation.Load(
                 changedBytes);
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
                 properties.Append(new A.NoBullet());
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(
                 removedBytes);

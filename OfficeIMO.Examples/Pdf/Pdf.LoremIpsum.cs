@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Pdf {
             // 3) Two columns via Compose Row
             PdfDocument.Create(d => {
                 d.Page(p => {
-                    p.Size(PageSizes.Letter);
+                    p.Size(PdfPageSizes.Letter);
                     p.Margin(36);
                     p.DefaultTextStyle(s => s.FontSize(11));
                     p.Content(c => c

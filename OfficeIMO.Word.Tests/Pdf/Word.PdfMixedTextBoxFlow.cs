@@ -36,9 +36,9 @@ public partial class Word {
         }
         string before = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
         string[] tokens = nested
             ? new[] { "PREFIX", "FIRSTBOX", "INNERBOX", "AFTERINNER", "SUFFIX", "SECONDBOX", "ENDTEXT" }
@@ -75,7 +75,7 @@ public partial class Word {
             document.AddParagraph("BODY");
         }
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Contains("PREFIX", pdf.GetPage(1).Text); Assert.Contains("SUFFIX", pdf.GetPage(1).Text);
     }

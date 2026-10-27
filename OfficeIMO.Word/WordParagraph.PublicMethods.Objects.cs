@@ -124,7 +124,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
         /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.Drawing.OfficeColor)"/> or
+        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.OfficeColor)"/> or
         /// <see cref="WordChart.AddLine"/> to add data. <c>AddChartAxisX</c> must be called before adding any
         /// series so that both chart types share the same axes.
         /// </summary>

@@ -6,7 +6,7 @@
         <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -52,10 +52,6 @@
         <Using Include="OfficeIMO.Drawing" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
@@ -72,4 +68,9 @@
         <InternalsVisibleTo Include="OfficeIMO.Markup" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OneNote.Html" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
 </Project>

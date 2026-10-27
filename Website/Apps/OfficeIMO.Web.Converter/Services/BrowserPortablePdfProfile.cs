@@ -89,11 +89,11 @@ internal static class BrowserPortablePdfProfile {
 
     internal static OfficeFontFaceCollection CreateDrawingFonts() => CreateLayoutFonts(Data.Value, Fallback);
 
-    internal static PdfOptions CreateOptions(BrowserPdfProfile profile) {
+    internal static PdfCreateOptions CreateOptions(BrowserPdfProfile profile) {
         ArgumentNullException.ThrowIfNull(profile);
         FontPackData data = Data.Value;
         FallbackFontData? fallback = Fallback;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             HeaderFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.Helvetica,

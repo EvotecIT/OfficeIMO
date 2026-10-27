@@ -55,16 +55,16 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
             .Canvas(canvas => canvas.TextBox("First\nSecond\nThird", 24D, 24D, 120D, 18D,
                 new PdfCanvasTextBoxStyle {
                     FontSize = 9D, PaddingX = 0D, PaddingY = 0D, Background = null, BorderColor = null
-                })).ToBytes();
+                })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static void AssertClippingWarning(IReadOnlyList<PdfConversionWarning> warnings) {
-        PdfConversionWarning warning = Assert.Single(warnings, item => item.Code == "CanvasTextBoxContentClipped");
+        PdfConversionWarning warning = Assert.Single(warnings, item => item.Code == "canvas-text-box-content-clipped");
         Assert.Equal("Inner", warning.Converter);
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal(18D, warning.LayoutDiagnostic.Height);
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 240D, PageHeight = 320D, MarginLeft = 24D, MarginRight = 24D,
         MarginTop = 32D, MarginBottom = 32D, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 11D, ShowHeader = false, ShowPageNumbers = false

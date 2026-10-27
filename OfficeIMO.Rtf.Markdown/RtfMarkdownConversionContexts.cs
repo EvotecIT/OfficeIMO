@@ -39,7 +39,7 @@ internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionCont
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    internal MarkdownReaderOptions? InlineReaderOptions => _options.InlineReaderOptions;
+    internal MarkdownLoadOptions? InlineReaderOptions => _options.InlineReaderOptions;
     internal bool IncludeHiddenText => _options.IncludeHiddenText;
     internal bool EmitUnsupportedHtmlComments => _options.EmitUnsupportedHtmlComments;
     internal Func<RtfImage, int, string>? ImagePathFactory => _options.ImagePathFactory;
@@ -70,7 +70,7 @@ internal sealed class MarkdownToRtfConversionContext : RtfMarkdownConversionCont
         }
     }
 
-    internal MarkdownReaderOptions? ReaderOptions => _options.ReaderOptions;
+    internal MarkdownLoadOptions? ReaderOptions => _options.ReaderOptions;
     internal bool PreserveRawHtmlAsText => _options.PreserveRawHtmlAsText;
     internal int MaxListNestingDepth => _options.MaxListNestingDepth;
     internal int MaxTableCells => _options.MaxTableCells;

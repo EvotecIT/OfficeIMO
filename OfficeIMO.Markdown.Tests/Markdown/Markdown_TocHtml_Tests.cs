@@ -6,12 +6,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_TocHtml_Tests {
         [Fact]
         public void Toc_Html_NestedLists_AreInsideParentLi() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H2("H2")
                 .TocHere(o => { o.MinLevel = 2; o.MaxLevel = 6; })
                 .H3("H3");
 
-            var html = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Clean, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             var normalized = Regex.Replace(html, "\\s+", "");
 
             // Correct structure: nested <ul> appears before closing the parent <li>
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Toc_Html_Clamps_OutOfRange_Level_Settings() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .TocHere(o => {
                     o.IncludeTitle = true;
                     o.Title = "Contents";
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .H1("Intro")
                 .H6("Deep");
 
-            var html = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Clean, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Contains("<h6>Contents</h6>", html);
             Assert.DoesNotContain("<h9", html);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Toc_Html_Normalizes_OutOfRange_MinAndMaxLevels() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .TocHere(o => {
                     o.IncludeTitle = false;
                     o.MinLevel = 8;
@@ -53,14 +53,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 })
                 .H6("Deep");
 
-            var html = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Clean, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Contains("href=\"#deep\">Deep</a>", html);
         }
 
         [Fact]
         public void Toc_Html_PreviousHeading_Scope_Matches_Markdown_Rendering() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Doc")
                 .H2("Intro")
                 .H3("Intro Child")
@@ -68,10 +68,13 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .H3("Extra")
                 .TocForPreviousHeading("Appendix Contents", min: 3, max: 3);
 
-            var html = md.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Clean,
+            var html = md.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Clean,
                 IncludeAnchorLinks = false,
-                ShowAnchorIcons = false
+                ShowAnchorIcons = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("href=\"#extra\">Extra</a>", html);

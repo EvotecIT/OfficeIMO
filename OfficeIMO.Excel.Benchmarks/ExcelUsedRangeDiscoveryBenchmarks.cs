@@ -35,7 +35,7 @@ public class ExcelUsedRangeDiscoveryBenchmarks {
                 ExcelDocument.WriteRows(output,
                     ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), ["Id", "Amount"],
                     static (writer, row) => writer.Write(row.Id).Write(row.Amount),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = true, UseSharedStrings = false });
+                    new ExcelWriterOptions { IncludeCellReferences = true, UseSharedStrings = false });
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
                 const string name = "xl/worksheets/sheet1.xml";

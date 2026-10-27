@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 Assert.DoesNotContain(source.AnalyzeLegacyPptWrite().Findings,
                     finding => finding.Code == "PPT-WRITE-NOTES");
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Notes.Text = "Original speaker note";
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 imported.Slides[0].SlidePart.NotesSlidePart!.NotesSlide!
                     .ShowMasterShapes = false;
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

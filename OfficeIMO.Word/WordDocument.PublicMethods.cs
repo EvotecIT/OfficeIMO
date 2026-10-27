@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
             OfficeRemoteImageLoadOptions? remoteImageOptions,
             CancellationToken cancellationToken) {
             OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
-            using var ms = image.ToStream();
+            using var ms = new System.IO.MemoryStream(image.ToBytes());
             var paragraph = AddParagraph();
             paragraph.AddImage(ms, image.FileName, width, height);
             return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
@@ -227,7 +227,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
         /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.Drawing.OfficeColor)"/> or
+        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.OfficeColor)"/> or
         /// <see cref="WordChart.AddLine"/> to add data. The call to <c>AddChartAxisX</c> must be performed
         /// before adding any series so both chart types share the same axes.
         /// </summary>
@@ -282,7 +282,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
@@ -302,14 +302,14 @@ namespace OfficeIMO.Word {
         /// WordList list = document.AddCustomBulletList(
         ///     WordListLevelKind.BulletSquareSymbol,
         ///     "Courier New",
-        ///     OfficeIMO.Drawing.OfficeColor.Red,
+        ///     OfficeIMO.OfficeColor.Red,
         ///     fontSize: 16);
         ///
         /// list.AddItem("Custom bullet item");
         /// document.Save();
         /// ]]></code>
         /// </example>
-        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
         }
 
@@ -563,10 +563,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a basic shape to the document using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
+        /// Adds a basic shape to the document using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
         public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
 
@@ -609,7 +609,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">Line width in eighths of a point.</param>
         /// <param name="space">Space above and below the line.</param>
         /// <returns>The paragraph containing the line.</returns>
-        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= WordBorderStyle.Single;
             return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
@@ -691,7 +691,7 @@ namespace OfficeIMO.Word {
         /// <param name="sourceTag">Tag of the bibliographic source.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddCitation(string sourceTag) {
-            var field = new CitationField { SourceTag = sourceTag };
+            var field = new WordCitationField { SourceTag = sourceTag };
             return this.AddParagraph().AddField(field);
         }
 

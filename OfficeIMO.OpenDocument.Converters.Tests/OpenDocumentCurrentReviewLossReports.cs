@@ -84,8 +84,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.Underline = WordUnderlineStyle.Double;
         paragraph.DoubleStrike = true;
 
-        WordRunSnapshot authored = Assert.Single(source.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>().Single().Runs);
+        WordRunInfo authored = Assert.Single(source.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>().Single().Runs);
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         OdtSpan converted = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
 
@@ -224,8 +224,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("Start", converted.Alignment);
         Assert.True(converted.IsRightToLeft);
@@ -245,8 +245,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot paragraph = Assert.Single(target.CreateInspectionSnapshot()
-            .Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo paragraph = Assert.Single(target.Inspect()
+            .Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("Liberation Sans", Assert.Single(paragraph.Runs).FontFamily);
         Assert.Contains(conversion.Report.Mappings, mapping =>
@@ -288,7 +288,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
 
-        Assert.Equal("Liberation Sans", target.CreateInspectionSnapshot().Worksheets.Single()
+        Assert.Equal("Liberation Sans", target.Inspect().Worksheets.Single()
             .Cells.Single().Style!.FontName);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "font-family-fallbacks"
@@ -627,7 +627,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
 
-        Assert.Equal("Body", target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Value);
+        Assert.Equal("Body", target.Inspect().Worksheets.Single().Cells.Single().Value);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
@@ -775,7 +775,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.False(conversion.Report.HasSkippedOrUnsupported, Describe(conversion.Report));
         conversion.Report.RequireNoSkippedOrUnsupported();
         Assert.Single(target.Sheets.Single().GetComments());
-        Assert.Contains(target.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
+        Assert.Contains(target.Inspect().NamedRanges, name => name.Name == "Input");
     }
 
     [Fact]
@@ -846,7 +846,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
 
-        Assert.Empty(target.CreateInspectionSnapshot().Worksheets.Single().Validations);
+        Assert.Empty(target.Inspect().Worksheets.Single().Validations);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
@@ -1135,10 +1135,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
 
-        Assert.Contains(target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
-            .OfType<WordParagraphSnapshot>(), paragraph => paragraph.Text == "Minimal");
-        WordTableSnapshot table = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordTableSnapshot>());
+        Assert.Contains(target.Inspect().Sections.SelectMany(section => section.Elements)
+            .OfType<WordParagraphInfo>(), paragraph => paragraph.Text == "Minimal");
+        WordTableInfo table = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordTableInfo>());
         Assert.Contains(table.Rows.Single().Cells.Single().Paragraphs.SelectMany(paragraph => paragraph.Runs),
             run => run.InlineImage != null);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
@@ -1176,8 +1176,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelWorksheetSnapshot links = target.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Links");
-        ExcelCellSnapshot cell = Assert.Single(links.Cells);
+        ExcelWorksheetInfo links = target.Inspect().Worksheets.Single(sheet => sheet.Name == "Links");
+        ExcelCellInfo cell = Assert.Single(links.Cells);
 
         Assert.Equal(42m, Convert.ToDecimal(cell.Value));
         Assert.NotNull(cell.Hyperlink);
@@ -1193,7 +1193,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets
+        ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets
             .Single(sheet => sheet.Name == "Links").Cells);
 
         Assert.NotNull(cell.Hyperlink);
@@ -1213,7 +1213,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets
+        ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets
             .Single(sheet => sheet.Name == "Links").Cells);
 
         Assert.NotNull(cell.Hyperlink);
@@ -1237,8 +1237,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelWorkbookSnapshot snapshot = target.CreateInspectionSnapshot();
-        ExcelWorksheetSnapshot convertedLinks = snapshot.Worksheets.Single(sheet => sheet.Name == "Links");
+        ExcelWorkbookInfo snapshot = target.Inspect();
+        ExcelWorksheetInfo convertedLinks = snapshot.Worksheets.Single(sheet => sheet.Name == "Links");
 
         Assert.Contains(snapshot.NamedRanges, named => named.Name == "_R1C1");
         Assert.Contains(snapshot.NamedRanges, named => named.Name == "_R1C1_2");
@@ -1262,7 +1262,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
 
-        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets.Single().Cells);
         Assert.Null(cell.Hyperlink);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlinks"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -1293,7 +1293,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdsDocument source = OdsDocument.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
         using ExcelDocument target = source.ToExcelDocument();
-        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.NotNull(cell.Hyperlink);
         Assert.True(cell.Hyperlink!.IsExternal);
@@ -1353,7 +1353,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         using ExcelDocument target = source.ToExcelDocument();
 
-        Assert.Single(target.CreateInspectionSnapshot().Worksheets);
+        Assert.Single(target.Inspect().Worksheets);
     }
 
     [Fact]
@@ -1391,8 +1391,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordRunSnapshot run = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+        WordRunInfo run = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .Single().Runs);
 
         Assert.Null(run.HighlightColor);

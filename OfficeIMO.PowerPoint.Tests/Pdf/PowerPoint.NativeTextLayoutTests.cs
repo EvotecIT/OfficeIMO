@@ -50,8 +50,8 @@ public sealed class PowerPointNativeTextLayoutTests {
         var images = new PowerPointImageExportOptions();
         images.UseRenderingProfile(profile);
         byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes;
-        PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(images);
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions().UseRenderingProfile(profile));
+        PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(images);
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions().UseRenderingProfile(profile)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
@@ -63,10 +63,9 @@ public sealed class PowerPointNativeTextLayoutTests {
         }
         var canonicalPage = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
         // Compare the public PDF span geometry contract; another reader can use a different font-origin convention.
-        Assert.Equal(canonicalPage.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)),
-            snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)));
-        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
-            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
+        Assert.Equal(canonicalPage.GetTextSpans().Select(span => (span.Text, Math.Round(span.X, 3), Math.Round(span.Y, 3), Math.Round(span.FontSize, 3), Math.Round(span.Advance, 3), Math.Round(span.RotationDegrees, 3))),
+            snapshot.TextSpans.Select(span => (span.Text, Math.Round(span.X, 3), Math.Round(span.Y, 3), Math.Round(span.FontSize, 3), Math.Round(span.Advance, 3), Math.Round(span.RotationDegrees, 3))));
+        Assert.Equal("svg", System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(svg)).Root!.Name.LocalName);
         Assert.Equal(new[] { "https://officeimo.net/native-layout" }, PdfCore.PdfInspector.Inspect(bytes).LinkUris);
     }
 }

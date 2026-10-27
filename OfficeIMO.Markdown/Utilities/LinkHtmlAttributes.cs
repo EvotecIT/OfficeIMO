@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class LinkHtmlAttributes {
-    internal static string BuildLinkAttributes(HtmlOptions? o, string? url, string? explicitTarget = null, string? explicitRel = null) {
+    internal static string BuildLinkAttributes(MarkdownHtmlExportOptions? o, string? url, string? explicitTarget = null, string? explicitRel = null) {
         var target = NormalizeAttributeValue(explicitTarget);
         var rel = NormalizeAttributeValue(explicitRel);
 
@@ -22,7 +22,7 @@ internal static class LinkHtmlAttributes {
         return BuildExternalLinkAttributes(o, url);
     }
 
-    internal static string BuildExternalLinkAttributes(HtmlOptions? o, string? url) {
+    internal static string BuildExternalLinkAttributes(MarkdownHtmlExportOptions? o, string? url) {
         if (o == null) return string.Empty;
         var u = (url ?? string.Empty).Trim();
         if (u.Length == 0) return string.Empty;

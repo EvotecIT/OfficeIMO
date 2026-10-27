@@ -74,9 +74,9 @@ public sealed class StudioProtectionPreviewTests {
                     Assert.NotNull(model.ErrorMessage); Assert.Null(completed); Assert.Empty(services.Jobs.Entries); Assert.False(File.Exists(output));
                 } else {
                     Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput); Assert.Equal(folderNavigation, completed.CanRevealOutput); Assert.NotNull(completed.Verification);
-                    var document = PdfDocument.Load(File.ReadAllBytes(output), new PdfLoadOptions { Password = "captured-owner" });
+                    var document = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output)), new PdfLoadOptions { Password = "captured-owner" });
                     Assert.Equal(3, document.Inspect().Pages.Count); Assert.True(document.Inspect().Security.HasEncryption);
-                    Assert.Throws<PdfInvalidPasswordException>(() => PdfDocument.Load(File.ReadAllBytes(output), new PdfLoadOptions { Password = "later-reader" }).Inspect());
+                    Assert.Throws<PdfInvalidPasswordException>(() => PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output)), new PdfLoadOptions { Password = "later-reader" }).Inspect());
                     var job = Assert.Single(services.Jobs.Entries); Assert.False(job.IsActive); Assert.True(job.HasOutput);
                     await model.UndoCommand.ExecuteAsync(null); Assert.Equal(2, model.Pages.Count); Assert.False(model.CanUndo);
                 }
@@ -115,7 +115,7 @@ public sealed class StudioProtectionPreviewTests {
                 byte[] bytes;
                 if (fail) { var recovery = Assert.Single(services.WorkflowRecovery.GetRecoveries()); await services.WorkflowRecovery.VerifyAsync(recovery); bytes = File.ReadAllBytes(recovery.FilePath); }
                 else bytes = output.Bytes;
-                Assert.Equal(2, PdfDocument.Load(bytes, new PdfLoadOptions { Password = "reader" }).Inspect().Pages.Count);
+                Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(bytes), new PdfLoadOptions { Password = "reader" }).Inspect().Pages.Count);
             }
             return true;
         }, CancellationToken.None);
@@ -165,7 +165,7 @@ public sealed class StudioProtectionPreviewTests {
                     Click(resultDialog, services.Localizer.Get("Organizer.ExtractOpen")); await preview.OpenOutputCommand.ExecutionTask!;
                     Assert.Equal(destination, opened); Click(resultDialog, services.Localizer.Get("Common.Close")); await pending;
                     Assert.Null(model.ErrorMessage);
-                    var info = PdfDocument.Load(File.ReadAllBytes(destination), operation == 0 ? new PdfLoadOptions { Password = "owner" } : null).Inspect();
+                    var info = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(destination)), operation == 0 ? new PdfLoadOptions { Password = "owner" } : null).Inspect();
                     Assert.Equal(2, info.Pages.Count); Assert.Equal(operation == 0, info.Security.HasEncryption);
                 }
             } finally { foreach (var dialog in owner.OwnedWindows.ToArray()) dialog.Close(); owner.Close(); }

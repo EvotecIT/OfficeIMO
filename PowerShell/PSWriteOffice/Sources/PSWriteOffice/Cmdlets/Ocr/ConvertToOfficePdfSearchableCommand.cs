@@ -104,14 +104,13 @@ public sealed class ConvertToOfficePdfSearchableCommand : OfficeOcrCmdlet
         PdfSearchableOcrResult result = await document
             .MakeSearchableAsync(session.Engine, options, CancelToken)
             .ConfigureAwait(false);
-        var saveResult = await result.Document.SaveAsync(
+        await result.Document.SaveAsync(
                 outputPath,
-                Force.IsPresent
+                new PdfSaveOptions { ConflictPolicy = Force.IsPresent
                     ? OfficeConversionFileConflictPolicy.Replace
-                    : OfficeConversionFileConflictPolicy.FailIfExists,
+                    : OfficeConversionFileConflictPolicy.FailIfExists },
                 CancelToken)
             .ConfigureAwait(false);
-        saveResult.RequireSuccess();
         WriteObject(PassThru.IsPresent ? result : new FileInfo(outputPath));
     }
 }

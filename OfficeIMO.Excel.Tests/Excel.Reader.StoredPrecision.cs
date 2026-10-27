@@ -28,7 +28,7 @@ public partial class Excel {
             sheet.CellAt(4098, 1).SetValue(1d); // Include the supported large-range data-reader path.
             document.Save();
         }
-        var options = new ExcelReadOptions();
+        var options = new ExcelReaderOptions();
         if (customConverter) options.CellValueConverter = _ => ExcelCellValue.NotHandled;
         using var reader = ExcelDocumentReader.Open(path, options);
         var sheetReader = reader.GetSheet("Data");
@@ -69,7 +69,7 @@ public partial class Excel {
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(new[] { "2/4", "-2/4", "100000000000000000000", "-100000000000000000000" },
             reopened.Sheets[0].Range("A1:A4").CreateVisualSnapshot().Cells.Select(c => c.Text));
-        byte[] bytes = reopened.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
+        byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text));
         Assert.Contains("2/4", text);

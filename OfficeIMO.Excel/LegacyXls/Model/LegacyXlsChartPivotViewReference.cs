@@ -25,8 +25,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the referenced PivotTable-view range in A1 notation.</summary>
         public string Reference {
             get {
-                string start = A1.CellReference(FirstRow, FirstColumn);
-                string end = A1.CellReference(LastRow, LastColumn);
+                string start = ExcelA1.CellReference(FirstRow, FirstColumn);
+                string end = ExcelA1.CellReference(LastRow, LastColumn);
                 return start == end ? start : start + ":" + end;
             }
         }

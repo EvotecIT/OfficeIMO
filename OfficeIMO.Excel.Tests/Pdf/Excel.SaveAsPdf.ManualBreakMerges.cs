@@ -23,10 +23,10 @@ public partial class Excel {
         else sheet.AddConditionalColorScale("A1:D4", "FFFF0000", "FF00FF00");
         document.SetPrintArea(sheet, "A1:D4");
         sheet.AddManualRowPageBreak(2); sheet.AddManualColumnPageBreak(2);
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Contains("50", pdf.GetPage(4).Text);
@@ -48,10 +48,10 @@ public partial class Excel {
         sheet.CellDiagonalBorder(2, 2, ExcelBorderStyle.Thin, "B91C1C", diagonalUp: true, diagonalDown: true);
         document.SetPrintArea(sheet, "A1:D4");
         sheet.AddManualRowPageBreak(2); sheet.AddManualColumnPageBreak(2);
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(4, pdf.NumberOfPages);
         string content = PdfOperatorSearchText.From(bytes);
@@ -72,10 +72,10 @@ public partial class Excel {
         sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Center);
         sheet.CellFontName(2, 1, "Arial"); sheet.CellFontSize(2, 1, 11); sheet.CellWrapText(2, 1);
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("WrapOne", pdf.GetPage(1).Text); Assert.Contains("WrapTwo", pdf.GetPage(1).Text);
         // A glyph intersecting the page cut is clipped visually. PDF text readers
@@ -100,10 +100,10 @@ public partial class Excel {
         document.SetPrintArea(sheet, "A1:D4");
         sheet.AddManualRowPageBreak(2);
         sheet.AddManualColumnPageBreak(2);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Contains("Start", pdf.GetPage(1).Text);
         Assert.Contains("End", pdf.GetPage(4).Text);
@@ -130,10 +130,10 @@ public partial class Excel {
         document.SetPrintArea(sheet, "A1:D4");
         if (rowBreak) sheet.AddManualRowPageBreak(2);
         else sheet.AddManualColumnPageBreak(2);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("FirstPage", pdf.GetPage(1).Text);
         Assert.Contains("LastPage", pdf.GetPage(2).Text);
@@ -160,10 +160,10 @@ public partial class Excel {
             document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
             sheet.AddManualColumnPageBreak(2);
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("BeforeBreak", pdf.GetPage(1).Text);
         Assert.DoesNotContain("AfterBreak", pdf.GetPage(1).Text);

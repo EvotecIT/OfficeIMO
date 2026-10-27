@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfForwardOnlyObjectSerializationTests {
     [Fact]
     public void ForwardOnlyObjectSerialization_WritesReadableDeterministicPdfWithoutObjectReplay() {
-        PdfOptions options = CreateForwardOnlyOptions();
+        PdfCreateOptions options = CreateForwardOnlyOptions();
         byte[] first;
         PdfSerializationReport report;
         {
@@ -14,7 +14,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
             .H1("Forward-only objects")
             .Paragraph(paragraph => paragraph.Text("Objects are emitted once; layout remains truthfully replayable."));
             using var output = new MemoryStream();
-            PdfSaveResult save = document.Save(output);
+            PdfSaveResult save = document.SaveWithEvidence(output);
             first = output.ToArray();
             report = Assert.IsType<PdfSerializationReport>(save.Serialization);
         }
@@ -39,7 +39,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         PdfDocument document = PdfDocument.Create(CreateForwardOnlyOptions())
             .Paragraph(paragraph => paragraph.Text("Non-seekable destination"));
 
-        PdfSaveResult save = document.Save(destination);
+        PdfSaveResult save = document.SaveWithEvidence(destination);
         byte[] bytes = destination.ToArray();
 
         Assert.True(save.Succeeded);
@@ -51,7 +51,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void OutputLimitSupportsNonSeekableDestination(PdfObjectSerializationMode mode) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = mode,
             MaxGeneratedOutputBytes = 1_000_000
@@ -60,7 +60,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         PdfDocument document = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("Bounded non-seekable destination"));
 
-        PdfSaveResult result = document.Save(destination);
+        PdfSaveResult result = document.SaveWithEvidence(destination);
 
         Assert.True(result.Succeeded);
         Assert.Contains("Bounded non-seekable destination",
@@ -69,7 +69,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
 
     [Fact]
     public void ForwardOnlyObjectSerialization_RequiresExplicitModernHeader() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         };
         PdfDocument document = PdfDocument.Create(options)
@@ -80,7 +80,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         Assert.Contains("PDF 1.7", exception.Message, StringComparison.Ordinal);
     }
 
-    private static PdfOptions CreateForwardOnlyOptions() =>
+    private static PdfCreateOptions CreateForwardOnlyOptions() =>
         new() {
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,

@@ -59,13 +59,13 @@ public partial class HtmlOfficeAdapters {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
-        HtmlToMarkdownResult markdownResult = source.ToMarkdownDocumentResult();
-        string markdown = markdownResult.RequireValue().ToMarkdown();
-        MarkdownDoc reopenedMarkdown = MarkdownDoc.Parse(markdown);
+        using MarkdownDocument markdownModel = source.ToMarkdown(options: null, out OfficeConversionReport markdownResult);
+        string markdown = markdownModel.ToMarkdown();
+        MarkdownDocument reopenedMarkdown = MarkdownDocument.Parse(markdown);
         Assert.Contains(RegulatoryTableCaption, reopenedMarkdown.ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains(RegulatoryTableLink, reopenedMarkdown.ToMarkdown(), StringComparison.Ordinal);
         Assert.Single(reopenedMarkdown.Blocks.OfType<TableBlock>());
-        Assert.Contains(markdownResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(markdownResult.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
@@ -98,11 +98,11 @@ public partial class HtmlOfficeAdapters {
     public void WordAndRtfRetainLinkedTableCaptionAfterReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(RegulatoryTableHtml);
 
-        HtmlToWordResult wordResult = source.ToWordDocumentResult();
+        HtmlToWordResult wordResult = source.ConvertToWordWithEvidence();
         using var wordArtifact = new MemoryStream();
         using (WordDocument word = wordResult.RequireValue()) word.Save(wordArtifact);
         using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(wordArtifact.ToArray()));
-        string wordHtml = reopenedWord.ToHtmlResult().RequireValue();
+        string wordHtml = reopenedWord.ConvertToHtmlWithEvidence().RequireValue();
         Assert.Contains(RegulatoryTableCaption, wordHtml, StringComparison.Ordinal);
         Assert.Contains(RegulatoryTableLink, wordHtml, StringComparison.Ordinal);
 

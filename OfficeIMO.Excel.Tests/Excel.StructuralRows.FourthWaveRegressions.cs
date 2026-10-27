@@ -104,14 +104,14 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellAt(A1.MaxRows, 1).SetValue("Boundary");
+                sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("Boundary");
                 Row row = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Row>());
                 row.RowIndex = null;
 
                 Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
 
                 Assert.Null(row.RowIndex);
-                Assert.Equal($"A{A1.MaxRows}", Assert.Single(row.Elements<Cell>()).CellReference!.Value);
+                Assert.Equal($"A{ExcelA1.MaxRows}", Assert.Single(row.Elements<Cell>()).CellReference!.Value);
             }
         }
 

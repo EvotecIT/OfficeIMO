@@ -24,8 +24,8 @@ public partial class Word {
             cell.Borders.TopStyle = WordBorderStyle.Nil;
         }
 
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
-            new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { IncludePageNumbers = false }));
     }
 
     [Fact]
@@ -39,9 +39,9 @@ public partial class Word {
         };
         document.AddParagraph("Following text");
 
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
 
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativePositionedTableWrapApproximation");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-positioned-table-wrap-approximation");
         Assert.Contains("Following text", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(result.Value.ToBytes()));
     }
 
@@ -77,7 +77,7 @@ public partial class Word {
                 if (opposingDirectVisible) table.Rows[0].Cells[1].Borders.LeftStyle = WordBorderStyle.Single;
             }
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -98,7 +98,7 @@ public partial class Word {
                 Instruction = " DATE \\@ \"yyyy\" "
             });
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -136,7 +136,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional left";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Conditional right";
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -173,7 +173,7 @@ public partial class Word {
             table.ConditionalFormattingFirstRow = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Hidden outer edge";
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         Assert.Contains("Hidden outer edge", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath));
@@ -212,7 +212,7 @@ public partial class Word {
                 table.Rows[0].Cells[1].Borders.LeftStyle = upperBorder;
                 table.Rows[1].Cells[1].Borders.LeftStyle = lowerBorder;
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
             }
 
             string operators = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
@@ -255,7 +255,7 @@ public partial class Word {
                 table.Rows[1].Cells[0].Borders.TopStyle = leftBorder;
                 table.Rows[1].Cells[1].Borders.TopStyle = rightBorder;
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
             }
 
             string operators = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
@@ -288,10 +288,10 @@ public partial class Word {
             table.Rows[1].Cells[0].Borders.TopStyle = WordBorderStyle.Nil;
             table.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.None;
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(300, 220),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(24)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 220),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(24)
             });
         }
 
@@ -355,7 +355,7 @@ public partial class Word {
                 }
             }
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 DefaultTableBorders = borderMode == 3 || borderMode == 7
             });
@@ -396,7 +396,7 @@ public partial class Word {
             });
             Assert.Equal(2, report.UpdatedCount);
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -417,12 +417,12 @@ public partial class Word {
             Instruction = " SEQ Figure "
         });
 
-        string cached = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(document.ToPdfBytes());
+        string cached = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("cached-date", cached);
 
-        byte[] refreshed = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] refreshed = document.ToPdf(new WordPdfExportOptions {
             DateTimeFieldUpdateOptions = new WordFieldUpdateOptions { CurrentDateTime = new DateTime(2026, 9, 29) }
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("2026-09-29", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
         Assert.DoesNotContain("cached-date", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
         Assert.Contains("cached-sequence", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
@@ -435,7 +435,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Elite Performance").Underline = WordUnderlineStyle.Single;
 
-        string operators = PdfOperatorSearchText.From(document.ToPdfBytes());
+        string operators = PdfOperatorSearchText.From(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         MatchCollection strokes = Regex.Matches(operators, @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
         Assert.Equal(3, strokes.Count);
         for (int i = 1; i < strokes.Count; i++) {
@@ -450,7 +450,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Elite Performance").Underline = WordUnderlineStyle.Words;
 
-        string operators = PdfOperatorSearchText.From(document.ToPdfBytes());
+        string operators = PdfOperatorSearchText.From(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         MatchCollection strokes = Regex.Matches(operators, @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
         Assert.Equal(2, strokes.Count);
         double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
@@ -475,9 +475,9 @@ public partial class Word {
         }
 
         using (WordDocument source = WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-            byte[] pdf = source.ToPdfBytes(new WordToPdfOptions {
+            byte[] pdf = source.ToPdf(new WordPdfExportOptions {
                 DateTimeFieldUpdateOptions = new WordFieldUpdateOptions { CurrentDateTime = new DateTime(2026, 9, 29) }
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.Contains("2026-09-29", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdf));
             Assert.DoesNotContain("cached-complex-date", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdf));
         }
@@ -502,7 +502,7 @@ public partial class Word {
             new FieldChar { FieldCharType = FieldCharValues.Separate },
             new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Body", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden body instruction", pdfText, StringComparison.Ordinal);
@@ -521,7 +521,7 @@ public partial class Word {
             new SimpleField(new Run(new Text("Visible"))) { Instruction = " PAGE " },
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.DoesNotContain("Hidden", pdfText, StringComparison.Ordinal);
@@ -543,7 +543,7 @@ public partial class Word {
                 Instruction = " DATE \\@ \"yyyy-MM-dd\" "
             });
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -581,7 +581,7 @@ public partial class Word {
             table.ConditionalFormattingFirstRow = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Hidden conditional grid";
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
@@ -601,9 +601,9 @@ public partial class Word {
             cell.Paragraphs[0].Text = "Configured blue border";
             cell.Borders.TopStyle = WordBorderStyle.Nil;
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+                PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                     DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle {
                         BorderColor = OfficeIMO.Pdf.PdfColor.Black,
                         BorderWidth = 0.5D,

@@ -12,7 +12,7 @@ public sealed class MarkdownCancellationTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.ElementFilters.Add(_ => { calls++; cancelled.Cancel(); return false; });
         Assert.ThrowsAny<OperationCanceledException>(() => {
             if (model) book.ToMarkdownDocumentResult(markdownOptions: options, cancellationToken: cancelled.Token);
@@ -26,7 +26,7 @@ public sealed class MarkdownCancellationTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new HtmlToMarkdownOptions { MarkdownWriteOptions = new MarkdownWriteOptions() };
+        var options = new MarkdownHtmlImportOptions { MarkdownWriteOptions = new MarkdownSaveOptions() };
         options.MarkdownWriteOptions.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
             "cancel-serialization", typeof(ParagraphBlock), (_, context) => {
                 Assert.Equal(cancelled.Token, context.CancellationToken);

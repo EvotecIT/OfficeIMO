@@ -5,8 +5,8 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static XElement[] BuildOnixMarketSegments(BookOnixSupply supply, OnixTerritory market,
         ref int budget, CancellationToken token) {
-        ArgumentNullException.ThrowIfNull(supply.MarketSegments);
-        ArgumentNullException.ThrowIfNull(supply.Restrictions);
+        if (supply.MarketSegments == null) throw new ArgumentNullException("supply.MarketSegments");
+        if (supply.Restrictions == null) throw new ArgumentNullException("supply.Restrictions");
         if (supply.MarketSegments.Count > 32)
             throw new ArgumentException("At most 32 market segments are supported per supply.", nameof(supply));
         XNamespace ns = OnixNamespace;
@@ -15,8 +15,8 @@ public sealed partial class BookProject {
         var territories = new List<OnixTerritory>();
         var elements = new List<XElement>();
         foreach (var segment in supply.MarketSegments) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(segment);
-            ArgumentNullException.ThrowIfNull(segment.Restrictions);
+            token.ThrowIfCancellationRequested(); if (segment == null) throw new ArgumentNullException(nameof(segment));
+            if (segment.Restrictions == null) throw new ArgumentNullException("segment.Restrictions");
             var territory = ReadOnixTerritory(segment.Territory);
             if (!market.Covers(territory) || territories.Any(previous => previous.Overlaps(territory)))
                 throw new ArgumentException("Market segments must be disjoint and contained in the supply territory.", nameof(supply));

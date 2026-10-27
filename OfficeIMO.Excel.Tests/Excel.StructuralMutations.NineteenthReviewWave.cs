@@ -109,8 +109,8 @@ namespace OfficeIMO.Tests {
             Cell[] firstRow = headerless.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!
                 .Elements<Row>().First().Elements<Cell>().ToArray();
             Assert.Equal(new[] { "A1", "C1" }, firstRow.Select(cell => cell.CellReference!.Value).ToArray());
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? alpha));
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelCellValueSnapshot? beta));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? alpha));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelNativeCellValueInfo? beta));
             Assert.Equal("Alpha", alpha!.Text);
             Assert.Equal("Beta", beta!.Text);
             Table resized = Assert.Single(headerless.WorksheetPart.TableDefinitionParts).Table!;

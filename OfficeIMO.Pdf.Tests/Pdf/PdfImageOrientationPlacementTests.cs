@@ -168,7 +168,7 @@ public sealed partial class PdfImageOrientationPlacementTests {
                         break;
                     case "table":
                     case "floating":
-                        var style = TableStyles.Minimal();
+                        var style = PdfTableStyles.Minimal();
                         style.HeaderRowCount = 0;
                         style.CellPaddingX = style.CellPaddingY = 0;
                         if (path == "floating") {
@@ -188,7 +188,7 @@ public sealed partial class PdfImageOrientationPlacementTests {
             : path == "watermark" ? PdfStamper.WatermarkImage(pdf, source, stamp) : pdf;
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         FileVersion = PdfFileVersion.Pdf17, PageWidth = 300, PageHeight = 300,
         MarginLeft = 60, MarginRight = 60, MarginTop = 60, MarginBottom = 60
     };

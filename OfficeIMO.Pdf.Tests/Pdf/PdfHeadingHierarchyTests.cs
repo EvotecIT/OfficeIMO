@@ -14,7 +14,7 @@ public class PdfHeadingHierarchyTests {
     [InlineData(7, false)]
     [InlineData(9, false)]
     public void SparseHeadingLevels_KeepTaggedDepthAndUseOutlinesAsFallback(int level, bool tagged) {
-        var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });
+        var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         if (tagged) document.TaggedPdfCatalogMarkers();
         document.Content.Heading(1, "ParentHeading").Heading(level, "SparseHeading");
         byte[] bytes = document.ToBytes();
@@ -27,7 +27,7 @@ public class PdfHeadingHierarchyTests {
     [InlineData(false)]
     [InlineData(true)]
     public void AdapterHeading_RetainsStyledRunsWithoutChangingOutlineTitle(bool columns) {
-        var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });
+        var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         document.TaggedPdfCatalogMarkers();
         PdfParagraphBuilder captured = null!;
         const string uri = "https://example.com/inline-heading";
@@ -52,7 +52,7 @@ public class PdfHeadingHierarchyTests {
 
     [Fact]
     public void Heading_PreservesNineAuthoredLevelsWithEqualFontSizes() {
-        var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });
+        var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         document.TaggedPdfCatalogMarkers();
         for (int level = 1; level <= 9; level++) {
             document.Content.Heading(level, "HeadingLevel" + level, style: new PdfHeadingStyle { FontSize = 12 });

@@ -239,7 +239,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             Formulas = new[] { "A1<0" },
             DifferentialFillColorArgb = "FFC6EFCE"
         });
-        Assert.Equal(2, source.CreateInspectionSnapshot().Worksheets.Single().ConditionalFormattingRuleCount);
+        Assert.Equal(2, source.Inspect().Worksheets.Single().ConditionalFormattingRuleCount);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"

@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Markdown.Html;
 
 internal sealed partial class HtmlToMarkdownConverter {
-    private static void ApplyHtmlFilters(IElement? root, HtmlToMarkdownOptions options, System.Threading.CancellationToken cancellationToken = default) {
+    private static void ApplyHtmlFilters(IElement? root, MarkdownHtmlImportOptions options, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (root == null || options == null) {
             return;

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Describes visual and layout options for table rendering.
-/// Attach an instance to a table block or use the presets in <see cref="TableStyles"/>.
+/// Attach an instance to a table block or use the presets in <see cref="PdfTableStyles"/>.
 /// </summary>
 public partial class PdfTableStyle {
     private PdfAlign _captionAlign = PdfAlign.Left;

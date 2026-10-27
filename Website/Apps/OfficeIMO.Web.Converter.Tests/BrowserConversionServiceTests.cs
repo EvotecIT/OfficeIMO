@@ -441,12 +441,12 @@ public sealed class BrowserConversionServiceTests {
         ConversionWarningView compatible = Assert.Single(
             result.StructuredWarnings,
             warning =>
-                warning.Code == "NativeFontFamilySubstituted" &&
+                warning.Code == "font-family-substitution" &&
                 warning.Message.Contains("'Calibri Light'", StringComparison.Ordinal));
         ConversionWarningView symbol = Assert.Single(
             result.StructuredWarnings,
             warning =>
-                warning.Code == "NativeFontFamilySubstituted" &&
+                warning.Code == "font-family-substitution" &&
                 warning.Message.Contains("'Symbol'", StringComparison.Ordinal));
 
         Assert.Equal("Information", compatible.Severity);
@@ -472,15 +472,15 @@ public sealed class BrowserConversionServiceTests {
             limitExcelRows: false);
 
         ConversionWarningView warning = Assert.Single(result.StructuredWarnings,
-            item => item.Code == "NativeFontFamilySubstituted");
-        Assert.Equal("NativeFontFamilySubstituted", warning.Code);
+            item => item.Code == "font-family-substitution");
+        Assert.Equal("font-family-substitution", warning.Code);
         Assert.Equal("Information", warning.Severity);
         Assert.False(warning.CanChangePagination);
         Assert.Equal("Faithful", result.FidelityStatus);
         Assert.Contains("Carlito", Encoding.ASCII.GetString(result.Bytes), StringComparison.Ordinal);
         using JsonDocument manifest = JsonDocument.Parse(result.CompanionReport!.Bytes);
         JsonElement manifestWarning = Assert.Single(manifest.RootElement.GetProperty("warnings").EnumerateArray(),
-            item => item.GetProperty("code").GetString() == "NativeFontFamilySubstituted");
+            item => item.GetProperty("code").GetString() == "font-family-substitution");
         Assert.Equal("Information", manifestWarning.GetProperty("severity").GetString());
         Assert.False(manifestWarning.GetProperty("canChangePagination").GetBoolean());
     }
@@ -495,7 +495,7 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Bytes));
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(pdf.TaggedContent);
         Assert.Equal("en-US", pdf.CatalogLanguage);
         Assert.Contains("H1", tagged.StructureTypes);
@@ -665,14 +665,14 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Bytes));
         Assert.True(pdf.HasTaggedContent);
         Assert.Contains("Workstream", pdf.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Platform", pdf.ExtractText(), StringComparison.Ordinal);
         ConversionWarningView fontSubstitution = Assert.Single(
             result.StructuredWarnings,
             warning =>
-                warning.Code == "WorksheetFontFamilySubstituted" &&
+                warning.Code == "font-family-substitution" &&
                 warning.Message.Contains("'Calibri Light'", StringComparison.Ordinal));
         Assert.Equal("Information", fontSubstitution.Severity);
         Assert.False(fontSubstitution.CanChangePagination);
@@ -716,7 +716,7 @@ public sealed class BrowserConversionServiceTests {
             new SelectedDocument("OfficeIMO-Table.xlsx", ".xlsx", "XLSX", bytes.LongLength, bytes),
             limitExcelRows: false);
 
-        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Bytes));
         Assert.Single(pdf.Pages);
         Assert.Contains("OfficeIMO delivery overview", pdf.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("PDF workbench", pdf.ExtractText(), StringComparison.Ordinal);
@@ -741,7 +741,7 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Bytes));
         Assert.True(pdf.HasTaggedContent);
         Assert.Contains("Delivery readiness", pdf.ExtractText(), StringComparison.Ordinal);
         ConversionWarningView fontSubstitution = Assert.Single(
@@ -772,7 +772,7 @@ public sealed class BrowserConversionServiceTests {
             new SelectedDocument("OfficeIMO-Conversion-Proof.pptx", ".pptx", "PPTX", bytes.LongLength, bytes),
             limitExcelRows: false);
 
-        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Bytes));
         Assert.Equal(2, pdf.Pages.Count);
         string text = pdf.ExtractText();
         Assert.Contains("OfficeIMO conversion proof", text, StringComparison.Ordinal);

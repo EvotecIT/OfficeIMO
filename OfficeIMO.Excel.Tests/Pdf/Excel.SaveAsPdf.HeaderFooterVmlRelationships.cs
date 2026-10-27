@@ -52,8 +52,8 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Load(workbook, new ExcelLoadOptions {
             AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
         });
-        ExcelSheet.ExcelHeaderFooterSnapshot snapshot = document.Sheets[0].GetHeaderFooter();
-        ExcelSheet.ExcelHeaderFooterImageSnapshot? image = shapeId == "LH" ? snapshot.HeaderLeftImage : snapshot.FooterRightImage;
+        ExcelSheet.ExcelHeaderFooterInfo snapshot = document.Sheets[0].GetHeaderFooter();
+        ExcelSheet.ExcelHeaderFooterImageInfo? image = shapeId == "LH" ? snapshot.HeaderLeftImage : snapshot.FooterRightImage;
         Assert.NotNull(image);
         Assert.Equal(logo, image.Bytes);
         Assert.Equal("image/png", image.ContentType);
@@ -61,7 +61,7 @@ public partial class Excel {
         Assert.Equal(14D, image.HeightPoints);
         Assert.Equal(shapeId == "LH" ? ExcelHeaderFooterPosition.Left : ExcelHeaderFooterPosition.Right, image.Position);
 
-        byte[] pdf = document.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false });
+        byte[] pdf = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(1, Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf)).PageNumber);
     }
 }

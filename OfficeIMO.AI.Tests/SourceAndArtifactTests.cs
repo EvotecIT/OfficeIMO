@@ -115,7 +115,7 @@ public sealed class SourceAndArtifactTests {
     [InlineData("attachment.bin", false)]
     public async Task DetectedPdfRetainsNativeTextAndRendersPagesUnderAnyLogicalName(string name, bool images) {
         byte[] page = PdfDocument.Create(builder => builder.Content(content => content.Text("SCANNED"))).ToBytes();
-        byte[] scan = PdfDocument.Load(page).ExportImages(OfficeImageExportFormat.Png).Single().Bytes;
+        byte[] scan = PdfDocument.Load(new System.IO.MemoryStream(page)).ExportImages(OfficeImageExportFormat.Png).Single().Bytes;
         byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("NATIVE")
             .PageBreak().Image(scan, 400, 566))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
@@ -123,7 +123,7 @@ public sealed class SourceAndArtifactTests {
         Assert.Equal(new[] { 1, 2 }, document.Pages);
         if (images) {
             Assert.Equal(new[] { 1, 2 }, document.Images.Select(image => image.Page));
-            var expected = PdfDocument.Load(source).ExportImages(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 120 });
+            var expected = PdfDocument.Load(new System.IO.MemoryStream(source)).ExportImages(OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = 120 });
             Assert.Equal(expected[1].Bytes, document.Images[1].CopyBytes());
         } else Assert.Empty(document.Images);
     }
@@ -133,7 +133,7 @@ public sealed class SourceAndArtifactTests {
     [InlineData(true)]
     public async Task PasswordProtectedPdfCannotBecomeTextOrVisionEvidence(bool images) {
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Protected source")),
-            new PdfOptions().SetEncryption("open", "owner")).ToBytes();
+            new PdfCreateOptions().SetEncryption("open", "owner")).ToBytes();
         await Assert.ThrowsAnyAsync<Exception>(() => DocumentInputs.ReadAsync(bytes, "protected.pdf", images,
             Array.Empty<int>(), new OfficeAiLimits(), CancellationToken.None));
     }
@@ -143,12 +143,12 @@ public sealed class SourceAndArtifactTests {
     [InlineData(true)]
     public void DeniedCopyAndPrintCannotBeBypassedWithVision(bool images) {
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Restricted source")),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             })).ToBytes();
         var options = new PdfLoadOptions { Password = "open", PermissionPolicy = PdfPermissionPolicy.Enforce };
-        if (images) Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(bytes, options).ExportImages(OfficeImageExportFormat.Png));
-        else Assert.Throws<PdfPermissionDeniedException>(() => PdfReadDocument.Open(bytes, options).ExtractText());
+        if (images) Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(new MemoryStream(bytes), options).ExportImages(OfficeImageExportFormat.Png));
+        else Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(new MemoryStream(bytes), options).ExtractText());
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class SourceAndArtifactTests {
     public async Task RenderedImagesKeepCallerSelectedPageIdentity() {
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("FIRST").PageBreak().Text("SECOND"))).ToBytes();
         var document = await DocumentInputs.ReadAsync(bytes, "pages.pdf", true, new[] { 2, 1 }, new OfficeAiLimits(), CancellationToken.None);
-        var direct = PdfDocument.Load(bytes).ExportImages(OfficeImageExportFormat.Png,
+        var direct = PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExportImages(OfficeImageExportFormat.Png,
             new PdfImageExportOptions { TargetDpi = 120 });
         Assert.Equal(new[] { 2, 1 }, document.Images.Select(image => image.Page));
         Assert.Equal(direct[1].Bytes, document.Images[0].CopyBytes());

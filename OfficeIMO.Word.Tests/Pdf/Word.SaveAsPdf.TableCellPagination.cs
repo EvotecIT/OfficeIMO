@@ -101,8 +101,8 @@ public partial class Word {
         string target = source + ".pdf";
         using (WordDocument document = WordDocument.Create(source)) {
             CreatePaginationTable(document, 6).Style = WordTableStyle.TableNormal;
-            WordToPdfOptions options = CellPaginationOptions();
-            options.PdfOptions = new PdfCore.PdfOptions { DefaultTableStyle = new PdfCore.PdfTableStyle {
+            WordPdfExportOptions options = CellPaginationOptions();
+            options.PdfOptions = new PdfCore.PdfCreateOptions { DefaultTableStyle = new PdfCore.PdfTableStyle {
                 MinimumBodyRowsOnFirstPage = minimumRows, MinimumBodyRowsOnLastPage = minimumRows,
                 HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, SpacingBefore = 0, SpacingAfter = 0
             } };
@@ -119,7 +119,7 @@ public partial class Word {
         WordTable table = document.AddTable(rowCount, 1);
         // Keep frame capacity governed by the authored line heights; border
         // paint and cell margins have separate artifact regression coverage.
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
         for (int row = 0; row < rowCount; row++) {
@@ -137,7 +137,7 @@ public partial class Word {
         return table;
     }
 
-    private static WordToPdfOptions CellPaginationOptions() => new() {
-        IncludePageNumbers = false, PageSize = new PdfCore.PageSize(500, 400), Margins = PdfCore.PageMargins.Uniform(40)
+    private static WordPdfExportOptions CellPaginationOptions() => new() {
+        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(500, 400), Margins = PdfCore.PdfPageMargins.Uniform(40)
     };
 }

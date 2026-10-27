@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                     sheet.WorksheetPart.PivotTableParts).PivotTableCacheDefinitionPart!;
                 var rangeSet = new RangeSet {
                     Sheet = "Data",
-                    Reference = $"A{A1.MaxRows}"
+                    Reference = $"A{ExcelA1.MaxRows}"
                 };
                 cachePart.PivotCacheDefinition!.CacheSource = new CacheSource(
                     new Consolidation(
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                     () => sheet.InsertRows(1));
 
                 Assert.Contains("row limit", exception.Message);
-                Assert.Equal($"A{A1.MaxRows}", rangeSet.Reference!.Value);
+                Assert.Equal($"A{ExcelA1.MaxRows}", rangeSet.Reference!.Value);
             }
         }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             var input = new InputCells {
-                CellReference = $"A{A1.MaxRows}",
+                CellReference = $"A{ExcelA1.MaxRows}",
                 Val = "Keep"
             };
             sheet.WorksheetPart.Worksheet.Append(
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", input.CellReference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", input.CellReference!.Value);
         }
 
         [Fact]
@@ -107,13 +107,13 @@ namespace OfficeIMO.Tests {
                 Parameter parameter = AttachCellBackedConnection(
                     document,
                     sheet,
-                    $"A{A1.MaxRows}");
+                    $"A{ExcelA1.MaxRows}");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => sheet.InsertRows(1));
 
                 Assert.Contains("row limit", exception.Message);
-                Assert.Equal($"A{A1.MaxRows}", parameter.Cell!.Value);
+                Assert.Equal($"A{ExcelA1.MaxRows}", parameter.Cell!.Value);
             }
         }
 
@@ -152,13 +152,13 @@ namespace OfficeIMO.Tests {
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     summary,
                     "C2:C3",
-                    $"Data!A{A1.MaxRows}");
+                    $"Data!A{ExcelA1.MaxRows}");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => data.InsertRows(1));
 
                 Assert.Contains("row limit", exception.Message);
-                Assert.Equal($"Data!A{A1.MaxRows}", threshold.Val!.Value);
+                Assert.Equal($"Data!A{ExcelA1.MaxRows}", threshold.Val!.Value);
             }
         }
 

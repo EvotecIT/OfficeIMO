@@ -19,6 +19,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ReadingOrderSpanningBand = "reading-order-spanning-band";
     /// <summary>Stable code: <c>reading-order-visible-geometry</c>.</summary>
     public const string ReadingOrderVisibleGeometry = "reading-order-visible-geometry";
+    /// <summary>Stable code: <c>recorded-diagnostics-truncated</c>.</summary>
+    public const string RecordedDiagnosticsTruncated = "recorded-diagnostics-truncated";
     /// <summary>Stable code: <c>redaction-plan-blocked</c>.</summary>
     public const string RedactionPlanBlocked = "redaction-plan-blocked";
     /// <summary>Stable code: <c>redaction-plan-image-intersection</c>.</summary>
@@ -309,6 +311,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string TrackedRevisionsProjected = "tracked-revisions-projected";
     /// <summary>Stable code: <c>uncompressed-stream</c>.</summary>
     public const string UncompressedStream = "uncompressed-stream";
+    /// <summary>Stable code: <c>unplaced-image-resource-not-embedded</c>.</summary>
+    public const string UnplacedImageResourceNotEmbedded = "unplaced-image-resource-not-embedded";
     /// <summary>Stable code: <c>unreadable-indirect-object</c>.</summary>
     public const string UnreadableIndirectObject = "unreadable-indirect-object";
     /// <summary>Stable code: <c>unreadable-signature</c>.</summary>
@@ -389,6 +393,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string UnsupportedVisualTheme = "unsupported-visual-theme";
     /// <summary>Stable code: <c>usage-rights-detected</c>.</summary>
     public const string UsageRightsDetected = "usage-rights-detected";
+    /// <summary>Stable code: <c>vector-appearance-not-exported</c>.</summary>
+    public const string VectorAppearanceNotExported = "vector-appearance-not-exported";
     /// <summary>Stable code: <c>vertical-text-stacked-fallback</c>.</summary>
     public const string VerticalTextStackedFallback = "vertical-text-stacked-fallback";
     /// <summary>Stable code: <c>visual-page-rendering</c>.</summary>
@@ -831,4 +837,6 @@ public static partial class OfficeDiagnosticCodes {
     public const string XlsbRecordsPreserved = "xlsb-records-preserved";
     /// <summary>Stable code: <c>xlsb-style-gradient-preserved</c>.</summary>
     public const string XlsbStyleGradientPreserved = "xlsb-style-gradient-preserved";
+    /// <summary>Stable code: <c>xlsb-unprojected-record</c>.</summary>
+    public const string XlsbUnprojectedRecord = "xlsb-unprojected-record";
 }

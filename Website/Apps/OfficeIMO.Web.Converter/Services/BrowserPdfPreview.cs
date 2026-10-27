@@ -20,7 +20,8 @@ internal sealed class BrowserPdfPreview {
         deadline.CancelAfter(timeout);
         deadline.Token.ThrowIfCancellationRequested();
         PdfLoadOptions options = BrowserPdfPolicy.CreateReadOptions(maximumInputBytes: BrowserPdfPolicy.MaxOutputBytes);
-        _document = PdfDocument.Load(bytes, options);
+        using var input = new MemoryStream(bytes, writable: false);
+        _document = PdfDocument.Load(input, options);
         PdfDocumentViewInfo geometry = _document.InspectGeometryForViewing(cancellationToken: deadline.Token);
         cancellationToken.ThrowIfCancellationRequested();
         // Browser timers cannot fire during synchronous WASM work; check elapsed time as well.

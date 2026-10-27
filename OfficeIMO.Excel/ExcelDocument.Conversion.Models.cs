@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Represents the destination artifact and report produced by an Excel file conversion.</summary>
-    public sealed class ExcelDocumentConversionResult : IOfficeConversionResult<string, ExcelDocumentConversionReport> {
+    internal sealed class ExcelDocumentConversionResult : IOfficeConversionResult<string, ExcelDocumentConversionReport> {
         internal ExcelDocumentConversionResult(
             string sourcePath,
             string destinationPath,
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Excel conversion.</summary>
-    public sealed class ExcelDocumentConversionReport : IOfficeConversionReport {
+    internal sealed class ExcelDocumentConversionReport : IOfficeConversionReport {
         internal ExcelDocumentConversionReport(
             string sourcePath,
             string destinationPath,
@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Raised when a validated Excel conversion cannot be completed safely.</summary>
-    public sealed class ExcelDocumentConversionException : InvalidOperationException {
+    internal sealed class ExcelDocumentConversionException : InvalidOperationException {
         internal ExcelDocumentConversionException(
             OfficeConversionFailureReason reason,
             ExcelDocumentConversionResult result,
@@ -170,7 +170,8 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Controls file-to-file Excel workbook conversion.</summary>
-    public sealed class ExcelDocumentConversionOptions {
+    internal sealed class ExcelDocumentConversionOptions {
+        internal ExcelLoadOptions? LoadOptions { get; set; }
         /// <summary>Gets or sets how an existing destination is handled. The default is to fail.</summary>
         public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 

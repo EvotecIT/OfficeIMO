@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class QueryAndSelection {

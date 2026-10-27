@@ -67,7 +67,7 @@ public class RtfAdapterBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Pdf")]
-    public byte[] Pdf() => _document.ToPdfDocument(_pdfOptions).ToBytes();
+    public byte[] Pdf() => _document.ToPdf(_pdfOptions).ToBytes();
 
     [Benchmark]
     [BenchmarkCategory("Word")]
@@ -80,7 +80,7 @@ public class RtfAdapterBenchmarks {
     [BenchmarkCategory("Word")]
     public byte[] Word() {
         using WordDocument word = _document.ToWordDocument();
-        using MemoryStream stream = word.ToStream();
+        using MemoryStream stream = new MemoryStream(word.ToBytes());
         return stream.ToArray();
     }
 

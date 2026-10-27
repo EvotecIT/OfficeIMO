@@ -163,7 +163,7 @@ public sealed class ReaderDocumentReaderTests {
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Token");
                 sheet.Cell(2, 2, 7);
-                doc.SaveEncrypted(encryptedPath, password);
+                doc.Save(encryptedPath,new OfficeIMO.Excel.ExcelSaveOptions{Password=password});
             }
 
             var options = new ReaderOptions {
@@ -260,7 +260,7 @@ public sealed class ReaderDocumentReaderTests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPT");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions { OpenPassword = password };
 
@@ -279,7 +279,7 @@ public sealed class ReaderDocumentReaderTests {
                     "Reader encrypted PPT", StringComparison.Ordinal));
             Assert.Contains(pathChunks.SelectMany(chunk =>
                     chunk.Warnings ?? Array.Empty<string>()), warning =>
-                warning.Contains("PPT-ENCRYPTION-DECRYPTED",
+                warning.Contains("ppt-encryption-decrypted",
                     StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -295,7 +295,7 @@ public sealed class ReaderDocumentReaderTests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions { OpenPassword = password };
 
@@ -330,7 +330,7 @@ public sealed class ReaderDocumentReaderTests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions {
                 OpenPassword = "reader-wrong-pass"
@@ -363,7 +363,7 @@ public sealed class ReaderDocumentReaderTests {
                PowerPointPresentation.Create()) {
             source.AddSlide().AddTextBox(
                 Convert.ToBase64String(randomBytes));
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         int encryptionInfoEntry = FindReaderCompoundDirectoryEntry(encrypted,
             "EncryptionInfo");
@@ -411,7 +411,7 @@ public sealed class ReaderDocumentReaderTests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                encrypted = source.ToEncryptedBytes(password);
+                encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             File.WriteAllBytes(path, encrypted);
             var options = new ReaderOptions { OpenPassword = password };
@@ -460,7 +460,7 @@ public sealed class ReaderDocumentReaderTests {
             using (WordDocument source = WordDocument.Create()) {
                 source.AddParagraph("Reader encrypted Word");
                 using var output = new MemoryStream();
-                source.SaveEncrypted(output, password);
+                source.Save(output,new OfficeIMO.Word.WordSaveOptions{Password=password});
                 encrypted = output.ToArray();
             }
             File.WriteAllBytes(path, encrypted);
@@ -498,7 +498,7 @@ public sealed class ReaderDocumentReaderTests {
                 chunk.Warnings ?? Array.Empty<string>()), warning =>
             warning.Contains("Legacy PPT import diagnostic",
                 StringComparison.Ordinal)
-            && warning.Contains("PPT-SHAPE-STYLE-PARTIAL",
+            && warning.Contains("ppt-shape-style-partial",
                 StringComparison.Ordinal));
     }
 
@@ -882,7 +882,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview{\"kind\":\"ix_tool_dataview_v1\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"]]}\n```\n");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeCompactFenceBodyBoundaries = true
                 }
@@ -938,7 +938,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeHeadingListBoundaries = true,
                     NormalizeCompactStrongLabelListBoundaries = true
@@ -962,7 +962,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "# Summary\n\n- Signal **No current failures -> **Why it matters:** transport/auth issues");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeBrokenStrongArrowLabels = true
                 }
@@ -981,7 +981,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "# Summary\n\n- Overall health ****healthy****");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeLooseStrongDelimiters = true
                 }
@@ -1001,7 +1001,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "previous shutdown was unexpected### Reason- **Unplanned / unexpected reboot**");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeCompactHeadingBoundaries = true,
                     NormalizeHeadingListBoundaries = true,
@@ -1092,7 +1092,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
-            var pdf = PdfDocument.Create(new PdfOptions {
+            var pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,

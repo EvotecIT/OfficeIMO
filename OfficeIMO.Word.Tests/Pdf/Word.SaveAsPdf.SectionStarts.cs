@@ -22,7 +22,7 @@ public partial class Word {
         properties.AddChild(new W.SpacingBetweenLines { Before = "240" }, true);
         document.AddParagraph("Second");
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(format)));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("First", pdf.GetPage(1).Text);
         Assert.Contains("Second", pdf.GetPage(2).Text);
@@ -54,7 +54,7 @@ public partial class Word {
         if (secondNumber > 0) second.AddPageNumbering(secondNumber);
         second.AddParagraph("SecondSection");
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(format)));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         Assert.Contains("SecondSection", pdf.GetPage(expectedPages).Text);
         int finalNumber = secondNumber > 0 ? secondNumber : firstNumber + expectedPages - 1;
@@ -84,7 +84,7 @@ public partial class Word {
         }
         document.AddSection(breakType).AddParagraph("SecondSection");
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(format)));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         for (int page = 1; page <= firstPages; page++) Assert.Contains("First" + page, pdf.GetPage(page).Text);
         Assert.Contains("SecondSection", pdf.GetPage(expectedPages).Text);
@@ -100,7 +100,7 @@ public partial class Word {
         string extension = format == WordFileFormat.Doc ? "doc" : "docx";
         using WordDocument document = WordDocument.Load(GetFixtureDoc(Path.Combine("SectionStarts", $"word-section-{type}-2.{extension}")));
         Assert.Equal(2, document.Sections.Count);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         Assert.Contains("First1", pdf.GetPage(1).Text);
         Assert.Contains("First2", pdf.GetPage(2).Text);
@@ -113,7 +113,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph();
         paragraph._paragraph.Append(new W.Run(new W.RunProperties(new W.Bold(), new W.FontSize { Val = "36" }),
             new W.Text("Before"), new W.Break { Type = W.BreakValues.Page }, new W.Text("After")));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("Before", pdf.GetPage(1).Text);
         Assert.Contains("After", pdf.GetPage(2).Text);
@@ -131,7 +131,7 @@ public partial class Word {
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
             new W.Run(new W.Text("Visible")),
             new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("Visible", pdf.GetPage(1).Text);
         Assert.DoesNotContain("PRIVATE", pdf.GetPage(1).Text);
@@ -143,7 +143,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph();
         paragraph._paragraph.Append(new W.Run(new W.RunProperties(new W.Vanish()), new W.Break { Type = W.BreakValues.Page }),
             new W.Run(new W.Text("VisibleAfterHiddenBreak")));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("VisibleAfterHiddenBreak", pdf.GetPage(1).Text);
     }
@@ -154,7 +154,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph("First");
         paragraph.AddBreak(WordBreakType.Page).AddBreak(WordBreakType.Page).AddText("Third")
             .AddBreak(WordBreakType.Page).AddText("Fourth");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Contains("First", pdf.GetPage(1).Text);
         Assert.True(string.IsNullOrWhiteSpace(pdf.GetPage(2).Text));
@@ -172,7 +172,7 @@ public partial class Word {
         paragraph.IndentationBeforePoints = 30;
         paragraph.IndentationFirstLinePoints = 20;
         paragraph.AddBreak(WordBreakType.Page).AddText("After");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal(90D, FindWordStartX(pdf.GetPage(1), "Before"), 2);
         Assert.Equal(100D, FindWordStartX(pdf.GetPage(2), "After"), 2);
@@ -184,7 +184,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph();
         WordParagraph link = paragraph.AddHyperLink("Before", new Uri("https://example.com/section"));
         link._hyperlink!.Elements<W.Run>().Single().Append(new W.Break { Type = W.BreakValues.Page }, new W.Text("After"));
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("Before", pdf.GetPage(1).Text);

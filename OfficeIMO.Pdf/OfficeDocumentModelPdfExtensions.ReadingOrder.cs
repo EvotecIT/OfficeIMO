@@ -33,7 +33,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         links.AddRange(identities.TakeLinks(source.Links));
         forms.AddRange(identities.TakeForms(source.Forms));
         if (omittedPageNames) {
-            report.Add(new PdfConversionWarning(ConverterName, "MODEL_SOURCE_PAGE_LABELS_OMITTED", source.Format + "/document",
+            report.Add(new PdfConversionWarning(ConverterName, "model-source-page-labels-omitted", source.Format + "/document",
                 "Automatic physical-page headings are omitted in continuous flow to preserve the source's explicit logical reading order.",
                 PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
         }

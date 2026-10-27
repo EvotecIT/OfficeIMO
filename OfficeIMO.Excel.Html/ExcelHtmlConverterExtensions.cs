@@ -130,7 +130,7 @@ public static partial class ExcelHtmlConverterExtensions {
         IList<HtmlDiagnostic> diagnostics) {
         int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
         int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
-        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
+        IReadOnlyList<ExcelMergedRangeInfo> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
         string reportedUsedRange = sheet.UsedRangeA1;
         bool isEmptyDefaultRange = mergedRanges.Count == 0
             && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
@@ -193,13 +193,13 @@ public static partial class ExcelHtmlConverterExtensions {
                     continue;
                 }
 
-                bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null;
+                bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelNativeCellValueInfo? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
-                ExcelCellStyleSnapshot cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
+                ExcelCellStyleInfo cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.GetRichText(cellRow, cellColumn);
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
-                    .Append(OfficeHtmlText.EscapeAttribute(A1.CellReference(cellRow, cellColumn)))
+                    .Append(OfficeHtmlText.EscapeAttribute(ExcelA1.CellReference(cellRow, cellColumn)))
                     .Append('"');
                 if (mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge)) {
                     AppendMergeAttributes(body, merge);
@@ -212,7 +212,7 @@ public static partial class ExcelHtmlConverterExtensions {
                 bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
 
                 if (hasSnapshot) {
-                    ExcelCellValueSnapshot cellSnapshot = snapshot!;
+                    ExcelNativeCellValueInfo cellSnapshot = snapshot!;
                     body.Append(" data-officeimo-value-kind=\"")
                         .Append(OfficeHtmlText.EscapeAttribute(ToHtmlValueKind(cellSnapshot, cellText)))
                         .Append("\" data-officeimo-value=\"")
@@ -340,7 +340,7 @@ public static partial class ExcelHtmlConverterExtensions {
             return charts;
         }
 
-        return charts.Where(chart => !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot) || rowWindow.Value.ContainsRow(snapshot.RowIndex));
+        return charts.Where(chart => !chart.TryGetSnapshot(out ExcelChartInfo snapshot) || rowWindow.Value.ContainsRow(snapshot.RowIndex));
     }
 
     private static IEnumerable<ExcelImage> FilterImages(IEnumerable<ExcelImage> images, ExportedRowWindow? rowWindow) {
@@ -447,7 +447,7 @@ public static partial class ExcelHtmlConverterExtensions {
             string label = string.IsNullOrWhiteSpace(chart.Title)
                 ? string.IsNullOrWhiteSpace(chart.Name) ? "Chart" : chart.Name
                 : chart.Title!;
-            bool hasSnapshot = chart.TryGetSnapshot(out ExcelChartSnapshot snapshot);
+            bool hasSnapshot = chart.TryGetSnapshot(out ExcelChartInfo snapshot);
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append("\" data-officeimo-chart-type=\"")
@@ -497,7 +497,7 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendChartDataTable(StringBuilder body, ExcelChartSnapshot snapshot) {
+    private static void AppendChartDataTable(StringBuilder body, ExcelChartInfo snapshot) {
         ExcelChartData data = snapshot.Data;
         ExcelChartType defaultChartType = snapshot.ChartType;
         body.Append("<table class=\"officeimo-chart-data\"");
@@ -844,15 +844,15 @@ public static partial class ExcelHtmlConverterExtensions {
             _ => "text"
         };
 
-    private static string ToHtmlValueKind(ExcelCellValueSnapshot snapshot, string cellText) =>
+    private static string ToHtmlValueKind(ExcelNativeCellValueInfo snapshot, string cellText) =>
         ShouldUseDisplayTextRawValue(snapshot, cellText) ? "text" : ToHtmlValueKind(snapshot.Kind);
 
-    private static string ToHtmlRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
+    private static string ToHtmlRawValue(ExcelNativeCellValueInfo snapshot, string cellText) =>
         snapshot.Kind == ExcelCellValueKind.DateTime && snapshot.DateTimeValue.HasValue
             ? snapshot.DateTimeValue.Value.ToString("O", CultureInfo.InvariantCulture)
             : ShouldUseDisplayTextRawValue(snapshot, cellText) ? cellText : snapshot.RawValue;
 
-    private static bool ShouldUseDisplayTextRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
+    private static bool ShouldUseDisplayTextRawValue(ExcelNativeCellValueInfo snapshot, string cellText) =>
         snapshot.Kind == ExcelCellValueKind.Text ||
         (HasSignificantWhitespace(cellText) &&
             !string.Equals(cellText, snapshot.RawValue, StringComparison.Ordinal) &&

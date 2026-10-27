@@ -88,7 +88,7 @@ public sealed class PdfTableCellPaginationTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell[][] cells) {
-        var options = new PdfOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
+        var options = new PdfCreateOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
             MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 };
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
             FontSize = 12, LineHeight = 20D / 12D, SpacingBefore = 0, SpacingAfter = 0,

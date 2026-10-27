@@ -7,7 +7,7 @@
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -82,18 +82,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.IO.Compression" />
-        <Reference Include="System.Net.Http" />
-        <Reference Include="WindowsBase" />
     </ItemGroup>
 
     <ItemGroup>
@@ -120,10 +113,21 @@
         <InternalsVisibleTo Include="OfficeIMO.Word.GoogleDocs" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
+        <InternalsVisibleTo Include="OfficeIMO.Pdf.Word" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Rtf" />
         <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
         <InternalsVisibleTo Include="OfficeIMO.VerifyTests" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.IO.Compression" />
+        <Reference Include="System.Net.Http" />
+        <Reference Include="WindowsBase" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Benchmarks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
 </Project>

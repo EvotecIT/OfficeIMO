@@ -1841,8 +1841,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                ExcelWorksheetSnapshot worksheet = Assert.Single(snapshot.Worksheets);
+                ExcelWorkbookInfo snapshot = document.Inspect();
+                ExcelWorksheetInfo worksheet = Assert.Single(snapshot.Worksheets);
 
                 Assert.NotNull(worksheet.Protection);
                 Assert.True(worksheet.Protection!.AllowSelectLockedCells);

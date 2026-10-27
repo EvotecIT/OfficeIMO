@@ -4,16 +4,16 @@ namespace OfficeIMO.Markdown;
 /// Built-in CSS and tiny scripts for HTML rendering.
 /// </summary>
     internal static class HtmlResources {
-        internal static string GetStyleCss(HtmlStyle style) => style switch {
-            HtmlStyle.Plain => string.Empty,
-            HtmlStyle.Clean => CleanCss,
-            HtmlStyle.GithubLight => GithubLightCss,
-            HtmlStyle.GithubDark => GithubDarkCss,
-            HtmlStyle.GithubAuto => GithubAutoCss,
-            HtmlStyle.ChatLight => ChatLightCss,
-            HtmlStyle.ChatDark => ChatDarkCss,
-            HtmlStyle.ChatAuto => ChatAutoCss,
-            HtmlStyle.Word => WordCss,
+        internal static string GetStyleCss(MarkdownHtmlStyle style) => style switch {
+            MarkdownHtmlStyle.Plain => string.Empty,
+            MarkdownHtmlStyle.Clean => CleanCss,
+            MarkdownHtmlStyle.GithubLight => GithubLightCss,
+            MarkdownHtmlStyle.GithubDark => GithubDarkCss,
+            MarkdownHtmlStyle.GithubAuto => GithubAutoCss,
+            MarkdownHtmlStyle.ChatLight => ChatLightCss,
+            MarkdownHtmlStyle.ChatDark => ChatDarkCss,
+            MarkdownHtmlStyle.ChatAuto => ChatAutoCss,
+            MarkdownHtmlStyle.Word => WordCss,
             _ => CleanCss
         };
 

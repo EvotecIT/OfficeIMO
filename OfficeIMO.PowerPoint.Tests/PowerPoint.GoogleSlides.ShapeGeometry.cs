@@ -13,7 +13,7 @@ public sealed partial class GoogleSlidesTests {
             slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
             slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
 
-            using MemoryStream saved = presentation.ToStream();
+            using MemoryStream saved = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointPresentation reloaded = PowerPointPresentation.Load(saved);
             PowerPointTextBox[] sourceShapes = Assert.Single(reloaded.Slides).Shapes.OfType<PowerPointTextBox>().ToArray();
             Assert.True(Assert.Single(sourceShapes, shape => shape.Text == "Plain text").UsesTextBoxGeometry);

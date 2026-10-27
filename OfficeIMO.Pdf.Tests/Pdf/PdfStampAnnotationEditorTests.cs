@@ -202,7 +202,7 @@ public class PdfStampAnnotationEditorTests {
 
     [Fact]
     public void EncryptedStampAnnotationUsesAuthenticatedAppendContext() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted stamp source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };

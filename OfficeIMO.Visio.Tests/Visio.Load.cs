@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                     filePath,
                     options,
                     cancellationToken: default);
-                using var stream = pathLoaded.ToStream();
+                using var stream = new System.IO.MemoryStream(pathLoaded.ToBytes());
                 VisioDocument streamLoaded = await VisioDocument.LoadAsync(
                     stream,
                     options,

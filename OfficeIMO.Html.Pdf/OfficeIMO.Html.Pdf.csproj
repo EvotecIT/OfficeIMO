@@ -48,8 +48,11 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

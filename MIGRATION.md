@@ -1,5 +1,71 @@
 # Upgrading OfficeIMO
 
+## PDF adapter package direction
+
+`OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`
+exports PowerPoint to PDF. The package names stay the same while their direction
+changes. For reconstruction, replace those references with
+`OfficeIMO.Pdf.Word` or `OfficeIMO.Pdf.PowerPoint`. PDF-to-Excel reconstruction
+moves from `OfficeIMO.Excel.Pdf` to `OfficeIMO.Pdf.Excel`; Excel PDF export stays
+in `OfficeIMO.Excel.Pdf`.
+
+Word page-image export also requires `OfficeIMO.Word.Pdf`. Word and PowerPoint
+format packages no longer bring the PDF engine. `OfficeIMO.Word.Markdown` no
+longer brings the HTML engine. Install the `OfficeIMO` package for the common
+formats, adapters, Reader handlers and file or batch conversions.
+
+## Unified C# lifecycle and conversions
+
+Replace `MarkdownDoc` with `MarkdownDocument`, and `PdfReadDocument.Open(...)`
+with `PdfDocument.Load(...)`. Load PDF bytes through a `MemoryStream`; reading
+and inspection are available on the loaded document. Use `using` for documents,
+including Markdown and PDF. PDF Markdown text extraction is `ExtractMarkdown()`;
+`To{Target}` names return target models. Rename lifecycle settings to `{Format}CreateOptions`,
+`{Format}LoadOptions` and `{Format}SaveOptions`; use the load options type's
+`UntrustedDefaults` for external input. Inspection snapshots use `Info` names and
+are reached through `Inspect()`. Shared `OfficeColor` and `OfficeColorRole` move
+from `OfficeIMO.Drawing` to `OfficeIMO`.
+
+Call conversions on their source. For example, replace
+`WordDocument.FromMarkdown(text)` with
+`MarkdownDocument.Parse(text).ToWord()`. Replace paired throwing and `...Result`
+conversions with `To{Target}(options, out OfficeConversionReport report)` or
+`SaveAs{Target}(pathOrStream, options)`. `ToHtml()` returns a string;
+`To{Target}Async` returns `OfficeConversionResult<T>` with `Value` and `Report`.
+`SaveAs{Target}` returns the shared report directly. Use `FailOnLoss` to reject
+conversion loss before publication, or `report.ThrowIfLoss()` when reviewing an
+in-memory result. Native saves reject loss unless their save options explicitly
+set `AllowLoss`.
+
+Handle conversion serialization or publication failures through
+`OfficeConversionException.Report`; completed findings remain available and
+`InnerException` identifies the underlying write failure. Invalid destination
+arguments are checked before conversion and retain their argument exceptions.
+Word-to-Markdown omission reports include skipped headers, footers, page breaks
+and unsupported content even when warning text is suppressed. `FailOnLoss`
+rejects these findings before publishing Markdown or its image/SVG sidecars;
+analysis leaves sidecars unpublished.
+
+Replace `OfficeWorkflow.Convert`, `OfficeDocumentPdfConverter` and the
+`*ToPdfBytes` helpers with `OfficeConverter.Convert` or `ConvertAsync`. For bytes,
+pass caller-owned input and output streams with their `OfficeDocumentFormat`
+values. For batches, use `OfficeBatchOptions` and read the flattened
+`OfficeBatchReport.Summary` and `Items`. `MaxParallelism` replaces
+`MaximumConcurrency`; `ResumeFrom` names the checkpoint manifest file rather
+than its directory. Tier 2 applications call `OfficeWorkflow.RegisterConversions()`;
+iWork applications also call `IWorkWorkflow.RegisterConversions()`.
+
+Saved jobs use `OfficeBatchOptions.Save` and `Load`; reports use
+`OfficeBatchReport.Save` and `Load`. The saved-definition and report schemas are
+version 2. Recreate version 1 job definitions from their reviewed input, output,
+checkpoint and conversion settings; version 1 reports are not version 2 input.
+Relative paths resolve against the saved job's directory. Password references
+are properties on `OfficeBatchOptions`; literal passwords remain runtime-only.
+
+Every existing library framework remains supported in 3.6. The front door and
+both Workflows packages also support `netstandard2.0`, `net8.0`, `net10.0` and
+`net472` on Windows. Modern-only optional engines retain their framework limits.
+
 ## Reading running text from RTF-generated PDFs
 
 RTF PDF headers and footers use rich running content and are marked as PDF
@@ -7,8 +73,10 @@ pagination artifacts. To inspect their text with the logical reader, enable
 `PdfLoadOptions.IncludeArtifactText`:
 
 ```csharp
-var read = PdfReadDocument.Open(bytes,
+using var input = new MemoryStream(bytes);
+using var document = PdfDocument.Load(input,
     new PdfLoadOptions { IncludeArtifactText = true });
+var read = document.Read();
 ```
 
 The default reader continues to exclude artifact text. Explicit header/footer
@@ -103,7 +171,7 @@ and portable default locations.
 
 ## Strict PDF standards helpers
 
-`PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
+`PdfCreateOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
 
 PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`.
 
@@ -123,7 +191,7 @@ For B-T, provide `CmsSigningOptions.SignatureTimestampProvider`, for example `Rf
 
 ## PDF graphics, images and stream compression
 
-Direct PDF authoring compresses page content with Flate by default. Set `PdfOptions.CompressContentStreams = false` when a tool needs plain page operators. ICC profiles, embedded files and widget appearances are compressed independently; XMP packets remain uncompressed. Tools inspecting PDF streams must decode their declared filters before reading their content. `PdfAttachmentInfo.SizeBytes` remains the encoded stream size; use `DeclaredSizeBytes` for the original size declared in attachment parameters, or extract the payload when its actual decoded size is required.
+Direct PDF authoring compresses page content with Flate by default. Set `PdfCreateOptions.CompressContentStreams = false` when a tool needs plain page operators. ICC profiles, embedded files and widget appearances are compressed independently; XMP packets remain uncompressed. Tools inspecting PDF streams must decode their declared filters before reading their content. `PdfAttachmentInfo.SizeBytes` remains the encoded stream size; use `DeclaredSizeBytes` for the original size declared in attachment parameters, or extract the payload when its actual decoded size is required.
 
 `OfficeIMO.Reader.Pdf` attachment `sizeBytes` and total-size metadata also describe encoded streams. `encodedSizeBytes` names that value explicitly; `declaredSizeBytes` carries the untrusted payload-size claim when present. Metadata inspection does not decode attachments.
 
@@ -151,7 +219,7 @@ PowerPoint PDF and PNG/JPEG/SVG exports share one slide layout. Existing `ToPng`
 
 `AddTextBox` creates an ordinary text shape. Set `PlaceholderType` and `PlaceholderIndex` explicitly when creating a template placeholder. Ordinary text shapes on slide layouts remain visible inherited content; structural placeholder prompts supply styles and geometry.
 
-`PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointToPdfOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
+`PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointPdfExportOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
 
 PowerPoint page-image batches retain zero-based `SequenceIndex` and the selected batch's `SequenceCount`, alongside the original slide identity. Snapshot creation enforces `RenderTimeout` through the shared image-export deadline and reports `OfficeImageExportTimeoutException`.
 
@@ -173,11 +241,11 @@ Visible raw text measured without a selected program reports `HtmlRenderFontMetr
 
 The balanced PDF resource policy embeds installed document fonts by default for Word, Excel, PowerPoint, HTML and Markdown. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
 
-Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordToPdfOptions` used for PDF export when customizing layout.
+Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordPdfExportOptions` used for PDF export when customizing layout.
 
-`OfficeIMO.Word` now references `OfficeIMO.Pdf`, which depends only on `OfficeIMO.Core`; no external runtime dependency is added. Forward conversion APIs and `WordToPdfOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
+`OfficeIMO.Word` now references `OfficeIMO.Pdf`, which depends only on `OfficeIMO.Core`; no external runtime dependency is added. Forward conversion APIs and `WordPdfExportOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
 
-`WordDocumentVisualSnapshot.Fragments` and the guessed source-block fragment/region types are removed. Use `TextSpans` for text and geometry from the actual laid-out page, in PDF user-space coordinates. `IncludeDocumentContent`, builder `IncludeContent`/`WithoutContent`, and preview-specific `WordImageExportDiagnosticCodes` are removed. PowerShell callers should remove `-IncludeDocumentContent` from `New-OfficeWordImageOptions`; Word page images always render document content. Export diagnostics now carry the same conversion and rendering codes as the PDF-backed route. Skipped unsupported objects are classified as omissions, so `RequireNoOmissions` rejects them on both routes; font, wrapping and appearance fallbacks remain approximations. An out-of-range page index throws `ArgumentOutOfRangeException` instead of producing an empty preview.
+`WordDocumentVisualInfo.Fragments` and the guessed source-block fragment/region types are removed. Use `TextSpans` for text and geometry from the actual laid-out page, in PDF user-space coordinates. `IncludeDocumentContent`, builder `IncludeContent`/`WithoutContent`, and preview-specific `WordImageExportDiagnosticCodes` are removed. PowerShell callers should remove `-IncludeDocumentContent` from `New-OfficeWordImageOptions`; Word page images always render document content. Export diagnostics now carry the same conversion and rendering codes as the PDF-backed route. Skipped unsupported objects are classified as omissions, so `RequireNoOmissions` rejects them on both routes; font, wrapping and appearance fallbacks remain approximations. An out-of-range page index throws `ArgumentOutOfRangeException` instead of producing an empty preview.
 
 With Reader Word `IncludePageLocations`, `Pages` and normalized `Blocks` now contain visible page text lines with PDF user-space baseline extents, rather than source paragraph/table fragments. Their IDs are page/line-specific; logical text remains in `Chunks` and authored tables/links remain at document scope. Page search and Markdown follow the rendered lines. This projection reports `officeimo.reader.word.rich-v5` and remains opt-in.
 
@@ -193,13 +261,13 @@ Markdown PDF export preserves code-block indentation, including consecutive tabs
 
 RTF PDF export exposes `RtfToPdfOptions.TextFallbacks` with the same default. Installed fallback faces cover characters missing from the authored font; system-font access remains controlled by `ResourcePolicy.AllowSystemFontEmbedding`.
 
-`PdfParagraphStyle.TextWhitespaceMode` overrides whitespace handling for one paragraph without changing the document's prose. A null value inherits `PdfOptions.TextWhitespaceMode`.
+`PdfParagraphStyle.TextWhitespaceMode` overrides whitespace handling for one paragraph without changing the document's prose. A null value inherits `PdfCreateOptions.TextWhitespaceMode`.
 
 ## PDF text output and embedded fonts
 
-Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
+Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfCreateOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
 
-Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. `PdfOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
+Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. `PdfCreateOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
 
 Right-to-left and Arabic text is shaped and ordered automatically, without configuring a shaping provider. Glyphs are written in visual order, and pure right-to-left runs no longer carry a run-wide `ActualText`; their Unicode text comes from the font's `ToUnicode` map. Logical text extraction is unchanged.
 
@@ -246,7 +314,7 @@ XLSX/ODS conversion retains the workbook default font separately from cell fonts
 
 `WordChart.SetSeriesColor` and series palettes replace the base fill on filled cartesian, filled radar, bubble and 3-D line series, and the connecting stroke on 2-D line, scatter and unfilled radar charts. They replace an existing no-fill choice and preserve independent outlines on filled series. Code inspecting line-chart XML should read the colour from `a:ln/a:solidFill`.
 
-Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
+Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointPdfExportOptions.ChartStyle` or `ExcelPdfExportOptions.ChartStyle` still replaces these automatic colours.
 
 Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.
 
@@ -395,7 +463,7 @@ iWork table conversion applies source fonts, fills and borders without adding bo
 
 Generated PDF catalog attachments now default to 128 MiB per payload and 256 MiB
 across the catalog. Previously accepted larger inputs require explicit positive
-`PdfOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
+`PdfCreateOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
 calling `AddEmbeddedFile`, fluent attachment helpers, or invoice helpers.
 For example, use `MaxEmbeddedFileBytes = 256L * 1024 * 1024` and
 `MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024` for a trusted workflow accepting
@@ -1168,7 +1236,7 @@ Draw `ToDrawing` uses `OfficeDrawingRichText` with paragraph descriptors instead
 
 Draw projection approximates explicit width, height or both-axis growth for ordinary text boxes with horizontal text and top placement. Width grows first; height uses the selected wrapping option at that resolved width. Absolute instance minima replace the corresponding saved frame dimensions, and matching-unit maxima cap growth. A minimum can shrink a frame; a cap that clips text fails strict projection. Constrained and growing frames require both growth axes explicitly enabled or disabled. Relative, pixel, orphaned or inconsistent constraints and fitting combined with growth still fail strict projection. Width growth reserves horizontal ink insets before alignment and wrapping. Capped no-wrap text keeps its paragraph and text-area anchor. Width caps with unwrapped paint overflow and fixed-height wrapped clipping reject strict projection; growth does not enlarge pages. Chained text-box sources and incoming targets report unsupported flow even when the local target is empty. Source stories, links and saved geometry remain unchanged. See the [text-box sizing contract](OfficeIMO.OpenDocument/README.md#draw-text-box-sizing).
 
-Draw projection now reports `text-clipped` when shared layout omits content or clips text paint in fixed text frames and line/connector captions, including text without fitting. The check includes frame bounds, paragraph margins, padding, tabs, glyphs, decorations, highlights and shared layout limits. `ThrowOnSkippedOrUnsupported` rejects these cases instead of accepting a preview with missing text. Adjust the frame, margins, padding, line spacing or font sizes; inspect the report when using `ReportOnly`. Pass an `OfficeRenderingProfile` to the new `ToDrawing` or `ToDrawings` overload when supplying custom fonts or shaping. ODG-to-PDF checks use its final `PdfOptions` font selection. Later font-provider changes to returned drawings can alter the result. Unembedded PDF standard fonts use Adobe metrics; reader substitutes can paint outside those bounds. Configure licensed embedded fonts when predictable font selection is required. See the [Draw text fitting contract](OfficeIMO.OpenDocument/README.md#draw-text-fitting).
+Draw projection now reports `text-clipped` when shared layout omits content or clips text paint in fixed text frames and line/connector captions, including text without fitting. The check includes frame bounds, paragraph margins, padding, tabs, glyphs, decorations, highlights and shared layout limits. `ThrowOnSkippedOrUnsupported` rejects these cases instead of accepting a preview with missing text. Adjust the frame, margins, padding, line spacing or font sizes; inspect the report when using `ReportOnly`. Pass an `OfficeRenderingProfile` to the new `ToDrawing` or `ToDrawings` overload when supplying custom fonts or shaping. ODG-to-PDF checks use its final `PdfCreateOptions` font selection. Later font-provider changes to returned drawings can alter the result. Unembedded PDF standard fonts use Adobe metrics; reader substitutes can paint outside those bounds. Configure licensed embedded fonts when predictable font selection is required. See the [Draw text fitting contract](OfficeIMO.OpenDocument/README.md#draw-text-fitting).
 
 Draw groups reject assignment to `Transform`, because ODF does not allow `draw:transform` on a group and native applications can discard it. Add children first and call `TransformChildren` to apply the operation to their geometry. The operation rejects attached connectors and unknown elements before changing any child; detach those ends or transform supported leaf shapes individually. Existing free connector routes and lines have their coordinates baked into native output.
 
@@ -1246,9 +1314,9 @@ RTF-to-Word conversion adds tab clears where required to preserve a replacement 
 
 An explicitly selected RTF document font also becomes the Word document default. Remove font overrides added only to compensate for the destination theme font replacing that source selection; explicit source style and run fonts remain in effect.
 
-Direct RTF PDF conversion preserves source spaces by default. To retain collapsed-space output, supply `new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse }` through `RtfToPdfOptions.PdfOptions`. Explicit `Preserve` and `Preformatted` selections remain effective. Recheck line-wrap snapshots that depended on collapsed spaces or an earlier hyphen break.
+Direct RTF PDF conversion preserves source spaces by default. To retain collapsed-space output, supply `new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse }` through `RtfToPdfOptions.PdfCreateOptions`. Explicit `Preserve` and `Preformatted` selections remain effective. Recheck line-wrap snapshots that depended on collapsed spaces or an earlier hyphen break.
 
-Direct RTF PDF conversion disables pair kerning unless the source run supplies a positive `KerningHalfPoints` threshold. The threshold uses the effective font size, including inherited RTF formatting or the PDF default. `PdfOptions.TextKerning` no longer enables kerning for source runs without that threshold. Recheck width and line-wrap snapshots that relied on unconditional pair kerning.
+Direct RTF PDF conversion disables pair kerning unless the source run supplies a positive `KerningHalfPoints` threshold. The threshold uses the effective font size, including inherited RTF formatting or the PDF default. `PdfCreateOptions.TextKerning` no longer enables kerning for source runs without that threshold. Recheck width and line-wrap snapshots that relied on unconditional pair kerning.
 
 Word and PDF table imports no longer add preset borders or convenience padding to borderless zero-gap source tables. Author the required source borders and padding explicitly when those decorations are intended. Supported RTF row half-gaps map to Word table margins and an adjusted stored indent, rather than spacing between separated cells. Remove compensating gap or indent overrides added for the previous mapping. Strict callers must also account for `RtfWordTableCellGapFlattened` and `WordRtfTableCellSpacingOmitted`.
 
@@ -1386,7 +1454,7 @@ elapsed values. Formats such as `hhmmss` and `[h]:mm` retain an unshifted OLE
 Automation `DateTime` carrier in either workbook date system. Code that treated
 the carrier's date as a calendar date in a 1904 workbook must use its time or
 duration serial instead. Use a numeric getter, or set
-`ExcelReadOptions.TreatDatesUsingNumberFormat = false`, to retrieve the original
+`ExcelReaderOptions.TreatDatesUsingNumberFormat = false`, to retrieve the original
 serial directly. Calendar date formats continue to use the workbook date system.
 
 This distinction also applies to XLS and XLSB tabular readers. Early calendar
@@ -1511,7 +1579,7 @@ and the new members. Load the current schema through
 
 ## Default PDF Latin ligatures
 
-`PdfOptions.TextShapingMode` now defaults to `OpenTypeLigatures`. Supported
+`PdfCreateOptions.TextShapingMode` now defaults to `OpenTypeLigatures`. Supported
 ligature substitutions in embedded TrueType and OpenType/CFF fonts can change
 text widths and line breaks. Extraction retains the original logical text.
 Applications that require the previous scalar widths should set
@@ -1614,7 +1682,7 @@ needs it in link metadata. PDF link authoring is unchanged.
 
 PDF image-file pages and image stamps now limit each encoded image source to
 128 MiB before buffering. Applications that intentionally use larger trusted
-images can set `PdfImageDocumentOptions.MaximumEncodedImageBytes` for
+images can set `PdfImageImportOptions.MaximumEncodedImageBytes` for
 `CreateFromImages`, `PdfImageStampOptions.MaximumEncodedImageBytes` for stamps,
 or call `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)`.
 When passing a source created with `FromFile` to `CreateFromImages`, set the
@@ -1840,7 +1908,7 @@ Editable PDF-to-Word conversion now preserves each source page's physical size, 
 To retain the earlier flowing layout, disable the three behaviors explicitly:
 
 ```csharp
-var options = new PdfToWordOptions {
+var options = new WordPdfImportOptions {
     PreserveSourcePageSize = false,
     PreserveCompactSourceSpacing = false,
     PreserveImagePlacementPosition = false
@@ -1851,9 +1919,9 @@ var options = new PdfToWordOptions {
 
 ### Conversion and invoice resource limits
 
-PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfToWordOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
+PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `WordPdfImportOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
 
-Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
+Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordPdfExportOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfCreateOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
 
 PDF text layout rejects excessive cumulative cross-run kerning work with `InvalidDataException`. A very long word split across thousands of formatting runs can reach this limit even on a wide page. Reduce unnecessary run fragmentation or split the paragraph; supported layouts retain their kerning and formatting.
 
@@ -2018,7 +2086,8 @@ positioned glyphs, raise this limit when loading it:
 var options = new PdfLoadOptions {
     Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 200_000 }
 };
-var document = PdfReadDocument.Open(pdfBytes, options);
+using var pdfInput = new MemoryStream(pdfBytes);
+using var document = PdfDocument.Load(pdfInput, options);
 var image = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
 ```
 
@@ -2303,8 +2372,8 @@ constraint.
 Markdown, RTF, AsciiDoc, and LaTeX now expose the same native lifecycle. For example:
 
 ```csharp
-MarkdownDoc document = MarkdownDoc.Load("README.md");
-MarkdownParseResult parsed = MarkdownDoc.LoadResult("README.md");
+MarkdownDocument document = MarkdownDocument.Load("README.md");
+MarkdownParseResult parsed = MarkdownDocument.LoadResult("README.md");
 
 AsciiDocDocument manual = AsciiDocDocument.Parse(source);
 AsciiDocParseResult manualResult = AsciiDocDocument.ParseResult(source);
@@ -2317,9 +2386,9 @@ Forward PDF adapters use source-specific options and the same direct/result pair
 
 | OfficeIMO 3.3 | OfficeIMO 3.4 |
 | --- | --- |
-| `WordPdfSaveOptions` | `WordToPdfOptions` |
-| `ExcelPdfSaveOptions` | `ExcelToPdfOptions` |
-| `PowerPointPdfSaveOptions` | `PowerPointToPdfOptions` |
+| `WordPdfSaveOptions` | `WordPdfExportOptions` |
+| `ExcelPdfSaveOptions` | `ExcelPdfExportOptions` |
+| `PowerPointPdfSaveOptions` | `PowerPointPdfExportOptions` |
 | `MarkdownPdfSaveOptions` | `MarkdownToPdfOptions` |
 | `HtmlPdfSaveOptions` | `HtmlToPdfOptions` |
 | `RtfPdfSaveOptions` | `RtfToPdfOptions` |
@@ -2341,9 +2410,9 @@ PDF conversion options use directional names in both directions:
 
 | Previous reverse options | Current options |
 | --- | --- |
-| `PdfWordImportOptions` | `PdfToWordOptions` |
-| `PdfPowerPointImportOptions` | `PdfToPowerPointOptions` |
-| `PdfExcelTableImportOptions` | `PdfTablesToExcelOptions` |
+| `PdfWordImportOptions` | `WordPdfImportOptions` |
+| `PdfPowerPointImportOptions` | `PowerPointPdfImportOptions` |
+| `PdfExcelTableImportOptions` | `ExcelPdfImportOptions` |
 | `PdfRtfImportOptions` | `PdfToRtfOptions` |
 | `PdfHtmlSaveOptions` | `PdfToHtmlOptions` |
 
@@ -2353,17 +2422,18 @@ Tokens propagate through supported reading, reconstruction, PDF layout, and outp
 stages. Native OpenDocument and AsciiDoc/LaTeX source projections and synchronous
 native-format writers cannot interrupt an individual projection or write; use
 async output where available for cancellation during output. Cancellation throws
-`OperationCanceledException`, including from `SaveAsPdfResult`.
+`OperationCanceledException`, including from `SaveAsPdf` in the Tier 1 adapters.
 The browser-capture bridge also accepts a final token in
 `ToPdfDocumentResult(...)`; synchronous PDF loading checks cancellation before
 and after the load, while `ToPdfDocumentResultAsync(...)` supports cancellation
 during asynchronous input.
 
-`OfficeDocumentPdfConverter.EmailToPdfBytes`, `EpubToPdfBytes`, and
-`VisioToPdfBytes` return `byte[]`. Use their `ToPdfDocumentResult` counterparts
-when the generated document and conversion report are needed.
+Replace `OfficeDocumentPdfConverter.EmailToPdfBytes`, `EpubToPdfBytes` and
+`VisioToPdfBytes` with `OfficeConverter` stream conversion. The destination
+stream holds the encoded PDF and the return value is `OfficeConversionReport`.
 
-Reverse saves return `OfficeOutputResult<TReport>`. Read `Report` for typed
+Tier 1 reverse saves return `OfficeConversionReport`. Other reverse adapters
+retain `OfficeOutputResult<TReport>`; read `Report` for typed
 fidelity evidence, `OutputPath` for a file destination, and `Succeeded` through
 `IOfficeOutputResult` or `IOfficeResult`. Ordinary saves still throw on failure;
 `OfficeOutputResult<TReport>.FromFailure` supports application-owned failure
@@ -2408,7 +2478,7 @@ OfficeWorkflowResult result = await OfficeWorkflow
 PDF creation still starts at `PdfDocument.Create(...)`. The authoring model now
 uses one content builder at every flow boundary, builder names describe their
 roles, row widths are explicit, and document defaults are configured through
-`PdfOptions`.
+`PdfCreateOptions`.
 
 | OfficeIMO 3.3 | OfficeIMO 3.4 |
 | --- | --- |
@@ -2445,7 +2515,7 @@ For incremental authoring, create the document with options and add content thro
 its document-owned builder. It uses the same operations as callback composition:
 
 ```csharp
-var report = PdfDocument.Create(new PdfOptions());
+var report = PdfDocument.Create(new PdfCreateOptions());
 report.Content.H1("Service report");
 report.Content.Text("Ready");
 report.Save("report.pdf");
@@ -2583,9 +2653,9 @@ foreach (PdfLogicalPage page in result.Pages) {
 }
 ```
 
-`PdfReadOptions` now controls semantic reconstruction. All parser, security,
+`PdfLoadOptions` now controls semantic reconstruction. All parser, security,
 credential, artifact-text, source-buffering, and low-level operation options that
-used the old `PdfReadOptions` type moved to `PdfLoadOptions`. Supply those options
+used the old `PdfLoadOptions` type moved to `PdfLoadOptions`. Supply those options
 to `Load(...)`, or omit an operation-level options argument to reuse the loaded
 document's settings. The default semantic profile
 is `PdfReadProfile.Structured`. `PdfReadProfile.Fast` omits optional
@@ -2605,15 +2675,15 @@ intentionally larger inputs.
 | `PdfDocument.Open(...)` | `PdfDocument.Load(...)` |
 | `PdfDocument.OpenAsync(pathOrStream, ..., cancellationToken)` | `PdfDocument.LoadAsync(pathOrStream, loadOptions, cancellationToken)`; parser, limit, credential, and buffering settings belong in `PdfLoadOptions` |
 | parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
-| `PdfUnderstandingPipelineOptions.Advanced(layout)` | `PdfUnderstandingPipelineOptions.Structured()` for stages, with `layout` assigned to `PdfReadOptions.LayoutOptions` |
-| `PdfUnderstandingPipelineOptions.Layout` | `PdfReadOptions.LayoutOptions` |
+| `PdfUnderstandingPipelineOptions.Advanced(layout)` | `PdfUnderstandingPipelineOptions.Structured()` for stages, with `layout` assigned to `PdfLoadOptions.LayoutOptions` |
+| `PdfUnderstandingPipelineOptions.Layout` | `PdfLoadOptions.LayoutOptions` |
 | `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
-| selected `pdf.Read.Logical(selection, ...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection, LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions() })` |
+| selected `pdf.Read.Logical(selection, ...)` | `pdf.Read(new PdfLoadOptions { PageSelection = selection, LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions() })` |
 | `pdf.Read.TryLogical(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary |
 | `PdfLogicalDocument` | `PdfDocumentReadResult` |
 | `pdf.Read.Text()` | `pdf.Read().Text`; this is canonical semantic text rather than the former direct extraction surface |
-| selected `pdf.Read.Text(...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection }).Text` |
-| `pdf.Read.TextBlocks(...)` | `result.TextBlocks`; for a selection, set `PdfReadOptions.PageSelection` before reading |
+| selected `pdf.Read.Text(...)` | `pdf.Read(new PdfLoadOptions { PageSelection = selection }).Text` |
+| `pdf.Read.TextBlocks(...)` | `result.TextBlocks`; for a selection, set `PdfLoadOptions.PageSelection` before reading |
 | `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
 | `pdf.Read.TryText(...)` / `TryTextByPage(...)` / `TryMarkdown(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary and use `result.Text`, project `result.Pages[*].TextBlocks`, or call `result.ToMarkdown()` |
 | `pdf.Read.ExportStructured(format)` | `pdf.Read().ExportStructured(format)`; pass semantic options to `Read(...)` and load/security options to `Load(...)` |
@@ -2655,10 +2725,10 @@ intentionally larger inputs.
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
 | `pdf.Read.TryParagraphContinuations(...)` / `TryTableContinuations(...)` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the matching continuation helper |
 | `pdf.Read.Interactions(pageNumber, ...)` | `PdfPageInteractionMap.Create(pdf.ToBytes(), pageNumber, interactionOptions, loadOptions)` |
-| `pdf.Read.Understand(options, selection, readOptions)` | `pdf.Read(new PdfReadOptions { Pipeline = options, PageSelection = selection })`; move the former parser, limit, credential, and buffering settings to `PdfLoadOptions` when calling `PdfDocument.Load(...)` |
-| `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
+| `pdf.Read.Understand(options, selection, readOptions)` | `pdf.Read(new PdfLoadOptions { Pipeline = options, PageSelection = selection })`; move the former parser, limit, credential, and buffering settings to `PdfLoadOptions` when calling `PdfDocument.Load(...)` |
+| `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfLoadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
 | `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
-| `ReaderPdfOptions.LayoutOptions`, `PageRanges` | `ReaderPdfOptions.ReadOptions`; use `PdfReadOptions.LayoutOptions` and `PageSelection`, and configure semantic ceilings through `PdfReadOptions.Pipeline` |
+| `ReaderPdfOptions.LayoutOptions`, `PageRanges` | `ReaderPdfOptions.ReadOptions`; use `PdfLoadOptions.LayoutOptions` and `PageSelection`, and configure semantic ceilings through `PdfLoadOptions.Pipeline` |
 | `PdfPowerPointImportOptions.PageSelection` | `PdfPowerPointImportOptions.ReadOptions.PageSelection`; `PdfPowerPointImportOptions.MaxPages` remains the destination import/rendering limit |
 
 In 3.2, omitted stages on a manually assembled understanding pipeline fell back
@@ -2692,7 +2762,7 @@ confidence, and visual-geometry evidence to the same bounded table,
 segmentation, reading-order, and semantic stages used for native PDF text.
 `PdfOcrMergeOptions.Selection` was replaced by
 `PdfOcrMergeOptions.ReadOptions.PageSelection`; configure the shared layout,
-profile, limits, and replaceable stages through this `PdfReadOptions` instance.
+profile, limits, and replaceable stages through this `PdfLoadOptions` instance.
 OCR no longer owns a second public structure policy.
 
 `PdfUnderstandingWord` now accepts optional baseline `advance`, direct visual
@@ -2848,7 +2918,7 @@ Applications that construct assets, table exports, or visual exports must assign
 
 ## OfficeIMO 3.2: editable HTML layout projection defaults
 
-HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `HtmlToWordOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
+HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `WordHtmlImportOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
 
 ## OfficeIMO 3.2: bounded object-table and MHTML ingestion defaults
 
@@ -2936,7 +3006,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("report.pdf");
 ```
 
-Document-wide settings still belong in `PdfOptions`. Page-scoped headers,
+Document-wide settings still belong in `PdfCreateOptions`. Page-scoped headers,
 footers, backgrounds, watermarks, and layout use `pdf.Page(page => ...)`.
 Reusable content stays on `PdfItemCompose`, so adapters and applications share
 one authoring vocabulary.
@@ -3431,7 +3501,7 @@ On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets work through
 CSV and Excel schema inference remains `DateTime`; OfficeIMO does not remap
 inferred dates based on the target framework. Set
 `CsvLoadOptions.MappingErrorValuePolicy` or
-`ExcelReadOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
+`ExcelReaderOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
 must omit source values and custom-converter details.
 
 Shared typed-row conversion now parses `DateTime` text with
@@ -3572,7 +3642,7 @@ old import-result properties
 inspect the resulting worksheet/table when row or column counts are needed. `Delimiter`
 reports the actual delimiter used, including one selected by detection.
 
-CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
+CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReaderOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
 XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
 (32 Mi characters by default) while completing a physical row, or across all
@@ -3635,8 +3705,8 @@ The common conversion grammar is:
 | Write asynchronously when the operation performs asynchronous I/O | `SaveAs{Format}Async` | `pdf.SaveAsRtfAsync(...)` |
 | Persist a document in its native format | `Save` / `SaveAsync` | `word.Save(...)` |
 | Recover a narrow feature | Name the feature | `pdf.SaveTablesAsExcel(...)` |
-| Configure forward PDF output | `{Source}ToPdfOptions` | `WordToPdfOptions` |
-| Configure the shared writer inside direct save options | `PdfOptions` | `HtmlToPdfOptions.PdfOptions` |
+| Configure forward PDF output | `{Source}ToPdfOptions` | `WordPdfExportOptions` |
+| Configure the shared writer inside direct save options | `PdfCreateOptions` | `HtmlToPdfOptions.PdfCreateOptions` |
 | Configure an intermediate conversion stage | `{Intermediate}Options` | `OneNoteToPdfOptions.MarkdownOptions` |
 | Configure reconstruction from PDF | `Pdf{Target}ImportOptions` | `PdfWordImportOptions` |
 | Report a general reverse conversion | `Pdf{Target}ConversionResult` | `PdfPowerPointConversionResult` |
@@ -3837,7 +3907,7 @@ OpenDocument save methods now return `OdfSaveResult` directly. Replace the disca
 
 Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
 
-The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfDocumentReadResult` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across the first-party forward PDF adapters available in that release, while `ToPdfBytes()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
+Tier 1 forward PDF adapters use `source.ToPdf(options, out OfficeConversionReport report)` and `SaveAsPdf` returns that shared report. Reconstruction extends `PdfDocument` with `ToWord`, `ToExcel` and `ToPowerPoint`; string Markdown extraction is `ExtractMarkdown`. Other format adapters retain their documented typed evidence contracts. Use `OfficeConverter` streams for general encoded-byte conversion. Opening a generated file in another application is an explicit application action.
 
 `VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
 limit before opening the package. For trusted documents that intentionally
@@ -3873,19 +3943,19 @@ stream overload.
 | `TableCell.Blocks` / `DefinitionListDefinition.Blocks` | `ChildBlocks` |
 | `FootnoteDefinitionBlock.Blocks` | `ChildBlocks` |
 | tuple-based `DefinitionListBlock.Items` | typed `Groups`, `Entries`, and `AddEntry(...)` |
-| `MarkdownDoc.SaveHtml(...)` | `SaveAsHtml(...)` |
+| `MarkdownDocument.SaveHtml(...)` | `SaveAsHtml(...)` |
 | Markdown `VisualTheme` | `Theme` with a shared `MarkdownVisualTheme` |
 | `ApplyWordLikeTheme()` | `ApplyDefaultTheme()` |
 | `UseFrontMatterVisualTheme` | `UseFrontMatterTheme` |
 | `OutlookContact.Email1Address` | `OutlookContact.Email1.Address` |
 | phone compatibility properties | `OutlookContact.Phones` |
 | `TrackComments` | No replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking. |
-| `ToPdfResult()` | `ToPdfDocumentResult()` |
-| `HtmlToPdfOptions.DocumentOptions` | `HtmlToPdfOptions.PdfOptions` |
-| `AsciiDocToPdfOptions.PdfOptions` | `AsciiDocToPdfOptions.MarkdownOptions` |
-| `LatexToPdfOptions.PdfOptions` | `LatexToPdfOptions.MarkdownOptions` |
-| `OneNoteToPdfOptions.PdfOptions` | `OneNoteToPdfOptions.MarkdownOptions` |
-| PDF `ToWordResult()` | `ToWordDocumentResult()` |
+| Tier 1 `ToPdfResult()` / `ToPdfDocumentResult()` | `ToPdf(options, out OfficeConversionReport report)` |
+| `HtmlToPdfOptions.DocumentOptions` | `HtmlToPdfOptions.PdfCreateOptions` |
+| `AsciiDocToPdfOptions.PdfCreateOptions` | `AsciiDocToPdfOptions.MarkdownOptions` |
+| `LatexToPdfOptions.PdfCreateOptions` | `LatexToPdfOptions.MarkdownOptions` |
+| `OneNoteToPdfOptions.PdfCreateOptions` | `OneNoteToPdfOptions.MarkdownOptions` |
+| PDF `ToWordResult()` / `ToWordDocumentResult()` | `ToWord(options, out OfficeConversionReport report)` |
 | `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
@@ -3936,7 +4006,7 @@ Raw HTML is parsed once into `HtmlConversionDocument`. PDF, image, Word, Markdow
 
 Reader orchestration uses an immutable `OfficeDocumentReader` built from explicit typed handlers. Native packages retain parser ownership; Reader adapters project native models into `OfficeDocumentReadResult` and return diagnostics from the operation. Do not replace removed parser classes with another public Reader parser hierarchy.
 
-Markdown HTML and PDF options use the shared `MarkdownVisualTheme` through `Theme`; PDF-only overrides use `MarkdownToPdfOptions.Style` and `MarkdownPdfStyle.DocumentTheme`. Visio styling and package themes are separate contracts: `VisioStyleTheme` describes reusable diagram styling, while `VisioPackageTheme` represents theme data stored in a Visio package. Shared colors and hexadecimal formatting belong to `OfficeIMO.Drawing` rather than duplicate Word or Excel helpers.
+Markdown HTML and PDF options use the shared `MarkdownVisualTheme` through `Theme`; PDF-only overrides use `MarkdownToPdfOptions.Style` and `MarkdownPdfStyle.DocumentTheme`. Visio styling and package themes are separate contracts: `VisioStyleTheme` describes reusable diagram styling, while `VisioPackageTheme` represents theme data stored in a Visio package. Shared `OfficeColor` and `OfficeColorRole` belong to `OfficeIMO`; drawing geometry and renderers remain in `OfficeIMO.Drawing`.
 
 PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches. Replace the removed switches as follows:
 

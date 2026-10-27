@@ -65,7 +65,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(24D, artifact.Height, 6);
         rendered.RequireNoLoss();
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         pdf.RequireNoLoss();
         byte[] saved = pdf.ToBytes();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(saved).ExtractText().Trim());
@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions options = PageMarginShapingOptions();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("bottom-center", text, "width:max-content", string.Empty));
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         pdf.RequireNoLoss();
         byte[] bytes = pdf.ToBytes();
 

@@ -34,7 +34,7 @@ internal static partial class PdfRedactionPlanner {
                 excludeGeneratedRedactionMarks, cancellationToken);
         } catch (PdfUnsupportedTextMappingException error) {
             return CreateUnsupportedTextMappingPlan(pdf, error, options,
-                "RedactionSourceTextMappingUnsupported", cancellationToken);
+                "redaction-source-text-mapping-unsupported", cancellationToken);
         }
     }
 
@@ -61,7 +61,7 @@ internal static partial class PdfRedactionPlanner {
         var findings = new List<PdfDiagnosticFinding>();
         if (!preflight.CanReadLogicalObjects) {
             foreach (string message in preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)) {
-                findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "RedactionPlanBlocked", message));
+                findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-plan-blocked", message));
             }
 
             return new PdfRedactionPlan(
@@ -107,7 +107,7 @@ internal static partial class PdfRedactionPlanner {
                     if (inconclusiveOptionalContentPages.Add(area.PageNumber)) {
                         findings.Add(new PdfDiagnosticFinding(
                             PdfDiagnosticSeverity.Error,
-                            "RedactionPlanOptionalContentInspectionInconclusive",
+                            "redaction-plan-optional-content-inspection-inconclusive",
                             "Residual redaction inspection cannot determine optional-content visibility because the PDF uses unsupported View usage applications.",
                             pageNumber: area.PageNumber));
                     }
@@ -142,7 +142,7 @@ internal static partial class PdfRedactionPlanner {
 
         findings.Add(new PdfDiagnosticFinding(
             PdfDiagnosticSeverity.Info,
-            "RedactionPlanOnly",
+            "redaction-plan-only",
             "This plan reports intersections with the exact reviewed geometry. It does not remove or rewrite PDF content."));
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -321,7 +321,7 @@ internal static partial class PdfRedactionPlanner {
 
         findings.Add(new PdfDiagnosticFinding(
             area.ContentScope == PdfRedactionContentScope.TextOnly ? PdfDiagnosticSeverity.Info : PdfDiagnosticSeverity.Warning,
-            "RedactionPlanImageIntersection",
+            "redaction-plan-image-intersection",
             area.ContentScope == PdfRedactionContentScope.TextOnly
                 ? "Redaction area intersects an image placement retained by the TextOnly policy."
                 : "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
@@ -386,8 +386,8 @@ internal static partial class PdfRedactionPlanner {
             findings.Add(new PdfDiagnosticFinding(
                 area.ContentScope == PdfRedactionContentScope.TextOnly ? PdfDiagnosticSeverity.Info : PdfDiagnosticSeverity.Warning,
                 primitive.ContentOrderKey?.Depth > 1
-                    ? "RedactionPlanNestedVectorIntersection"
-                    : "RedactionPlanVectorIntersection",
+                    ? "redaction-plan-nested-vector-intersection"
+                    : "redaction-plan-vector-intersection",
                 area.ContentScope == PdfRedactionContentScope.TextOnly
                     ? "The redaction area intersects vector content retained by the TextOnly policy."
                     : primitive.ContentOrderKey?.Depth > 1

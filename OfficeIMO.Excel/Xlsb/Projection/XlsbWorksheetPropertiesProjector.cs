@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if ((source.SynchronizeHorizontal || source.SynchronizeVertical)
                 && source.SynchronizedRow != uint.MaxValue
                 && source.SynchronizedColumn != uint.MaxValue) {
-                properties.SyncReference = A1.CellReference(
+                properties.SyncReference = ExcelA1.CellReference(
                     checked((int)source.SynchronizedRow + 1),
                     checked((int)source.SynchronizedColumn + 1));
             }

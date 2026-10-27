@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("9525"), new Xdr.RowId("0"), new Xdr.RowOffset("9525")));
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal(1, snapshot.WidthPixels);
             Assert.Equal(1, snapshot.HeightPixels);
         }
@@ -72,10 +72,10 @@ namespace OfficeIMO.Tests {
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1"), new Xdr.RowOffset("0")));
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot before));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
             sheet.SetColumnWidth(1, 30D);
             sheet.SetRowHeight(1, 45D);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot after));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo after));
 
             Assert.True(after.WidthPixels > before.WidthPixels);
             Assert.True(after.HeightPixels > before.HeightPixels);
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
             sheetData.Append(new X.Row { RowIndex = 100001U, Height = 60D, CustomHeight = true });
             sheetData.Append(new X.Row { RowIndex = 100001U, Height = 30D, CustomHeight = true });
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal(80, snapshot.HeightPixels);
         }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 title: "Scatter");
             SetScatterChartSeriesIndexes(document, 1U, 3U);
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
 
             Assert.Equal(new[] { 1D, 2D }, visualChart.Snapshot.Data.Series[0].XValues);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 heightPixels: 170,
                 title: "Scatter");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:J10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
 
             Assert.Equal(new[] { 1D, 2D, 3D }, visualChart.Snapshot.Data.Series[0].XValues);
@@ -962,7 +962,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 20);
             sheet.AddChartFromRange("A1:B3", row: 1, column: 1, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Overlap");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:D8").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.Range("B1:D8").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
 
             Assert.True(visualChart.X < 0D);
@@ -1018,7 +1018,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1081,7 +1081,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1139,7 +1139,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1185,7 +1185,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1255,7 +1255,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1382,7 +1382,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1416,7 +1416,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1446,7 +1446,7 @@ namespace OfficeIMO.Tests {
                 type: ExcelChartType.ColumnClustered, title: "Combo");
 
             ExcelRange range = sheet.Range("A1:H9");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png,
                 new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
@@ -1503,7 +1503,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1560,7 +1560,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("D1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1593,7 +1593,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("D1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -1629,7 +1629,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("D1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             string svg = range.ToSvg(options);
 
@@ -1657,7 +1657,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("D1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             string svg = range.ToSvg(options);
 
@@ -1691,7 +1691,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -1737,7 +1737,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -1789,7 +1789,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -1842,7 +1842,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -1888,7 +1888,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -1936,7 +1936,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -2019,7 +2019,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
@@ -2051,7 +2051,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:H9");
             var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -2096,7 +2096,7 @@ namespace OfficeIMO.Tests {
             chart.SetCategoryAxisReverseOrder(false);
 
             ExcelRange range = sheet.Range("A1:H9");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
@@ -2138,7 +2138,7 @@ namespace OfficeIMO.Tests {
                 "FFFF0000",
                 stopIfTrue: true);
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions {
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions {
                 ShowGridlines = false,
                 IncludeConditionalFormatting = true
             });

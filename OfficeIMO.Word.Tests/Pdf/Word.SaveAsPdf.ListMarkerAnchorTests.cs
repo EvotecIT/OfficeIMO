@@ -27,9 +27,9 @@ public sealed class PdfListMarkerAnchorTests {
         paragraph.FontSize = 12;
         paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2))
             .Select(line => string.Concat(line.Select(letter => letter.Value))).ToArray();
@@ -86,9 +86,9 @@ public sealed class PdfListMarkerAnchorTests {
             document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
                 .Elements<NumberingInstance>().Single().Append(new LevelOverride(replacement) { LevelIndex = 0 });
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.BODY", string.Concat(letters.Select(letter => letter.Value)));
         double expectedOffset = mode switch { 1 or 3 => 28D, 2 or 4 => 36D, _ => 78D };
@@ -131,9 +131,9 @@ public sealed class PdfListMarkerAnchorTests {
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });
         if (explicitTabTwips > 0) paragraph._paragraph.ParagraphProperties.Tabs = new Tabs(
             new TabStop { Val = TabStopValues.Left, Position = explicitTabTwips });
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.BODYNEXT", string.Concat(letters.Select(letter => letter.Value)));
         double markerAnchor = alignment switch {
@@ -166,12 +166,12 @@ public sealed class PdfListMarkerAnchorTests {
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
-        var options = new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Courier" };
-        using var explicitPdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Courier" };
+        using var explicitPdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var expected = explicitPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         // Remove last: the public getter can materialize Word's left default.
         level.OpenXmlElement.LevelJustification = null;
-        using var omittedPdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var omittedPdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var actual = omittedPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.BODY", string.Concat(actual.Select(letter => letter.Value)));
         Assert.InRange(Math.Abs(actual[0].StartBaseLine.X - expected[0].StartBaseLine.X), 0D, 0.03D);
@@ -207,9 +207,9 @@ public sealed class PdfListMarkerAnchorTests {
                 new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
                 new CharacterScale { Val = widthPercentage }, new FontSize { Val = "40" });
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).ToArray();
         Assert.Equal(2, lines.Length);
@@ -251,9 +251,9 @@ public sealed class PdfListMarkerAnchorTests {
         paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
             new Spacing { Val = markerSpacingTwips });
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.MARKERBODY", string.Concat(letters.Select(letter => letter.Value)));
         double markerAdvance = letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
@@ -284,9 +284,9 @@ public sealed class PdfListMarkerAnchorTests {
         paragraph.FontSize = 12;
         paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.MARKERBODY", string.Concat(letters.Select(letter => letter.Value)));
         Assert.InRange(Math.Abs(letters[3].StartBaseLine.Y - letters[0].StartBaseLine.Y), 0D, 0.03D);
@@ -324,9 +324,9 @@ public sealed class PdfListMarkerAnchorTests {
         paragraph.FontFamily = "Courier New";
         paragraph.FontSize = 12;
         if (inline) paragraph.CharacterScale = 95;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.MARKERBODY", string.Concat(letters.Select(letter => letter.Value)));
         double start = letters[0].StartBaseLine.X;

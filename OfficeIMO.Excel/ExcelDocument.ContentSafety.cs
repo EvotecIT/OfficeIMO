@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Inspects XLSX, XLSM, XLSB, and legacy XLS content using the normal first-party workbook loader.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
@@ -25,7 +25,7 @@ public partial class ExcelDocument {
     }
 
     /// <summary>Inspects encoded Excel workbook bytes. The file name helps preserve exact template and binary routing.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] workbookBytes,
         string fileName = "workbook.xlsx",
         OfficeContentSafetyOptions? options = null) {

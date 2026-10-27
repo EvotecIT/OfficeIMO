@@ -9,6 +9,7 @@
 Install the PDF integration and one provider. For Tesseract:
 
 ```powershell
+dotnet add package OfficeIMO
 dotnet add package OfficeIMO.Pdf.Ocr
 dotnet add package OfficeIMO.Ocr.Tesseract
 ```
@@ -20,11 +21,12 @@ Tesseract itself remains a separately installed host dependency. A custom or hos
 Recognize a captured image once, review the evidence, and pass its logical document to the existing format adapters. Image recognition uses the original pixel resolution; `Dpi` controls review rendering and does not resample the provider input. Missing density metadata uses the image owner's physical-size fallback. Embedded orientation is normalized through the same image composition owner.
 
 ```csharp
-using OfficeIMO.Excel.Pdf;
+using OfficeIMO;
+using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
-using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf.Word;
 
 var session = await TesseractOcr.CreateSessionAsync();
 var image = PdfImageDocumentSource.FromFile("ledger.png");
@@ -32,15 +34,15 @@ PdfSearchableOcrReview review = await image.PrepareSearchableOcrAsync(session.En
 PdfOcrMergeResult recognized = review.Ocr.RequireAcceptedOcrContent();
 
 // Inspect recognized.Document.Tables and recognized.Pages before confirming the header row.
-recognized.Document.SaveTablesAsExcel("ledger.xlsx",
-    new PdfTablesToExcelOptions { UseFirstRowAsHeader = true }).RequireSuccess();
-recognized.Document.SaveAsWord("ledger.docx",
-    new PdfToWordOptions { ImportImages = false, IncludeImagePlaceholders = false }).RequireSuccess();
-review.ApplyAll().Document.Save("ledger-searchable.pdf").RequireSuccess();
+recognized.SaveAsExcel("ledger.xlsx",
+    new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
+recognized.SaveAsWord("ledger.docx",
+    new WordPdfImportOptions { ImportImages = false, IncludeImagePlaceholders = false });
+review.ApplyAll().Document.Save("ledger-searchable.pdf");
 string json = recognized.Document.ExportStructured(PdfStructuredExportFormat.Json);
 ```
 
-Add `OfficeIMO.Excel.Pdf` or `OfficeIMO.Word.Pdf` for the corresponding output. `ReadWithOcrAsync` returns the recognition result directly; `MakeSearchableAsync` creates an in-memory searchable PDF. Null recognition options enable geometry-based layout reconstruction. When supplying `PdfOcrMergeOptions`, set `ReconstructLayout = true` to request that behavior explicitly.
+The `OfficeIMO` front door owns the recognized-content conversion forms and includes the PDF reconstruction adapters. `ReadWithOcrAsync` returns the recognition result directly; `MakeSearchableAsync` creates an in-memory searchable PDF. Null recognition options enable geometry-based layout reconstruction. When supplying `PdfOcrMergeOptions`, set `ReconstructLayout = true` to request that behavior explicitly.
 
 The image source is a private snapshot. Source files and caller-owned bytes are unchanged, and several exports can reuse the same recognition. Animated and multi-page containers are rejected instead of silently discarding frames. Source bytes, decoded pixels, recognition artifacts, provider execution and cancellation use the existing OCR limits. Nonrecoverable provider errors fail recognition; recoverable diagnostics and confidence exclusions remain in `Pages`. A result with no accepted words can be inspected, but `RequireAcceptedOcrContent()` rejects it for content export.
 
@@ -94,7 +96,7 @@ PdfOcrMergeResult result = await pdf.ReadWithOcrAsync(
         Dpi = 180,
         MaxConcurrentPages = 2,
         MinimumConfidence = 0.75,
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             LayoutOptions = new PdfTextLayoutOptions {
                 ReadingDirection = PdfReadingDirection.Auto
             }
@@ -118,7 +120,7 @@ PdfOcrMergeResult reconstructed = await pdf.ReadWithOcrAsync(engine,
     new PdfOcrMergeOptions {
         ReconstructLayout = true,
         Language = "heb+ara+eng",
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             LayoutOptions = new PdfTextLayoutOptions {
                 ReadingDirection = PdfReadingDirection.RightToLeft
             }

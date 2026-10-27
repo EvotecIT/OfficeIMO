@@ -29,10 +29,10 @@ public sealed class OfficeProvenanceWorkflowRequest {
     public string? OutputPath { get; set; }
 
     /// <summary>Conflict behavior used when publishing a removal artifact.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Rename;
 
     /// <summary>Optional live application ownership check for each final publication candidate.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Structural inspection limits used by <see cref="OfficeProvenanceWorkflowOperation.Inspect"/>.</summary>
     public OfficeProvenanceOptions Inspection { get; set; } = new();
@@ -44,7 +44,7 @@ public sealed class OfficeProvenanceWorkflowRequest {
     public OfficeProvenanceRemovalOptions Removal { get; set; } = new();
 
     /// <summary>Shared input and output byte limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
 
     internal SortedSet<string>? BatchBlockedOutputIdentities { get; set; }
     internal string? BatchOwnReservedOutputIdentity { get; set; }

@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? record = slideRecord.Children.FirstOrDefault(child =>
                 child.Type == RecordSlideAtom);
             if (!LegacyPptLayoutReader.TryReadSlideAtom(record, out LegacyPptSlideAtomData data)) {
-                AddDiagnostic("PPT-SLIDE-ATOM-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-slide-atom-truncated", LegacyPptDiagnosticSeverity.Warning,
                     "A required SlideAtom is missing or truncated; layout and master inheritance remain preserve-only.",
                     record?.Offset ?? slideRecord.Offset);
                 return;
@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void ParseMasterSlideAtom(LegacyPptRecord masterRecord, LegacyPptMaster master,
             LegacyPptRecord? record, LegacyPptImportOptions options) {
             if (!LegacyPptLayoutReader.TryReadSlideAtom(record, out LegacyPptSlideAtomData data)) {
-                AddDiagnostic("PPT-MASTER-SLIDE-ATOM-TRUNCATED",
+                AddDiagnostic("ppt-master-slide-atom-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A required master SlideAtom is missing or truncated; its layout metadata remains preserve-only.",
                     record?.Offset ?? masterRecord.Offset);
@@ -52,23 +52,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void ReportSlideAtomIssues(LegacyPptSlideAtomData data, long offset,
             string owner, LegacyPptImportOptions options) {
             if (data.HasInvalidLength) {
-                AddDiagnostic("PPT-SLIDE-ATOM-LENGTH", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-slide-atom-length", LegacyPptDiagnosticSeverity.Warning,
                     $"A {owner} SlideAtom has a nonstandard length; its first 24 bytes were decoded.",
                     offset);
             }
             if (!data.Layout.HasValue) {
-                AddDiagnostic("PPT-SLIDE-LAYOUT-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-slide-layout-type", LegacyPptDiagnosticSeverity.Warning,
                     $"A {owner} uses undefined layout type 0x{data.RawLayoutType:X8}; the raw value remains available.",
                     offset);
             }
             if (data.HasInvalidPlaceholderType) {
-                AddDiagnostic("PPT-SLIDE-LAYOUT-PLACEHOLDER",
+                AddDiagnostic("ppt-slide-layout-placeholder",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"A {owner} layout signature contains an undefined placeholder type; the slot remains preserve-only.",
                     offset);
             }
             if (data.HasReservedFlags && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-SLIDE-FLAGS-RESERVED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-slide-flags-reserved", LegacyPptDiagnosticSeverity.Warning,
                     $"A {owner} SlideFlags value uses reserved bits; those bits remain preserved only.",
                     offset);
             }
@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 out LegacyPptPlaceholderReadStatus status);
             if (status == LegacyPptPlaceholderReadStatus.Invalid
                 && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-PLACEHOLDER-INVALID", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-placeholder-invalid", LegacyPptDiagnosticSeverity.Warning,
                     "A PlaceholderAtom has an invalid length, identifier, kind, or size and remains preserve-only.",
                     record?.Offset ?? shapeContainer.Offset);
             }

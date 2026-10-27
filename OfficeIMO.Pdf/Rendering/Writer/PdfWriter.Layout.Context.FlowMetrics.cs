@@ -246,7 +246,7 @@ internal static partial class PdfWriter {
                     deepest = Math.Min(deepest, y - paintHeight);
                     bool restoresTableFlow = false;
                     if (block is TableBlock overlay) {
-                        PdfTableStyle style = overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+                        PdfTableStyle style = overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
                         if (!style.ConsumesVerticalFlow && style.Position == null)
                             restoresTableFlow = RestoresMeasuredTableFlow(style,
                                 MeasureTableBlockHeight(overlay, frameWidth, fontSize, firstVisualOnly: false),
@@ -359,7 +359,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is TableBlock table) {
-                return (table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light()).KeepWithNext;
+                return (table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light()).KeepWithNext;
             }
 
             if (block is HorizontalRuleBlock rule) {
@@ -569,7 +569,7 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureDeferredTableFirstVisualHeight(DeferredTableBlock table, double frameWidth, double fontSize) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             using System.Collections.Generic.IEnumerator<DeferredTableBatch> batches = table.CreateBatches(style).GetEnumerator();
             return batches.MoveNext()
                 ? MeasureTableBlockHeight(batches.Current.Table, frameWidth, fontSize, firstVisualOnly: true)
@@ -636,7 +636,7 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly, bool allowTableFragments = false) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             if (HasContainedCellBlocks(table)) {
                 PreparedTableGeometry geometry = PrepareTableGeometry(table, PreparePairedTableBorders(table, style), frameWidth);
                 if (firstVisualOnly && allowTableFragments) {

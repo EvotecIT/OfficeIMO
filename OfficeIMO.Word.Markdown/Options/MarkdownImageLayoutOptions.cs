@@ -2,16 +2,18 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Controls how markdown image dimensions are normalized before insertion into Word.
     /// </summary>
-    public sealed class MarkdownImageLayoutOptions {
+    public sealed class WordMarkdownImageLayoutOptions {
+        internal WordMarkdownImageLayoutOptions CloneForConversion() => (WordMarkdownImageLayoutOptions)MemberwiseClone();
+
         /// <summary>
         /// Selects how container width should constrain markdown images.
         /// </summary>
-        public MarkdownImageFitMode FitMode { get; set; } = MarkdownImageFitMode.None;
+        public WordMarkdownImageFitMode FitMode { get; set; } = WordMarkdownImageFitMode.None;
 
         /// <summary>
         /// Defines whether markdown width/height hints are applied before or after layout constraints.
         /// </summary>
-        public MarkdownImageHintPrecedence HintPrecedence { get; set; } = MarkdownImageHintPrecedence.MarkdownThenLayout;
+        public WordMarkdownImageHintPrecedence HintPrecedence { get; set; } = WordMarkdownImageHintPrecedence.MarkdownThenLayout;
 
         /// <summary>
         /// Optional hard cap (pixels) for image width.
@@ -38,7 +40,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Selects image fitting behavior for markdown conversion.
     /// </summary>
-    public enum MarkdownImageFitMode {
+    public enum WordMarkdownImageFitMode {
         /// <summary>
         /// Do not apply container-based width fitting.
         /// </summary>
@@ -56,7 +58,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Controls ordering between markdown size hints and layout constraints.
     /// </summary>
-    public enum MarkdownImageHintPrecedence {
+    public enum WordMarkdownImageHintPrecedence {
         /// <summary>
         /// Apply markdown width/height hints first, then clamp using layout constraints.
         /// </summary>
@@ -70,7 +72,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Provides per-image layout diagnostics emitted during markdown conversion.
     /// </summary>
-    public sealed class MarkdownImageLayoutDiagnostic {
+    public sealed class WordMarkdownImageLayoutDiagnostic {
         /// <summary>
         /// Image source path or URL.
         /// </summary>

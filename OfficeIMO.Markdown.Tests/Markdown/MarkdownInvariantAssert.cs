@@ -6,7 +6,7 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class MarkdownInvariantAssert {
-    public static void SemanticTreeIsWellFormed(MarkdownDoc document) {
+    public static void SemanticTreeIsWellFormed(MarkdownDocument document) {
         Assert.NotNull(document);
         Assert.Null(document.Parent);
         Assert.Null(document.IndexInParent);
@@ -29,7 +29,7 @@ internal static class MarkdownInvariantAssert {
         AssertSyntaxNode(root, expectedParent: null, expectedRoot: root);
     }
 
-    public static void MappedAssociatedObjectsAreConsistent(MarkdownParseResult result) {
+    public static void MappedAssociatedObjectsAreConsistent(MarkdownParseInfo result) {
         var liveObjects = result.Document.Descendants().Prepend(result.Document).ToList();
         var mappedNodes = result.FinalSyntaxTree
             .DescendantsAndSelf()
@@ -78,7 +78,7 @@ internal static class MarkdownInvariantAssert {
     private static void AssertSemanticNode(
         MarkdownObject node,
         MarkdownObject? expectedParent,
-        MarkdownDoc expectedDocument,
+        MarkdownDocument expectedDocument,
         MarkdownObject expectedRoot) {
         Assert.Same(expectedParent, node.Parent);
         Assert.Same(expectedDocument, node.Document);

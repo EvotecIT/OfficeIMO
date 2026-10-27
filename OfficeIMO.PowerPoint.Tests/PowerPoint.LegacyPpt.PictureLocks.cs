@@ -38,8 +38,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                editedBytes = presentation.ToBytes(
-                    PowerPointFileFormat.Ppt);
+                editedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation edited = LegacyPptPresentation.Load(

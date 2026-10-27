@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf {
             return new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
         }
 
-        private static void AssertMargins(PageMargins margins, double left, double top, double right, double bottom) {
+        private static void AssertMargins(PdfPageMargins margins, double left, double top, double right, double bottom) {
             Assert.Equal(left, margins.Left, 6);
             Assert.Equal(top, margins.Top, 6);
             Assert.Equal(right, margins.Right, 6);

@@ -7,7 +7,7 @@ internal static class EvaluationCorpus {
     public const string Version = "officeimo.ai.corpus.v4";
 
     public static IReadOnlyList<EvaluationCase> Create() {
-        var fontOptions = new PdfOptions { DefaultFontSize = 14 };
+        var fontOptions = new PdfCreateOptions { DefaultFontSize = 14 };
         if (!fontOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true))
             throw new InvalidOperationException("The evaluation corpus requires an embeddable system font.");
         byte[] Pdf(string text) => PdfDocument.Create(builder => builder.Content(content => content.Text(text)), fontOptions).ToBytes();
@@ -16,11 +16,11 @@ internal static class EvaluationCorpus {
         byte[] table = PdfDocument.Create(builder => builder.Content(content => content.H1("Stock count").Table(new[] {
             new[] { "Item", "Quantity", "Unit price" }, new[] { "Pencil", "12", "1.50" }, new[] { "Notebook", "7", "4.25" }
         })), fontOptions).ToBytes();
-        OfficeImageExportResult tableImage = PdfDocument.Load(table).ExportImages(OfficeImageExportFormat.Png,
+        OfficeImageExportResult tableImage = PdfDocument.Load(new MemoryStream(table)).ExportImages(OfficeImageExportFormat.Png,
             new PdfImageExportOptions { TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000 }).Single();
         byte[] scan = tableImage.Bytes;
         byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.Image(scan, 400, 566)), fontOptions).ToBytes();
-        PdfDocument rotated = PdfDocument.Load(scannedPdf);
+        PdfDocument rotated = PdfDocument.Load(new MemoryStream(scannedPdf));
         rotated.Pages.Rotate(90, 1);
         byte[] mixed = PdfDocument.Create(builder => builder.Content(content => content.Text("Dispatch note: shipment BOX-204.")
             .PageBreak().Image(scan, 400, 566)), fontOptions).ToBytes();

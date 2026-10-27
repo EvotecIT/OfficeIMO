@@ -87,10 +87,10 @@ namespace OfficeIMO.Excel {
             int columnCount = ac2 - ac1 + 1;
             bool wholeRowsAffected = reference.Kind == ExcelReferenceKind.WholeRow
                 && ac1 == 1
-                && ac2 == A1.MaxColumns;
+                && ac2 == ExcelA1.MaxColumns;
             bool wholeColumnsAffected = reference.Kind == ExcelReferenceKind.WholeColumn
                 && ar1 == 1
-                && ar2 == A1.MaxRows;
+                && ar2 == ExcelA1.MaxRows;
             bool ColumnIsAffected(int column) => wholeRowsAffected || (column >= ac1 && column <= ac2);
             bool RowIsAffected(int row) => wholeColumnsAffected || (row >= ar1 && row <= ar2);
             int TransformRow(int row, int column) {
@@ -577,7 +577,7 @@ namespace OfficeIMO.Excel {
 
         private static bool SetDrawingMarkerPoint(Xdr.MarkerType? marker, int row, int column) {
             if (marker?.RowId == null || marker.ColumnId == null) return false;
-            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns) {
+            if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns) {
                 throw new InvalidOperationException("Structural edit would move a drawing anchor beyond worksheet limits.");
             }
             string rowText = (row - 1).ToString(CultureInfo.InvariantCulture);

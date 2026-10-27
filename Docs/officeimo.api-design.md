@@ -296,7 +296,7 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 | Heading | `WordHeading` | `PptSlide -Title` | `PdfHeading` | `MarkdownHeading` | — |
 | Paragraph | `WordParagraph` | `PptParagraph` | `PdfParagraph` | `MarkdownParagraph` | — |
 | Styled text | `WordText` | `PptText` | `PdfText` | `MarkdownText` | `ExcelText` (rich text inside a cell) |
-| List | `WordList` / `WordListItem` | `PptList` / `PptListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `MarkdownListItem` | — |
+| List | `WordList` / `WordListItem` | `PptList` / `PptListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `ListItem` | — |
 | Table | `WordTable` | `PptTable` | `PdfTable` | `MarkdownTable` | `ExcelTable` |
 | Chart | `WordChart` | `PptChart` | `PdfChart` | — | `ExcelChart` |
 | Image | `WordImage` | `PptImage` | `PdfImage` | `MarkdownImage` | `ExcelImage` |

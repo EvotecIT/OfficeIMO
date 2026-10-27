@@ -88,7 +88,7 @@ public sealed class PdfCupsSubmissionTests {
     public void CancellationDuringSpoolSerializationStopsComposition() {
         using var cancellation = new CancellationTokenSource();
         int callbacks = 0;
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             TextLineBreakCallback = text => {
                 callbacks++;
                 cancellation.Cancel();
@@ -102,6 +102,6 @@ public sealed class PdfCupsSubmissionTests {
 
     private static PdfPreparedPrintDocument Prepare() => PdfPrintRenderer.Prepare(
         PdfDocument.Create(document => document.Page(page => page.Size(100, 100).Margin(0))),
-        new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PageSize(100, 100) },
+        new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(100, 100) },
         new PdfPrintRenderOptions { Dpi = 72 });
 }

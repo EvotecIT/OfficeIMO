@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// Loads a legacy binary `.doc` document and projects supported content into a normal OfficeIMO Word document.
         /// The resulting document saves through the normal Open XML path.
         /// </summary>
-        public static WordDocument LoadLegacyDoc(string path, LegacyDocImportOptions? options = null) {
+        internal static WordDocument LoadLegacyDoc(string path, LegacyDocImportOptions? options = null) {
             LegacyDocDocument document = LegacyDocDocument.Load(path, options);
             return ProjectLoadedLegacyDocDocument(document, path);
         }
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Loads a legacy binary `.doc` document and returns both the projected OfficeIMO document and import report.
         /// </summary>
-        public static LegacyDocLoadResult LoadLegacyDocWithReport(string path, LegacyDocImportOptions? options = null) {
+        internal static LegacyDocLoadResult LoadLegacyDocWithReport(string path, LegacyDocImportOptions? options = null) {
             LegacyDocDocument document = LegacyDocDocument.Load(path, options);
             return CreateLegacyDocLoadResult(document, path);
         }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         /// Loads a legacy binary `.doc` stream and projects supported content into a normal OfficeIMO Word document.
         /// The resulting document saves through the normal Open XML path.
         /// </summary>
-        public static WordDocument LoadLegacyDoc(Stream stream, LegacyDocImportOptions? options = null) {
+        internal static WordDocument LoadLegacyDoc(Stream stream, LegacyDocImportOptions? options = null) {
             LegacyDocDocument document = LegacyDocDocument.Load(stream, options);
             return ProjectLoadedLegacyDocDocument(document, sourcePath: null);
         }
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Loads a legacy binary `.doc` stream and returns both the projected OfficeIMO document and import report.
         /// </summary>
-        public static LegacyDocLoadResult LoadLegacyDocWithReport(Stream stream, LegacyDocImportOptions? options = null) {
+        internal static LegacyDocLoadResult LoadLegacyDocWithReport(Stream stream, LegacyDocImportOptions? options = null) {
             LegacyDocDocument document = LegacyDocDocument.Load(stream, options);
             return CreateLegacyDocLoadResult(document, sourcePath: null);
         }

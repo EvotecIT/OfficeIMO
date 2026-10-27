@@ -29,7 +29,7 @@ public sealed class SpreadsheetSheetNameMappingTests {
         string firstName = result.Sheets[0].Name, secondName = result.Sheets[1].Name;
         Assert.NotEqual(firstName, secondName);
         ExcelSheet target = result.Sheets[2];
-        var snapshot = result.CreateInspectionSnapshot();
+        var snapshot = result.Inspect();
         var cells = snapshot.Worksheets[2].Cells;
         string formula = cells.Single(cell => cell.Row == 1 && cell.Column == 1).Formula!;
         Assert.Contains("'" + firstName + "'!$A$1", formula);

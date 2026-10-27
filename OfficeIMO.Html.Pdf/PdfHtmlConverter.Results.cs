@@ -6,7 +6,7 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
-    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
@@ -16,7 +16,7 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML and returns a machine-readable export summary.
     /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
@@ -81,7 +81,7 @@ public static partial class PdfHtmlConverterExtensions {
             textBlockCount + tableCount + imageCount + unrepresentedVectorCount > 0) {
             AddWarning(
                 options,
-                "PdfSemanticLayoutReflowed",
+                OfficeDiagnosticCodes.PdfSemanticLayoutReflowed,
                 "Semantic HTML reconstructs readable document structure; fixed PDF coordinates, pagination, and authoring layout are not preserved.",
                 PdfCore.PdfConversionWarningSeverity.Information,
                 OfficeConversionLossKind.Approximation);
@@ -90,7 +90,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (options.Profile == PdfHtmlProfile.Semantic && unrepresentedVectorCount > 0) {
             AddWarning(
                 options,
-                "PdfVectorAppearanceOmitted",
+                OfficeDiagnosticCodes.PdfVectorAppearanceOmitted,
                 unrepresentedVectorCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " vector primitives were not represented by HTML content or detected table structure.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -100,7 +100,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (!options.IncludeImagePlaceholders && imageCount > 0) {
             AddWarning(
                 options,
-                "PdfImagesOmitted",
+                OfficeDiagnosticCodes.PdfImagesOmitted,
                 imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF images were omitted because image output is disabled.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -110,7 +110,7 @@ public static partial class PdfHtmlConverterExtensions {
                    imageCount > 0) {
             AddWarning(
                 options,
-                "PdfImagePixelsOmitted",
+                OfficeDiagnosticCodes.PdfImagePixelsOmitted,
                 imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF images were represented by readable placeholders without their source pixels.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -121,7 +121,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (skippedLinkCount > 0) {
             AddWarning(
                 options,
-                "PdfLinkAnnotationsOmitted",
+                OfficeDiagnosticCodes.PdfLinkAnnotationsOmitted,
                 skippedLinkCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF link annotations were omitted because link output is disabled or the target is unsupported.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -132,7 +132,7 @@ public static partial class PdfHtmlConverterExtensions {
             if (options.IncludeFormWidgets) {
                 AddWarning(
                     options,
-                    "PdfFormWidgetsFlattened",
+                    OfficeDiagnosticCodes.PdfFormWidgetsFlattened,
                     formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                     " PDF form widgets were represented as static text; field editing and interactive behavior were not preserved.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
@@ -140,7 +140,7 @@ public static partial class PdfHtmlConverterExtensions {
             } else {
                 AddWarning(
                     options,
-                    "PdfFormWidgetsOmitted",
+                    OfficeDiagnosticCodes.PdfFormWidgetsOmitted,
                     formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                     " PDF form widgets were omitted because form output is disabled.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
@@ -152,7 +152,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (unplacedFormFieldCount > 0) {
             AddWarning(
                 options,
-                "PdfFormDefinitionsOmitted",
+                OfficeDiagnosticCodes.PdfFormDefinitionsOmitted,
                 unplacedFormFieldCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " unplaced PDF form definitions were not represented in HTML.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -162,7 +162,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (annotationCount > 0) {
             AddWarning(
                 options,
-                "PdfAnnotationsOmitted",
+                OfficeDiagnosticCodes.PdfAnnotationsOmitted,
                 annotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " non-link PDF annotations are not represented by the HTML profiles.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -173,7 +173,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (optionalContentPageCount > 0) {
             AddWarning(
                 options,
-                "PdfOptionalContentGroupsFlattened",
+                OfficeDiagnosticCodes.PdfOptionalContentGroupsFlattened,
                 optionalContentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " selected PDF pages use optional content that was flattened to the current visible projection; layer controls and alternate visibility states were not preserved.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -188,7 +188,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (omittedOutlineCount > 0) {
             AddWarning(
                 options,
-                "PdfOutlinesOmitted",
+                OfficeDiagnosticCodes.PdfOutlinesOmitted,
                 omittedOutlineCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF outline entries or navigation targets were omitted because outline output is disabled or their destination is outside the selected pages.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -198,7 +198,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (document.SourceFidelityFacts.AttachmentCount > 0) {
             AddWarning(
                 options,
-                "PdfAttachmentsOmitted",
+                OfficeDiagnosticCodes.PdfAttachmentsOmitted,
                 document.SourceFidelityFacts.AttachmentCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF embedded files were not represented in HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -206,13 +206,13 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         if (document.HasSecurityState) {
-            AddWarning(options, "PdfSourceSecurityNotReconstructed",
+            AddWarning(options, OfficeDiagnosticCodes.PdfSourceSecurityNotReconstructed,
                 "PDF encryption, signature, permission, or revision state was not carried into HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
         }
         if (document.PageLabels.Count > 0 &&
             document.PageLabels.Any(label => pages.Any(page => page.PageNumber >= label.StartPageNumber))) {
-            AddWarning(options, "PdfPageLabelsNotReconstructed",
+            AddWarning(options, OfficeDiagnosticCodes.PdfPageLabelsNotReconstructed,
                 "PDF page-label rules were not carried into HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
         }
@@ -220,7 +220,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (document.SourceFidelityFacts.HasTaggedContent) {
             AddWarning(
                 options,
-                "PdfTaggedStructureOmitted",
+                OfficeDiagnosticCodes.PdfTaggedStructureOmitted,
                 "The source PDF's tagged accessibility structure tree was not recreated in HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
@@ -236,7 +236,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (omittedDocumentActionCount > 0) {
             AddWarning(
                 options,
-                "PdfDocumentActionsOmitted",
+                OfficeDiagnosticCodes.PdfDocumentActionsOmitted,
                 omittedDocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " PDF open, catalog, selected-page, or annotation actions were stripped from HTML output.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
@@ -265,7 +265,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (!string.IsNullOrWhiteSpace(metadata.PdfXConformance)) omittedCount++;
         if (hasXmpMetadata) omittedCount++;
         if (omittedCount == 0) return;
-        AddWarning(options, "PdfMetadataOmitted",
+        AddWarning(options, OfficeDiagnosticCodes.PdfMetadataOmitted,
             omittedCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " PDF metadata fields or XMP packets were omitted from HTML output.",
             PdfCore.PdfConversionWarningSeverity.Warning,

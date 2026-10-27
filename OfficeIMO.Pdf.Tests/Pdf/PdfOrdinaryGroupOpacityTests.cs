@@ -89,7 +89,7 @@ public sealed class PdfOrdinaryGroupOpacityTests {
         EqualPixel(OfficeColor.White, image.GetPixel(95,35));
     }
 
-    private static byte[] Export(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+    private static byte[] Export(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = drawing.Width, PageHeight = drawing.Height, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
     }).Compose(compose => compose.Page(page => page.Content(content => content.Drawing(drawing)))).ToBytes();
 

@@ -104,13 +104,13 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
-                TableRow = A1.MaxRows,
+                TableRow = ExcelA1.MaxRows,
                 AddChart = false
             }));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
                 TableRow = 3,
-                ChartColumn = A1.MaxColumns + 1
+                ChartColumn = ExcelA1.MaxColumns + 1
             }));
         }
     }

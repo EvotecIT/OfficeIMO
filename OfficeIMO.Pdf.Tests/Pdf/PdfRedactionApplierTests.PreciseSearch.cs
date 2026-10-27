@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("private", source.Reader.Text(), StringComparison.Ordinal);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddRegex("^WA"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan partial = source.Redactions.Search(PreciseOptions().AddLiteral("f"));
             Assert.False(partial.IsReviewable);
-            Assert.Contains(partial.Findings, finding => finding.Code == "RedactionSearchPartialGlyph");
+            Assert.Contains(partial.Findings, finding => finding.Code == "redaction-search-partial-glyph");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(partial));
 
             PdfRedactionPlan whole = source.Redactions.Search(PreciseOptions().AddLiteral("fi"));
@@ -300,7 +300,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchGlyphMappingUnsupported");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-glyph-mapping-unsupported");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral(literal));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
         }
 

@@ -1,0 +1,11 @@
+{
+  "package": "OfficeIMO.Html",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    }
+  ]
+}

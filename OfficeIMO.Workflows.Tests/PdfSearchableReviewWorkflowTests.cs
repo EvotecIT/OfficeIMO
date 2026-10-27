@@ -23,7 +23,7 @@ public sealed class PdfSearchableReviewWorkflowTests {
             var entered = new TaskCompletionSource<PdfSearchableOcrReview>(TaskCreationOptions.RunContinuationsAsynchronously);
             var decision = new TaskCompletionSource<IReadOnlyList<PdfRecognizedWord>>(TaskCreationOptions.RunContinuationsAsynchronously);
             var request = new PdfSearchableWorkflowRequest {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 ReviewAsync = (review, _) => { entered.SetResult(review); return decision.Task; }
             };
             var engine = new DelegateOcrEngine("fixture", (_, _) => Task.FromResult(new OcrResult { Spans = [

@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
                 SetCommentVmlAnchor(vmlPart, "16383, 15, 0, 2, 16384, 15, 3, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(A1.MaxColumns));
+                    () => sheet.InsertColumns(ExcelA1.MaxColumns));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));

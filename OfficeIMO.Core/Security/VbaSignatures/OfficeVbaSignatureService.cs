@@ -114,17 +114,17 @@ public static partial class OfficeVbaSignatureService {
         string fullPath = NormalizePath(filePath);
         bool macroEnabled = IsMacroEnabledPath(fullPath);
         var findings = new List<OfficeVbaSignatureFinding>();
-        if (!macroEnabled) findings.Add(Finding("MacroEnabledFormatRequired",
+        if (!macroEnabled) findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.MacroEnabledFormatRequired,
             OfficePackageSignatureValidationState.Failed,
             "VBA signature operations require DOCM, DOTM, XLSM, XLTM, XLAM, XLSB, PPTM, POTM, PPSM, or PPAM."));
         var file = new FileInfo(fullPath);
         if (!file.Exists) {
-            findings.Add(Finding("FileNotFound", OfficePackageSignatureValidationState.Failed,
+            findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.FileNotFound, OfficePackageSignatureValidationState.Failed,
                 "The Office package does not exist: " + fullPath));
             return Empty(fullPath, macroEnabled, findings);
         }
         if (file.Length > options.Package.MaxPackageBytes) {
-            findings.Add(Finding("PackageByteLimitExceeded", OfficePackageSignatureValidationState.Failed,
+            findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.PackageByteLimitExceeded, OfficePackageSignatureValidationState.Failed,
                 "The Office package exceeds the configured byte limit."));
             return Empty(fullPath, macroEnabled, findings);
         }
@@ -140,7 +140,7 @@ public static partial class OfficeVbaSignatureService {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             if (vbaParts.Length == 0) {
-                findings.Add(Finding("MacroProjectNotPresent", OfficePackageSignatureValidationState.NotPresent,
+                findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.MacroProjectNotPresent, OfficePackageSignatureValidationState.NotPresent,
                     "The Office package does not contain vbaProject.bin."));
                 return Empty(fullPath, macroEnabled, findings);
             }

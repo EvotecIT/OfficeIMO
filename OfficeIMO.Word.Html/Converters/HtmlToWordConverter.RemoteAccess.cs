@@ -8,11 +8,11 @@ namespace OfficeIMO.Word.Html {
         /// image and stylesheet policies. This keeps the synchronous guard aligned with the
         /// converter instead of relying on a manifest built with different caller options.
         /// </summary>
-        internal static bool RequiresRemoteAccess(IHtmlDocument document, HtmlToWordOptions options) {
+        internal static bool RequiresRemoteAccess(IHtmlDocument document, WordHtmlImportOptions options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (options == null) throw new ArgumentNullException(nameof(options));
 
-            if (options.ImageProcessing == ImageProcessingMode.Embed) {
+            if (options.ImageProcessing == WordHtmlImageProcessingMode.Embed) {
                 foreach (IHtmlImageElement image in document.QuerySelectorAll("img").OfType<IHtmlImageElement>()) {
                     foreach (string candidate in EnumerateWordImageSourceCandidates(image, options)) {
                         string resolved = ResolveImageSourcePath(candidate, image, options);
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static bool IsAllowedRemoteStylesheet(Uri uri, HtmlToWordOptions options) {
+        private static bool IsAllowedRemoteStylesheet(Uri uri, WordHtmlImportOptions options) {
             return (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                     || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
                 && options.AllowedStylesheetUriSchemes.Contains(uri.Scheme)

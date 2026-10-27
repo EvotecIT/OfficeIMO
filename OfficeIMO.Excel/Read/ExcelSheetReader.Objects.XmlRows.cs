@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
         private static int GetXmlCellColumnIndex(ReadOnlySpan<char> reference, ref int nextColumnIndex) {
             int columnIndex = TryGetExpectedSingleLetterColumnIndex(reference, nextColumnIndex, out int expectedColumnIndex)
                 ? expectedColumnIndex
-                : A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                : ExcelA1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
             if (columnIndex <= 0) {
                 columnIndex = reference.IsEmpty ? nextColumnIndex : 0;
             }

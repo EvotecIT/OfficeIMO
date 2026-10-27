@@ -88,10 +88,10 @@ public sealed class PdfShortNumberingTabTests {
         WordList list = story.AddList(WordListStyle.Custom);
         ConfigureShortNumbering(list, true);
         list.AddItem("RUNNING"); document.AddParagraph("BODY");
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(200D, 300D)
-        });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes,
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("RUNNING", text); Assert.Contains("BODY", text);
         Assert.InRange(bytes.Length, 1, 1_000_000);
@@ -129,7 +129,7 @@ public sealed class PdfShortNumberingTabTests {
                 new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
         }
         if (scope == "header") document.AddParagraph("BODY");
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Courier" });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Courier" }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         string visible = string.Concat(letters.Select(letter => letter.Value));
@@ -143,9 +143,9 @@ public sealed class PdfShortNumberingTabTests {
         }
     }
 
-    private static PdfPigDocument OpenPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+    private static PdfPigDocument OpenPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
         IncludePageNumbers = false, FontFamily = "Courier"
-    }));
+    }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
     [Theory]
     [InlineData(false, "same-story")]
@@ -181,11 +181,11 @@ public sealed class PdfShortNumberingTabTests {
             : new Indentation { Left = "1440" };
         document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(200D, 300D),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72D)
-        });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes,
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("RUNNING", text); Assert.Contains("BODY", text);
         if (route != "numbered-first-line") Assert.Contains("SIBLING", text);

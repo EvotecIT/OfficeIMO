@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
             }
 
             string sourceRangeToParse = sourceRange.Trim().Replace("$", string.Empty);
-            if (!A1.TryParseRange(sourceRangeToParse, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(sourceRangeToParse, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 throw new ArgumentException($"Invalid A1 range '{sourceRange}'.", nameof(sourceRange));
             }
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("A pivot source range must contain a header row and at least one data row.", nameof(sourceRange));
             }
 
-            string normalizedSourceRange = $"{A1.CellReference(firstRow, firstColumn)}:{A1.CellReference(lastRow, lastColumn)}";
+            string normalizedSourceRange = $"{ExcelA1.CellReference(firstRow, firstColumn)}:{ExcelA1.CellReference(lastRow, lastColumn)}";
             ExcelPivotSourceUpdateResult? result = null;
             WriteLockWorksheetPreparationOnly(() => {
                 sourceSheet.MaterializePendingDirectCellValues();

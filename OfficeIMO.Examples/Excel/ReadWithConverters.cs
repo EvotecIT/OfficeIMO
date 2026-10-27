@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Excel
             string filePath = Path.Combine(folderPath, "Read-With-Converters.xlsx");
 
             // 1) Create a small workbook to read back
-            using (var doc = ExcelDocument.Create(filePath, "Data"))
+            using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var sheet = doc.Sheets[0];
                 sheet.CellValue(1, 1, "Active");
@@ -47,9 +47,9 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 2) Read the workbook through the package-owned XLSX/XLSB data-reader API.
-            using var reader = ExcelDocument.OpenDataReader(
+            using var reader = ExcelDocument.OpenReader(
                 filePath,
-                new ExcelReadOptions { NumericAsDecimal = true });
+                new ExcelReaderOptions { NumericAsDecimal = true });
             while (reader.Read()) {
                 var sale = new Sale {
                     Active = reader.GetBoolean(reader.GetOrdinal("Active")),

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimeRoundsTripWithDateTime() {
             const string html = "<p>On <time datetime=\"2023-01-01\">2023-01-01</time> we met.</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlTime", runs[1].CharacterStyleId);
             Assert.Equal("2023-01-01", runs[1].Text);
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimePreservesDateTimeWhenVisibleTextDiffers() {
             const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             string roundTrip = doc.ToHtml();
 
@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
         public void TimePreservesDateTimeAfterSaveAndReload() {
             const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
-            using MemoryStream stream = doc.ToStream();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
+            using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
             byte[] packageBytes = stream.ToArray();
 
             using (var validationStream = new MemoryStream(packageBytes))
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimeInsideHyperlinkWithEquationPreservesSemanticMetadata() {
             const string html = "<p><a href=\"https://officeimo.net/time-equation\"><time datetime=\"2026-07-15\">Release day</time><math aria-label=\"x=1\"><mi>x</mi><mo>=</mo><mn>1</mn></math></a></p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             string roundTrip = doc.ToHtml();
 

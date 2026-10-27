@@ -269,8 +269,8 @@ namespace OfficeIMO.Tests {
                 DifferentialFillColorArgb = "FFFFC000"
             });
             rule.DifferentialFillColorArgb = null;
-            rule.DifferentialBorder = new ExcelCellBorderSnapshot(
-                left: new ExcelBorderSideSnapshot("Thin", "FFFF0000"));
+            rule.DifferentialBorder = new ExcelCellBorderInfo(
+                left: new ExcelBorderSideInfo("Thin", "FFFF0000"));
             sheet.UpdateConditionalFormattingRule(rule);
 
             ExcelConditionalFormattingInfo bordered = Assert.Single(sheet.GetConditionalFormattingRules());
@@ -288,8 +288,8 @@ namespace OfficeIMO.Tests {
                 Type = "Expression",
                 Formulas = new[] { "B1>0" }
             });
-            invalid.DifferentialBorder = new ExcelCellBorderSnapshot(
-                left: new ExcelBorderSideSnapshot("unsupported-border"));
+            invalid.DifferentialBorder = new ExcelCellBorderInfo(
+                left: new ExcelBorderSideInfo("unsupported-border"));
             Assert.Throws<ArgumentException>(() => sheet.UpdateConditionalFormattingRule(invalid));
             Assert.Null(sheet.GetConditionalFormattingRules().Single(item => item.Range == "B1").DifferentialBorder);
         }

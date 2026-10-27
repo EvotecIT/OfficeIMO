@@ -7,7 +7,19 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed partial class PdfLoadOptions {
     /// <summary>Creates default read settings with an independent limits graph.</summary>
-    public static PdfLoadOptions Default => new PdfLoadOptions();
+    internal static PdfLoadOptions Default => new PdfLoadOptions();
+
+    /// <summary>Creates strict parsing settings with bounded budgets for documents from outside.</summary>
+    public static PdfLoadOptions UntrustedDefaults => new PdfLoadOptions {
+        ParsingMode = PdfParsingMode.Strict,
+        Limits = new PdfReadLimits {
+            MaxInputBytes = 64L * 1024L * 1024L,
+            MaxIndirectObjects = 100_000,
+            MaxRawStreamBytes = 32 * 1024 * 1024,
+            MaxDecodedStreamBytes = 64 * 1024 * 1024,
+            MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L
+        }
+    };
 
     /// <summary>Structural parsing policy. Lenient recovery is the compatibility default and always produces a repair report.</summary>
     public PdfParsingMode ParsingMode { get; init; } = PdfParsingMode.Lenient;
@@ -47,6 +59,9 @@ public sealed partial class PdfLoadOptions {
         PdfLoadOptions effective = options ?? Default;
         Guard.NotNull(effective.Limits, nameof(Limits));
         effective.Limits.Validate();
+        if (effective.Profile < PdfReadProfile.Fast || effective.Profile > PdfReadProfile.Structured)
+            throw new ArgumentOutOfRangeException(nameof(options), effective.Profile, "Unknown PDF read profile.");
+        Guard.NotNull(effective.LayoutOptions, nameof(LayoutOptions));
         return effective;
     }
 
@@ -55,6 +70,12 @@ public sealed partial class PdfLoadOptions {
         if (minimumInputBytes <= effective.Limits.MaxInputBytes) return effective;
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
@@ -73,6 +94,12 @@ public sealed partial class PdfLoadOptions {
         PdfLoadOptions effective = Resolve(options);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits.WithGeneratedOutput(effective.Limits.MaxInputBytes, minimumIndirectObjects, growth),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
@@ -122,6 +149,12 @@ public sealed partial class PdfLoadOptions {
 
         return new PdfLoadOptions {
             ParsingMode = source.ParsingMode,
+            Profile = source.Profile,
+            IncludeImages = source.IncludeImages,
+            IncludeFormWidgets = source.IncludeFormWidgets,
+            PageSelection = source.PageSelection,
+            LayoutOptions = CloneLayoutOptions(source.LayoutOptions),
+            Pipeline = ClonePipelineOptions(source.Pipeline),
             Limits = source.Limits.WithGeneratedOutput(outputPdf.LongLength, Math.Max(outputHeaders, reservedObjects), effectiveGrowth),
             Password = source.Password,
             AesCryptographyProvider = source.AesCryptographyProvider,
@@ -147,6 +180,12 @@ public sealed partial class PdfLoadOptions {
 
         return new PdfLoadOptions {
             ParsingMode = primary.ParsingMode,
+            Profile = primary.Profile,
+            IncludeImages = primary.IncludeImages,
+            IncludeFormWidgets = primary.IncludeFormWidgets,
+            PageSelection = primary.PageSelection,
+            LayoutOptions = CloneLayoutOptions(primary.LayoutOptions),
+            Pipeline = ClonePipelineOptions(primary.Pipeline),
             Limits = PdfReadLimits.ForComposedOutput(
                 sources.Select(static source => source.Limits).ToArray(),
                 minimumInputBytes,
@@ -174,6 +213,12 @@ public sealed partial class PdfLoadOptions {
         }
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits.WithMaximumContainerEntries(
                 maximumContainerEntries,
                 maximumDecodedStreamBytes,
@@ -196,6 +241,12 @@ public sealed partial class PdfLoadOptions {
         PdfLoadOptions effective = Resolve(options);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits,
             Password = password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
@@ -213,6 +264,12 @@ public sealed partial class PdfLoadOptions {
         PdfLoadOptions effective = Resolve(options);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = aesCryptographyProvider,
@@ -229,6 +286,12 @@ public sealed partial class PdfLoadOptions {
         if (effective.IncludeArtifactText) return effective;
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,

@@ -129,7 +129,7 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
             Format = parsed.ImageFormat,
             TargetDpi = parsed.TargetDpi,
             MaximumDimension = parsed.MaximumDimension,
-            ConflictPolicy = parsed.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = parsed.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         await WriteDiagnosticsAsync(result.Diagnostics, error).ConfigureAwait(false);
         if (!result.Succeeded) return MapStatus(result.Status, result.FailureKind);
@@ -148,7 +148,7 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
         PdfAssemblyResult result = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = parsed.Inputs.Select(Path.GetFullPath).ToArray(),
             OutputPath = Path.GetFullPath(parsed.OutputPath!),
-            ConflictPolicy = parsed.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = parsed.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
             Options = new PdfAssemblyOptions { IncludeSubdirectories = parsed.IncludeSubdirectories }
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         await WriteDiagnosticsAsync(result.Diagnostics, error).ConfigureAwait(false);

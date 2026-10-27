@@ -144,8 +144,8 @@ public sealed class RtfWordLegacyNumberingTests {
 
         RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        WordParagraphSnapshot visible = Assert.Single(word.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo visible = Assert.Single(word.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         Assert.Equal(expected + "Content", visible.Text);
         Assert.All(word.Paragraphs, item => Assert.Null(item._paragraphProperties?.NumberingProperties));
         Assert.True(conversion.Report.HasLoss);
@@ -321,7 +321,7 @@ public sealed class RtfWordLegacyNumberingTests {
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Empty(new OpenXmlValidator().Validate(reopened._wordprocessingDocument));
-        Assert.Equal(markers, reopened.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
-            .OfType<WordParagraphSnapshot>().Select(paragraph => paragraph.ListMarker));
+        Assert.Equal(markers, reopened.Inspect().Sections.SelectMany(section => section.Elements)
+            .OfType<WordParagraphInfo>().Select(paragraph => paragraph.ListMarker));
     }
 }

@@ -7,8 +7,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Html_Render_Tests {
         [Fact]
         public void Fragment_Has_No_Html_Tag_And_Wrapper() {
-            var doc = MarkdownDoc.Create().H1("Title").P("Hello");
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+            var doc = MarkdownDocument.Create().H1("Title").P("Hello");
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Clean, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.DoesNotContain("<html", html);
             Assert.Contains("<article", html);
             Assert.Contains("markdown-body", html);
@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Document_Has_Full_Structure() {
-            var doc = MarkdownDoc.Create().H1("Title").P("Hello");
-            var html = doc.ToHtmlDocument(new HtmlOptions { Title = "Doc", Style = HtmlStyle.Clean });
+            var doc = MarkdownDocument.Create().H1("Title").P("Hello");
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Title = "Doc", Style = MarkdownHtmlStyle.Clean, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document });
             Assert.Contains("<html", html);
             Assert.Contains("<head>", html);
             Assert.Contains("</body>", html);
@@ -26,10 +26,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Default_VisualTheme_Emits_WordLike_Html_Css() {
-            string html = MarkdownDoc.Create()
+            string html = MarkdownDocument.Create()
                 .H1("Title")
                 .P("Hello")
-                .ToHtmlDocument();
+                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions { Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document });
 
             Assert.Contains("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
@@ -39,11 +39,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Default_VisualTheme_Can_Be_Disabled_For_Plain_Html_Css() {
-            string html = MarkdownDoc.Create()
+            string html = MarkdownDocument.Create()
                 .H1("Title")
                 .P("Hello")
-                .ToHtmlDocument(new HtmlOptions {
-                    ApplyDefaultTheme = false
+                .ToHtml(new MarkdownHtmlExportOptions
+                {
+                    ApplyDefaultTheme = false,
+
+                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
                 });
 
             Assert.DoesNotContain("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
@@ -55,8 +58,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temp);
             var path = Path.Combine(temp, "sample.html");
-            var doc = MarkdownDoc.Create().H1("Title");
-            doc.SaveAsHtml(path, new HtmlOptions { Title = "Doc", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
+            var doc = MarkdownDocument.Create().H1("Title");
+            doc.SaveAsHtml(path, new MarkdownHtmlExportOptions { Title = "Doc", Style = MarkdownHtmlStyle.Clean, CssDelivery = MarkdownCssDelivery.ExternalFile });
             Assert.True(File.Exists(path));
             var cssPath = Path.ChangeExtension(path, ".css");
             Assert.True(File.Exists(cssPath));
@@ -64,17 +67,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Html_Rendering_Does_Not_Mutate_Reusable_Options() {
-            var options = new HtmlOptions {
-                Kind = HtmlKind.Document,
+            var options = new MarkdownHtmlExportOptions
+            {
+                Kind = MarkdownHtmlKind.Fragment,
                 Theme = MarkdownVisualTheme.Report(),
-                Prism = new PrismOptions { Enabled = true }
+                Prism = new MarkdownPrismOptions { Enabled = true }
             };
             options.AdditionalCssHrefs.Add("https://example.com/site.css");
 
-            string fragment = MarkdownDoc.Create().H1("Title").ToHtmlFragment(options);
+            string fragment = MarkdownDocument.Create().H1("Title").ToHtml(options);
 
             Assert.DoesNotContain("<html", fragment, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(HtmlKind.Document, options.Kind);
+            Assert.Equal(MarkdownHtmlKind.Fragment, options.Kind);
             Assert.Single(options.AdditionalCssHrefs);
             Assert.NotNull(options.Theme);
             Assert.True(options.Prism.Enabled);
@@ -84,12 +88,13 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public async System.Threading.Tasks.Task External_Css_Async_Saves_Are_Operation_Scoped_And_Cancellable() {
             string temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temp);
-            var options = new HtmlOptions {
-                Kind = HtmlKind.Document,
-                Style = HtmlStyle.Clean,
-                CssDelivery = CssDelivery.ExternalFile
+            var options = new MarkdownHtmlExportOptions
+            {
+                Kind = MarkdownHtmlKind.Document,
+                Style = MarkdownHtmlStyle.Clean,
+                CssDelivery = MarkdownCssDelivery.ExternalFile
             };
-            MarkdownDoc doc = MarkdownDoc.Create().H1("Title");
+            MarkdownDocument doc = MarkdownDocument.Create().H1("Title");
             string first = Path.Combine(temp, "first.html");
             string second = Path.Combine(temp, "second.html");
 
@@ -101,7 +106,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.True(File.Exists(Path.ChangeExtension(first, ".css")));
             Assert.True(File.Exists(second));
             Assert.True(File.Exists(Path.ChangeExtension(second, ".css")));
-            Assert.Equal(HtmlKind.Document, options.Kind);
+            Assert.Equal(MarkdownHtmlKind.Document, options.Kind);
 
             string cancelled = Path.Combine(temp, "cancelled.html");
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -119,13 +124,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             theme.Table.EmphasizeHeader = false;
             theme.Table.UseRowStripes = false;
 
-            string html = MarkdownDoc.Create()
+            string html = MarkdownDocument.Create()
                 .H1("Theme")
                 .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
-                .ToHtmlDocument(new HtmlOptions {
+                .ToHtml(new MarkdownHtmlExportOptions
+                {
                     Title = "Shared Theme",
                     Theme = theme,
-                    Kind = HtmlKind.Document
+                    Kind = MarkdownHtmlKind.Document
                 });
 
             Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
@@ -143,15 +149,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void ColorOverridesApplyToHtmlThemeVariables() {
-            string html = MarkdownDoc.Create()
+            string html = MarkdownDocument.Create()
                 .H1("Legacy colors")
-                .ToHtmlDocument(new HtmlOptions {
+                .ToHtml(new MarkdownHtmlExportOptions
+                {
                     Title = "Custom colors",
-                    ColorOverrides = new MarkdownHtmlColorOverrides {
+                    ColorOverrides = new MarkdownHtmlColorOverrides
+                    {
                         HeadingLight = "SeaGreen",
                         AccentLight = "#123456"
                     },
-                    Kind = HtmlKind.Document
+                    Kind = MarkdownHtmlKind.Document
                 });
 
             Assert.Contains("body { --md-heading: #2e8b57; --md-accent: #123456;", html, StringComparison.Ordinal);
@@ -160,12 +168,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Cdn_Online_Uses_Link_Tag() {
-            var doc = MarkdownDoc.Create().H1("Title");
-            var html = doc.ToHtmlDocument(new HtmlOptions {
-                CssDelivery = CssDelivery.LinkHref,
+            var doc = MarkdownDocument.Create().H1("Title");
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                CssDelivery = MarkdownCssDelivery.LinkHref,
                 CssHref = "https://cdn.example.com/style.css",
-                AssetMode = AssetMode.Online,
-                BodyClass = "markdown-body"
+                AssetMode = MarkdownAssetMode.Online,
+                BodyClass = "markdown-body",
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
             Assert.Contains("<link", html);
             Assert.Contains("cdn.example.com", html);
@@ -173,12 +184,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Cdn_Offline_Inlines_Style() {
-            var doc = MarkdownDoc.Create().H1("Title");
-            var html = doc.ToHtmlDocument(new HtmlOptions {
-                CssDelivery = CssDelivery.LinkHref,
+            var doc = MarkdownDocument.Create().H1("Title");
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                CssDelivery = MarkdownCssDelivery.LinkHref,
                 CssHref = "https://cdn.example.com/style.css",
-                AssetMode = AssetMode.Offline,
-                BodyClass = "markdown-body"
+                AssetMode = MarkdownAssetMode.Offline,
+                BodyClass = "markdown-body",
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
             Assert.DoesNotContain("<link", html);
             Assert.Contains("<style", html);
@@ -186,11 +200,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Null_CssScopeSelector_DisablesArticleScope() {
-            var doc = MarkdownDoc.Create().H1("Title").P("Hello world");
-            var html = doc.ToHtmlDocument(new HtmlOptions {
-                Style = HtmlStyle.Clean,
+            var doc = MarkdownDocument.Create().H1("Title").P("Hello world");
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Clean,
                 BodyClass = null,
-                CssScopeSelector = null
+                CssScopeSelector = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
             Assert.DoesNotContain("article.markdown-body", html, StringComparison.Ordinal);
             Assert.Contains("body h1", html, StringComparison.Ordinal);
@@ -199,10 +216,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Prism_ManifestOnly_Does_Not_Emit_Tags() {
-            var doc = MarkdownDoc.Create().H1("Code").Code("csharp", "Console.WriteLine(\"x\");");
-            var parts = doc.ToHtmlParts(new HtmlOptions {
-                EmitMode = AssetEmitMode.ManifestOnly,
-                Prism = new PrismOptions { Enabled = true, Languages = { "csharp" }, Theme = PrismTheme.GithubAuto }
+            var doc = MarkdownDocument.Create().H1("Code").Code("csharp", "Console.WriteLine(\"x\");");
+            var parts = doc.ToHtmlParts(new MarkdownHtmlExportOptions
+            {
+                EmitMode = MarkdownAssetEmitMode.ManifestOnly,
+                Prism = new MarkdownPrismOptions { Enabled = true, Languages = { "csharp" }, Theme = MarkdownPrismTheme.GithubAuto }
             });
             Assert.NotEmpty(parts.Assets);
             Assert.DoesNotContain("<script", parts.Head);
@@ -211,10 +229,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void AssetMerger_Dedupes_And_Produces_Media() {
-            var opts = new HtmlOptions { EmitMode = AssetEmitMode.ManifestOnly, Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto, Languages = { "csharp" } } };
-            var p1 = MarkdownDoc.Create().Code("csharp", "Console.WriteLine(1);").ToHtmlParts(opts);
-            var p2 = MarkdownDoc.Create().Code("csharp", "Console.WriteLine(2);").ToHtmlParts(opts);
-            var merged = OfficeIMO.Markdown.HtmlAssetMerger.Build(new[] { p1.Assets, p2.Assets });
+            var opts = new MarkdownHtmlExportOptions { EmitMode = MarkdownAssetEmitMode.ManifestOnly, Prism = new MarkdownPrismOptions { Enabled = true, Theme = MarkdownPrismTheme.GithubAuto, Languages = { "csharp" } } };
+            var p1 = MarkdownDocument.Create().Code("csharp", "Console.WriteLine(1);").ToHtmlParts(opts);
+            var p2 = MarkdownDocument.Create().Code("csharp", "Console.WriteLine(2);").ToHtmlParts(opts);
+            var merged = OfficeIMO.Markdown.MarkdownHtmlAssetMerger.Build(new[] { p1.Assets, p2.Assets });
             // Only one core and one light/dark theme pair expected
             Assert.Contains("data-asset-id=\"prism-core\"", merged.headLinks);
             Assert.Contains("prefers-color-scheme: dark", merged.headLinks);
@@ -222,7 +240,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void HorizontalRule_Renders_In_Markdown_And_Html() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .P("Before the break.")
                 .Hr()
                 .P("After the break.");
@@ -231,20 +249,23 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string normalizedMarkdown = markdown.Replace("\r\n", "\n");
             Assert.Contains("\n---\n", normalizedMarkdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<hr />", html, StringComparison.Ordinal);
         }
 
         [Fact]
         public void HtmlOptions_Can_Disable_Automatic_Heading_Identifiers() {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("# Alpha");
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("# Alpha");
 
-            string html = doc.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            string html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
                 AutoHeadingIdentifiers = false,
-                IncludeAnchorLinks = true
+                IncludeAnchorLinks = true,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Equal("<h1>Alpha</h1>", html);
@@ -260,11 +281,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 # a_b c.d
 """;
 
-            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("<h1 id=\"section\">Привет мир</h1>", html, StringComparison.Ordinal);
@@ -276,11 +300,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void HtmlOptions_Applies_Heading_Identifier_Style_To_Nested_Headings() {
             const string markdown = "- # a_b c.d";
 
-            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("<h1 id=\"a_b-c.d\">a_b c.d</h1>", html, StringComparison.Ordinal);
@@ -299,16 +326,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 ```
 """;
 
-            var defaultHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
-            });
-            var markdigStyleHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            var defaultHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
+            });
+            var markdigStyleHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("&#229;bc", defaultHtml, StringComparison.Ordinal);
@@ -330,23 +363,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 Anchor = "åheading"
             });
 
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Add(toc)
                 .H2("åHeading")
                 .Add(new ImageBlock("https://example.com/image.png", "åAlt", "åTitle") {
                     Caption = "åCaption"
                 });
 
-            string html = doc.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            string html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
                 EscapeNonAsciiText = false,
                 IncludeAnchorLinks = true,
                 AnchorIcon = "åAnchor",
                 BackToTopLinks = true,
                 BackToTopMinLevel = 2,
-                BackToTopText = "åTop"
+                BackToTopText = "åTop",
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains(">åHeading</a>", html, StringComparison.Ordinal);
@@ -356,22 +392,28 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("alt=\"åAlt\"", html, StringComparison.Ordinal);
             Assert.Contains("title=\"åTitle\"", html, StringComparison.Ordinal);
 
-            string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
+            string documentHtml = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
                 Title = "åDocument",
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
             Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
 
-            string blockedLinkedImage = OfficeIMO.Markdown.MarkdownReader.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
-                .ToHtmlFragment(new HtmlOptions {
-                    Style = HtmlStyle.Plain,
-                    CssDelivery = CssDelivery.None,
+            string blockedLinkedImage = OfficeIMO.Markdown.MarkdownDocument.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
+                .ToHtml(new MarkdownHtmlExportOptions
+                {
+                    Style = MarkdownHtmlStyle.Plain,
+                    CssDelivery = MarkdownCssDelivery.None,
                     BodyClass = null,
                     EscapeNonAsciiText = false,
-                    BlockExternalHttpImages = true
+                    BlockExternalHttpImages = true,
+
+                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
                 });
             Assert.Contains(">åBadge</a>", blockedLinkedImage, StringComparison.Ordinal);
         }
@@ -389,13 +431,16 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "image/webp",
                 "åwide",
                 "https://example.com/photo.webp 1x"));
-            var doc = MarkdownDoc.Create().Add(paragraph).Add(image);
+            var doc = MarkdownDocument.Create().Add(paragraph).Add(image);
 
-            string html = doc.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            string html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("title=\"åLink title\"", html, StringComparison.Ordinal);
@@ -417,7 +462,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 Anchor = "åtoc"
             });
 
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .H2("åHeading")
                 .Add(toc)
                 .Add(new ParagraphBlock(new InlineSequence()
@@ -430,9 +475,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Add(new CalloutBlock("ånote", "åTitle", "åBody"))
                 .Add(new FootnoteDefinitionBlock("ånote", "åFootnote"));
 
-            var options = new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            var options = new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
                 EscapeNonAsciiText = false,
                 HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
@@ -441,7 +487,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 ImagesReferrerPolicy = "åimage-policy"
             };
 
-            string html = doc.ToHtmlFragment(options);
+            string html = doc.ToHtml(options);
 
             Assert.Contains("id=\"åheading\"", html, StringComparison.Ordinal);
             Assert.Contains("href=\"#åheading\"", html, StringComparison.Ordinal);
@@ -458,16 +504,19 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("class=\"callout ånote\"", html, StringComparison.Ordinal);
             Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
 
-            string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
+            string documentHtml = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
                 Title = "åDocument",
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.LinkHref,
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.LinkHref,
                 CssHref = "https://cdn.example.com/å.css",
                 BodyClass = "å-body",
                 EscapeNonAsciiText = false,
-                AssetMode = AssetMode.Online,
+                AssetMode = MarkdownAssetMode.Online,
                 AdditionalCssHrefs = { "https://cdn.example.com/extra å.css" },
-                AdditionalJsHrefs = { "https://cdn.example.com/å.js" }
+                AdditionalJsHrefs = { "https://cdn.example.com/å.js" },
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
 
             Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
@@ -477,16 +526,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("src=\"https://cdn.example.com/%C3%A5.js\"", documentHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("&#229;", documentHtml, StringComparison.Ordinal);
 
-            var merged = HtmlAssetMerger.Build(
+            var merged = MarkdownHtmlAssetMerger.Build(
                 new[] {
                     new[] {
-                        new HtmlAsset("åcss", HtmlAssetKind.Css, "https://cdn.example.com/å.css", inline: null) {
+                        new MarkdownHtmlAsset("åcss", MarkdownHtmlAssetKind.Css, "https://cdn.example.com/å.css", inline: null) {
                             Media = "screen and (min-width: åpx)"
                         },
-                        new HtmlAsset("åjs", HtmlAssetKind.Js, "https://cdn.example.com/å.js", inline: null)
+                        new MarkdownHtmlAsset("åjs", MarkdownHtmlAssetKind.Js, "https://cdn.example.com/å.js", inline: null)
                     }
                 },
-                new HtmlOptions {
+                new MarkdownHtmlExportOptions
+                {
                     EscapeNonAsciiText = false
                 });
 
@@ -502,11 +552,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Link_Html_Preserves_Ipv6_Authority_Brackets() {
             const string markdown = "[loopback](http://[::1]/)";
 
-            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown)
-                .ToHtmlFragment(new HtmlOptions {
-                    Style = HtmlStyle.Plain,
-                    CssDelivery = CssDelivery.None,
-                    BodyClass = null
+            string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown)
+                .ToHtml(new MarkdownHtmlExportOptions
+                {
+                    Style = MarkdownHtmlStyle.Plain,
+                    CssDelivery = MarkdownCssDelivery.None,
+                    BodyClass = null,
+
+                    Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
                 });
 
             Assert.Contains("href=\"http://[::1]/\"", html, StringComparison.Ordinal);
@@ -525,9 +578,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 # a_b c.d
 """;
 
-            var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
-            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
-                .ToHtmlFragment(options);
+            var options = MarkdownHtmlExportOptions.CreateGitHubFlavoredMarkdownProfile();
+            string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile())
+                .ToHtml(options);
 
             Assert.True(options.AutoHeadingIdentifiers);
             Assert.Equal(MarkdownHeadingIdentifierStyle.GitHub, options.HeadingIdentifierStyle);
@@ -539,7 +592,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)
                 .Caption("Photo caption");
 
@@ -552,14 +605,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("![Alt text](images/photo.png \"Title text\"){width=640 height=480}", markdown, StringComparison.Ordinal);
             Assert.Contains("_Photo caption_", markdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\" width=\"640\" height=\"480\" />", html, StringComparison.Ordinal);
             Assert.Contains("<div class=\"caption\">Photo caption</div>", html, StringComparison.Ordinal);
         }
 
         [Fact]
         public void Linked_Image_Block_Renders_Linked_Markdown_And_Html() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_self", linkRel: "nofollow"))
                 .Caption("Photo caption");
 
@@ -573,7 +626,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("[![Alt text](images/photo.png \"Title text\")](https://example.com/docs \"Read more\")", markdown, StringComparison.Ordinal);
             Assert.Contains("_Photo caption_", markdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<a href=\"https://example.com/docs\" title=\"Read more\" target=\"_self\" rel=\"nofollow\"", html, StringComparison.Ordinal);
             Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\"", html, StringComparison.Ordinal);
             Assert.Contains("<div class=\"caption\">Photo caption</div>", html, StringComparison.Ordinal);
@@ -581,7 +634,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Linked_Image_Block_Hardens_TargetBlank_Rel_In_Html() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_blank"))
                 .Caption("Photo caption");
 
@@ -593,7 +646,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("[![Alt text](images/photo.png \"Title text\")](https://example.com/docs \"Read more\")", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("noopener", markdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<a href=\"https://example.com/docs\" title=\"Read more\" target=\"_blank\" rel=\"", html, StringComparison.Ordinal);
             Assert.Contains("noopener", html, StringComparison.Ordinal);
             Assert.Contains("noreferrer", html, StringComparison.Ordinal);
@@ -602,7 +655,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Inline_Link_Preserves_Html_Metadata_And_Hardens_TargetBlank() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Add(new ParagraphBlock(new InlineSequence().Link("Read more", "https://example.com/docs", "Hero docs", "_blank", "nofollow sponsored")));
 
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
@@ -614,7 +667,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("[Read more](https://example.com/docs \"Hero docs\")", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("noopener", markdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<a href=\"https://example.com/docs\" title=\"Hero docs\" target=\"_blank\" rel=\"", html, StringComparison.Ordinal);
             Assert.Contains("nofollow", html, StringComparison.Ordinal);
             Assert.Contains("sponsored", html, StringComparison.Ordinal);
@@ -640,12 +693,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "100vw",
                 "https://example.com/media/storm-mobile.webp 1x, https://example.com/media/storm-mobile@2x.webp 2x"));
 
-            var doc = MarkdownDoc.Create().Add(image).Caption("Residents navigate floodwater after the overnight storm.");
+            var doc = MarkdownDocument.Create().Add(image).Caption("Residents navigate floodwater after the overnight storm.");
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("![Flooded street at dawn](https://example.com/media/storm-wide.webp \"Open full photo\")", markdown, StringComparison.Ordinal);
 
-            string html = doc.ToHtmlFragment();
+            string html = doc.ToHtml();
             Assert.Contains("<picture>", html, StringComparison.Ordinal);
             Assert.Contains("<source srcset=\"https://example.com/media/storm-wide.webp 1x, https://example.com/media/storm-wide@2x.webp 2x\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
             Assert.Contains("<source srcset=\"https://example.com/media/storm-mobile.webp 1x, https://example.com/media/storm-mobile@2x.webp 2x\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
@@ -670,7 +723,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "100vw",
                 "https://example.com/media/storm-mobile.webp?fit=cover&crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&crop=10,20,400,500 640w"));
 
-            string html = MarkdownDoc.Create().Add(image).ToHtmlFragment();
+            string html = MarkdownDocument.Create().Add(image).ToHtml();
             Assert.Contains("<source srcset=\"https://example.com/media/storm-wide.webp?fit=cover&amp;crop=10,20,300,400 640w, https://example.com/media/storm-wide.webp?fit=cover&amp;crop=20,40,600,800 1280w\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"(min-width: 960px) 90vw, 100vw\" />", html, StringComparison.Ordinal);
             Assert.Contains("<source srcset=\"https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=10,20,400,500 640w\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
             Assert.DoesNotContain("%20", html, StringComparison.Ordinal);
@@ -685,12 +738,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
   hello from list
   ```
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
-            var html = doc.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                CodeBlockHtmlRenderer = (block, _) => $"<aside class=\"code-proxy\">{System.Net.WebUtility.HtmlEncode(block.Content)}</aside>"
+                CodeBlockHtmlRenderer = (block, _) => $"<aside class=\"code-proxy\">{System.Net.WebUtility.HtmlEncode(block.Content)}</aside>",
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("<ul>", html, StringComparison.Ordinal);

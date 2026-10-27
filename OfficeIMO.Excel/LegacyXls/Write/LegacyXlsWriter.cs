@@ -621,7 +621,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static LegacyXlsWorksheetLayout ExtractWorksheetLayout(ExcelSheet sheet, LegacyXlsStyleTable styleTable) {
             var columns = new List<LegacyXlsColumnLayout>();
-            foreach (ExcelColumnSnapshot column in sheet.GetColumnDefinitions()) {
+            foreach (ExcelColumnInfo column in sheet.GetColumnDefinitions()) {
                 if (column.StartIndex <= 0 || column.EndIndex < column.StartIndex) {
                     continue;
                 }
@@ -642,7 +642,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             var rows = new List<LegacyXlsRowLayout>();
-            foreach (ExcelRowSnapshot row in sheet.GetRowDefinitions()) {
+            foreach (ExcelRowInfo row in sheet.GetRowDefinitions()) {
                 if (row.Index <= 0) {
                     continue;
                 }
@@ -664,7 +664,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             var mergedRanges = new List<LegacyXlsMergedRange>();
-            foreach (ExcelMergedRangeSnapshot mergedRange in sheet.GetMergedRanges()) {
+            foreach (ExcelMergedRangeInfo mergedRange in sheet.GetMergedRanges()) {
                 if (mergedRange.StartRow <= 0 || mergedRange.StartColumn <= 0 || mergedRange.EndRow < mergedRange.StartRow || mergedRange.EndColumn < mergedRange.StartColumn) {
                     continue;
                 }
@@ -751,7 +751,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return new LegacyXlsWindowTopLeftCell(0, 0);
             }
 
-            if (!A1.TryParseCellReferenceFast(topLeftCell, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(topLeftCell, out int row, out int column)) {
                 throw new NotSupportedException($"Native XLS saving requires a valid worksheet top-left cell reference; this worksheet uses '{topLeftCell}'.");
             }
 
@@ -1038,10 +1038,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int r2;
             int c2;
             if (normalizedReference.IndexOf(':') < 0) {
-                (r1, c1) = A1.ParseCellRef(normalizedReference);
+                (r1, c1) = ExcelA1.ParseCellRef(normalizedReference);
                 r2 = r1;
                 c2 = c1;
-            } else if (!A1.TryParseRange(normalizedReference, out r1, out c1, out r2, out c2)) {
+            } else if (!ExcelA1.TryParseRange(normalizedReference, out r1, out c1, out r2, out c2)) {
                 return false;
             }
 
@@ -1091,10 +1091,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int lastRow;
             int lastColumn;
             if (separator < 0) {
-                (firstRow, firstColumn) = A1.ParseCellRef(normalizedReference);
+                (firstRow, firstColumn) = ExcelA1.ParseCellRef(normalizedReference);
                 lastRow = firstRow;
                 lastColumn = firstColumn;
-            } else if (!A1.TryParseRange(normalizedReference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+            } else if (!ExcelA1.TryParseRange(normalizedReference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 throw new NotSupportedException($"Native XLS saving does not support array formula range '{reference}' at {address}. Save as .xlsx or remove this formula before saving as .xls.");
             }
 
@@ -1442,7 +1442,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static LegacyXlsWorksheetPageSetup ExtractPageSetup(ExcelSheet sheet) {
             ExcelSheetPageSetup pageSetup = sheet.GetPageSetup();
             ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             PageSetup? storedPageSetup = worksheet.GetFirstChild<PageSetup>();
             SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();

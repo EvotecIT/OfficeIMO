@@ -56,7 +56,7 @@ public class PdfDrawingInteropTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        var doc = PdfDocument.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -94,7 +94,7 @@ public class PdfDrawingInteropTests {
             KeepWithNext = true,
             ConstrainToContentWidth = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultDrawingStyle = style
         };
 
@@ -108,7 +108,7 @@ public class PdfDrawingInteropTests {
         readback.Align = PdfAlign.Left;
         readback.SpacingAfter = 20;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
         Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore);
@@ -131,13 +131,13 @@ public class PdfDrawingInteropTests {
         var theme = new PdfTheme {
             DrawingStyle = drawingStyle
         };
-        var options = new PdfOptions().ApplyTheme(theme);
+        var options = new PdfCreateOptions().ApplyTheme(theme);
 
         drawingStyle.Align = PdfAlign.Right;
         drawingStyle.SpacingAfter = 1;
         drawingStyle.KeepWithNext = false;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
         Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter);
@@ -156,7 +156,7 @@ public class PdfDrawingInteropTests {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillColor = OfficeColor.WhiteSmoke;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -209,7 +209,7 @@ public class PdfDrawingInteropTests {
         var drawing = new OfficeDrawing(120, 60)
             .AddShape(background, 0, 0);
 
-        var doc = PdfDocument.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,

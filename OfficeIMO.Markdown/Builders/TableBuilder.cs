@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Builder for pipe tables.
 /// </summary>
-public sealed class TableBuilder {
+public sealed class MarkdownTableBuilder {
     private const int MaxRows = 10000;
     private const int MaxColumns = 100;
     private readonly TableBlock _table = new TableBlock();
@@ -21,7 +21,7 @@ public sealed class TableBuilder {
         return list;
     }
     /// <summary>Sets the header row.</summary>
-    public TableBuilder Headers(params string[] headers) {
+    public MarkdownTableBuilder Headers(params string[] headers) {
         var hs = headers ?? Array.Empty<string>();
         int skippedColumns = Math.Max(0, hs.Length - MaxColumns);
         for (int i = 0; i < hs.Length && i < MaxColumns; i++) _table.Headers.Add(hs[i]?.Trim() ?? string.Empty);
@@ -29,13 +29,13 @@ public sealed class TableBuilder {
         return this;
     }
     /// <summary>Adds a data row.</summary>
-    public TableBuilder Row(params string[] cells) { if (_table.Rows.Count < MaxRows) _table.Rows.Add(NormalizeRow(cells?.ToArray() ?? Array.Empty<string>())); return this; }
+    public MarkdownTableBuilder Row(params string[] cells) { if (_table.Rows.Count < MaxRows) _table.Rows.Add(NormalizeRow(cells?.ToArray() ?? Array.Empty<string>())); return this; }
     /// <summary>Adds multiple rows.</summary>
-    public TableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(r)); } return this; }
+    public MarkdownTableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(r)); } return this; }
     /// <summary>Adds two-column rows from tuples.</summary>
-    public TableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { a, b })); } return this; }
+    public MarkdownTableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { a, b })); } return this; }
     /// <summary>Adds two-column rows from key/value pairs.</summary>
-    public TableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); } return this; }
+    public MarkdownTableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); } return this; }
     internal TableBlock Build() => _table;
 
     /// <summary>
@@ -47,14 +47,14 @@ public sealed class TableBuilder {
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
-    public TableBuilder FromAny(object? data) { return FromAny(data, _defaultOptions); }
+    public MarkdownTableBuilder FromAny(object? data) { return FromAny(data, _defaultOptions); }
 
     /// <summary>
     /// Populates the table from arbitrary data with options (include/exclude/order).
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
-    public TableBuilder FromAny(object? data, TableFromOptions? options) {      
+    public MarkdownTableBuilder FromAny(object? data, TableFromOptions? options) {
         if (data is null) return this;
         if (data is string || data.GetType().IsPrimitive) {
             if (_table.Headers.Count == 0) _table.Headers.Add("Value");
@@ -139,7 +139,7 @@ public sealed class TableBuilder {
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
-    public TableBuilder FromAny(object? data, System.Action<TableFromOptions> configure) {
+    public MarkdownTableBuilder FromAny(object? data, System.Action<TableFromOptions> configure) {
         var opts = new TableFromOptions();
         configure(opts);
         return FromAny(data, opts);
@@ -148,7 +148,7 @@ public sealed class TableBuilder {
     /// <summary>
     /// Populates the table from a sequence of objects using public readable properties.
     /// </summary>
-    public TableBuilder FromSequenceAuto<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, TableFromOptions? options = null) {
+    public MarkdownTableBuilder FromSequenceAuto<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, TableFromOptions? options = null) {
         if (items == null) return this;
         var props = SelectProperties(typeof(T), options);
         if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
@@ -173,7 +173,7 @@ public sealed class TableBuilder {
     /// <summary>
     /// Populates the table from a single object using public readable properties.
     /// </summary>
-    public TableBuilder FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data, TableFromOptions? options = null) {
+    public MarkdownTableBuilder FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data, TableFromOptions? options = null) {
         if (data == null) return this;
         var props = SelectProperties(typeof(T), options);
         bool wide = options != null && (
@@ -210,7 +210,7 @@ public sealed class TableBuilder {
     /// <summary>
     /// Populates the table from a sequence using explicit column selectors.
     /// </summary>
-    public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
+    public MarkdownTableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
         if (columns == null || columns.Length == 0 || items == null) return this;
         int columnLimit = Math.Min(columns.Length, MaxColumns);
         int skippedColumns = columns.Length - columnLimit;
@@ -521,9 +521,9 @@ public sealed class TableBuilder {
     }
 
     /// <summary>Sets column alignments for the table header/columns.</summary>
-    public TableBuilder Align(params ColumnAlignment[] alignments) { _table.Alignments.Clear(); _table.Alignments.AddRange(alignments); return this; }
+    public MarkdownTableBuilder Align(params MarkdownColumnAlignment[] alignments) { _table.Alignments.Clear(); _table.Alignments.AddRange(alignments); return this; }
     /// <summary>Sets a uniform alignment for all columns (applied to header + cells).</summary>
-    public TableBuilder AlignAll(ColumnAlignment alignment) {
+    public MarkdownTableBuilder AlignAll(MarkdownColumnAlignment alignment) {
         int cols = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
         _table.Alignments.Clear();
         for (int i = 0; i < cols; i++) _table.Alignments.Add(alignment);
@@ -531,16 +531,16 @@ public sealed class TableBuilder {
     }
 
     /// <summary>Set left alignment on specified 0-based column indexes. If none provided, all columns.</summary>
-    public TableBuilder AlignLeft(params int[] cols) => AlignPreset(ColumnAlignment.Left, cols);
+    public MarkdownTableBuilder AlignLeft(params int[] cols) => AlignPreset(MarkdownColumnAlignment.Left, cols);
     /// <summary>Set right alignment on specified 0-based column indexes. If none provided, all columns.</summary>
-    public TableBuilder AlignRight(params int[] cols) => AlignPreset(ColumnAlignment.Right, cols);
+    public MarkdownTableBuilder AlignRight(params int[] cols) => AlignPreset(MarkdownColumnAlignment.Right, cols);
     /// <summary>Set center alignment on specified 0-based column indexes. If none provided, all columns.</summary>
-    public TableBuilder AlignCenter(params int[] cols) => AlignPreset(ColumnAlignment.Center, cols);
+    public MarkdownTableBuilder AlignCenter(params int[] cols) => AlignPreset(MarkdownColumnAlignment.Center, cols);
     /// <summary>Remove alignment (default) on specified 0-based column indexes. If none provided, all columns.</summary>
-    public TableBuilder AlignNone(params int[] cols) => AlignPreset(ColumnAlignment.None, cols);
+    public MarkdownTableBuilder AlignNone(params int[] cols) => AlignPreset(MarkdownColumnAlignment.None, cols);
 
     /// <summary>Align columns by matching header names (case-insensitive).</summary>
-    public TableBuilder AlignByHeaders(ColumnAlignment alignment, params string[] headerNames) {
+    public MarkdownTableBuilder AlignByHeaders(MarkdownColumnAlignment alignment, params string[] headerNames) {
         if (headerNames == null || headerNames.Length == 0) return this;
         if (_table.Headers.Count == 0) return this;
         var set = new HashSet<string>(headerNames.Where(h => !string.IsNullOrWhiteSpace(h)), StringComparer.OrdinalIgnoreCase);
@@ -551,19 +551,19 @@ public sealed class TableBuilder {
         return AlignPreset(alignment, idxs.ToArray());
     }
 
-    private TableBuilder AlignPreset(ColumnAlignment alignment, params int[] cols) {
+    private MarkdownTableBuilder AlignPreset(MarkdownColumnAlignment alignment, params int[] cols) {
         int count = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
         if (count <= 0) return this;
-        if (_table.Alignments.Count < count) { for (int i = _table.Alignments.Count; i < count; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        if (_table.Alignments.Count < count) { for (int i = _table.Alignments.Count; i < count; i++) _table.Alignments.Add(MarkdownColumnAlignment.None); }
         if (cols == null || cols.Length == 0) { for (int i = 0; i < count; i++) _table.Alignments[i] = alignment; } else { foreach (var c in cols) if (c >= 0 && c < count) _table.Alignments[c] = alignment; }
         return this;
     }
 
     /// <summary>Guess numeric columns by sampling values and align them right. Threshold is fraction of numeric-like values required (0..1).</summary>
-    public TableBuilder AlignNumericRight(double threshold = 0.8) {
+    public MarkdownTableBuilder AlignNumericRight(double threshold = 0.8) {
         if (_table.Rows.Count == 0) return this;
         int cols = _table.Headers.Count > 0 ? _table.Headers.Count : _table.Rows[0].Count;
-        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(MarkdownColumnAlignment.None); }
         for (int c = 0; c < cols; c++) {
             int total = 0; int numeric = 0;
             foreach (var row in _table.Rows) {
@@ -572,10 +572,10 @@ public sealed class TableBuilder {
                 total++;
                 if (LooksNumeric(cell)) numeric++;
             }
-            if (total > 0 && (double)numeric / total >= threshold) _table.Alignments[c] = ColumnAlignment.Right;
+            if (total > 0 && (double)numeric / total >= threshold) _table.Alignments[c] = MarkdownColumnAlignment.Right;
         }
         // Default unspecified alignments to Left to produce explicit alignment markers (:---) for readability
-        for (int c = 0; c < cols; c++) if (_table.Alignments[c] == ColumnAlignment.None) _table.Alignments[c] = ColumnAlignment.Left;
+        for (int c = 0; c < cols; c++) if (_table.Alignments[c] == MarkdownColumnAlignment.None) _table.Alignments[c] = MarkdownColumnAlignment.Left;
         return this;
     }
 
@@ -613,15 +613,15 @@ public sealed class TableBuilder {
     }
 
     /// <summary>Configures default column options for subsequent FromAny calls.</summary>
-    public TableBuilder Columns(System.Action<TableFromOptions> configure) { _defaultOptions ??= new TableFromOptions(); configure(_defaultOptions); return this; }
+    public MarkdownTableBuilder Columns(System.Action<TableFromOptions> configure) { _defaultOptions ??= new TableFromOptions(); configure(_defaultOptions); return this; }
     /// <summary>Sets a simple header transform used for generating header text (e.g., prettifying PascalCase).</summary>
-    public TableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new TableFromOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
+    public MarkdownTableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new TableFromOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
 
     /// <summary>Guess date-like columns and center-align them. Threshold is fraction of date-like values required (0..1).</summary>
-    public TableBuilder AlignDatesCenter(double threshold = 0.6) {
+    public MarkdownTableBuilder AlignDatesCenter(double threshold = 0.6) {
         if (_table.Rows.Count == 0) return this;
         int cols = _table.Headers.Count > 0 ? _table.Headers.Count : _table.Rows[0].Count;
-        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(MarkdownColumnAlignment.None); }
         for (int c = 0; c < cols; c++) {
             int total = 0; int dates = 0;
             foreach (var row in _table.Rows) {
@@ -630,7 +630,7 @@ public sealed class TableBuilder {
                 total++;
                 if (LooksDate(cell)) dates++;
             }
-            if (total > 0 && (double)dates / total >= threshold) _table.Alignments[c] = ColumnAlignment.Center;
+            if (total > 0 && (double)dates / total >= threshold) _table.Alignments[c] = MarkdownColumnAlignment.Center;
         }
         return this;
     }

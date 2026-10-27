@@ -33,7 +33,7 @@ public sealed class WordSharedChartPdfTests {
         object?[] arguments = { chart, null, null };
         Assert.True((bool)factory.Invoke(null, arguments)!);
         Assert.IsType<OfficeChartSnapshot>(arguments[1]);
-        Assert.NotEmpty(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.NotEmpty(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -50,11 +50,11 @@ public sealed class WordSharedChartPdfTests {
         Assert.True((bool)factory.Invoke(null, arguments)!);
         OfficeChartSnapshot projected = Assert.IsType<OfficeChartSnapshot>(arguments[1]);
         Assert.Equal(new[] { 25, 0 }, projected.Data.Series.Single().PointExplosions);
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         Assert.NotEmpty(conversion.Value.ToBytes());
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
     }
 
     [Theory]
@@ -81,11 +81,11 @@ public sealed class WordSharedChartPdfTests {
         object?[] arguments = { chart, null, null };
         Assert.True((bool)factory.Invoke(null, arguments)!);
         Assert.IsType<OfficeChartSnapshot>(arguments[1]);
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         byte[] pdfBytes = conversion.Value.ToBytes();
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
@@ -108,11 +108,11 @@ public sealed class WordSharedChartPdfTests {
         Assert.Equal(shared.Style.LegendBorderColor, projected.Style.LegendBorderColor);
         Assert.Equal(shared.Style.LegendBorderWidth, projected.Style.LegendBorderWidth);
 
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         byte[] pdfBytes = conversion.Value.ToBytes();
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
@@ -129,11 +129,11 @@ public sealed class WordSharedChartPdfTests {
                 new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
                     renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
         document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared chart");
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-shared-chart-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            conversionReport = document.SaveAsPdf(path, options).Report;
-            Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(path)).Report;
+            Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
             using var pdf = PdfPigDocument.Open(path);
             string text = string.Join(" ", pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text));
             Assert.Contains("Shared chart", text);

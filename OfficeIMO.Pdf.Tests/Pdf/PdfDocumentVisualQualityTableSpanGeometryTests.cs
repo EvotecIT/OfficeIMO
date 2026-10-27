@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_ColumnSpanUsesCombinedColumnWidthAndSnapshotsCells() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.ColumnWidthPoints = new List<double?> { 70, 70, 60 };
@@ -58,7 +58,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_ColumnSpanUsesCombinedColumnWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.ColumnWidthPoints = new List<double?> { 50, 50, 40 };
@@ -101,7 +101,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanOccupiesFollowingRowGridColumn() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -111,7 +111,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -149,7 +149,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanOccupiesFollowingRowGridColumn() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -159,7 +159,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -202,7 +202,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanCellFillAndBorderUseCombinedRowHeight() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -222,7 +222,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -250,7 +250,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanCellFillAndBorderUseCombinedRowHeight() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -303,7 +303,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanIgnoresContinuationCellFillAndBorderCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -323,7 +323,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -347,7 +347,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanIgnoresContinuationCellFillAndBorderCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -367,7 +367,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -396,7 +396,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_ColumnSpanIgnoresContinuationCellFillAndBorderCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -416,7 +416,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -439,7 +439,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_ColumnSpanIgnoresContinuationCellFillAndBorderCoordinates() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
@@ -459,7 +459,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,

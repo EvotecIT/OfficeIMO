@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
             get {
                 string fill = RunShadingFillColorHex;
                 return fill.Length == 6 &&
-                       OfficeIMO.Drawing.OfficeColor.TryParseHex(fill, out OfficeIMO.Drawing.OfficeColor color)
+                       OfficeIMO.OfficeColor.TryParseHex(fill, out OfficeIMO.OfficeColor color)
                     ? color
                     : null;
             }

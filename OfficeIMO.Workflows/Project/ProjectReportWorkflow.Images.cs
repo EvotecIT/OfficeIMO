@@ -6,7 +6,7 @@ namespace OfficeIMO.Workflows;
 public static partial class ProjectReportWorkflow {
     /// <summary>Starts a fluent export using the shared OfficeIMO image contracts.</summary>
     public static ProjectImageExportBuilder Images(ProjectView view, ProjectImageExportOptions? options = null) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         return new ProjectImageExportBuilder(view, options?.Snapshot() ?? new ProjectImageExportOptions());
     }
 
@@ -21,7 +21,7 @@ public static partial class ProjectReportWorkflow {
     /// <summary>Streams image results under one shared deadline and batch budget. Already delivered pages remain delivered if a later page fails.</summary>
     public static void ExportImages(ProjectView view, OfficeImageExportFormat format, OfficeImageExportConsumer consumer,
         ProjectImageExportOptions? options = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view); ArgumentNullException.ThrowIfNull(consumer);
+        if (view == null) throw new ArgumentNullException(nameof(view)); if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         var effective = options?.Snapshot() ?? new ProjectImageExportOptions();
         OfficeImageExportBatchProcessor.Run(effective, (emit, token) => {
             var typography = new OfficeRenderingProfile("project-images", effective.Fonts, effective.TextShapingProvider,

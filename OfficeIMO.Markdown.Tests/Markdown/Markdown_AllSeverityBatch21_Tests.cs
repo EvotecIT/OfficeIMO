@@ -19,8 +19,8 @@ public class MarkdownAllSeverityBatch21Tests {
         table.Headers.Add("Value");
         table.Rows.Add(new[] { value });
 
-        string markdown = new MarkdownDoc().Add(table).ToMarkdown();
-        MarkdownDoc reparsed = MarkdownReader.Parse(markdown);
+        string markdown = MarkdownDocument.Create().Add(table).ToMarkdown();
+        MarkdownDocument reparsed = MarkdownDocument.Parse(markdown);
         TableBlock reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
 
         Assert.Equal(value, reparsedTable.Rows[0][0]);

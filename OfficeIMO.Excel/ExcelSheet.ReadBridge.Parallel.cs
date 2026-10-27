@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAsParallel<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() =>
             RowsAsParallelUsedRangeIterator<T>(parallelOptions, options, cancellationToken);
 
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAsParallel<T>(
             Action<RowMapper<T>> configure,
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (configure is null) throw new ArgumentNullException(nameof(configure));
             return RowsAsParallelUsedRangeIterator(configure, parallelOptions, options, cancellationToken);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAsParallel<T>(
             Func<IDataRecord, T> factory,
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (factory is null) throw new ArgumentNullException(nameof(factory));
             return RowsAsParallelUsedRangeIterator(factory, parallelOptions, options, cancellationToken);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             return RowsAsParallelRangeIterator<T>(a1Range, parallelOptions, options, cancellationToken);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
             string a1Range,
             Action<RowMapper<T>> configure,
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (configure is null) throw new ArgumentNullException(nameof(configure));
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             string a1Range,
             Func<IDataRecord, T> factory,
             ParallelRowMappingOptions? parallelOptions = null,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (factory is null) throw new ArgumentNullException(nameof(factory));
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsParallelUsedRangeIterator<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked);
             using (linked) {
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsParallelUsedRangeIterator<T>(
             Action<RowMapper<T>> configure,
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked);
             using (linked) {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsParallelUsedRangeIterator<T>(
             Func<IDataRecord, T> factory,
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked);
             using (linked) {
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked, a1Range);
             using (linked) {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
             string a1Range,
             Action<RowMapper<T>> configure,
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked, a1Range);
             using (linked) {
@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
             string a1Range,
             Func<IDataRecord, T> factory,
             ParallelRowMappingOptions? parallelOptions,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) {
             using ExcelWorkbookDataReader reader = CreateParallelMappingReader(options, cancellationToken, out CancellationTokenSource linked, a1Range);
             using (linked) {
@@ -144,16 +144,16 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelWorkbookDataReader CreateParallelMappingReader(
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken,
             out CancellationTokenSource linked,
             string? a1Range = null) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             linked = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             try {
-                ExcelReadOptions readerOptions = effectiveOptions.ForSheet(Name, a1Range, linked.Token);
+                ExcelReaderOptions readerOptions = effectiveOptions.ForSheet(Name, a1Range, linked.Token);
                 // Parallel workers require stable scalar schema tokens so mutable/provider-owned
                 // object values never cross the single-owner worksheet reader boundary.
                 readerOptions.InferSchema = true;

@@ -13,10 +13,10 @@ public sealed class PdfTableTextClipBoundsTests {
     [InlineData("column", false)]
     [InlineData("canvas", false)]
     public void Cell_clip_policy_survives_style_copy_and_retains_authored_glyph_positions(string frame, bool containText) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 48, CompressContentStreams = false };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ClipTextToCellBounds = containText;
         style.ColumnWidthPoints = new List<double?> { 100 };
@@ -30,10 +30,10 @@ public sealed class PdfTableTextClipBoundsTests {
         var document = PdfDocument.Create(options);
         style = style.Clone();
         byte[] bytes = frame switch {
-            "flow" => document.Table(cells, style: style).ToBytes(),
+            "flow" => document.Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 24, style)).ToBytes(),
+                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 24, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };
         string content = System.Text.Encoding.ASCII.GetString(bytes);

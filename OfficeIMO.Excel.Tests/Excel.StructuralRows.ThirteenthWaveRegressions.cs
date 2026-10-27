@@ -96,20 +96,20 @@ namespace OfficeIMO.Tests {
             ExcelSheet other = document.AddWorksheet("Other");
             other.CellAt(1, 1).SetValue("Delete");
             SheetData sheetData = data.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
-            var ownerRow = new Row { RowIndex = (uint)(A1.MaxRows - 1) };
+            var ownerRow = new Row { RowIndex = (uint)(ExcelA1.MaxRows - 1) };
             ownerRow.Append(
                 new Cell {
-                    CellReference = $"A{A1.MaxRows - 1}",
-                    CellFormula = new CellFormula($"B{A1.MaxRows}") {
+                    CellReference = $"A{ExcelA1.MaxRows - 1}",
+                    CellFormula = new CellFormula($"B{ExcelA1.MaxRows}") {
                         FormulaType = CellFormulaValues.Shared,
                         SharedIndex = 91U,
-                        Reference = $"A{A1.MaxRows - 1}:A{A1.MaxRows}"
+                        Reference = $"A{ExcelA1.MaxRows - 1}:A{ExcelA1.MaxRows}"
                     }
                 });
-            var followerRow = new Row { RowIndex = (uint)A1.MaxRows };
+            var followerRow = new Row { RowIndex = (uint)ExcelA1.MaxRows };
             followerRow.Append(
                 new Cell {
-                    CellReference = $"A{A1.MaxRows}",
+                    CellReference = $"A{ExcelA1.MaxRows}",
                     CellFormula = new CellFormula {
                         FormulaType = CellFormulaValues.Shared,
                         SharedIndex = 91U

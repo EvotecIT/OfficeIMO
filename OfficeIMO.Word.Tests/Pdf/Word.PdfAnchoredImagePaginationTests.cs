@@ -20,7 +20,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-anchor-control-" + Guid.NewGuid().ToString("N") + ".png");
         try {
             File.WriteAllBytes(path, OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
-                new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.Drawing.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
+                new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
             var section = word.Sections[0];
             section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
@@ -43,7 +43,7 @@ public sealed class PdfAnchoredImagePaginationTests {
             }
             if (decoration == "panel") anchor.ShadingFillColorHex = "E6F2FF";
             if (decoration == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
-            var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+            var pdf = PdfCore.PdfDocument.Load(word.ToPdf().ToBytes());
             var placement = Assert.Single(pdf.Images.Placements());
             Assert.Equal(10, placement.X, 3);
             var rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(placement.PageNumber), new PdfCore.PdfPageRenderOptions { Dpi = 72 });
@@ -91,7 +91,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         if (kind == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
         if (kind == "panel") anchor.ShadingFillColorHex = "E6F2FF";
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
-            new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.Drawing.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
+            new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(bytes);
         var image = anchor.InsertImage(stream, "anchored.png", 24, 24, WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -108,7 +108,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         }
         anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = 12;
         word.AddParagraph("Following paragraph");
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { Margins = PdfCore.PageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         var anchorPage = Assert.Single(pdf.Reader.Pages(), page => pdf.Reader.Text(PdfCore.PdfPageSelection.From(page.PageNumber)).Contains("ANCHOR"));
         var placements = pdf.Images.Placements();
@@ -119,7 +119,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         Assert.Equal(anchorPage.PageNumber, placement.PageNumber);
         Assert.Equal(10, placement.X, 3);
         Assert.Equal(272, placement.Y, 3);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         if (kind == "split") Assert.True(pdf.Reader.Pages().Count > anchorPage.PageNumber);
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
             Directory.CreateDirectory(output);
@@ -134,12 +134,12 @@ public sealed class PdfAnchoredImagePaginationTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
-            new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.Drawing.OfficeColor.Black),
+            new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Black),
             OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using (var first = new MemoryStream(bytes)) paragraph.InsertImage(first, "first.png", 10, 10);
         using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).InsertImage(second, "second.png", 10, 10);
 
-        Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult(
-            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+        Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
     }
 }

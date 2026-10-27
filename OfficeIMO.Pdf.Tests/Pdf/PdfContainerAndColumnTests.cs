@@ -7,24 +7,24 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_PageBreakRestartsAtTheFirstColumnAndHonorsThePageLimit() {
-        PdfDocument Build(PdfOptions? options = null) => PdfDocument.Create(options).Columns(columns => {
+        PdfDocument Build(PdfCreateOptions? options = null) => PdfDocument.Create(options).Columns(columns => {
             columns.Text("Left first").ColumnBreak().Text("Right first");
             columns.PageBreak();
             columns.Text("Left second").ColumnBreak().Text("Right second");
         });
-        byte[] bytes = Build(new PdfOptions { CompressContentStreams = false }).ToBytes();
+        byte[] bytes = Build(new PdfCreateOptions { CompressContentStreams = false }).ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(bytes);
         Assert.Equal(2, read.Pages.Count);
         Assert.Contains("Left first", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Right first", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Left second", read.Pages[1].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Right second", read.Pages[1].ExtractText(), StringComparison.Ordinal);
-        Assert.Throws<InvalidDataException>(() => Build(new PdfOptions { MaxGeneratedPages = 1 }).ToBytes());
+        Assert.Throws<InvalidDataException>(() => Build(new PdfCreateOptions { MaxGeneratedPages = 1 }).ToBytes());
     }
 
     [Fact]
     public void Columns_LeadingBreakLeavesTheFirstColumnEmpty() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Columns(columns => columns.ColumnBreak().Text("Right only"),
                 new PdfMultiColumnOptions { Gap = 24 }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -80,7 +80,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Container_PaginatesAndDecoratesEveryPageFragment() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 180,
             MarginLeft = 20,
@@ -118,7 +118,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Container_ContinuesDecorationAcrossExplicitPageBreaks() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Container(content => content
                 .Text("Before break")
                 .PageBreak()
@@ -139,7 +139,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_BalancesOneLongParagraphAtWrappedLineBoundaries() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
                 MarginLeft = 40,
@@ -176,7 +176,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_DefaultKeepTogetherParagraphIsNotSplitByLineBalancing() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
                 MarginLeft = 40,
@@ -217,7 +217,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
                 MarginLeft = 40,
@@ -254,7 +254,7 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_BalancedJustifiedParagraphPreservesSoftWrapJustification() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
                 MarginLeft = 40,

@@ -39,7 +39,7 @@ public static partial class OfficeVbaSignatureService {
         OfficePackageSignatureInfo packageSignatures = OfficePackageSignatureService.Inspect(fullPath,
             new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
         if (packageSignatures.HasSignatures && !options.AllowPackageSignatureInvalidation) {
-            findings.Add(Finding("ExistingPackageSignatureInvalidationBlocked", OfficePackageSignatureValidationState.Failed,
+            findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.ExistingPackageSignatureInvalidationBlocked, OfficePackageSignatureValidationState.Failed,
                 "VBA signing would invalidate existing OPC package signatures."));
             return SigningResult(fullPath, true, false, null, findings);
         }
@@ -107,7 +107,7 @@ public static partial class OfficeVbaSignatureService {
                     installed => string.Equals(validatedHash,
                         OfficePackageFileSnapshot.ComputeSha256(installed, options.Package.MaxPackageBytes), StringComparison.Ordinal))) {
                 stagingPath = string.Empty;
-                findings.Add(Finding("SourcePackageChangedDuringSigning", OfficePackageSignatureValidationState.Failed,
+                findings.Add(Finding(global::OfficeIMO.OfficeDiagnosticCodes.SourcePackageChangedDuringSigning, OfficePackageSignatureValidationState.Failed,
                     "The package changed while VBA signatures were staged; the current source was preserved."));
                 return SigningResult(fullPath, true, false, validation, findings);
             }

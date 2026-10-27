@@ -59,8 +59,8 @@ public sealed class WordNativeCompressionAdmissionTests {
             new W.Color { Val = "CC0000" }, new W.FontSize { Val = "24" }), new W.Text("ma")));
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
-            PageSize = new PageSize(owner == "table" ? 300D : width + 60D, 300D), Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
+            PageSize = new PdfPageSize(owner == "table" ? 300D : width + 60D, 300D), Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         Assert.Empty(document.ValidateDocument());
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");

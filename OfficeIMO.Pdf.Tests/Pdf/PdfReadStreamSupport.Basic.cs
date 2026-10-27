@@ -51,14 +51,14 @@ public partial class PdfReadStreamTests {
     }
 
     private static byte[] BuildOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
             .Paragraph(p => p.Text("Outline sample"))
             .ToBytes();
     }
 
     private static byte[] BuildTwoPageOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
             .Paragraph(p => p.Text("Outline sample"))
             .PageBreak()

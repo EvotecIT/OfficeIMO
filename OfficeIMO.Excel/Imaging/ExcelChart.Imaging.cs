@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+            if (!TryGetSnapshot(out ExcelChartInfo snapshot)) {
                 throw new InvalidOperationException(
                     "The chart data could not be resolved into a renderable snapshot.");
             }

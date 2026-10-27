@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "Details.md");
 
-            MarkdownDoc md = MarkdownDoc.Create()
+            MarkdownDocument md = MarkdownDocument.Create()
                 .H1("Collapsible sections")
                 .Details("Show more", body => {
                     body.P("This paragraph is hidden by default.");

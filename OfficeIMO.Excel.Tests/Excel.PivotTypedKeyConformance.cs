@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(profile.GetProperty("outputRange").GetString(), result.OutputRange);
                         Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                         if (name.StartsWith("DatesOuter", StringComparison.Ordinal) || name.StartsWith("DatesDeep", StringComparison.Ordinal)) {
-                            Assert.True(A1.TryParseRange(result.OutputRange, out int top, out int left, out int bottom, out int right));
+                            Assert.True(ExcelA1.TryParseRange(result.OutputRange, out int top, out int left, out int bottom, out int right));
                             var grid = new object?[bottom - top + 1, right - left + 1];
                             for (int r = 0; r < grid.GetLength(0); r++) for (int c = 0; c < grid.GetLength(1); c++)
                                 grid[r, c] = sheet.CellAt(top + r, left + c).GetValue().Value;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                                     int dateRow = columns ? r - 1 : r;
                                     int dateColumn = columns ? c : c - 1;
                                     Assert.IsType<double>(grid[dateRow, dateColumn]);
-                                    var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == A1.CellReference(top + dateRow, left + dateColumn));
+                                    var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == ExcelA1.CellReference(top + dateRow, left + dateColumn));
                                     Assert.True(cell.StyleIndex?.Value > 0);
                                     ancestors++;
                                 }

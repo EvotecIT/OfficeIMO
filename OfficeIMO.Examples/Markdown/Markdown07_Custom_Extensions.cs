@@ -24,10 +24,10 @@ Lead {{**Bold** core}} tail
 
             var options = CreateReaderOptions();
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-            var html = result.Document.ToHtmlFragment(new HtmlOptions {
-                Kind = HtmlKind.Fragment,
+            var html = result.Document.ToHtml(new MarkdownHtmlExportOptions {
+                Kind = MarkdownHtmlKind.Fragment,
                 Title = "Custom extension sample",
-                Style = HtmlStyle.GithubAuto
+                Style = MarkdownHtmlStyle.GithubAuto
             });
 
             string markdownPath = Path.Combine(mdFolder, "CustomExtensions.Source.md");
@@ -47,8 +47,8 @@ Lead {{**Bold** core}} tail
             }
         }
 
-        private static MarkdownReaderOptions CreateReaderOptions() {
-            var options = new MarkdownReaderOptions();
+        private static MarkdownLoadOptions CreateReaderOptions() {
+            var options = new MarkdownLoadOptions();
             options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
             options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
                 "Vendor charts",
@@ -57,7 +57,7 @@ Lead {{**Bold** core}} tail
             return options;
         }
 
-        private static string DescribeParseResult(MarkdownParseResult result) {
+        private static string DescribeParseResult(MarkdownParseInfo result) {
             var sb = new StringBuilder();
             sb.AppendLine("Document blocks:");
             foreach (var block in result.Document.Blocks) {
@@ -131,7 +131,7 @@ Lead {{**Bold** core}} tail
 
             public string RenderHtml() => "<span data-inline=\"double-brace\">" + ((IRenderableMarkdownInline)Inlines).RenderHtml() + "</span>";
 
-            string IContextualHtmlMarkdownInline.RenderHtml(HtmlOptions options) =>
+            string IContextualHtmlMarkdownInline.RenderHtml(MarkdownHtmlExportOptions options) =>
                 "<span data-inline=\"double-brace\" data-title=\""
                 + System.Net.WebUtility.HtmlEncode(options.Title)
                 + "\">"

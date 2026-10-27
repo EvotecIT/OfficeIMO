@@ -10,7 +10,7 @@ namespace OfficeIMO.Html.Pdf;
 internal static partial class HtmlPdfRenderedConverter {
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
         HtmlToPdfOptions options,
-        PdfCore.PdfOptions measurementOptions) {
+        PdfCore.PdfCreateOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
         return ReuseTextMeasurement<HtmlTextFaceMetrics>(options, measurementOptions, (text, font, descriptor) => {
@@ -24,7 +24,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?> CreateFallbackTextMeasurement(
         HtmlToPdfOptions options,
-        PdfCore.PdfOptions measurementOptions) {
+        PdfCore.PdfCreateOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
         var attemptedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -80,7 +80,7 @@ internal static partial class HtmlPdfRenderedConverter {
         || descriptor.Slant == OfficeFontSlant.Oblique;
 
     private static bool TryRegisterSystemFace(
-        PdfCore.PdfOptions options,
+        PdfCore.PdfCreateOptions options,
         string familyName,
         string text,
         OfficeFontFaceDescriptor descriptor,
@@ -109,7 +109,7 @@ internal static partial class HtmlPdfRenderedConverter {
         bool italic,
         OfficeFontFaceDescriptor descriptor,
         bool allowInstalledFaces,
-        PdfCore.PdfOptions options) {
+        PdfCore.PdfCreateOptions options) {
         if (allowInstalledFaces && NeedsNumericSystemFace(descriptor)) {
             foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
                 if (PdfCore.PdfEmbeddedFontFamily.TryResolveSystemFace(
@@ -129,7 +129,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool NamedFontCoversText(
-        PdfCore.PdfOptions options,
+        PdfCore.PdfCreateOptions options,
         string familyName,
         string text,
         bool bold,
@@ -307,7 +307,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
     // This list is library policy; it never follows a document-authored font name.
     private static PdfCore.PdfEmbeddedFontFamily? SelectLibraryDefaultSystemFontFamily(CancellationToken cancellationToken) {
-        foreach (string familyName in PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(
+        foreach (string familyName in PdfCore.PdfCreateOptions.DefaultDocumentFontFamilyFallback.Split(
                      new[] { ',', ';' },
                      StringSplitOptions.RemoveEmptyEntries)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -501,7 +501,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal RegisteredWebFonts(
             IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
             OfficeFontFaceCollection faces,
-            PdfCore.PdfOptions options,
+            PdfCore.PdfCreateOptions options,
             HtmlDiagnosticReport diagnostics,
             OutlinedTextBudget outlineBudget,
             IOfficeTextShapingProvider? textShapingProvider,
@@ -518,7 +518,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
         internal bool AllowInstalledFontFaces { get; set; }
         internal OfficeFontFaceCollection Faces { get; }
-        internal PdfCore.PdfOptions Options { get; }
+        internal PdfCore.PdfCreateOptions Options { get; }
         internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);
         internal bool OutlineBudgetApproximationReported { get; set; }
         internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);

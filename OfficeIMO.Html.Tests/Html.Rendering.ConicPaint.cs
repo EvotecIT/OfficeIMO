@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + ",rgba(255 0 0 / 25%),rgba(0 0 255 / 75%))'></div>";
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent };
-        var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions(options));
+        var result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions(options));
         byte[] pdf = result.ToBytes();
 
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");

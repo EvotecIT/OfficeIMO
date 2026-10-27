@@ -15,7 +15,7 @@ public class PdfTextCaseTests {
     [InlineData(true, false, 2)]
     [InlineData(false, true, 1)]
     public void RichParagraphUnderlinesSpacesUsingTheirSourceRun(bool firstUnderlined, bool secondUnderlined, int expectedLineCount) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => {
                 if (firstUnderlined) paragraph.Underlined("Elite ");
                 else paragraph.Text("Elite ");
@@ -41,7 +41,7 @@ public class PdfTextCaseTests {
 
     [Fact]
     public void RichParagraphWordsUnderlineLeavesSpacesClear() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => paragraph.Underlined("Elite Performance", OfficeTextDecorationStyle.Words))
             .ToBytes();
         MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
@@ -55,7 +55,7 @@ public class PdfTextCaseTests {
     [InlineData(PdfTextBaseline.Superscript)]
     [InlineData(PdfTextBaseline.Subscript)]
     public void UnderlinedScriptSpaceUsesTheSourceRunBaseline(PdfTextBaseline baseline) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => paragraph.Runs(new[] {
                 new PdfTextRun("Elite ", underlineStyle: OfficeTextDecorationStyle.Single, baseline: baseline, fontSize: 18),
                 new PdfTextRun("Performance", fontSize: 18)
@@ -78,7 +78,7 @@ public class PdfTextCaseTests {
             OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top, 0, null, null,
             wrapText, false, false, false, false, null, null,
             OfficeTextDecorationStyle.Words, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
             .ToBytes();
 
@@ -103,7 +103,7 @@ public class PdfTextCaseTests {
             OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top, 0, null, null,
             false, false, false, false, false, null, null,
             OfficeTextDecorationStyle.Words, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "RTL underline test")
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance))
             .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
@@ -121,7 +121,7 @@ public class PdfTextCaseTests {
 
     [Fact]
     public void HeaderWordsUnderlineLeavesSpacesClear() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(new PdfTextRun("Elite Performance", underlineStyle: OfficeTextDecorationStyle.Words))))
             .Paragraph(paragraph => paragraph.Text("Body"))
             .ToBytes();
@@ -131,7 +131,7 @@ public class PdfTextCaseTests {
 
     [Fact]
     public void HeaderNewlinesStopAtTheLayoutLineLimit() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = new string('\n', 100_001)
             })
@@ -199,7 +199,7 @@ public class PdfTextCaseTests {
             strikeStyle: OfficeTextDecorationStyle.Double,
             decorationColor: PdfColor.FromRgb(255, 0, 0));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(run)))
             .Paragraph(paragraph => paragraph
                 .Underline(OfficeTextDecorationStyle.Dashed)
@@ -247,7 +247,7 @@ public class PdfTextCaseTests {
                 padding: new OfficeTextPadding(4D, 4D, 4D, 4D),
                 paragraphIndent: OfficeTextParagraphIndent.FirstLine(6D));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
 

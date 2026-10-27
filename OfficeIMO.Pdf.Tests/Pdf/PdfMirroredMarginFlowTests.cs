@@ -148,7 +148,7 @@ public sealed class PdfMirroredMarginFlowTests {
         Assert.Equal(70, widget.X1, 3);
     }
 
-    private static PdfOptions MirroredOptions() => new() {
+    private static PdfCreateOptions MirroredOptions() => new() {
         PageWidth = 300, PageHeight = 200,
         MarginLeft = 40, MarginRight = 70, MarginTop = 20, MarginBottom = 20,
         MirrorMargins = true, DefaultFontSize = 10, CompressContentStreams = false

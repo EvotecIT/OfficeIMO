@@ -22,14 +22,14 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
         var htmlOptions = CreatePlainHtmlOptions();
 
-        var officeDoc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
-        var portableDoc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+        var officeDoc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateOfficeIMOProfile());
+        var portableDoc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile());
 
         var sb = new StringBuilder();
         AppendSection(sb, "office.ast", BuildDocumentSummary(officeDoc));
-        AppendSection(sb, "office.html", NormalizeHtml(officeDoc.ToHtmlFragment(htmlOptions)));
+        AppendSection(sb, "office.html", NormalizeHtml(officeDoc.ToHtml(htmlOptions)));
         AppendSection(sb, "portable.ast", BuildDocumentSummary(portableDoc));
-        AppendSection(sb, "portable.html", NormalizeHtml(portableDoc.ToHtmlFragment(htmlOptions)));
+        AppendSection(sb, "portable.html", NormalizeHtml(portableDoc.ToHtml(htmlOptions)));
 
         AssertGolden("profile-boundary", sb.ToString().TrimEnd());
     }
@@ -204,10 +204,10 @@ public sealed class Markdown_Golden_Fixture_Tests {
     public void MarkdownGolden_HtmlRichAst() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
-        string officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
-        string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
+        string officeMarkdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(MarkdownHtmlImportOptions.CreatePortableProfile()).ToMarkdown();
+        string renderedHtml = document.ToHtml(CreatePlainHtmlOptions());
 
         var sb = new StringBuilder();
         AppendSection(sb, "ast", BuildDocumentSummary(document));
@@ -222,15 +222,15 @@ public sealed class Markdown_Golden_Fixture_Tests {
     public void MarkdownGolden_HtmlSharedVisualHosts() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
-        string officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
+        string officeMarkdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html"),
-            MarkdownWriteOptions = MarkdownWriteOptions.CreatePortableProfile()
-        });
-        string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
+            MarkdownWriteOptions = MarkdownSaveOptions.CreatePortableProfile()
+        }).ToMarkdown();
+        string renderedHtml = document.ToHtml(CreatePlainHtmlOptions());
 
         var sb = new StringBuilder();
         AppendSection(sb, "ast", BuildDocumentSummary(document));
@@ -261,7 +261,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var sb = new StringBuilder();
         AppendSection(sb, "ix.html", NormalizeHtml(html));
@@ -279,7 +279,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var sb = new StringBuilder();
         AppendSection(sb, "ix.html", NormalizeHtml(html));
@@ -344,15 +344,15 @@ public sealed class Markdown_Golden_Fixture_Tests {
         AssertGolden("renderer-source-aware-pipeline", sb.ToString().TrimEnd());
     }
 
-    private static HtmlOptions CreatePlainHtmlOptions() {
-        return new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions CreatePlainHtmlOptions() {
+        return new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
     }
 
-    private static string BuildDocumentSummary(MarkdownDoc document) {
+    private static string BuildDocumentSummary(MarkdownDocument document) {
         var sb = new StringBuilder();
         AppendBlockList(sb, document.Blocks, 0);
         return sb.ToString().TrimEnd();
@@ -500,13 +500,13 @@ public sealed class Markdown_Golden_Fixture_Tests {
 
     private static void AppendHtmlFixtureSnapshot(StringBuilder sb, string name, string fixtureName) {
         string html = LoadHtmlFixture(fixtureName);
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
         AppendSection(sb, name + ".ast", BuildDocumentSummary(document));
         AppendSection(sb, name + ".markdown", NormalizeText(document.ToMarkdown()));
-        AppendSection(sb, name + ".html", NormalizeInlineAwareHtml(document.ToHtmlFragment(CreatePlainHtmlOptions())));
+        AppendSection(sb, name + ".html", NormalizeInlineAwareHtml(document.ToHtml(CreatePlainHtmlOptions())));
     }
 
     private static string BuildPreProcessorDiagnosticSummary(
@@ -780,14 +780,14 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     private sealed class GoldenRendererAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
         }
     }
 
     private sealed class GoldenReaderAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
         }

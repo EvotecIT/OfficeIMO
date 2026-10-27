@@ -22,7 +22,7 @@ public sealed class ExcelPdfTextFormattingTests {
             .SetFontSize(14)
             .SetFontColor("336699");
 
-        PdfCore.PdfDocument pdf = document.ToPdfDocument(new ExcelToPdfOptions {
+        PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
         });

@@ -20,7 +20,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     private readonly IStudioLocalizer _localizer;
     private readonly StudioStorageAccess? _storage;
     private readonly StudioJobHistory? _jobs;
-    private readonly IOfficeWorkflowPublicationGuard? _guard;
+    private readonly IOfficePublicationGuard? _guard;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
     private bool _disposed;
@@ -28,7 +28,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     internal OcrSessionViewModel(Func<CancellationToken, Task<IReadOnlyList<string>>> pickFiles,
         Func<CancellationToken, Task<string?>> pickOutputFolder, IStudioLocalizer localizer,
         StudioStorageAccess? storage = null, StudioJobHistory? jobs = null,
-        IOfficeWorkflowPublicationGuard? guard = null,
+        IOfficePublicationGuard? guard = null,
         Func<TesseractOcrLanguage, bool, CancellationToken, Task<IOcrEngine>>? createEngine = null,
         Func<string, CancellationToken, Task>? openOutput = null) {
         _pickFiles = pickFiles; _pickOutputFolder = pickOutputFolder; _localizer = localizer;
@@ -168,7 +168,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
             var requests = new List<OfficeOcrSessionRequest>();
             foreach (var item in candidates) {
                 string output = Path.Combine(folder, item.OutputName);
-                var policy = replace ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail;
+                var policy = replace ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail;
                 if (item.IsPdf) requests.Add(new(item.Id, new PdfSearchableWorkflowRequest {
                     InputPath = item.InputPath, InputStream = _storage?.CreateWorkflowInput(item.InputPath),
                     OutputPath = output, ConflictPolicy = policy,

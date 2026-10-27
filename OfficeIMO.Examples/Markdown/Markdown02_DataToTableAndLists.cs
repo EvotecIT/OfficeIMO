@@ -20,14 +20,14 @@ namespace OfficeIMO.Examples.Markdown {
             var features = new[] { "SPF", "DKIM", "DMARC", "BIMI" };
             var meta = new { Project = "DomainDetective", Version = "0.9.0", Enforced = true };
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Data → Markdown Examples")
                 .H2("Object → Table (Property/Value)")
                 .TableFrom(meta)
                 .H2("Auto header transform")
-                .Table(t => t.Columns(HeaderTransforms.Pretty).FromAny(new { DmarcPolicy = "p=none", TlsGrade = "A", SpfAligned = true }))
+                .Table(t => t.Columns(MarkdownHeaderTransforms.Pretty).FromAny(new { DmarcPolicy = "p=none", TlsGrade = "A", SpfAligned = true }))
                 .H2("Sequence of Objects → Table (with alignment)")
-                .Table(t => t.FromAny(people).Align(ColumnAlignment.Left, ColumnAlignment.Left, ColumnAlignment.Right))
+                .Table(t => t.FromAny(people).Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right))
                 .H2("Array → Unordered List")
                 .Ul(features)
                 .H2("Array → Ordered List")
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "WithTOC.md");
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Report")
                 .H2("Install")
                 .P("dotnet add package OfficeIMO.Markdown")
@@ -85,9 +85,9 @@ namespace OfficeIMO.Examples.Markdown {
             opts.Order.AddRange(new[] { "Host", "DMARC", "Score" });
             opts.HeaderRenames["DMARC"] = "DMARC Policy";
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Advanced Table FromAny")
-                .Table(t => t.FromAny(rows, opts).Align(ColumnAlignment.Left, ColumnAlignment.Center, ColumnAlignment.Right));
+                .Table(t => t.FromAny(rows, opts).Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right));
 
             File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
             Console.WriteLine($"✓ Markdown saved: {path}");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Examples.Markdown {
                 new { Host = "evotec.xyz", SPF = false, DMARC = "p=quarantine", Score = 92.0 }
             };
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Table FromSequence with selectors")
                 .Table(t => t.FromSequence(rows,
                     ("Host", x => x.Host),
@@ -123,10 +123,10 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "HeaderTransformCustom.md");
 
-            var tx = HeaderTransforms.PrettyWithAcronyms(new[] { "ID", "DMARC", "SPF" });
+            var tx = MarkdownHeaderTransforms.PrettyWithAcronyms(new[] { "ID", "DMARC", "SPF" });
             var obj = new { DmarcPolicy = "p=none", SpfAligned = true, Id = 25 };
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Header Transform (Custom Acronyms)")
                 .Table(t => t.Columns(tx).FromAny(obj));
 
@@ -145,7 +145,7 @@ namespace OfficeIMO.Examples.Markdown {
                 new { Date = "2025-02-03", Amount = "$100.00", Notes = "ok" },
             };
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Auto Alignment Helpers")
                 .H2("TableFromAuto")
                 .TableFromAuto(rows)
@@ -162,7 +162,7 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "WithTOCSection.md");
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .H1("Report")
                 .H2("Intro").P("...")
                 .H2("Usage").H3("Tables").P("...").H3("Lists").P("...")

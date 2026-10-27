@@ -18,7 +18,7 @@ This guide describes the current safe path for large workbook generation, readin
 | --- | --- | --- |
 | Forward-only Excel reads | `ExcelDocument.OpenDataReader(...)` | The package-owned `DbDataReader` contract covers XLSX, XLSM, XLSB, and BIFF8 XLS and discovers used ranges automatically. |
 | Forward-only CSV reads | `CsvDocument.OpenDataReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
-| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReadOptions.SheetName` when only one worksheet should be opened. |
+| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReaderOptions.SheetName` when only one worksheet should be opened. |
 | Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
 | Large Open XML edit intake | `ExcelDocument.OpenFileBacked(...)` | Stages the editable package in an owner-only temporary file, enforces `MaxInputBytes`, honors Open XML part limits, and observes cancellation while copying. XLS/XLSB projection continues through `Load`. |
 

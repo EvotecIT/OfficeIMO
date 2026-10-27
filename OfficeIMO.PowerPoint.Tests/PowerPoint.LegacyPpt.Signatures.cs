@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             Assert.False(report.HasOriginPart);
             Assert.Equal(0, report.XmlSignaturePartCount);
             Assert.Contains("\"hasLegacyBinarySignatureStream\":true", report.ToJson());
-            Assert.Equal(sourceBytes, presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(sourceBytes, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -32,14 +32,14 @@ namespace OfficeIMO.Tests {
 
             PowerPointSignedPresentationMutationException blocked =
                 Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
-                    presentation.ToBytes(PowerPointFileFormat.Ppt));
+                    presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
             Assert.True(blocked.Report.HasLegacyBinarySignatureStream);
             Assert.True(blocked.Report.HasLegacyXmlSignatureStorage);
 
             presentation.SignatureMutationPolicy =
                 OfficeSignatureMutationPolicy.PreserveSignatureMarkup;
-            byte[] preservedBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] preservedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
             LegacyPptPresentation preserved = LegacyPptPresentation.Load(preservedBytes);
             IReadOnlyDictionary<string, byte[]> streams = preserved.Package.CopyCompoundStreams();
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             presentation.SignatureMutationPolicy =
                 OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
 
-            byte[] unsignedBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] unsignedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
             LegacyPptPresentation unsigned = LegacyPptPresentation.Load(unsignedBytes);
             Assert.DoesNotContain(unsigned.Package.CopyCompoundStreams().Keys, path =>
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Signed deck");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(sourceBytes);

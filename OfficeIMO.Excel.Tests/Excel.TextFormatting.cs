@@ -125,7 +125,7 @@ public class ExcelTextFormattingTests {
 
             using (ExcelDocument document = ExcelDocument.Load(path)) {
                 ExcelSheet sheet = document.Sheets[0];
-                Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+                Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
                 Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
                 Assert.False(sheet.TransformCellTextCase(1, 1, OfficeTextCase.Uppercase));
                 document.Save();
@@ -157,7 +157,7 @@ public class ExcelTextFormattingTests {
             }
 
             using ExcelDocument loadedDocument = ExcelDocument.Load(path);
-            Assert.True(loadedDocument.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+            Assert.True(loadedDocument.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
             Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
             Assert.Equal("DATE(2026,4,5)", snapshot.RawValue);
             Assert.Equal(expected, snapshot.DateTimeValue);
@@ -382,10 +382,10 @@ public class ExcelTextFormattingTests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            ExcelCellStyleSnapshot direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
-            ExcelWorksheetSnapshot worksheetSnapshot = Assert.Single(loaded.CreateInspectionSnapshot().Worksheets);
-            ExcelCellStyleSnapshot inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
-            foreach (ExcelCellStyleSnapshot style in new[] { direct, inspected }) {
+            ExcelCellStyleInfo direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
+            ExcelWorksheetInfo worksheetSnapshot = Assert.Single(loaded.Inspect().Worksheets);
+            ExcelCellStyleInfo inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
+            foreach (ExcelCellStyleInfo style in new[] { direct, inspected }) {
                 Assert.False(style.Bold);
                 Assert.False(style.Italic);
                 Assert.False(style.Underline);

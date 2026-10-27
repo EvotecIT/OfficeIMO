@@ -38,7 +38,7 @@ public sealed class HtmlFoundationProviderContractTests {
         HtmlConversionDocument edited = conversion.Edit(document => document.QuerySelector("p")!.SetAttribute(name, "edited"));
         Assert.Equal("edited", edited.Document.QuerySelector("p")!.GetAttribute(name));
         Assert.Equal("kept", conversion.Document.QuerySelector("p")!.GetAttribute(name));
-        Assert.Contains("Text", edited.ToMarkdown());
+        Assert.Contains("Text", edited.ToMarkdown().ToMarkdown());
         var native = NativeDomBridge.GetNativeDocument(edited.Document);
         try { Assert.Equal("edited", NativeDomBridge.Wrap(native.QuerySelector("p")!).GetAttribute(name)); }
         finally { NativeDomBridge.ReleaseCallbackSnapshot(native); }
@@ -60,7 +60,7 @@ public sealed class HtmlFoundationProviderContractTests {
         }
         HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(document);
         Assert.Null(conversion.Document.DocumentElement);
-        Assert.Empty(conversion.ToMarkdown().Trim());
+        Assert.Empty((conversion.ToMarkdown()).ToMarkdown().Trim());
         Assert.NotNull(conversion.SemanticDocument);
         Assert.Empty(conversion.CreateDocumentForConversion().Body!.TextContent);
     }
@@ -70,10 +70,10 @@ public sealed class HtmlFoundationProviderContractTests {
         HtmlConversionDocument original = HtmlConversionDocument.Parse("<!doctype html><!--retained--><p>Before</p>");
         HtmlConversionDocument edited = original.Edit(document => document.DocumentElement!.Remove());
         Assert.Null(edited.Document.DocumentElement);
-        Assert.Empty(edited.ToMarkdown().Trim());
+        Assert.Empty((edited.ToMarkdown()).ToMarkdown().Trim());
         Assert.NotNull(edited.SemanticDocument);
         Assert.Empty(edited.CreateDocumentForConversion().Body!.TextContent);
-        Assert.Contains("Before", original.ToMarkdown());
+        Assert.Contains("Before", original.ToMarkdown().ToMarkdown());
     }
 
     [Theory]

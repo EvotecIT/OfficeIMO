@@ -4,7 +4,7 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfGeneratedAccessibilityTests {
-    private static PdfOptions TaggedOptions() => new PdfOptions().ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en");
+    private static PdfCreateOptions TaggedOptions() => new PdfCreateOptions().ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en");
 
     [Theory]
     [InlineData(false)]
@@ -59,7 +59,7 @@ public sealed class PdfGeneratedAccessibilityTests {
 
     [Fact]
     public void NativeHeadingOutlinesRetainTheirHeadingStructure() {
-        PdfOptions options = TaggedOptions();
+        PdfCreateOptions options = TaggedOptions();
         options.CreateOutlineFromHeadings = true;
         byte[] bytes = PdfDocument.Create(options).H1("First heading").H2("Second heading").ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
@@ -103,7 +103,7 @@ public sealed class PdfGeneratedAccessibilityTests {
 
     [Fact]
     public void Ua2OpeningActionPreservesItsPageAndAddsALogicalTarget() {
-        PdfOptions options = StrictOptions();
+        PdfCreateOptions options = StrictOptions();
         options.SetOpenAction(pageNumber: 2, destinationTop: 100);
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Opening action")
             .Paragraph(p => p.Text("First page")).PageBreak()
@@ -118,15 +118,15 @@ public sealed class PdfGeneratedAccessibilityTests {
         Assert.Equal(100D, action.Entries["D"].Items[3].Number);
     }
 
-    private static PdfOptions StrictOptions() {
+    private static PdfCreateOptions StrictOptions() {
         string? font = PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(font);
-        return new PdfOptions().UseFontFamily("Carlito", font!).UsePdfUa(PdfComplianceProfile.PdfUa2, "en");
+        return new PdfCreateOptions().UseFontFamily("Carlito", font!).UsePdfUa(PdfComplianceProfile.PdfUa2, "en");
     }
 
     [Fact]
     public void FloatingFlowBookmarkKeepsTheFollowingParagraphAsItsLogicalTarget() {
-        PdfOptions options = StrictOptions();
+        PdfCreateOptions options = StrictOptions();
         options.PageWidth = 400;
         options.PageHeight = 240;
         options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40;
@@ -194,7 +194,7 @@ public sealed class PdfGeneratedAccessibilityTests {
             new PdfTableCell(new[] { PdfTextRun.Normal("First cell") }, paragraphs: null, textRotation: rotation).WithNamedDestination("first"),
             new PdfTableCell(new[] { PdfTextRun.Normal("Last cell") }, paragraphs: null, textRotation: rotation).WithNamedDestination("last")
         } };
-        PdfOptions options = StrictOptions();
+        PdfCreateOptions options = StrictOptions();
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Cell destinations").Canvas(canvas => canvas
             .Table(cells, 20, 20, 240, 80, new PdfTableStyle { HeaderRowCount = 0 })
             .LinkToNamedDestination("first", 20, 120, 100, 20, "First cell")

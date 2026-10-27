@@ -70,14 +70,14 @@ public partial class Word {
     }
 
     private static byte[] ExportNaturalEmptyLineDocument(WordDocument document) {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
-        return document.ToPdfBytes(new WordToPdfOptions {
+        return document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = options,
-            Margins = PageMargins.Uniform(30D),
-            PageSize = new PageSize(300D, 300D)
-        });
+            Margins = PdfPageMargins.Uniform(30D),
+            PageSize = new PdfPageSize(300D, 300D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

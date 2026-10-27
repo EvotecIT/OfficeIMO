@@ -268,7 +268,7 @@ public class PdfFloatingTableLayoutTests {
         var document = PdfDocument.Create(Options()).TableDeferred(() => new[] { new[] { "one" }, new[] { "two" } }, batchSize: 1, style: style);
         Assert.Throws<System.ArgumentException>(() => document.ToBytes());
     }
-    private static PdfOptions Options(double height = 500) => new() {
+    private static PdfCreateOptions Options(double height = 500) => new() {
         PageWidth = 400, PageHeight = height, MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40
     };
     private static PdfTableStyle Floating(double width = 120, double height = 80) => new() {

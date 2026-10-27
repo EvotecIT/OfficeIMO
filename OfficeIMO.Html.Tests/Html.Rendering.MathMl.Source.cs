@@ -21,13 +21,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup formula = Assert.Single(rendered.Pages.SelectMany(page => EnumerateMathMlScene(page.Scene)).OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Formula);
         Assert.True(formula.MathMlSource!.IsOriginalMarkup, formula.MathMlSource.MathMl);
         Assert.Equal(SourceMath, formula.MathMlSource.MathMl);
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = (document.ToPdf()).ToBytes();
         PdfCore.PdfExtractedAttachment attachment = Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf));
         Assert.Equal(Encoding.UTF8.GetBytes(SourceMath), attachment.Bytes);
         Assert.Equal("application/mathml+xml", attachment.MimeType);
         Assert.Equal(PdfCore.PdfAssociatedFileRelationship.Supplement, attachment.Relationship);
         Assert.StartsWith("%PDF-2.0", Encoding.ASCII.GetString(pdf, 0, 8));
-        Assert.Contains("BEFORE", PdfCore.PdfReadDocument.Open(pdf).ExtractText());
+        Assert.Contains("BEFORE", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText());
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
     }
 
@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
         var body = tree.QuerySelector("body")!;
         var fragment = parser.ParseFragment(SourceMath, body, new OfficeIMO.Html.Dom.HtmlParseOptions());
         body.AppendChild(tree.ImportNode(fragment));
-        byte[] pdf = HtmlConversionDocument.FromDocument(tree).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.FromDocument(tree).ToPdf()).ToBytes();
         Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf)).Bytes));
     }
 
@@ -51,8 +51,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(source.IsOriginalMarkup);
         Assert.Equal("z", XElement.Parse(source.MathMl).Descendants().Single(element => element.Name.LocalName == "mi").Value);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
-        Assert.Equal(source.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(edited.ToPdfBytes())).Bytes));
-        Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(original.ToPdfBytes())).Bytes));
+        Assert.Equal(source.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((edited.ToPdf()).ToBytes())).Bytes));
+        Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((original.ToPdf()).ToBytes())).Bytes));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("z", XElement.Parse(formula.MathMlSource.MathMl).Value);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceUnavailable);
-        Assert.Equal(formula.MathMlSource.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(edited.ToPdfBytes())).Bytes));
+        Assert.Equal(formula.MathMlSource.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((edited.ToPdf()).ToBytes())).Bytes));
     }
 
     [Theory]
@@ -95,13 +95,13 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMlSource_TokenCaptureIgnoresCommentsScriptAndQuotedClosingTags() {
         string math = "<math xmlns='http://www.w3.org/1998/Math/MathML' alttext='literal &lt;/math>'><mi>x</mi></math>";
         string html = "<!--<math><mi>fake</mi></math>--><script>const x = '<math><mi>fake</mi></math>';</script><p>BEFORE " + math + " AFTER</p>";
-        Assert.Equal(math, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(HtmlConversionDocument.Parse(html).ToPdfBytes())).Bytes));
+        Assert.Equal(math, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).Bytes));
     }
 
     [Fact]
     public void HtmlMathMlSource_ValidRootAfterForeignContentRecoveryStillRetainsExactMarkup() {
         string html = "<math><mi>first</mi><p>outside</p>" + SourceMath + "<p>AFTER</p>";
-        var attachments = PdfCore.PdfAttachmentExtractor.ExtractAttachments(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        var attachments = PdfCore.PdfAttachmentExtractor.ExtractAttachments((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
         Assert.Contains(attachments, file => Encoding.UTF8.GetString(file.Bytes) == SourceMath);
         Assert.All(attachments, file => Assert.DoesNotContain("outside", Encoding.UTF8.GetString(file.Bytes)));
     }
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMlSource_IdenticalVisibleFormulasShareSupplementWhileHiddenSourceIsAbsent() {
         string html = "<p>BEFORE " + SourceMath + " BETWEEN " + SourceMath + " AFTER</p><math style='display:none'><mi>hidden</mi></math>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf)).Bytes));
         PdfCore.PdfRawDocumentView raw = PdfCore.PdfReadDocument.Open(pdf).RawStructure();
         var formulas = raw.Objects.Where(obj => obj.Value.Entries.TryGetValue("S", out var role) && role.Text == "Formula").ToArray();
@@ -124,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("style='margin-top:140px'", 1D)]
     public void HtmlMathMlSource_PaintTransformsAndPaginationKeepRecoverableSource(string attributes, double pageHeight) {
         string html = "<html lang='en'><body style='margin:0'><div " + attributes + ">BEFORE " + SourceMath + " AFTER</div></body></html>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(3D, pageHeight), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) });
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(3D, pageHeight), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) })).ToBytes();
         Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf)).Bytes));
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         Assert.Equal("x squared", Assert.Single(tagged.StructureElements, item => item.StructureType == "Formula").AlternateText);
@@ -134,10 +134,10 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMlSource_UntaggedOutputDoesNotLeaveOrphanPayload() {
         var options = new HtmlToPdfOptions();
         options.PdfOptions.TaggedStructureMode = PdfCore.PdfTaggedStructureMode.None;
-        byte[] pdf = HtmlConversionDocument.Parse(SourceMath).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(SourceMath).ToPdf(options)).ToBytes();
         Assert.Empty(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf));
         Assert.DoesNotContain("%PDF-2.0", Encoding.ASCII.GetString(pdf, 0, 8));
-        Assert.Contains("x^(2)", PdfCore.PdfReadDocument.Open(pdf).ExtractText());
+        Assert.Contains("x^(2)", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText());
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
         var date = new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);
         var options = new HtmlToPdfOptions { MathMlSourceModificationDate = date };
         Assert.Equal(date, options.ClonePdf().MathMlSourceModificationDate);
-        byte[] pdf = HtmlConversionDocument.Parse(SourceMath).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(SourceMath).ToPdf(options)).ToBytes();
         Assert.Equal(date, Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Attachments).ModificationDate);
     }
 }

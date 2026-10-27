@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             IReadOnlyDictionary<string, byte[]> streams = binary.Package
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 Name = "SinglePrecision"
             });
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointPresentation reopened =
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
                 created.BuiltinDocumentProperties.Created = createdAt;
                 created.BuiltinDocumentProperties.Modified =
                     createdAt.AddMinutes(5);
-                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(bytes, writable: false);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                 created.BuiltinDocumentProperties.Category = "Draft";
                 created.ApplicationProperties.Company = "Before";
                 AddCustomTextProperty(created, "ReleaseStatus", "Pending");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
 
             Assert.Equal(original.Package.DocumentStream,
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 created.AddSlide();
                 created.BuiltinDocumentProperties.Creator = "a|b";
                 created.BuiltinDocumentProperties.Title = "c";
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             byte[] savedBytes;
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Load(input)) {
                 imported.BuiltinDocumentProperties.Creator = "a";
                 imported.BuiltinDocumentProperties.Title = "b|c";
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             Assert.NotEqual(sourceBytes, savedBytes);
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 created.AddSlide().AddTitle("Property guard");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation source = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
                 LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
                 Assert.Equal(unknownSummary, saved.Package
                     .CopyCompoundStreams()[SummaryInformationStream]);
             }
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(blocked.CanWrite);
             Assert.Contains(blocked.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                finding.Code == "ppt-write-import-loss");
         }
 
         private static void AddCustomTextProperty(

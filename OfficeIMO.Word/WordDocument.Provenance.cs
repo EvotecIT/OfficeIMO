@@ -5,11 +5,11 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Validates and inspects encoded Word package bytes without accessing the filesystem.</summary>
-    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "document.docx", OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "document.docx", OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML document and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes an Open XML document.</summary>

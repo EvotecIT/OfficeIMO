@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordSignatureValidationState.Failed, signature.CryptographicStatus);
             Assert.Null(signature.SignerThumbprint);
             Assert.Contains(signature.Findings, finding =>
-                finding.Code == "MacroSignatureSignerCountInvalid" &&
+                finding.Code == "macro-signature-signer-count-invalid" &&
                 finding.State == WordSignatureValidationState.Failed);
         }
 
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             Assert.True(platform.ReplacedStagingPath);
             Assert.False(result.Succeeded);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
-            Assert.Contains(result.Findings, finding => finding.Code == "SourcePackageChangedDuringSigning");
+            Assert.Contains(result.Findings, finding => finding.Code == "source-package-changed-during-signing");
         }
 
         [Fact]
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.Succeeded);
             Assert.False(result.MacroProjectPreserved);
-            Assert.Contains(result.Findings, finding => finding.Code == "MacroValidatedSnapshotChanged");
+            Assert.Contains(result.Findings, finding => finding.Code == "macro-validated-snapshot-changed");
         }
 
         [Fact]

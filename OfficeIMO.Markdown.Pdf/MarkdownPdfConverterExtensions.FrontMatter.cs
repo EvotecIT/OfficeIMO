@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (frontMatter.Entries.Count == 0) {
             return;
         }
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderFrontMatterTable(pdf, frontMatter, visualTheme);
     }
 
-    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         string? title = GetFrontMatterMetadata(frontMatter, "title");
         if (title == null) {
             return false;

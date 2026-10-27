@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 IncludeSlideBackground = false
             };
 
-            PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
+            PowerPointSlideVisualInfo snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
             OfficeImageExportDiagnostic[] unexpectedDiagnostics = snapshot.Diagnostics.Where(diagnostic =>
                 (diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 IncludeSlideBackground = false
             };
 
-            PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
+            PowerPointSlideVisualInfo snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
             Assert.NotEmpty(snapshot.TextSpans);
             Assert.DoesNotContain("Click to edit", string.Concat(snapshot.TextSpans.Select(span => span.Text)),

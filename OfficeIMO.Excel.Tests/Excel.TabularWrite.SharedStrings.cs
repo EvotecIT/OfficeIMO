@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             int enumerations = 0;
             int callbacks = 0;
-            var options = new ExcelTabularWriteOptions {
+            var options = new ExcelWriterOptions {
                 UseSharedStrings = sharedStrings,
                 RequireStreaming = true,
                 IncludeCellReferences = false,
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             }
 
             output.Position = 0;
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(output);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(output);
             Assert.Equal(new[] { "Text", "Id", "When" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             for (int index = 0; index < text.Length; index++) {
                 Assert.True(reader.Read());
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() => ExcelDocument.WriteRows(
                 output, new[] { new string('x', 32_768) }, ["Text"],
                 static (writer, value) => writer.Write((object)value),
-                new ExcelTabularWriteOptions { UseSharedStrings = true }));
+                new ExcelWriterOptions { UseSharedStrings = true }));
         }
     }
 }

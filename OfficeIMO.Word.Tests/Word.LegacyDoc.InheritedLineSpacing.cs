@@ -103,7 +103,7 @@ public partial class Word {
         var originalRoots = new[] { mainPart.Document }.Cast<OpenXmlPartRootElement>()
             .Concat(mainPart.Parts.Select(part => part.OpenXmlPart.RootElement).OfType<OpenXmlPartRootElement>())
             .Select(root => (Root: root, Xml: root.OuterXml)).ToArray();
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.All(originalRoots, item => Assert.Equal(item.Xml, item.Root.OuterXml));
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         var reopenedMainPart = reopened._wordprocessingDocument.MainDocumentPart!;

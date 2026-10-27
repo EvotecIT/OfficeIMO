@@ -244,7 +244,7 @@ public static class PdfImageExportExtensions {
             cancellationToken: cancellationToken);
 
     /// <summary>Exports selected loaded PDF pages using the shared five-format result contract.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+    internal static IReadOnlyList<OfficeImageExportResult> ExportImages(
         this PdfReadDocument document,
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,
@@ -296,11 +296,11 @@ public static class PdfImageExportExtensions {
         new PdfPageImageExportBuilder(page, options ?? throw new ArgumentNullException(nameof(options)));
 
     /// <summary>Starts fluent image export for all pages in a loaded PDF document.</summary>
-    public static PdfDocumentImageExportBuilder ToImages(this PdfReadDocument document) =>
+    internal static PdfDocumentImageExportBuilder ToImages(this PdfReadDocument document) =>
         CreateDocumentBuilder(document, options: null);
 
     /// <summary>Starts fluent image export using a cloned options snapshot.</summary>
-    public static PdfDocumentImageExportBuilder ToImages(this PdfReadDocument document, PdfImageExportOptions options) =>
+    internal static PdfDocumentImageExportBuilder ToImages(this PdfReadDocument document, PdfImageExportOptions options) =>
         CreateDocumentBuilder(document, options ?? throw new ArgumentNullException(nameof(options)));
 
     /// <summary>

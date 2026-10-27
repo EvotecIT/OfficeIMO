@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int oneBasedRow = row + 1;
             int oneBasedColumn = column + 1;
             reference = new ScenarioCellReference(
-                A1.CellReference(oneBasedRow, oneBasedColumn),
+                ExcelA1.CellReference(oneBasedRow, oneBasedColumn),
                 oneBasedRow,
                 oneBasedColumn,
                 (columnBits & 0x4000) != 0);
@@ -136,8 +136,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            string start = A1.CellReference(firstRow + 1, firstColumn + 1);
-            string end = A1.CellReference(lastRow + 1, lastColumn + 1);
+            string start = ExcelA1.CellReference(firstRow + 1, firstColumn + 1);
+            string end = ExcelA1.CellReference(lastRow + 1, lastColumn + 1);
             reference = start == end ? start : start + ":" + end;
             return true;
         }

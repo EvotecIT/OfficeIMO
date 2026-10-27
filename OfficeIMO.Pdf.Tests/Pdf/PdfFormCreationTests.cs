@@ -57,7 +57,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TaggedTextField_CanBeFlattenedWithoutDanglingStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
             .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace")
             .ToBytes();
 
@@ -73,7 +73,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void AcroFormDefaultTextAlignment_RoundTripsThroughCatalogAndFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Center
             })
             .AcroFormDefaultTextAlignment(PdfFormFieldTextAlignment.Right)
@@ -140,7 +140,7 @@ public class PdfFormCreationTests {
                         "Table approval",
                         new[] { new PdfTableCellCheckBox("Table.Approved", isChecked: true, size: 12) })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -165,9 +165,9 @@ public class PdfFormCreationTests {
     [InlineData(5D)]
     public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
         var runs = new[] { new PdfTextRun("Table approval") };
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageSize = new PageSize(300, 180),
-                Margins = PageMargins.Uniform(24)
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSize = new PdfPageSize(300, 180),
+                Margins = PdfPageMargins.Uniform(24)
             })
             .Table(new[] {
                 new[] {
@@ -176,7 +176,7 @@ public class PdfFormCreationTests {
                         new[] { new PdfTableCellParagraph(runs, spacingBefore: spacingBefore) },
                         checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: 12) })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
@@ -204,7 +204,7 @@ public class PdfFormCreationTests {
                             PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: 140, height: 18)
                         })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -430,7 +430,7 @@ public class PdfFormCreationTests {
             return;
         }
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Form Body Font", fontPath)
@@ -549,7 +549,7 @@ public class PdfFormCreationTests {
             MaxLength = 4
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TextField("Comb.Code", value: "AB12", width: 80, height: 22, style: style)
@@ -619,7 +619,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void GeneratedMultilineTextField_SoftWrapsInitialAppearanceToWidgetWidth() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TextField(
@@ -917,7 +917,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -1029,7 +1029,7 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { MappingName = " " });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { TextAlignment = PdfFormFieldTextAlignment.Unknown });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { MaxLength = 0 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Unknown });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions { AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Unknown });
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().AcroFormDefaultTextAlignment((PdfFormFieldTextAlignment)999));
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Create()

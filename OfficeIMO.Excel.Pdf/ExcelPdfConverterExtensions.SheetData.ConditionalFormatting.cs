@@ -126,19 +126,19 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            (int Row, int Col) cell = A1.ParseCellRef(NormalizeCellReference(cellReference));
+            (int Row, int Col) cell = ExcelA1.ParseCellRef(NormalizeCellReference(cellReference));
             if (cell.Row <= 0 || cell.Col <= 0) {
                 return false;
             }
 
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
-                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     if (cell.Row >= firstRow && cell.Row <= lastRow && cell.Col >= firstColumn && cell.Col <= lastColumn) {
                         return true;
                     }
                 } else {
-                    (int Row, int Col) singleCell = A1.ParseCellRef(token);
+                    (int Row, int Col) singleCell = ExcelA1.ParseCellRef(token);
                     if (singleCell.Row == cell.Row && singleCell.Col == cell.Col) {
                         return true;
                     }

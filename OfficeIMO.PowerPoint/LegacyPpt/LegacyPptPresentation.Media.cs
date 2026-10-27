@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         || _linkedOleObjectsById.ContainsKey(media.Id)
                         || _activeXControlsById.ContainsKey(media.Id)
                         || _mediaById.ContainsKey(media.Id)) {
-                        AddDiagnostic("PPT-MEDIA-ID-DUPLICATE",
+                        AddDiagnostic("ppt-media-id-duplicate",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"Media identifier {media.Id} occurs more than once or collides with another external object; later definitions remain preserve-only.",
                             container.Offset);
@@ -169,13 +169,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             LegacyPptSound? sound = FindSound(soundId);
             if (sound == null) {
-                AddDiagnostic("PPT-MEDIA-SOUND-MISSING",
+                AddDiagnostic("ppt-media-sound-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Embedded WAV media {fields.Id} references unavailable sound {soundId} and remains preserve-only.",
                     atoms[0].Offset);
             } else if (!string.Equals(sound.ContentType, "audio/wav",
                            StringComparison.OrdinalIgnoreCase)) {
-                AddDiagnostic("PPT-MEDIA-SOUND-FORMAT",
+                AddDiagnostic("ppt-media-sound-format",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Embedded WAV media {fields.Id} references sound {soundId}, whose payload is not recognizable WAV audio.",
                     atoms[0].Offset);
@@ -210,7 +210,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return false;
             }
             if ((flags & 0xFFF8) != 0) {
-                AddDiagnostic("PPT-MEDIA-FLAGS-RESERVED",
+                AddDiagnostic("ppt-media-flags-reserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Media {id} has nonzero reserved playback flags that remain preserved only.",
                     atom.Offset);
@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             bool narration = (flags & 0x0004) != 0;
             if (narration && kind is LegacyPptMediaKind.AviMovie
                     or LegacyPptMediaKind.MciMovie) {
-                AddDiagnostic("PPT-MEDIA-VIDEO-NARRATION",
+                AddDiagnostic("ppt-media-video-narration",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Video media {id} sets the audio-only narration flag and remains preserve-only.",
                     atom.Offset);
@@ -250,14 +250,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (!options.ReportUnsupportedContent
                 || !container.Children.Any(child =>
                     !knownTypes.Contains(child.Type))) return;
-            AddDiagnostic("PPT-MEDIA-UNKNOWN",
+            AddDiagnostic("ppt-media-unknown",
                 LegacyPptDiagnosticSeverity.Warning,
                 $"Media {id} contains unknown records that remain preserved only.",
                 container.Offset);
         }
 
         private void AddMalformedMediaDiagnostic(LegacyPptRecord record,
-            string field) => AddDiagnostic("PPT-MEDIA-MALFORMED",
+            string field) => AddDiagnostic("ppt-media-malformed",
             LegacyPptDiagnosticSeverity.Warning,
             $"A binary media object has a malformed {field} and remains preserve-only.",
             record.Offset);

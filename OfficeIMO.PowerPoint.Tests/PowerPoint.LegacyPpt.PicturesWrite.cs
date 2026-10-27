@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3277, pictures[0].PictureProperties.CropFromRightRaw);
             Assert.Equal(9830, pictures[0].PictureProperties.CropFromBottomRaw);
             Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
-                diagnostic.Code.StartsWith("PPT-PICTURE-",
+                diagnostic.Code.StartsWith("ppt-picture-",
                     StringComparison.Ordinal));
 
             using var input = new MemoryStream(bytes, writable: false);
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0.15D, projectedPictures[0].CropBottomRatio, 4);
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptShape group = Assert.Single(Assert.Single(
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(image, projectedPicture.GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes,
-                projected.ToBytes(PowerPointFileFormat.Ppt));
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(gifPreflight.CanWrite);
             Assert.Contains(gifPreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-PICTURE"
+                finding.Code == "ppt-write-picture"
                 && finding.Feature == LegacyPptFeature.RasterPictures);
 
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(effectPreflight.CanWrite);
             Assert.Contains(effectPreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-PICTURE"
+                finding.Code == "ppt-write-picture"
                 && finding.Description.Contains("effect",
                     StringComparison.OrdinalIgnoreCase));
         }
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.Orange,
                 projectedPictureModels[5].RecolorColor);
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             projectedPictureModels[4].TransparentColor = OfficeColor.White;
             projectedPictureModels[4].Rotation = 33D;
@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests {
             Assert.True(editPreflight.CanWrite,
                 string.Join(Environment.NewLine, editPreflight.Findings));
             LegacyPptPresentation edited = LegacyPptPresentation.Load(
-                projected.ToBytes(PowerPointFileFormat.Ppt));
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape[] editedPictures = Assert.Single(edited.Slides)
                 .Shapes.Where(shape =>
                     shape.Kind == LegacyPptShapeKind.Picture)
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
                         PowerPointUnits.FromPoints(120D),
                         PowerPointUnits.FromPoints(90D));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(emf,
                 Assert.Single(projected.Slides[0].Pictures).GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         private static byte[] BuildMinimalEmf() {

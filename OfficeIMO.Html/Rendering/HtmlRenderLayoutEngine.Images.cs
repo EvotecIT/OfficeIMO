@@ -541,7 +541,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail, OfficeConversionLossKind.Omission);
             }
         } else if (reportDiagnostics && !string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
-            string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
+            string code = resolvedSource.Length == 0 ? global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy : HtmlRenderDiagnosticCodes.ExternalImagePending;
             string message = resolvedSource.Length == 0
                 ? "An image was rejected before entering the rendered document."
                 : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";

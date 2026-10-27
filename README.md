@@ -882,7 +882,7 @@ _Dependency footprint:_ only OfficeIMO Markdown, PDF, and Drawing packages.
 #### [OfficeIMO.OneNote.Markdown](OfficeIMO.OneNote.Markdown/README.md)
 
 - [x] Shared semantic projection for OneNote hierarchy, rich text, lists, tables, links, assets, math, conflicts, and version history
-- [x] Markdown text, UTF-8 bytes, and typed `MarkdownDoc` output
+- [x] Markdown text, UTF-8 bytes, and typed `MarkdownDocument` output
 - [x] Safe RichEdit/control/noncharacter normalization without mutating the native model
 - [x] Bounded cycle, shared-instance, and depth validation across hierarchy, related pages, and recursive content
 
@@ -1511,7 +1511,7 @@ foreach (var warning in result.Warnings) {
 using OfficeIMO.Pdf;
 
 PdfDocument source = PdfDocument.Load("packet.pdf");
-PdfDocumentReadResult firstPage = source.Read(new PdfReadOptions {
+PdfDocumentReadResult firstPage = source.Read(new PdfLoadOptions {
     PageSelection = PdfPageSelection.Parse("1")
 });
 string firstPageText = string.Join('\n', firstPage.Pages[0].TextBlocks.Select(block => block.Text));

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Writes tabular data to the current worksheet and formats it as an Excel table.</summary>
 /// <para>Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences and writes them into an Excel table with optional styling.</para>
 /// <example>
-///   <summary>Insert a table starting at A1.</summary>
+///   <summary>Insert a table starting at ExcelA1.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$data = @([pscustomobject]@{ Region='NA'; Revenue=100 }, [pscustomobject]@{ Region='EMEA'; Revenue=150 })
 ///   ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -TableName 'Sales' }</code>

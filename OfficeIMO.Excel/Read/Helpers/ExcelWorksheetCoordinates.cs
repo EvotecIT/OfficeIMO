@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
                 return previousRowIndex = checked((int)explicitIndex);
             }
             foreach (Cell cell in row.Elements<Cell>()) {
-                if (A1.TryParseCellReferenceFast((cell.CellReference?.Value).AsSpan(), out int referencedRow, out _)) {
+                if (ExcelA1.TryParseCellReferenceFast((cell.CellReference?.Value).AsSpan(), out int referencedRow, out _)) {
                     return previousRowIndex = referencedRow;
                 }
             }
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
             string? reference = cell.CellReference?.Value;
             int columnIndex = string.IsNullOrEmpty(reference)
                 ? nextColumnIndex
-                : A1.ParseColumnIndexFromCellReferenceFast(reference);
+                : ExcelA1.ParseColumnIndexFromCellReferenceFast(reference);
             if (columnIndex > 0) nextColumnIndex = columnIndex + 1;
             return columnIndex;
         }

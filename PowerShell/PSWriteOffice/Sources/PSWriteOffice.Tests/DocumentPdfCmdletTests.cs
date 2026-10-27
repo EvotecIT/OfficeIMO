@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Pdf;
@@ -21,15 +22,17 @@ public sealed class DocumentPdfCmdletTests {
                 "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
                 "/System/Library/Fonts/Supplemental/Arial.ttf"
             }.First(File.Exists);
-            var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, TextShapingProvider = shaper }
+            var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, TextShapingProvider = shaper }
                 .EmbedStandardFont(PdfStandardFont.Courier, font);
-            var conversion = PdfPlainTextConverter.ToPdfDocumentResult("Stop during actual PDF generation", new PdfPlainTextOptions { PdfOptions = options });
+            string input = Path.Combine(root, "input.txt");
+            File.WriteAllText(input, "Stop during actual PDF generation");
             string output = Path.Combine(root, "stopped.pdf");
             var state = InitialSessionState.CreateDefault();
             state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("Document", conversion).AddParameter("Path", output);
+            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output)
+                .AddParameter("TextOptions", new PdfTextImportOptions { PdfOptions = options });
             IAsyncResult invocation = shell.BeginInvoke();
             Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
             IAsyncResult stopping = shell.BeginStop(null, null);
@@ -101,7 +104,7 @@ public sealed class DocumentPdfCmdletTests {
             shell.Commands.Clear(); AddCommand();
             Assert.Single(shell.Invoke()); Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
             shell.Commands.Clear(); AddCommand();
-            var resumed = Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(Assert.Single(shell.Invoke()).BaseObject);
+            var resumed = Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.Equal(1, resumed.Reused);
         } finally { Directory.Delete(root, true); }
     }
@@ -132,12 +135,12 @@ public sealed class DocumentPdfCmdletTests {
             var output = shell.Invoke();
             Assert.True(shell.HadErrors);
             Assert.StartsWith("OfficeDocumentPdfBatchFailed", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
-            var summary = Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(runspace.SessionStateProxy.GetVariable("summary"));
+            var summary = Assert.IsType<OfficeIMO.OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(103, summary.Selected); Assert.Equal(103, summary.Failed); Assert.Equal(0, summary.Completed);
             if (itemResults) {
                 Assert.Equal(103, output.Count);
-                Assert.All(output, item => Assert.Equal(OfficeIMO.Workflows.OfficeWorkflowStatus.Failed,
-                    Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchItemResult>(item.BaseObject).Status));
+                Assert.All(output, item => Assert.Equal(OfficeIMO.OfficeBatchItemStatus.Failed,
+                    Assert.IsType<OfficeIMO.OfficeBatchItemReport>(item.BaseObject).Status));
                 Assert.Empty(shell.Streams.Warning);
             } else {
                 Assert.Same(summary, Assert.Single(output).BaseObject);
@@ -160,17 +163,17 @@ public sealed class DocumentPdfCmdletTests {
             state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            var settings = new PdfPlainTextOptions { PdfOptions = new PdfOptions().SetEncryption("Synthetic output reader", "Synthetic output owner") };
+            var settings = new PdfTextImportOptions { PdfOptions = new PdfCreateOptions().SetEncryption("Synthetic output reader", "Synthetic output owner") };
             void AddCommand() => shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPaths", new[] { input })
                 .AddParameter("OutputDirectory", output).AddParameter("CheckpointDirectory", checkpoint).AddParameter("TextOptions", settings);
             AddCommand();
-            var first = Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(Assert.Single(shell.Invoke()).BaseObject);
+            var first = Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error)); Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
             var encrypted = PdfDocument.Load(Path.Combine(output, "one.txt.pdf"),
                 new PdfLoadOptions { Password = "Synthetic output reader" });
             Assert.True(encrypted.Inspect().Security.HasEncryption); Assert.Single(encrypted.Read().Pages);
             shell.Commands.Clear(); AddCommand();
-            Assert.Equal(1, Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(Assert.Single(shell.Invoke()).BaseObject).Reused);
+            Assert.Equal(1, Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject).Reused);
         } finally { Directory.Delete(root, true); }
     }
 
@@ -189,16 +192,16 @@ public sealed class DocumentPdfCmdletTests {
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
             runspace.SessionStateProxy.SetVariable("source", root);
             runspace.SessionStateProxy.SetVariable("destination", Path.Combine(root, "output"));
-            runspace.SessionStateProxy.SetVariable("textSettings", new PdfPlainTextOptions {
-                PdfOptions = new PdfOptions { PageWidth = 240, PageHeight = 180, DefaultFontSize = 14 }
+            runspace.SessionStateProxy.SetVariable("textSettings", new PdfTextImportOptions {
+                PdfOptions = new PdfCreateOptions { PageWidth = 240, PageHeight = 180, DefaultFontSize = 14 }
             });
             shell.AddScript("$htmlSettings = New-OfficeHtmlPdfOptions -Margin 12 -InteractiveFormControls $false; Get-ChildItem -LiteralPath $source -File | Export-OfficeDocumentPdf -OutputDirectory $destination -TextOptions $textSettings -HtmlOptions $htmlSettings -ItemResults -SummaryVariable summary");
             var results = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
-            var items = results.Select(item => Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchItemResult>(item.BaseObject)).ToArray();
+            var items = results.Select(item => Assert.IsType<OfficeIMO.OfficeBatchItemReport>(item.BaseObject)).ToArray();
             Assert.Equal(3, items.Length);
             Assert.Single(items, item => item.Skipped);
-            var summary = Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(runspace.SessionStateProxy.GetVariable("summary"));
+            var summary = Assert.IsType<OfficeIMO.OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(2, summary.Completed); Assert.Equal(1, summary.Skipped); Assert.Equal(0, summary.Failed);
             var textPdf = PdfDocument.Load(Path.Combine(root, "output", "one.txt.pdf")).Read();
             Assert.NotEmpty(textPdf.Pages);

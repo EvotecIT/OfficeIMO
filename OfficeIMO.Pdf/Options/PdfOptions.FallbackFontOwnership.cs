@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private HashSet<PdfStandardFont>? _fallbackOwnedFontFamilies;
     private HashSet<string>? _automaticFallbackOwnedNamedFamilyKeys;
 
@@ -10,7 +10,7 @@ public sealed partial class PdfOptions {
             _embeddedFonts?.Keys.Any(font => PdfStandardFontMapper.GetFontFamily(font) == normalized) == true;
     }
 
-    private void MergeResolvedFallbackFontMappingsFrom(PdfOptions nested) {
+    private void MergeResolvedFallbackFontMappingsFrom(PdfCreateOptions nested) {
         MergeResolvedNamedFallbackFontMappingsFrom(nested);
         if (nested._usedEmbeddedFallbackFontSlots == null || nested._fallbackOwnedFontFamilies == null) return;
         foreach (PdfStandardFont family in nested._usedEmbeddedFallbackFontSlots.OrderBy(value => value)) {

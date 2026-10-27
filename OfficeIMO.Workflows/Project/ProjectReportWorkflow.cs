@@ -8,7 +8,7 @@ namespace OfficeIMO.Workflows;
 public static partial class ProjectReportWorkflow {
     /// <summary>Exports one SVG per report page using the Core vector renderer.</summary>
     public static IReadOnlyList<string> ToSvg(ProjectView view, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         return RenderPages(view, typography, cancellationToken).Select((page, index) => {
             cancellationToken.ThrowIfCancellationRequested();
             return OfficeDrawingSvgExporter.ToSvg(page.Drawing, 1, OfficeSvgSizeUnit.Pixel, typography?.ImageCodec, "project-page-" + index + "-", cancellationToken);
@@ -17,7 +17,7 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Exports one PNG per page at 300 DPI by default. Explicit raster options retain their selected scale. Use ExportImages for density presets, encoded DPI and batch budgets.</summary>
     public static IReadOnlyList<byte[]> ToPng(ProjectView view, OfficeDrawingRasterRenderOptions? options = null, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         if (options == null) {
             var export = new ProjectImageExportOptions();
             if (typography != null) export.UseRenderingProfile(typography);
@@ -40,8 +40,8 @@ public static partial class ProjectReportWorkflow {
     }
 
     /// <summary>Creates a paginated vector PDF through OfficeIMO.Pdf. Typography and compliance follow the supplied PDF options.</summary>
-    public static byte[] ToPdf(ProjectView view, PdfOptions? options = null, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+    public static byte[] ToPdf(ProjectView view, PdfCreateOptions? options = null, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
+        if (view == null) throw new ArgumentNullException(nameof(view));
         var pages = RenderPages(view, typography, cancellationToken);
         var document = PdfDocument.Create(options);
         document.Compose(builder => {
@@ -53,7 +53,7 @@ public static partial class ProjectReportWorkflow {
                     .Canvas(canvas => canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height)));
             }
         });
-        return document.ToBytes(cancellationToken);
+        return document.ToBytes(new PdfSaveOptions { AllowLoss = true }, cancellationToken);
     }
 
     private static IReadOnlyList<ProjectViewPage> RenderPages(ProjectView view, OfficeRenderingProfile? typography, CancellationToken token) {

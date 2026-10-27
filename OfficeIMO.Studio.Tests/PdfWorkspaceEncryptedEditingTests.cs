@@ -91,13 +91,13 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     private static string ReadProtectedWorkspaceText(byte[] bytes, PdfStandardPermissions permissions) {
-        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(bytes).Inspect());
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfDocument.Load(bytes, new PdfLoadOptions { Password = "wrong" }).Inspect());
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect());
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfDocument.Load(new System.IO.MemoryStream(bytes), new PdfLoadOptions { Password = "wrong" }).Inspect());
         foreach (string password in new[] { "open", "owner" }) {
-            var security = PdfDocument.Load(bytes, new PdfLoadOptions { Password = password }).Inspect().Security;
+            var security = PdfDocument.Load(new System.IO.MemoryStream(bytes), new PdfLoadOptions { Password = password }).Inspect().Security;
             Assert.True(security.HasEncryption);
             Assert.Equal(permissions, security.AllowedStandardPermissions);
         }
-        return PdfDocument.Load(bytes, new PdfLoadOptions { Password = "open" }).Read().Text;
+        return PdfDocument.Load(new System.IO.MemoryStream(bytes), new PdfLoadOptions { Password = "open" }).Read().Text;
     }
 }

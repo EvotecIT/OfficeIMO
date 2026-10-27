@@ -40,7 +40,7 @@ public sealed class WordPaperFooterFormattingTests {
             Assert.Equal("506070", run.RunProperties?.Color?.Val?.Value);
             Assert.Equal("Arial", run.RunProperties?.RunFonts?.Ascii?.Value);
         }
-        byte[] bytes = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] bytes = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_PAPER_PROOF_DIR");
         if (!string.IsNullOrWhiteSpace(proof)) {
             Directory.CreateDirectory(proof);

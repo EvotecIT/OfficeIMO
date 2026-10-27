@@ -123,8 +123,8 @@ namespace OfficeIMO.Excel {
         }
 
         internal static void ValidateModernChartPlacement(int row, int column, int widthPixels, int heightPixels) {
-            if (row < 1 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column < 1 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
             if (widthPixels < 1) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             if (heightPixels < 1) throw new ArgumentOutOfRangeException(nameof(heightPixels));
         }
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel {
             if (data.Series.Count == 0 || data.Categories.Count == 0) {
                 throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
             }
-            if (data.Series.Count >= A1.MaxColumns) {
+            if (data.Series.Count >= ExcelA1.MaxColumns) {
                 throw new ArgumentException(
                     "Modern chart data must fit one category column and all series within the worksheet column limit.",
                     nameof(data));
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
                 .InnerText;
             if (!ExcelChartUtils.TryParseSheetQualifiedRange(categoryFormula, out string sheetName, out string categoryRange)
                 || !_excelDocument.IsOwnedChartDataSheet(sheetName)
-                || !A1.TryParseRange(categoryRange, out int firstRow, out int categoryColumn, out int lastRow, out int lastCategoryColumn)
+                || !ExcelA1.TryParseRange(categoryRange, out int firstRow, out int categoryColumn, out int lastRow, out int lastCategoryColumn)
                 || categoryColumn != lastCategoryColumn) return null;
 
             for (int index = 0; index < data.Length; index++) {
@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel {
                     .InnerText;
                 if (!ExcelChartUtils.TryParseSheetQualifiedRange(valueFormula, out string valueSheet, out string valueRange)
                     || !string.Equals(sheetName, valueSheet, StringComparison.OrdinalIgnoreCase)
-                    || !A1.TryParseRange(valueRange, out int valueFirstRow, out int valueColumn, out int valueLastRow, out int valueLastColumn)
+                    || !ExcelA1.TryParseRange(valueRange, out int valueFirstRow, out int valueColumn, out int valueLastRow, out int valueLastColumn)
                     || valueFirstRow != firstRow
                     || valueLastRow != lastRow
                     || valueColumn != categoryColumn + index + 1

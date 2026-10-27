@@ -5,8 +5,8 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixEdition(BookOnixEdition? edition, CancellationToken cancellationToken) {
         if (edition == null) return [];
-        ArgumentNullException.ThrowIfNull(edition.Types);
-        ArgumentNullException.ThrowIfNull(edition.Statements);
+        if (edition.Types == null) throw new ArgumentNullException("edition.Types");
+        if (edition.Statements == null) throw new ArgumentNullException("edition.Statements");
         if (edition.Types.Count > 8 || edition.Statements.Count > 16)
             throw new ArgumentException("Edition metadata permits at most eight types and 16 statements.", nameof(edition));
         bool hasDetails = edition.Types.Count != 0 || edition.Number != null || edition.VersionNumber != null || edition.Statements.Count != 0;
@@ -42,7 +42,7 @@ public sealed partial class BookProject {
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var statement in edition.Statements) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(statement);
+            if (statement == null) throw new ArgumentNullException(nameof(statement));
             RequireOnixText(statement.Text, nameof(statement.Text));
             RequireOnixTranslationLanguage(statement.LanguageCode, edition.Statements.Count, nameof(edition.Statements));
             if (!languages.Add(statement.LanguageCode ?? ""))

@@ -305,8 +305,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             IncludeVisualSnapshotDiagnostics = false
         };
         foreach (PptCore.PowerPointDeckPreflightFinding finding in presentation.InspectPreflight(options).Findings
-                     .Where(item => item.Code == "Layout.ShapeOffSlide" || item.Code == "Text.Clipped")) {
-            if (finding.Code == "Text.Clipped") {
+                     .Where(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.LayoutShapeOffSlide || item.Code == global::OfficeIMO.OfficeDiagnosticCodes.TextClipped)) {
+            if (finding.Code == global::OfficeIMO.OfficeDiagnosticCodes.TextClipped) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
                     "Measured generic slide text may be clipped inside its editable text box.",
                     lossKind: OfficeConversionLossKind.Omission,

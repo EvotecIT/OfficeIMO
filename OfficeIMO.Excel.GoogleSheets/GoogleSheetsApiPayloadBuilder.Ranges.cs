@@ -31,8 +31,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int columnStart;
             int rowEnd;
             int columnEnd;
-            if (!A1.TryParseRange(rangeText, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
-                var (row, column) = A1.ParseCellRef(rangeText);
+            if (!ExcelA1.TryParseRange(rangeText, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
+                var (row, column) = ExcelA1.ParseCellRef(rangeText);
                 if (row <= 0 || column <= 0) {
                     return false;
                 }
@@ -41,8 +41,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 columnStart = columnEnd = column;
             }
 
-            bool allRows = rowStart == 1 && rowEnd == A1.MaxRows;
-            bool allColumns = columnStart == 1 && columnEnd == A1.MaxColumns;
+            bool allRows = rowStart == 1 && rowEnd == ExcelA1.MaxRows;
+            bool allColumns = columnStart == 1 && columnEnd == ExcelA1.MaxColumns;
             payload.Range = new GoogleSheetsApiGridRangePayload {
                 SheetId = sheetId,
                 StartRowIndex = allRows ? null : rowStart - 1,
@@ -76,8 +76,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int columnStart;
             int rowEnd;
             int columnEnd;
-            if (!A1.TryParseRange(unqualifiedRange, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
-                var (row, column) = A1.ParseCellRef(unqualifiedRange);
+            if (!ExcelA1.TryParseRange(unqualifiedRange, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
+                var (row, column) = ExcelA1.ParseCellRef(unqualifiedRange);
                 if (row <= 0 || column <= 0) {
                     return false;
                 }

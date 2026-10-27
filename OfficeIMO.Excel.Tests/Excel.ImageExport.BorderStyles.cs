@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 5).SetDiagonalBorder(ExcelBorderStyle.DashDotDot, "004C99", diagonalUp: true, diagonalDown: true);
 
             ExcelRange range = sheet.Range("A1:E1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             table.GetCell(0, 0).NoFill = true;
             table.GetCell(0, 1).FillColor = "FF0000";
             Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             var legacy = LegacyPptPresentation.Load(bytes);
             var native = Assert.Single(Assert.Single(legacy.Slides).Shapes, shape => shape.Kind == LegacyPptShapeKind.Table).Table!;
             Assert.False(Assert.Single(native.Cells, cell => cell.Row == 0 && cell.Column == 0).SourceShape.Style.FillEnabled);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(preflight.CanWrite);
                 Assert.DoesNotContain(preflight.Findings, candidate =>
                     candidate.Code == "PPT-WRITE-TABLE-CONVERTED");
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -128,14 +128,12 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWriteFinding finding = Assert.Single(
                 source.AnalyzeLegacyPptWrite().Findings,
-                candidate => candidate.Code == "PPT-WRITE-TABLE");
+                candidate => candidate.Code == "ppt-write-table");
             Assert.Equal(LegacyPptFeature.Tables, finding.Feature);
             Assert.Contains("Merged", finding.Description);
-            Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                PowerPointFileFormat.Ppt));
+            Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
-            byte[] converted = source.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions {
+            byte[] converted = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             using var input = new MemoryStream(converted, writable: false);
@@ -157,13 +155,12 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWriteFinding finding = Assert.Single(
                 source.AnalyzeLegacyPptWrite().Findings,
-                candidate => candidate.Code == "PPT-WRITE-TABLE");
+                candidate => candidate.Code == "ppt-write-table");
 
             Assert.Equal(LegacyPptFeature.Tables, finding.Feature);
             Assert.Contains("shared vertical edge", finding.Description,
                 StringComparison.Ordinal);
-            Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                PowerPointFileFormat.Ppt));
+            Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -177,7 +174,7 @@ namespace OfficeIMO.Tests {
                     .Cell.TableCellProperties!;
                 properties.LeftBorderLineProperties =
                     new A.LeftBorderLineProperties(new A.NoFill());
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);

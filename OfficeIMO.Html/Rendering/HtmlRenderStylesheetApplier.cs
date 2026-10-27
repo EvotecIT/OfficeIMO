@@ -54,7 +54,7 @@ internal static class HtmlRenderStylesheetApplier {
             if (!string.IsNullOrWhiteSpace(link.GetAttribute("integrity"))) {
                 diagnostics.Add(
                     ComponentName,
-                    "StylesheetResourceRejectedByPolicy",
+                    global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy,
                     "A linked stylesheet was not applied because subresource integrity metadata cannot be verified by the bounded package resolver.",
                     HtmlDiagnosticSeverity.Error,
                     source,

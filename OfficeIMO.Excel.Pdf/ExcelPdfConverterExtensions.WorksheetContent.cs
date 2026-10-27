@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetPageSetup(PdfCore.PdfPageBuilder page, ExcelSheetPageSetup? pageSetup, ExcelToPdfOptions options) {
+        private static void ApplyWorksheetPageSetup(PdfCore.PdfPageBuilder page, ExcelSheetPageSetup? pageSetup, ExcelPdfExportOptions options) {
             if (ShouldApplyPageSize(options, pageSetup)) {
                 page.Size(GetEffectivePageSize(options, pageSetup));
             }
@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static bool ShouldApplyPageSize(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static bool ShouldApplyPageSize(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.PageSize.HasValue) {
                 return true;
             }
@@ -27,11 +27,11 @@ namespace OfficeIMO.Excel.Pdf {
             return options.UseWorksheetPageSetup && pageSetup != null;
         }
 
-        private static PdfCore.PageMargins ToPdfMargins(ExcelSheetPageMargins margins) {
-            return PdfCore.PageMargins.FromInches(margins.Left, margins.Top, margins.Right, margins.Bottom);
+        private static PdfCore.PdfPageMargins ToPdfMargins(ExcelSheetPageMargins margins) {
+            return PdfCore.PdfPageMargins.FromInches(margins.Left, margins.Top, margins.Right, margins.Bottom);
         }
 
-        private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelToPdfOptions options) {
+        private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelPdfExportOptions options) {
             IReadOnlyList<string> requestedNames = options.SheetNames ?? Array.Empty<string>();
             if (requestedNames.Count == 0) {
                 return reader.GetSheetNames();
@@ -50,17 +50,17 @@ namespace OfficeIMO.Excel.Pdf {
             return names;
         }
 
-        private static bool HasExplicitSheetSelection(ExcelToPdfOptions options) {
+        private static bool HasExplicitSheetSelection(ExcelPdfExportOptions options) {
             return options.SheetNames != null && options.SheetNames.Count > 0;
         }
 
-        private static bool ShouldSkipWorkbookSheet(ExcelSheet? workbookSheet, ExcelToPdfOptions options, bool hasExplicitSheetSelection) {
+        private static bool ShouldSkipWorkbookSheet(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, bool hasExplicitSheetSelection) {
             return !hasExplicitSheetSelection
                    && options.RespectWorkbookSheetVisibility
                    && workbookSheet?.Hidden == true;
         }
 
-        private static IReadOnlyList<WorksheetImageExportData> ReadWorksheetImages(ExcelSheet? workbookSheet, ExcelToPdfOptions options, string sheetName) {
+        private static IReadOnlyList<WorksheetImageExportData> ReadWorksheetImages(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, string sheetName) {
             if (!options.UseWorksheetImages || workbookSheet == null) {
                 return Array.Empty<WorksheetImageExportData>();
             }
@@ -71,8 +71,8 @@ namespace OfficeIMO.Excel.Pdf {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetImage",
-                        $"Worksheet image anchored at {A1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{image.ContentType}' is not supported by the first-party PDF image writer.");
+                        "worksheet-image",
+                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{image.ContentType}' is not supported by the first-party PDF image writer.");
                     continue;
                 }
 
@@ -81,8 +81,8 @@ namespace OfficeIMO.Excel.Pdf {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetImage",
-                        $"Worksheet image anchored at {A1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because it has empty image bytes or non-positive dimensions.");
+                        "worksheet-image",
+                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because it has empty image bytes or non-positive dimensions.");
                     continue;
                 }
 
@@ -90,8 +90,8 @@ namespace OfficeIMO.Excel.Pdf {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetImage",
-                        $"Worksheet image anchored at {A1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because the first-party PDF image writer cannot export the image bytes. {unsupportedReason}");
+                        "worksheet-image",
+                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because the first-party PDF image writer cannot export the image bytes. {unsupportedReason}");
                     continue;
                 }
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel.Pdf {
                     preparedBytes,
                     PixelsToPoints(image.WidthPixels),
                     PixelsToPoints(image.HeightPixels),
-                    A1.CellReference(image.RowIndex, image.ColumnIndex),
+                    ExcelA1.CellReference(image.RowIndex, image.ColumnIndex),
                     image.RowIndex,
                     image.ColumnIndex,
                     PixelsToPoints(image.OffsetXPixels),
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel.Pdf {
             return images;
         }
 
-        private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelToPdfOptions options, string sheetName) {
+        private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, string sheetName) {
             if (!options.UseWorksheetCharts || workbookSheet == null) {
                 return Array.Empty<WorksheetChartExportData>();
             }
@@ -124,11 +124,11 @@ namespace OfficeIMO.Excel.Pdf {
             AddWorksheetSmartArtWarnings(workbookSheet, options, sheetName);
             var charts = new List<WorksheetChartExportData>();
             foreach (ExcelChart chart in workbookSheet.Charts) {
-                if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+                if (!chart.TryGetSnapshot(out ExcelChartInfo snapshot)) {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetChart",
+                        "worksheet-chart",
                         $"Worksheet chart '{chart.Name}' was not exported because its chart data could not be read into a first-party PDF snapshot.");
                     continue;
                 }
@@ -143,22 +143,22 @@ namespace OfficeIMO.Excel.Pdf {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetChart",
+                        "worksheet-chart",
                         $"Worksheet chart '{GetChartDisplayName(snapshot)}' was not exported because it does not contain renderable chart categories and series.");
-                } else if (IsSupportedChartSnapshot(snapshot, out string? unsupportedReason, out List<string> approximationWarnings)) {
+                } else if (IsSupportedChartSnapshot(snapshot, out string? unsupportedReason, out List<(string Code, string Message)> approximationWarnings)) {
                     charts.Add(new WorksheetChartExportData(snapshot));
-                    foreach (string approximationWarning in approximationWarnings) {
+                    foreach (var approximationWarning in approximationWarnings) {
                         AddWarning(
                             options,
                             sheetName,
-                            "chart-approximation",
-                            $"Worksheet chart '{GetChartDisplayName(snapshot)}' was exported with an explicit approximation: {approximationWarning}");
+                            approximationWarning.Code,
+                            $"Worksheet chart '{GetChartDisplayName(snapshot)}' was exported with an explicit approximation: {approximationWarning.Message}");
                     }
                 } else {
                     AddWarning(
                         options,
                         sheetName,
-                        "WorksheetChart",
+                        "worksheet-chart",
                         $"Worksheet chart '{GetChartDisplayName(snapshot)}' was not exported because {unsupportedReason}");
                 }
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         // Worksheet SmartArt has no first-party PDF renderer yet. Report each diagram rather than
         // dropping it silently.
-        private static void AddWorksheetSmartArtWarnings(ExcelSheet workbookSheet, ExcelToPdfOptions options, string sheetName) {
+        private static void AddWorksheetSmartArtWarnings(ExcelSheet workbookSheet, ExcelPdfExportOptions options, string sheetName) {
             var drawing = workbookSheet.WorksheetPart.DrawingsPart?.WorksheetDrawing;
             if (drawing == null) return;
             foreach (var diagram in drawing.Descendants<DocumentFormat.OpenXml.Drawing.Diagrams.RelationshipIds>()) {
@@ -180,17 +180,17 @@ namespace OfficeIMO.Excel.Pdf {
                 AddWarning(
                     options,
                     sheetName,
-                    "WorksheetSmartArt",
+                    "worksheet-smart-art",
                     $"Worksheet SmartArt diagram '{(string.IsNullOrWhiteSpace(name) ? "SmartArt" : name)}' was not exported because worksheet SmartArt has no first-party PDF renderer.");
             }
         }
 
         private static bool IsSupportedChartSnapshot(
-            ExcelChartSnapshot snapshot,
+            ExcelChartInfo snapshot,
             out string? unsupportedReason,
-            out List<string> approximationWarnings) {
+            out List<(string Code, string Message)> approximationWarnings) {
             unsupportedReason = null;
-            approximationWarnings = new List<string>();
+            approximationWarnings = new List<(string Code, string Message)>();
             if (!TryMapChartKind(snapshot.ChartType, out _)) {
                 unsupportedReason = $"chart type '{snapshot.ChartType}' is not supported by the first-party PDF chart renderer.";
                 return false;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel.Pdf {
             // 3-D, pie-of-pie, stock and surface families are drawn as flat projections; say what is left out.
             if (ExcelRangeImageRenderer.TryMapChartKind(snapshot.ChartType, out _, out string? projection) &&
                 !string.IsNullOrWhiteSpace(projection)) {
-                approximationWarnings.Add(projection!);
+                approximationWarnings.Add((ExcelRangeImageRenderer.IsFlatChartProjection(snapshot.ChartType) ? OfficeDiagnosticCodes.ChartFlattened : OfficeDiagnosticCodes.ChartApproximation, projection!));
             }
 
             bool hasMixedSeries = snapshot.Data.Series.Any(series =>
@@ -227,18 +227,18 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 if (!string.IsNullOrWhiteSpace(approximation)) {
-                    approximationWarnings.Add($"series '{series.Name}' ({effectiveType}): {approximation}");
+                    approximationWarnings.Add((ExcelRangeImageRenderer.IsFlatChartProjection(effectiveType) ? OfficeDiagnosticCodes.ChartFlattened : OfficeDiagnosticCodes.ChartApproximation, $"series '{series.Name}' ({effectiveType}): {approximation}"));
                 }
             }
 
             return true;
         }
 
-        private static bool HasRenderableChartData(ExcelChartSnapshot snapshot) {
+        private static bool HasRenderableChartData(ExcelChartInfo snapshot) {
             return snapshot.Data.Categories.Count > 0 && snapshot.Data.Series.Count > 0;
         }
 
-        private static string GetChartDisplayName(ExcelChartSnapshot snapshot) {
+        private static string GetChartDisplayName(ExcelChartInfo snapshot) {
             if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
                 return snapshot.Title!;
             }
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel.Pdf {
             return string.IsNullOrWhiteSpace(snapshot.Name) ? snapshot.ChartType.ToString() : snapshot.Name;
         }
 
-        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message, OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
+        private static void AddWarning(ExcelPdfExportOptions options, string sheetName, string feature, string message, OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
             var warning = new ExcelPdfExportWarning(sheetName, feature, message, lossKind);
             options.Warnings.Add(warning);
             options.Report.Add(warning.ToConversionWarning());

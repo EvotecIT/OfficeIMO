@@ -15,8 +15,8 @@ public sealed class PdfAdapterTextClipTests {
     [InlineData("font:italic 32px Arial;line-height:.8", 0)]
     [InlineData("font:italic 32px Arial;line-height:.8", 8)]
     public void HtmlLineMetricsDoNotClipGlyphsToTheirLayoutFrame(string style, int topMargin) {
-        byte[] bytes = HtmlConversionDocument.Parse("<p style='margin:0;" + style + "'>gypqj</p>")
-            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(topMargin) });
+        byte[] bytes = (HtmlConversionDocument.Parse("<p style='margin:0;" + style + "'>gypqj</p>")
+            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(topMargin) })).ToBytes();
 
         var page = PdfReadDocument.Open(bytes).Pages[0];
         PdfTextSpan span = Assert.Single(page.GetTextSpans());
@@ -37,9 +37,9 @@ public sealed class PdfAdapterTextClipTests {
     [InlineData(true)]
     public void HtmlOverflowStillClipsTextAndLinkAnnotations(bool link) {
         string text = link ? "<a href='https://example.com'>gypqj</a>" : "gypqj";
-        byte[] bytes = HtmlConversionDocument.Parse(
+        byte[] bytes = (HtmlConversionDocument.Parse(
             "<div style='width:36px;height:12px;overflow:hidden;font:32px Arial'>" + text + "</div>")
-            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) });
+            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) })).ToBytes();
 
         var page = PdfReadDocument.Open(bytes).Pages[0];
         PdfTextSpan span = Assert.Single(page.GetTextSpans());
@@ -108,8 +108,8 @@ public sealed class PdfAdapterTextClipTests {
     public void PublicTextFramesKeepTheirExplicitClip(bool drawing) {
         byte[] bytes = drawing
             ? PdfDocument.Create().Drawing(new OfficeDrawing(100, 80)
-                .AddPositionedText("ADWS", 10, 10, 20, 10, new OfficeFontInfo("Helvetica", 32), textAdvanceWidth: 80)).ToBytes()
-            : PdfDocument.Create().Canvas(canvas => canvas.Text("ADWS", 10, 10, 20, 10, fontSize: 32)).ToBytes();
+                .AddPositionedText("ADWS", 10, 10, 20, 10, new OfficeFontInfo("Helvetica", 32), textAdvanceWidth: 80)).ToBytes(new PdfSaveOptions { AllowLoss = true })
+            : PdfDocument.Create().Canvas(canvas => canvas.Text("ADWS", 10, 10, 20, 10, fontSize: 32)).ToBytes(new PdfSaveOptions { AllowLoss = true });
 
         var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
         Assert.NotEmpty(spans);

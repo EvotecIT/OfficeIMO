@@ -167,7 +167,7 @@ public partial class WordPdfPageFootnoteTests {
             .Where(note => note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal).Select(note => note.InnerText));
         string[] tokens = Regex.Matches(ordinary, @"NOTE [0-9]{3}").Cast<Match>().Select(match => match.Value).ToArray();
         if (typedOrdinaryNoteInventory) AssertNoticeFixtureSourceProfile(document);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         Assert.Equal(before, new[] { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,
             main.StyleDefinitionsPart.Styles.OuterXml, main.DocumentSettingsPart.Settings.OuterXml,
@@ -177,13 +177,13 @@ public partial class WordPdfPageFootnoteTests {
         Assert.All(result.SourceConversionReports, report => Assert.False(report.HasLoss));
         var qualification = mixedFonts ? QualifyFootnoteRulePaintFonts(id, actual, result.Warnings) :
             QualifyPageFootnoteNativeArial(id, actual, result.Warnings);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         if (qualification.Qualified) Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-            "NativeFootnoteSeparatorMarkOmitted" or "NativeFootnoteSeparatorDecorationOmitted");
+            "native-footnote-separator-mark-omitted" or "native-footnote-separator-decoration-omitted");
         foreach (PdfConversionWarning warning in result.Warnings.Where(warning => warning.LossKind != OfficeConversionLossKind.None)) {
             bool font = qualification.Substitutions.Contains(warning) && warning.LossKind == OfficeConversionLossKind.Approximation;
             bool unavailableMetrics = !qualification.Qualified && (warning.Code is
-                "NativeFootnoteSeparatorMarkOmitted" or "NativeFootnoteSeparatorDecorationOmitted") &&
+                "native-footnote-separator-mark-omitted" or "native-footnote-separator-decoration-omitted") &&
                 warning.Source == "footnote separator" && warning.LossKind == OfficeConversionLossKind.Omission;
             Assert.True(font || unavailableMetrics, $"Unexpected conversion loss: {warning}");
             _output.WriteLine("{0}: conversion loss: {1}", id, warning);
@@ -209,7 +209,7 @@ public partial class WordPdfPageFootnoteTests {
     private (bool Qualified, string Qualification, PdfConversionWarning[] Substitutions) QualifyFootnoteRulePaintFonts(
         string id, byte[] actual, IReadOnlyList<PdfConversionWarning> warnings) {
         PdfConversionWarning[] substitutions = warnings.Where(warning =>
-            warning.Code is "NativeFontFamilySubstituted" or "font-family-substitution").ToArray();
+            warning.Code is "font-family-substitution" or "font-family-substitution").ToArray();
         foreach (PdfConversionWarning warning in substitutions) {
             Assert.Contains(warning.Details["fontFamily"], new[] { "Arial", "Calibri" });
             Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);

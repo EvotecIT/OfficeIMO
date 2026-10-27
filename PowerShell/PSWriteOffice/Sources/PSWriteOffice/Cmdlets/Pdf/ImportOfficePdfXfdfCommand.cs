@@ -91,7 +91,7 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
                 Password,
                 IgnorePermissionRestrictions.IsPresent)).Forms.ImportXfdf(xml, Options);
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        result.Save(output).RequireSuccess();
+        result.Save(output);
         if (PassThru.IsPresent) WriteObject(result);
     }
 

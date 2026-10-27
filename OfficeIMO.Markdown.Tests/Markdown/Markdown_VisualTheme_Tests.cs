@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Default();
 
             Assert.Equal(OfficeVisualThemeKind.WordLike, theme.Kind);
-            Assert.Equal(HtmlStyle.Word, theme.HtmlStyle);
+            Assert.Equal(MarkdownHtmlStyle.Word, theme.HtmlStyle);
             Assert.Equal("1F2937", theme.Palette.Text.ToRgbHex());
             Assert.Equal("111827", theme.Palette.Heading.ToRgbHex());
         }
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(OfficeVisualThemeKind.Report, theme!.Kind);
             Assert.Equal("059669", theme.Palette.Accent.ToRgbHex());
             Assert.Equal("064E3B", theme.Palette.Heading.ToRgbHex());
-            Assert.Equal(HtmlStyle.Word, theme.HtmlStyle);
+            Assert.Equal(MarkdownHtmlStyle.Word, theme.HtmlStyle);
         }
     }
 }

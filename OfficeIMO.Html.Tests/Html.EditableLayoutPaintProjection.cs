@@ -47,7 +47,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
         using var stream = new MemoryStream();
         switch (target) {
             case "word": {
-                var result = source.ToWordDocumentResult();
+                var result = source.ConvertToWordWithEvidence();
                 using WordDocument document = result.Value;
                 document.Save(stream);
                 using WordDocument reopened = WordDocument.Load(new MemoryStream(stream.ToArray()),

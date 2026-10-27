@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPortfolioTests {
     [Fact]
     public void Save_PortfolioBuildsCollectionAndRoundTripsMetadata() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .AddEmbeddedFile("cover.pdf", new byte[] { 1, 2, 3 }, "application/pdf")
             .AddEmbeddedFile("data.csv", new byte[] { 4, 5 }, "text/csv")
             .SetPortfolio(new PdfPortfolioOptions {
@@ -34,7 +34,7 @@ public class PdfPortfolioTests {
 
     [Fact]
     public void Save_PortfolioRequiresEmbeddedFiles() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             Portfolio = new PdfPortfolioOptions()
         });
         document.Paragraph(paragraph => paragraph.Text("Missing attachment"));
@@ -46,7 +46,7 @@ public class PdfPortfolioTests {
     [Fact]
     public void Options_PortfolioIsDefensivelyCloned() {
         var source = new PdfPortfolioOptions();
-        var options = new PdfOptions { Portfolio = source };
+        var options = new PdfCreateOptions { Portfolio = source };
         source.View = PdfPortfolioView.Hidden;
 
         Assert.Equal(PdfPortfolioView.Details, options.Portfolio!.View);

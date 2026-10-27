@@ -28,7 +28,7 @@ public sealed class PdfStandardsProofTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] font = File.ReadAllBytes(fontPath!);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true };
+        var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };
         if (archival != PdfComplianceProfile.None) options.UsePdfA(archival);
         if (accessible != PdfComplianceProfile.None) options.UsePdfUa(accessible);
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")

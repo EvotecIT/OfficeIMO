@@ -9,12 +9,12 @@ using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Reads an explicit A1 range from an Excel workbook.</summary>
+/// <summary>Reads an explicit ExcelA1 range from an Excel workbook.</summary>
 /// <para>Returns rows as PSCustomObjects by default, with optional hashtable or DataTable output for scripting and interoperability.</para>
 /// <example>
 ///   <summary>Read a rectangular range and summarize revenue.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$rows = Get-OfficeExcelRange -Path .\report.xlsx -Sheet Data -Range A1:C10 -NumericAsDecimal
+///   <code>$rows = Get-OfficeExcelRange -Path .\report.xlsx -Sheet Data -Range ExcelA1:C10 -NumericAsDecimal
 /// $rows |
 ///     Group-Object -Property Region |
 ///     Select-Object Name, Count</code>
@@ -45,7 +45,7 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = ParameterSetUri)]
     public SwitchParameter AllowHttp { get; set; }
 
-    /// <summary>A1 range to read.</summary>
+    /// <summary>ExcelA1 range to read.</summary>
     [Parameter(Mandatory = true)]
     public string Range { get; set; } = string.Empty;
 
@@ -84,7 +84,7 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
         ExcelReadOutputService.WriteOutput(this, table, AsDataTable.IsPresent, AsHashtable.IsPresent);
     }
 
-    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReadOptions options) {
+    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReaderOptions options) {
         if (ParameterSetName == ParameterSetDocument) {
             return Document.CreateDataReader(options);
         }
@@ -94,7 +94,8 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
                 throw new PSArgumentException("Workbook URI was not provided.", nameof(Uri));
             }
 
-            return await ExcelDocument.OpenDataReaderAsync(Uri, options, ExcelHttpLoadService.CreateOptions(AllowHttp), CancelToken)
+            options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+            return await ExcelDocument.OpenReaderAsync(Uri, options, CancelToken)
                 .ConfigureAwait(false);
         }
 
@@ -103,6 +104,6 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }
 
-        return ExcelDocument.OpenDataReader(resolvedPath, options);
+        return ExcelDocument.OpenReader(resolvedPath, options);
     }
 }

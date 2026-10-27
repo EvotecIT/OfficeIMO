@@ -23,7 +23,7 @@ public sealed class PdfRunSpacingTests {
             : PdfTrueTypeFontProgram.Parse(fontBytes, "SpacingTest").ShapeText("office", shaping).Glyphs.Count;
         Assert.InRange(glyphCount, 1, 5);
         byte[] Render(bool styled) {
-            PdfOptions options = Options();
+            PdfCreateOptions options = Options();
             options.TextShapingMode = PdfTextShapingMode.OpenTypeLigatures;
             options.EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "SpacingTest");
             PdfTextRun word = new PdfTextRun("office", fontSize: 12D);
@@ -42,7 +42,7 @@ public sealed class PdfRunSpacingTests {
 
     [Fact]
     public void ParagraphContinuation_PreservesSpacingOnEveryPage() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageWidth = 180D; options.PageHeight = 120D;
         options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 20D;
         PdfTextRun run = new PdfTextRun(string.Join("\n", Enumerable.Repeat("ABCD", 20)), fontSize: 12D)
@@ -139,7 +139,7 @@ public sealed class PdfRunSpacingTests {
         Assert.Equal(0D, run.CharacterSpacing);
     }
 
-    private static PdfOptions Options() => new PdfOptions {
+    private static PdfCreateOptions Options() => new PdfCreateOptions {
         DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 12D,
         HeaderFont = PdfStandardFont.Helvetica,

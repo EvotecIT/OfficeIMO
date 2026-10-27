@@ -107,17 +107,17 @@ public partial class PdfPageExtractorTests {
 
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(PageMarker(1)))));
             });
 
             compose.Page(page => {
-                page.Size(new PageSize(612, 792));
+                page.Size(new PdfPageSize(612, 792));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(PageMarker(2)))));
             });
 
             compose.Page(page => {
-                page.Size(new PageSize(300, 500));
+                page.Size(new PdfPageSize(300, 500));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(PageMarker(3)))));
             });
         });

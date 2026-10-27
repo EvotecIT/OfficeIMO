@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                     PowerPointPresentation.Load(pptm);
                 Assert.Equal(project, reopened.GetVbaProjectBytes());
 
-                byte[] binary = reopened.ToBytes(PowerPointFileFormat.Ppt);
+                byte[] binary = reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
                 using PowerPointPresentation projected =
                     PowerPointPresentation.Load(new MemoryStream(binary));
                 Assert.True(projected.HasVbaProject,
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
             AssertMacroFreeBytes(presentation.ToBytes());
             AssertMacroEnabledBytes(
-                presentation.ToBytes(PowerPointFileFormat.Pptm), project);
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptm }), project);
             using var inferredStream = new MemoryStream();
             presentation.Save(inferredStream);
             AssertMacroFreeBytes(inferredStream.ToArray());
@@ -109,8 +109,7 @@ namespace OfficeIMO.Tests {
                 "macro-safe-pass");
 
             using PowerPointPresentation pptx = PowerPointPresentation.Load(
-                new MemoryStream(presentation.ToBytes(
-                    PowerPointFileFormat.Pptx)));
+                new MemoryStream(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })));
             Assert.False(pptx.HasVbaProject);
             Assert.Equal(PresentationDocumentType.Presentation,
                 pptx.OpenXmlDocument.DocumentType);

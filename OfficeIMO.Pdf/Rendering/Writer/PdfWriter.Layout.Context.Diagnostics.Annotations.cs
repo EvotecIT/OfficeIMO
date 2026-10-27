@@ -32,12 +32,12 @@ internal static partial class PdfWriter {
                     var paragraph = new RichParagraphBlock(runs, annotation.TextAlign, annotation.TextColor);
                     // Appearance baselines do not use paragraph line-box correction.
                     var lines = new List<List<RichSeg>> { new List<RichSeg>(segments) };
-                    ReportRichPaintDiagnostics("FreeTextAnnotation", source, paragraph, lines, new[] { leading },
+                    ReportRichPaintDiagnostics(PaintDiagnosticCodes.FreeTextAnnotation, source, paragraph, lines, new[] { leading },
                         annotation.Y1 + Math.Max(0D, baseline), annotation.FontSize, leading,
                         annotation.X1 + annotation.Padding, innerWidth,
                         new TableCellContentFrame(annotation.X1, annotation.Y2, width, height), baselineFont: PdfStandardFont.Helvetica);
                 }
-                if (omitted) ReportAuthoredLayoutDiagnostic("FreeTextAnnotationContentOmitted", source,
+                if (omitted) ReportAuthoredLayoutDiagnostic("free-text-annotation-content-omitted", source,
                     "Composed annotation text exceeded the appearance's admitted lines and was omitted.",
                     PdfLayoutDiagnosticKind.ClippedContent, annotation.X1, annotation.Y2, width, height);
             }

@@ -22,9 +22,9 @@ public sealed class XlsbUtf8TextTests {
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "first 🐢");
         sheet.CellValue(3, 1, "following 🐢");
-        var options = new ExcelReadOptions { SchemaSampleRows = 1 };
+        var options = new ExcelReaderOptions { SchemaSampleRows = 1 };
         SetProjection(initiallyProjected);
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, true), options);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, true), options);
         Assert.Throws<InvalidOperationException>(() => reader.TryGetUtf8Text(0, out _));
         Assert.True(reader.Read());
         AssertLiveProjection(reader, "first 🐢", !initiallyProjected);
@@ -60,8 +60,8 @@ public sealed class XlsbUtf8TextTests {
         sheet.CellValue(2, 1, expected);
         sheet.CellValue(3, 1, "following");
         sheet.CellValue(4, 1, "after");
-        var options = new ExcelReadOptions();
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, false), options);
+        var options = new ExcelReaderOptions();
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, false), options);
         Assert.True(reader.Read());
         Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> held));
         if (projection == "Schema") options.InferSchema = true;
@@ -103,7 +103,7 @@ public sealed class XlsbUtf8TextTests {
         }
         using ExcelDocument document = ExcelDocument.Create();
         document.InsertDataSet(data, createTables: false, includeAutoFilter: false);
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings));
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, sharedStrings));
         foreach (string expected in values) {
             Assert.True(reader.Read());
             AssertBorrowed(reader, 0, expected);
@@ -136,7 +136,7 @@ public sealed class XlsbUtf8TextTests {
         string large = new string('λ', 3000) + " 🐢";
         sheet.CellValue(1, 259, "Large");
         sheet.CellValue(2, 259, large);
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings));
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, sharedStrings));
         Assert.Equal(259, reader.FieldCount);
         Assert.True(reader.Read());
         Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
@@ -171,7 +171,7 @@ public sealed class XlsbUtf8TextTests {
         // Distinct headers and row text produce more than 256 shared-string items.
         var retainedStrings = new string[values.Length];
         var retainedCopies = new byte[values.Length][];
-        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings))) {
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, sharedStrings))) {
             Assert.Equal(columns, reader.FieldCount);
             for (int row = 0; row < values.Length; row++) {
                 Assert.True(reader.Read());
@@ -216,7 +216,7 @@ public sealed class XlsbUtf8TextTests {
         Cell formula = sheet.WorksheetPart!.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A3");
         formula.DataType = CellValues.String;
         formula.CellValue = new CellValue("cached");
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings));
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, sharedStrings));
         Assert.True(reader.Read());
         AssertBorrowed(reader, 0, "first");
         Assert.True(reader.Read());
@@ -243,7 +243,7 @@ public sealed class XlsbUtf8TextTests {
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "sample");
         sheet.CellValue(3, 1, "following");
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             InferSchema = projection == "Schema",
             SchemaSampleRows = 1,
             CellValueConverter = projection switch {
@@ -252,7 +252,7 @@ public sealed class XlsbUtf8TextTests {
                 _ => null
             }
         };
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, true), options);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, true), options);
         foreach (string original in new[] { "sample", "following" }) {
             Assert.True(reader.Read());
             Assert.False(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
@@ -270,8 +270,8 @@ public sealed class XlsbUtf8TextTests {
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "original");
         byte[] binary = [0, 255, 42];
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, true),
-            new ExcelReadOptions { CellValueConverter = _ => new ExcelCellValue(binary) });
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, true),
+            new ExcelReaderOptions { CellValueConverter = _ => new ExcelCellValue(binary) });
         Assert.True(reader.Read());
         Assert.False(reader.TryGetUtf8Text(0, out _));
         byte[] destination = new byte[binary.Length];
@@ -287,7 +287,7 @@ public sealed class XlsbUtf8TextTests {
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(2, 1, name);
         }
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, true));
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, true));
         Assert.Throws<InvalidOperationException>(() => reader.TryGetUtf8Text(0, out _));
         Assert.True(await reader.ReadAsync());
         AssertBorrowed(reader, 0, "First");
@@ -306,8 +306,8 @@ public sealed class XlsbUtf8TextTests {
     [Fact]
     public void BorrowedXlsbText_UsesIndependentExcelProducedSharedStrings() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "XlsbCorpus", "excel-generated", "basic-values-formula.xlsb");
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path,
-            new ExcelReadOptions { HasHeaderRow = false });
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path,
+            new ExcelReaderOptions { HasHeaderRow = false });
         Assert.True(reader.Read());
         AssertBorrowed(reader, 0, "Name");
         AssertBorrowed(reader, 1, "Amount");
@@ -346,13 +346,13 @@ public sealed class XlsbUtf8TextTests {
                 XlsbRecordWriter.Write(output, 62, rich);
             }
         }
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package.ToArray());
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package.ToArray());
         Assert.True(reader.Read());
         AssertBorrowed(reader, 0, " rich Żółw 🐢 \r\n");
     }
 
     private static byte[] Save(ExcelDocument document, bool sharedStrings) =>
-        document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+        document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
 
     private static void AssertLiveProjection(ExcelWorkbookDataReader reader, string expected, bool canBorrow) {
         Assert.Equal(expected, reader.GetString(0));

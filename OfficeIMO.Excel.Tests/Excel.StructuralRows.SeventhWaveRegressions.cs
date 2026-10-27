@@ -46,14 +46,14 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsCellWatchReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
-            var watch = new CellWatch { CellReference = $"A{A1.MaxRows}" };
+            var watch = new CellWatch { CellReference = $"A{ExcelA1.MaxRows}" };
             sheet.WorksheetPart.Worksheet.Append(new CellWatches(watch));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", watch.CellReference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", watch.CellReference!.Value);
         }
 
         [Fact]

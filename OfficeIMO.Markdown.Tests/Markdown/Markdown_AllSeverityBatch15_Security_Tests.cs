@@ -7,16 +7,19 @@ namespace OfficeIMO.Tests;
 public sealed class MarkdownAllSeverityBatch15SecurityTests {
     [Fact]
     public void TypedHtmlRenderingRejectsUnsafeSchemesButKeepsRasterDataImages() {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .Add(new ParagraphBlock(new InlineSequence()
                 .Link("script", "java\tscript:alert(1)")
                 .Image("svg", "data:image/svg+xml,<svg onload=alert(1)></svg>")
                 .Image("png", "data:image/png;base64,AQID")));
 
-        string html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        string html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.DoesNotContain("javascript", html, StringComparison.OrdinalIgnoreCase);
@@ -31,9 +34,9 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
             "https://images.example/photo.webp",
             srcSet: "https://images.example/photo.webp 1x, https://tracker.example/pixel.webp 2x, javascript:alert(1) 3x"));
 
-        var options = new HtmlOptions();
+        var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDoc.Create().Add(image).ToHtmlFragment(options);
+        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp 1x", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -47,9 +50,9 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
             "https://tracker.example/fallback.webp",
             srcSet: "https://images.example/photo.webp,https://tracker.example/pixel.webp 2x"));
 
-        var options = new HtmlOptions();
+        var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDoc.Create().Add(image).ToHtmlFragment(options);
+        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -62,12 +65,13 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
             "https://images.example/photo.webp",
             srcSet: "https://images.example/photo.webp 1x, https:/tracker.example/pixel.webp 2x"));
 
-        var options = new HtmlOptions {
+        var options = new MarkdownHtmlExportOptions
+        {
             BlockExternalHttpImages = true,
             BaseUri = new Uri("https://images.example/")
         };
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDoc.Create().Add(image).ToHtmlFragment(options);
+        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp 1x", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -75,14 +79,14 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
 
     [Fact]
     public void LinkPolicyKeepsNonExecutableProtocolsButRejectsMalformedPolicyTargets() {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .Add(new ParagraphBlock(new InlineSequence()
                 .Link("archive", "ftp://files.example/archive")
                 .Link("blocked", "https:/tracker.example/pixel")));
-        var options = new HtmlOptions();
+        var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpLinkHosts.Add("safe.example");
 
-        string html = document.ToHtmlFragment(options);
+        string html = document.ToHtml(options);
 
         Assert.Contains("href=\"ftp://files.example/archive\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -91,8 +95,11 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
     [Fact]
     public void InvalidThemeColorsCannotEscapeTheStyleElement() {
         string payload = "red;}</style><script>alert(1)</script>";
-        string html = MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
-            ColorOverrides = new MarkdownHtmlColorOverrides { AccentLight = payload }
+        string html = MarkdownDocument.Create().H1("safe").ToHtml(new MarkdownHtmlExportOptions
+        {
+            ColorOverrides = new MarkdownHtmlColorOverrides { AccentLight = payload },
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
         });
 
         Assert.DoesNotContain(payload, html, StringComparison.Ordinal);
@@ -101,7 +108,7 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
 
     [Fact]
     public void CustomAcronymsAreHandledWithoutDynamicRegularExpressions() {
-        string transformed = HeaderTransforms.Pretty("DnsReport", new[] {
+        string transformed = MarkdownHeaderTransforms.Pretty("DnsReport", new[] {
             string.Empty,
             "(",
             new string('A', 64),
@@ -114,19 +121,25 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
     [Fact]
     public void CallerControlledCssScopesDoNotGrowStaticCache() {
         for (int index = 0; index < 128; index++) {
-            MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
-                CssScopeSelector = ".tenant-" + index
+            MarkdownDocument.Create().H1("safe").ToHtml(new MarkdownHtmlExportOptions
+            {
+                CssScopeSelector = ".tenant-" + index,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
-            MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
-                Style = (HtmlStyle)(10_000 + index),
-                Theme = new MarkdownVisualTheme { HtmlStyle = (HtmlStyle)(20_000 + index) }
+            MarkdownDocument.Create().H1("safe").ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = (MarkdownHtmlStyle)(10_000 + index),
+                Theme = new MarkdownVisualTheme { HtmlStyle = (MarkdownHtmlStyle)(20_000 + index) },
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
             });
         }
 
         FieldInfo field = typeof(HtmlRenderer).GetField("_unscopedBaseCssCache", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object cache = Assert.IsType<System.Collections.Concurrent.ConcurrentDictionary<HtmlStyle, string>>(field.GetValue(null));
+        object cache = Assert.IsType<System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string>>(field.GetValue(null));
         int count = (int)cache.GetType().GetProperty("Count")!.GetValue(cache)!;
-        Assert.InRange(count, 1, Enum.GetValues(typeof(HtmlStyle)).Length);
+        Assert.InRange(count, 1, Enum.GetValues(typeof(MarkdownHtmlStyle)).Length);
     }
 
     [Fact]

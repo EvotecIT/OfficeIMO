@@ -19,16 +19,16 @@ public sealed class PdfSelectedComparisonWorkflowTests {
                 Operation = OfficeWorkflowOperation.Compare, InputPath = expected, ComparisonPath = actual,
                 InputStream = Source(expected), ComparisonStream = Source(actual), OutputPath = output,
                 ComparisonExpectedPages = PdfPageSelector.Parse("1"), ComparisonActualPages = PdfPageSelector.Parse("1"),
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = new Guard(() => PdfDocument.Create(document => document.Page(page => page.Size(170, 200))).Save(changeActual ? actual : expected))
             });
             Assert.False(result.Succeeded); Assert.Equal("existing report", File.ReadAllText(output));
         } finally { Directory.Delete(root, true); }
     }
 
-    private sealed class Guard(Action beforePublication) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
-            beforePublication(); return ValueTask.FromResult(true);
+    private sealed class Guard(Action beforePublication) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+            beforePublication(); return Task.FromResult(true);
         }
     }
 

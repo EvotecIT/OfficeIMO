@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_FlowDslDemo(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.FlowDslDemo.pdf");
 
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Pdf {
 
             var doc = PdfDocument.Create(document => {
                 document.Page(page => {
-                    page.Size(PageSizes.A5);
+                    page.Size(PdfPageSizes.A5);
                     page.Margin(36, 42, 36, 42);
                     page.DefaultTextStyle(x => x
                         .Font(PdfStandardFont.Helvetica)

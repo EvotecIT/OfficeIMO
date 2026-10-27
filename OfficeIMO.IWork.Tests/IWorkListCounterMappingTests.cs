@@ -80,8 +80,8 @@ public sealed partial class IWorkBoundaryTests {
             ? number + ". " + paragraph.Text : paragraph.Text).ToArray();
         var drawing = reopened.Slides[0].CreateVisualSnapshot().Drawing;
         Assert.Equal(string.Concat(expected), DrawingText(drawing));
-        var pdf = reopened.ToPdfDocumentResult();
-        string text = PdfCore.PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
+        using var pdf = reopened.ToPdf(null, out OfficeConversionReport report);
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).ExtractText();
         int previous = -1;
         foreach (string item in expected) {
             int position = text.IndexOf(item, StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public sealed partial class IWorkBoundaryTests {
             previous = position;
         }
         Assert.Equal(OfficeConversionLossKind.Approximation,
-            Assert.Single(pdf.Report.Warnings, warning => warning.Code == "table-list-layout-approximation").LossKind);
+            Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.TableListLayoutApproximation).LossKind);
     }
 
     // Painted glyph positioning can split a logical paragraph into adjacent runs.

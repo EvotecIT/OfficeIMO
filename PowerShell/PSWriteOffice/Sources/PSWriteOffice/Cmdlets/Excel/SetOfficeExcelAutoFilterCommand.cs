@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Filter a worksheet by header.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelAutoFilter -Range A1:D200 -Header Status -Value Open,Hold }</code>
+///   <code>ExcelSheet 'Data' { Set-OfficeExcelAutoFilter -Range ExcelA1:D200 -Header Status -Value Open,Hold }</code>
 ///   <para>Ensures an AutoFilter range exists and filters the Status column.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelAutoFilter", DefaultParameterSetName = ParameterSetContext)]
@@ -30,7 +30,7 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Optional A1 AutoFilter range to create or replace before applying the condition.</summary>
+    /// <summary>Optional ExcelA1 AutoFilter range to create or replace before applying the condition.</summary>
     [Parameter]
     public string? Range { get; set; }
 

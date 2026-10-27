@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordSlideShowSlideInfoAtom);
             if (atom == null) return;
             if (atom.PayloadLength < 16) {
-                AddDiagnostic("PPT-TRANSITION-TRUNCATED",
+                AddDiagnostic("ppt-transition-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has a truncated slide-show information atom.",
                     atom.Offset);
@@ -24,27 +24,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             slide.Hidden = transition.Hidden;
             if (transition.SlideTimeMilliseconds < 0
                 || transition.SlideTimeMilliseconds > 86399000) {
-                AddDiagnostic("PPT-TRANSITION-TIME",
+                AddDiagnostic("ppt-transition-time",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has an invalid automatic-advance delay.",
                     atom.Offset);
             }
             if (transition.Speed > 2) {
-                AddDiagnostic("PPT-TRANSITION-SPEED",
+                AddDiagnostic("ppt-transition-speed",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has undefined transition speed {transition.Speed}.",
                     atom.Offset);
             }
             if (options.ReportUnsupportedContent
                 && (transition.RawFlags & 0xEAAA) != 0) {
-                AddDiagnostic("PPT-TRANSITION-RESERVED",
+                AddDiagnostic("ppt-transition-reserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has nonzero reserved transition flags.",
                     atom.Offset);
             }
             if (options.ReportUnsupportedContent && transition.PlaySound
                 && transition.StopSound) {
-                AddDiagnostic("PPT-TRANSITION-SOUND-FLAGS",
+                AddDiagnostic("ppt-transition-sound-flags",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} both stops the current sound and starts a new sound; Open XML exposes the start action while the combined binary flags remain preserved until the transition is edited.",
                     atom.Offset);

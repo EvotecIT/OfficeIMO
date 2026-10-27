@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 3, 20);
             document.SetPrintArea(sheet, "B2:C3", save: false);
 
-            ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
+            ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
                 UsePrintArea = true,
                 ShowGridlines = false
             });
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(snapshot.Cells, cell => cell.Text == "Outside");
             Assert.Contains(snapshot.Cells, cell => cell.Text == "North");
             Assert.Contains(snapshot.Cells, cell => cell.Text == "South");
-            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code.StartsWith("ExcelPrintArea", StringComparison.Ordinal));
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code.StartsWith("ExcelPrintArea", StringComparison.Ordinal));
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code.StartsWith("excel-print-area-", StringComparison.Ordinal));
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code.StartsWith("excel-print-area-", StringComparison.Ordinal));
             Assert.True(OfficeImageReader.Identify(png.Bytes).Width > 0);
         }
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 3, "Explicit");
             document.SetPrintArea(sheet, "A1:A1", save: false);
 
-            ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
+            ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
                 Range = "C3:C3",
                 UsePrintArea = true
             });
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C3:C3", snapshot.Range);
             Assert.Single(snapshot.Cells);
             Assert.Equal("Explicit", snapshot.Cells[0].Text);
-            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code.StartsWith("ExcelPrintArea", StringComparison.Ordinal));
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code.StartsWith("excel-print-area-", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
             ExcelSheet loadedSheet = loaded.Sheets[0];
-            ExcelRangeVisualSnapshot snapshot = loadedSheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
+            ExcelRangeVisualInfo snapshot = loadedSheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions {
                 UsePrintArea = true
             });
 
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, results.Count);
             Assert.Equal("Summary!A1:A1", results[0].Source);
-            Assert.DoesNotContain(results[0].Diagnostics, diagnostic => diagnostic.Code.StartsWith("ExcelPrintArea", StringComparison.Ordinal));
+            Assert.DoesNotContain(results[0].Diagnostics, diagnostic => diagnostic.Code.StartsWith("excel-print-area-", StringComparison.Ordinal));
             Assert.Equal("Details!A1:A1", results[1].Source);
             OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintAreaMissing);
             Assert.Equal("Details!_xlnm.Print_Area", diagnostic.Source);
@@ -690,7 +690,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, A1.CellReference(row, column));
+                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
                 }
             }
         }

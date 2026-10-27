@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             bool ambiguousContainer = containers.Length != 1;
             if (ambiguousContainer) {
                 _customShowsAreEditable = false;
-                AddDiagnostic("PPT-CUSTOM-SHOW-LIST", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-custom-show-list", LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple named-show lists; only the first can be projected and all remain preserve-only.",
                     containers[0].Offset);
             }
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord container = containers[0];
             if (container.Version != 0x0F || container.Instance != 0) {
                 _customShowsAreEditable = false;
-                AddDiagnostic("PPT-CUSTOM-SHOW-LIST", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-custom-show-list", LegacyPptDiagnosticSeverity.Warning,
                     "The named-show list has an invalid record header and remains preserve-only.",
                     container.Offset);
                 return;
@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (child.Type != RecordNamedShow) {
                     _customShowsAreEditable = false;
                     if (options.ReportUnsupportedContent) {
-                        AddDiagnostic("PPT-CUSTOM-SHOW-CHILD",
+                        AddDiagnostic("ppt-custom-show-child",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"The named-show list contains unexpected record 0x{child.Type:X4}; it remains preserve-only.",
                             child.Offset);
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     show.MarkStructurallyLossy();
                 }
                 _customShowsAreEditable = false;
-                AddDiagnostic("PPT-CUSTOM-SHOW-NAME",
+                AddDiagnostic("ppt-custom-show-name",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Named show '{duplicate.Key}' occurs more than once; its actions are ambiguous and remain preserve-only.",
                     duplicate.First().RecordOffset);
@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private LegacyPptCustomShow? TryReadCustomShow(LegacyPptRecord container,
             bool inheritedStructuralLoss, LegacyPptImportOptions options) {
             if (container.Version != 0x0F || container.Instance != 0) {
-                AddDiagnostic("PPT-CUSTOM-SHOW", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-custom-show", LegacyPptDiagnosticSeverity.Warning,
                     "A named show has an invalid record header and remains preserve-only.",
                     container.Offset);
                 return null;
@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         : record.Type != RecordNamedShowSlides);
             if (names.Length != 1 || names[0].Version != 0
                 || (names[0].PayloadLength & 1) != 0) {
-                AddDiagnostic("PPT-CUSTOM-SHOW-NAME",
+                AddDiagnostic("ppt-custom-show-name",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A named show has no unique valid Unicode name and remains preserve-only.",
                     container.Offset);
@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             string name = names[0].ReadUtf16Text().TrimEnd('\0');
             if (name.Length == 0 || name.IndexOf('\0') >= 0) {
-                AddDiagnostic("PPT-CUSTOM-SHOW-NAME",
+                AddDiagnostic("ppt-custom-show-name",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A named show has an empty or invalid name and remains preserve-only.",
                     names[0].Offset);
@@ -123,7 +123,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptRecord slides = slideAtoms[0];
                 if (slides.Version != 0 || slides.Instance != 0
                     || (slides.PayloadLength & 3) != 0) {
-                    AddDiagnostic("PPT-CUSTOM-SHOW-SLIDES",
+                    AddDiagnostic("ppt-custom-show-slides",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Named show '{name}' has a malformed slide-id array and remains preserve-only.",
                         slides.Offset);
@@ -134,13 +134,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     }
                 }
             } else if (slideAtoms.Length > 1) {
-                AddDiagnostic("PPT-CUSTOM-SHOW-SLIDES",
+                AddDiagnostic("ppt-custom-show-slides",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Named show '{name}' has multiple slide-id arrays and remains preserve-only.",
                     container.Offset);
             }
             if (structurallyLossy && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-CUSTOM-SHOW-PRESERVE-ONLY",
+                AddDiagnostic("ppt-custom-show-preserve-only",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Named show '{name}' contains unsupported record structure and remains preserve-only.",
                     container.Offset);
@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (missing.Length == 0) continue;
                 show.MarkUnresolvedSlides();
                 _customShowsAreEditable = false;
-                AddDiagnostic("PPT-CUSTOM-SHOW-SLIDE-MISSING",
+                AddDiagnostic("ppt-custom-show-slide-missing",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Named show '{show.Name}' references {missing.Length} missing slide identifier(s); those entries are ignored during projection.",
                     show.RecordOffset);

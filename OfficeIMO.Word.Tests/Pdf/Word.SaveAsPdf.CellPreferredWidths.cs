@@ -22,10 +22,10 @@ public partial class Word {
         row.Cells[0]._tableCellProperties!.TableCellWidth = new W.TableCellWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
         row.Cells[0].Paragraphs[0].Text = string.Join(" ", Enumerable.Repeat("AAA BBB CCCC", 8));
         ConfigurePartialColumnParagraph(row.Cells[0].Paragraphs[0]);
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("SS" + string.Concat(Enumerable.Repeat("AAABBBCCCC", 8)), string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(3, letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count());
@@ -49,10 +49,10 @@ public partial class Word {
             ConfigurePartialColumnParagraph(cell.Paragraphs[0]);
             cell.WrapText = false;
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("AAABBBCCCCDDDDEEEE", string.Concat(letters.Select(letter => letter.Value)));
         double gap = letters.First(letter => letter.Value == "C").StartBaseLine.X - letters[0].StartBaseLine.X;
@@ -72,7 +72,7 @@ public partial class Word {
         paragraph.Text = "AAA BBB CCCC";
         ConfigurePartialColumnParagraph(paragraph);
         using var input = new MemoryStream();
-        byte[] bytes = document.ToBytes(WordFileFormat.Docx);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx });
         input.Write(bytes, 0, bytes.Length);
         input.Position = 0;
         using (var source = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(input, true)) {
@@ -83,10 +83,10 @@ public partial class Word {
         }
         input.Position = 0;
         using WordDocument loaded = WordDocument.Load(input);
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("AAABBBCCCC", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(expectedLines, letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count());
@@ -120,7 +120,7 @@ public partial class Word {
             cell.WrapText = false;
         }
         using var input = new MemoryStream();
-        byte[] bytes = document.ToBytes(WordFileFormat.Docx);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx });
         input.Write(bytes, 0, bytes.Length);
         input.Position = 0;
         using (var source = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(input, true)) {
@@ -138,10 +138,10 @@ public partial class Word {
         }
         input.Position = 0;
         using WordDocument loaded = WordDocument.Load(input);
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("AAABBBCCCCDDDDEEEE", string.Concat(letters.Select(letter => letter.Value)));
         double actual = letters.First(letter => letter.Value == "C").StartBaseLine.X - letters[0].StartBaseLine.X;
@@ -178,10 +178,10 @@ public partial class Word {
                 Type = W.TableWidthUnitValues.Pct, Width = column == 0 ? columns == 2 ? "5000" : "3750" : "1250"
             };
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var starts = pdf.GetPage(1).Letters.TakeWhile(letter => letter.Value != "T")
             .Where(letter => letter.Value == "S").ToArray();
         Assert.Equal(columns, starts.Length);
@@ -206,13 +206,13 @@ public partial class Word {
                 Type = W.TableWidthUnitValues.Pct, Width = column == 0 ? "3750" : "1250"
             };
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts,
-            PageSize = new OfficeIMO.Pdf.PageSize(frameWidth + 144D, 792D), Margins = OfficeIMO.Pdf.PageMargins.Uniform(72D)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(frameWidth + 144D, 792D), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(left + right, string.Concat(letters.Select(letter => letter.Value)));
         // Word's outer half-borders reserve half a point. Cell padding remains
@@ -273,11 +273,11 @@ public partial class Word {
             paragraph.Text = index == 0 ? "SA" : "SB";
             ConfigurePartialColumnParagraph(paragraph);
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
         using var input = new MemoryStream();
-        byte[] bytes = document.ToBytes(WordFileFormat.Docx);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx });
         input.Write(bytes, 0, bytes.Length);
         input.Position = 0;
         // Model an independently produced input after the author's online-grid normalization.
@@ -299,9 +299,9 @@ public partial class Word {
         }
         input.Position = 0;
         using WordDocument loaded = WordDocument.Load(input);
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal("SASB", string.Concat(letters.Select(letter => letter.Value)));

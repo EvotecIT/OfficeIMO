@@ -26,7 +26,7 @@ internal sealed class PdfPrintColorTransform {
         _blackPreservationMode = blackPreservationMode;
     }
 
-    internal static PdfPrintColorTransform? Create(PdfOptions options) {
+    internal static PdfPrintColorTransform? Create(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         if (!options.ConvertVectorColorsToPdfXPrintCondition &&
             !options.ConvertRasterImagesToPdfXPrintCondition) {

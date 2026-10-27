@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(29D, before.Y + before.Font.Size, 6);
         Assert.Equal(29D + blockHeight, after.Y + after.Font.Size, 6);
         Assert.Equal(24D + blockHeight, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Equal("HgypTAIL", string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -122,7 +122,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal((byte)0, pixel.B);
             Assert.InRange(pixel.A, (byte)(opacity * 255D), (byte)Math.Ceiling(opacity * 255D));
         }
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("HgypTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         rendered.RequireNoLoss();
@@ -147,7 +147,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((byte)0, pixel.G);
         Assert.Equal((byte)255, pixel.B);
         Assert.InRange(pixel.A, (byte)127, (byte)128);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("HgypBLOCKTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         rendered.RequireNoLoss();
@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal((byte)255, pixel.B);
         }
         Assert.Equal((byte)255, pixel.A);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         // Stacking layers can change content stream order; geometric reading
         // order proves every saved glyph survives exactly once on its line.
@@ -215,7 +215,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(pixel.A, (byte)(opacity * 255D), (byte)Math.Ceiling(opacity * 255D));
         if (opacity < 1D) Assert.Single(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderEffectGroup>(),
             group => group.Source == "span#owner" && group.Opacity == opacity);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("MMMMTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         rendered.RequireNoLoss();
@@ -374,8 +374,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(controlPositioned.Y, positioned.Y, 6);
         Assert.Equal(OrdinaryFontBoxShape(control, "div#following").Y,
             OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
-        PdfLinkAnnotation[] Links(string html) => PdfReadDocument.Open(HtmlConversionDocument.Parse(html)
-            .ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions())))
+        PdfLinkAnnotation[] Links(string html) => PdfReadDocument.Open((HtmlConversionDocument.Parse(html)
+            .ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes())
             .Pages.SelectMany(page => page.GetLinkAnnotations()).ToArray();
         PdfLinkAnnotation[] expected = Links(Source(false));
         PdfLinkAnnotation[] actual = Links(Source(true));
@@ -406,7 +406,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == source && shape.Shape.FillColor.HasValue);
 
     private static void AssertOrdinaryFontBoxPdf(string html, string expectedText, double baseline) {
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Equal(expectedText, string.Concat(page.Letters.Select(letter => letter.Value)));

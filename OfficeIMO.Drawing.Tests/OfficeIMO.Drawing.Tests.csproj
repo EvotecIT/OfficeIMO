@@ -171,4 +171,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlphaPrecision/*.tif;TestAssets/TiffJpegArithmeticAlphaPrecision/*.rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegArithmetic4x4/*.tif;TestAssets/TiffJpegArithmetic4x4/*.rgba;TestAssets/TiffJpegArithmetic4x4/*.icc-rgba;TestAssets/TiffJpegArithmetic4x4/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegChromaPrecision/*.tif;TestAssets/TiffJpegChromaPrecision/*.rgba;TestAssets/TiffJpegChromaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" /></ItemGroup>
 </Project>

@@ -28,7 +28,7 @@ public sealed class PdfForegroundImageOrderTests {
             image.HorizontalPositionOffset = 28 * 12700; image.VerticalPositionOffset = 28 * 12700;
             image.ZOrder = 10;
             if (controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
-            var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+            var pdf = PdfCore.PdfDocument.Load(word.ToPdf().ToBytes());
             Assert.Equal(2, pdf.Images.Placements().Count);
             byte[] rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0].Bytes!;
             Assert.True(OfficePngReader.TryDecode(rendered, out var bitmap));
@@ -59,10 +59,10 @@ public sealed class PdfForegroundImageOrderTests {
         AddImage(first, OfficeColor.Red, firstOrder, 10);
         var second = sameParagraph ? first.AddText("Second anchor") : word.AddParagraph("Second anchor");
         AddImage(second, OfficeColor.Blue, secondOrder, 28);
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { Margins = PdfCore.PageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         Assert.Equal(2, pdf.Images.Placements().Count);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         byte[] rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0].Bytes!;
         Assert.True(OfficePngReader.TryDecode(rendered, out var bitmap));
         byte[] pixels = bitmap!.GetPixels();

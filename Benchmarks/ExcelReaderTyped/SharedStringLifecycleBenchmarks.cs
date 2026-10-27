@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         internal bool OfficeIMOFirstRow() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_bytes, new ExcelReaderOptions { HasHeaderRow = false });
             return reader.Read();
         }
 
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         internal long OfficeIMOMaterializedHeaders() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_bytes, new ExcelReaderOptions { HasHeaderRow = false });
             if (!reader.Read() || reader.FieldCount != StringHeavyWorkbookGenerator.Headers.Length)
                 throw new InvalidDataException("The SST header row shape differs.");
             long checksum = 0;
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using MemoryStream stream = new MemoryStream(_bytes, writable: false);
             using IExcelWorkbook peer = OpenPeer(stream);
             using IExcelRowEnumerator peerRows = peer.FirstSheet.GetEnumerator();
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenReader(_bytes, new ExcelReaderOptions { HasHeaderRow = false });
             using MemoryStream sylvanStream = new MemoryStream(_bytes, writable: false);
             using Sylvan.Data.Excel.ExcelDataReader sylvan = global::Sylvan.Data.Excel.ExcelDataReader.Create(sylvanStream,
                 _format == ComparisonWorkbookFormat.Xlsx ? ExcelWorkbookType.ExcelXml : ExcelWorkbookType.ExcelBinary,

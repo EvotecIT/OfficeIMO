@@ -1,0 +1,848 @@
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
+using W = DocumentFormat.OpenXml.Wordprocessing;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Word.Pdf {
+    public static partial class WordPdfConverterExtensions {
+        private readonly record struct NativeTableColumnAlignments(
+            List<PdfCore.PdfColumnAlign>? Horizontal,
+            List<PdfCore.PdfCellVerticalAlign>? Vertical);
+
+        private static NativeTableColumnAlignments CreateNativeTableColumnAlignments(TableLayout layout) {
+            int columnCount = GetNativeTableColumnCount(layout);
+            if (columnCount == 0) {
+                return default;
+            }
+
+            var horizontalValues = new PdfCore.PdfColumnAlign?[columnCount];
+            var verticalValues = new PdfCore.PdfCellVerticalAlign?[columnCount];
+            var horizontalConflicts = new bool[columnCount];
+            var verticalConflicts = new bool[columnCount];
+            foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
+                PdfCore.PdfColumnAlign horizontal = GetNativeCellHorizontalAlignment(cell.Cell);
+                PdfCore.PdfCellVerticalAlign? vertical = MapNativeNullableCellVerticalAlign(cell.Cell.VerticalAlignment);
+                int endColumn = Math.Min(columnCount, cell.Column + cell.ColumnSpan);
+                for (int columnIndex = Math.Max(0, cell.Column); columnIndex < endColumn; columnIndex++) {
+                    if (!horizontalConflicts[columnIndex]) {
+                        if (!horizontalValues[columnIndex].HasValue) {
+                            horizontalValues[columnIndex] = horizontal;
+                        } else if (horizontalValues[columnIndex]!.Value != horizontal) {
+                            horizontalConflicts[columnIndex] = true;
+                        }
+                    }
+
+                    if (verticalConflicts[columnIndex]) {
+                        continue;
+                    }
+
+                    if (!vertical.HasValue) {
+                        verticalConflicts[columnIndex] = true;
+                    } else if (!verticalValues[columnIndex].HasValue) {
+                        verticalValues[columnIndex] = vertical.Value;
+                    } else if (verticalValues[columnIndex]!.Value != vertical.Value) {
+                        verticalConflicts[columnIndex] = true;
+                    }
+                }
+            }
+
+            var horizontalAlignments = new List<PdfCore.PdfColumnAlign>(columnCount);
+            var verticalAlignments = new List<PdfCore.PdfCellVerticalAlign>(columnCount);
+            bool hasExplicitHorizontalAlignment = false;
+            bool hasExplicitVerticalAlignment = false;
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                PdfCore.PdfColumnAlign horizontal = horizontalConflicts[columnIndex]
+                    ? PdfCore.PdfColumnAlign.Left
+                    : horizontalValues[columnIndex] ?? PdfCore.PdfColumnAlign.Left;
+                PdfCore.PdfCellVerticalAlign vertical = verticalConflicts[columnIndex]
+                    ? PdfCore.PdfCellVerticalAlign.Top
+                    : verticalValues[columnIndex] ?? PdfCore.PdfCellVerticalAlign.Top;
+                if (horizontal != PdfCore.PdfColumnAlign.Left) {
+                    hasExplicitHorizontalAlignment = true;
+                }
+                if (vertical != PdfCore.PdfCellVerticalAlign.Top) {
+                    hasExplicitVerticalAlignment = true;
+                }
+
+                horizontalAlignments.Add(horizontal);
+                verticalAlignments.Add(vertical);
+            }
+
+            return new NativeTableColumnAlignments(
+                hasExplicitHorizontalAlignment ? horizontalAlignments : null,
+                hasExplicitVerticalAlignment ? verticalAlignments : null);
+        }
+
+        private static int GetNativeTableColumnCount(TableLayout layout) {
+            if (layout.ColumnWidths.Length > 0) {
+                return layout.ColumnWidths.Length;
+            }
+
+            int columnCount = 0;
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
+                foreach (WordTableCell cell in row) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) {
+                        continue;
+                    }
+
+                    logicalColumn += GetNativeCellColumnSpan(cell);
+                }
+
+                if (logicalColumn > columnCount) {
+                    columnCount = logicalColumn;
+                }
+            }
+
+            return columnCount;
+        }
+
+        private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) =>
+            EnumerateNativeTableCellPositions(layout).Select(cell => (cell.Cell, cell.Column, cell.ColumnSpan));
+
+        private static IEnumerable<(WordTableCell Cell, int Row, int Column, int ColumnSpan)> EnumerateNativeTableCellPositions(TableLayout layout) {
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
+                foreach (WordTableCell cell in row) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) {
+                        continue;
+                    }
+
+                    int columnSpan = GetNativeCellColumnSpan(cell);
+                    if (IsNativeVerticalMergeContinuation(cell)) {
+                        logicalColumn += columnSpan;
+                        continue;
+                    }
+
+                    yield return (cell, rowIndex, logicalColumn, columnSpan);
+                    logicalColumn += columnSpan;
+                }
+            }
+        }
+
+        private static int GetNativeTableRowStartColumn(TableLayout layout, int rowIndex) =>
+            Math.Max(0, layout.GetRowStartColumn(rowIndex));
+
+        private static int GetNativeTableRowTrailingColumnCount(TableLayout layout, int rowIndex) =>
+            Math.Max(0, layout.GetRowTrailingColumnCount(rowIndex));
+
+        private static bool IsNativeHorizontalMergeContinuation(WordTableCell cell) =>
+            cell.HorizontalMerge == WordCellMerge.Continue;
+
+        private static bool IsNativeVerticalMergeContinuation(WordTableCell cell) =>
+            cell.VerticalMerge == WordCellMerge.Continue;
+
+        private static int GetNativeCellColumnSpan(WordTableCell cell) =>
+            Math.Max(1, cell.ColumnSpan);
+
+        private static int GetNativeCellRowSpan(WordTableCell cell) =>
+            Math.Max(1, cell.RowSpan);
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderValues? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) {
+            if (!HasNativeBorder(borderStyle)) {
+                return null;
+            }
+
+            return new PdfCore.PdfCellBorderSide {
+                Color = ParseNativeColor(NormalizeNativeBorderColor(color)) ?? PdfCore.PdfColor.Black,
+                Width = (size?.Value ?? 4U) / 8D,
+                DashStyle = ToNativeBorderDashStyle(borderStyle),
+                LineStyle = ToNativeBorderLineStyle(borderStyle)
+            };
+        }
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(WordBorderStyle? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) =>
+            CreateNativeCellBorderSide(borderStyle.ToOpenXml(), color, size);
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderType? border) =>
+            border == null
+                ? null
+                : CreateNativeCellBorderSide(border.Val?.Value, border.Color?.Value, border.Size);
+
+        private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(W.BorderValues? borderStyle) {
+            if (borderStyle == W.BorderValues.DotDash || borderStyle == W.BorderValues.DotDotDash ||
+                borderStyle == W.BorderValues.DashDotStroked) {
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot;
+            }
+
+            if (borderStyle == W.BorderValues.Dashed || borderStyle == W.BorderValues.DashSmallGap) {
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash;
+            }
+
+            if (borderStyle == W.BorderValues.Dotted) {
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot;
+            }
+
+            return OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
+        }
+
+        private static PdfCore.PdfCellBorderLineStyle ToNativeBorderLineStyle(W.BorderValues? borderStyle) =>
+            borderStyle == W.BorderValues.Double
+                ? PdfCore.PdfCellBorderLineStyle.TwoLine
+                : PdfCore.PdfCellBorderLineStyle.Standard;
+
+        private static string GetNativeCellText(WordTableCell cell) =>
+            GetNativeCellText(cell, null);
+
+        private readonly record struct NativeCellText(IReadOnlyList<PdfCore.PdfTextRun> Runs, IReadOnlyList<PdfCore.PdfTableCellParagraph> Paragraphs, IReadOnlyList<PdfCore.IPdfBlock>? Blocks = null);
+
+        private static IReadOnlyList<PdfCore.PdfTextRun> CreateNativeCellRuns(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById) {
+            return CreateNativeCellText(cell, footnoteNumbersById, GetNativeDocumentDefaults(cell.Document), NativeTableStyleDefaults.Empty).Runs;
+        }
+
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults) {
+            return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
+        }
+
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordPdfExportOptions? options = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, bool preserveNestedBlocks = false) {
+            var runs = new List<PdfCore.PdfTextRun>();
+            var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
+            List<PdfCore.IPdfBlock>? blocks = preserveNestedBlocks ? new() : null;
+            double? pendingSpacingAfter = null;
+            List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+            List<PdfCore.PdfTextRun>?[]? paragraphRunsByElement = PrepareNativeCellParagraphRuns(
+                cellElements,
+                footnoteNumbersById,
+                tableStyleDefaults,
+                nativeDefaults,
+                nativeFontMap, inlineImages);
+            for (int i = 0; i < cellElements.Count; i++) {
+                if (cellElements[i] is WordTable nestedTable) {
+                    options?.CancellationToken.ThrowIfCancellationRequested();
+                    if (blocks != null && nativeFontMap != null) {
+                        PdfCore.TableBlock? nestedBlock = BuildNativeTableBlock(nestedTable, getMarker, footnoteNumbersById,
+                            options, contentWidth: null, nativeDefaults, nativeFontMap,
+                            supportsPositionedTables: false, tableNestingDepth: tableNestingDepth + 1);
+                        if (nestedBlock != null) blocks.Add(nestedBlock);
+                    }
+                    // Runs retain a semantic summary for intrinsic widths and diagnostics;
+                    // the ordered block sequence is the sole painted content owner.
+                    AppendNativeNestedTableText(
+                        nestedTable,
+                        footnoteNumbersById,
+                        nativeDefaults,
+                        nativeFontMap,
+                        getMarker,
+                        tableNestingDepth,
+                        ignoreFallbackTableStyle,
+                        options,
+                        inlineImages,
+                        runs,
+                        paragraphs);
+                    pendingSpacingAfter = null;
+                    continue;
+                }
+
+                if (cellElements[i] is not WordParagraph paragraph) {
+                    pendingSpacingAfter = null;
+                    continue;
+                }
+
+                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
+                List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
+                    ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)
+                    : paragraphRunsByElement[i]!;
+                if (lastIndex > i) {
+                    paragraphRuns = new List<PdfCore.PdfTextRun>(paragraphRuns);
+                    for (int joinedIndex = i + 1; joinedIndex <= lastIndex; joinedIndex++) {
+                        paragraphRuns.AddRange(paragraphRunsByElement![joinedIndex]!);
+                    }
+                }
+                (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
+                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
+                if (listMarker is { Marker.Length: > 0 } marker) {
+                    var markerLayout = CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.Left, indentation.FirstLine, nativeFontMap);
+                    paragraphRuns.InsertRange(0, markerLayout.Runs);
+                    indentation.FirstLine -= markerLayout.AnchorShift;
+                }
+                if (paragraphRuns.Count == 0 && !ShouldRenderNativeEmptyParagraphLineBox(finalParagraph)) {
+                    i = lastIndex;
+                    continue;
+                }
+
+                if (runs.Count > 0) {
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
+                }
+
+                runs.AddRange(paragraphRuns);
+                double spacingBefore = GetNativeCellParagraphSpacingBefore(
+                    paragraph,
+                    nativeDefaults,
+                    tableStyleDefaults,
+                    nativeFontMap);
+                if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) spacingBefore = 0D;
+                if (pendingSpacingAfter.HasValue) {
+                    spacingBefore = Math.Max(0D, spacingBefore - pendingSpacingAfter.Value);
+                }
+
+                double spacingAfter = GetNativeCellParagraphSpacingAfter(
+                    finalParagraph,
+                    nativeDefaults,
+                    tableStyleDefaults,
+                    nativeFontMap);
+                double declaredSpacingAfter = spacingAfter;
+                if (ShouldSuppressNativeContextualSpacingAfter(finalParagraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, lastIndex))) {
+                    spacingAfter = 0D;
+                }
+
+                NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+                NativeParagraphPaginationDefaults pagination = ResolveNativeCellParagraphPagination(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
+                double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle, nativeFontMap);
+                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
+                double? lineHeight = nativeLineSpacing.Resolve(
+                    ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults), naturalLineHeight)
+                    ?? tableStyleDefaults.ParagraphLineHeight;
+                double? paragraphFontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle);
+                PdfCore.PdfLineSpacing? lineSpacing = nativeLineSpacing.ToPdfLineSpacing(naturalLineHeight);
+                if (tableStyleDefaults.UseConfiguredTypography) {
+                    if (!nativeLineSpacing.Value.HasValue) {
+                        lineHeight = null;
+                        lineSpacing = null;
+                    }
+                    string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+                    paragraphFontSize = double.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+                        ? halfPoints / 2D : paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
+                }
+                if (lastIndex > i) {
+                    (paragraphFontSize, lineHeight, lineSpacing) = ResolveNativeJoinedCellParagraphMetrics(
+                        cellElements, paragraphRunsByElement!, i, lastIndex, nativeDefaults, tableStyleDefaults, nativeFontMap);
+                    pagination = pagination with {
+                        KeepWithNext = ResolveNativeCellParagraphPagination(finalParagraph,
+                            GetNativeParagraphStyleDefaults(finalParagraph), nativeDefaults, tableStyleDefaults).KeepWithNext
+                    };
+                }
+                IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeParagraphTabStops(paragraph, indentation.Left, indentation.FirstLine);
+                W.JustificationValues? alignment = ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults);
+                var justification = new PdfCore.PdfParagraphStyle();
+                ApplyNativeParagraphJustification(justification, paragraph, alignment);
+                var cellParagraph = new PdfCore.PdfTableCellParagraph(
+                    paragraphRuns,
+                    spacingAfter,
+                    MapNativeParagraphAlign(alignment),
+                    spacingBefore,
+                    indentation.Left,
+                    indentation.Right,
+                    indentation.FirstLine,
+                    lineHeight,
+                    nativeDefaults.DefaultTabStopWidth,
+                    tabStops,
+                    paragraphFontSize,
+                    lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing);
+                paragraphs.Add(cellParagraph);
+                if (blocks != null && !IsNativeNestedTableCellEndCarrier(cellElements, i, lastIndex, paragraph, getMarker, pagination))
+                    blocks.Add(cellParagraph.ToBlock());
+                pendingSpacingAfter = declaredSpacingAfter;
+                i = lastIndex;
+            }
+
+            return new NativeCellText(runs, paragraphs, blocks);
+        }
+
+        private static List<PdfCore.PdfTextRun>?[]? PrepareNativeCellParagraphRuns(
+            IReadOnlyList<WordElement> elements,
+            NativeNoteNumbering? footnoteNumbersById,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap? nativeFontMap, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages) {
+            if (elements.Count < 2) {
+                return null;
+            }
+
+            var prepared = new List<PdfCore.PdfTextRun>?[elements.Count];
+            for (int index = 0; index < elements.Count; index++) {
+                if (elements[index] is WordParagraph paragraph) {
+                    prepared[index] = CreateNativeCellParagraphRuns(
+                        paragraph,
+                        footnoteNumbersById,
+                        tableStyleDefaults,
+                        nativeDefaults,
+                        nativeFontMap, inlineImages);
+                }
+            }
+
+            return prepared;
+        }
+
+        private static WordParagraph? GetNextNativeRenderableCellParagraph(
+            IReadOnlyList<WordElement> elements,
+            IReadOnlyList<List<PdfCore.PdfTextRun>?>? paragraphRunsByElement,
+            int index) {
+            for (int nextIndex = index + 1; nextIndex < elements.Count; nextIndex++) {
+                if (elements[nextIndex] is not WordParagraph next) {
+                    return null;
+                }
+
+                if (paragraphRunsByElement?[nextIndex]?.Count > 0 || ShouldRenderNativeEmptyParagraphLineBox(next)) {
+                    return next;
+                }
+            }
+
+            return null;
+        }
+
+        private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
+            paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
+
+        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, bool listItem) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
+            double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
+            double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
+            WordDocumentTraversal.ListInfo? listInfo = listItem ? WordDocumentTraversal.GetListInfo(paragraph) : null;
+            if (listInfo != null) {
+                bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+                leftIndent = paragraph.IndentationBeforePoints ??
+                    (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                    ConvertNativeTwipsToPoints(listInfo.Value.LeftIndentTwips ?? ((listInfo.Value.Level + 1) * 720)) ?? leftIndent;
+                double hangingIndent = paragraph.IndentationHangingPoints ??
+                    (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                    ConvertNativeTwipsToPoints(listInfo.Value.HangingIndentTwips ?? 360) ?? 0D;
+                firstLineIndent = paragraph.IndentationHangingPoints.HasValue
+                    ? -hangingIndent
+                    : paragraph.IndentationFirstLinePoints ??
+                        (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+            }
+            leftIndent = NormalizeNativeTableCellIndent(leftIndent);
+            rightIndent = NormalizeNativeTableCellIndent(rightIndent);
+            firstLineIndent = double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent) ? 0D : firstLineIndent;
+
+            if (paragraph.IndentationHangingPoints.HasValue) {
+                double hangingIndent = paragraph.IndentationHangingPoints.Value;
+                firstLineIndent = -hangingIndent;
+            }
+
+            return (leftIndent, rightIndent, firstLineIndent);
+        }
+
+        private static double NormalizeNativeTableCellIndent(double value) =>
+            double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
+
+        private static double ResolveNativeTableCellParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) =>
+            paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
+                ? paragraph.FontSizePoints.Value
+                : styleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize ?? nativeDefaults.FontSize;
+
+        private static double ResolveNativeTableCellParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+            double tableFontSize = ResolveNativeTableCellParagraphFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
+            double paragraphFontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults.RunStyle);
+            return Math.Max(tableFontSize, paragraphFontSize);
+        }
+
+        private static double GetNativeCellParagraphSpacingBefore(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeFontMap? nativeFontMap = null) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBeforePoints ??
+                GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
+                styleDefaults.SpacingBefore ??
+                tableStyleDefaults.ParagraphSpacingBefore ??
+                (nativeDefaults.ParagraphSpacingBeforeDeclared ? nativeDefaults.ParagraphSpacingBefore : 0D);
+            return spacingBefore > 0D && !double.IsNaN(spacingBefore) && !double.IsInfinity(spacingBefore) ? spacingBefore : 0D;
+        }
+
+        private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+            return GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, NativeTableStyleDefaults.Empty);
+        }
+
+        private static double GetNativeCellParagraphSpacingAfter(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeFontMap? nativeFontMap = null) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfterPoints ??
+                GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
+                styleDefaults.SpacingAfter ??
+                tableStyleDefaults.ParagraphSpacingAfter ??
+                (nativeDefaults.ParagraphSpacingAfterDeclared ? nativeDefaults.ParagraphSpacingAfter : 0D);
+            return spacingAfter > 0D && !double.IsNaN(spacingAfter) && !double.IsInfinity(spacingAfter) ? spacingAfter : 0D;
+        }
+
+        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById) =>
+            CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, GetNativeDocumentDefaults(paragraph._document));
+
+        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults) {
+            return CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, GetNativeDocumentDefaults(paragraph._document));
+        }
+
+        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
+            var result = new List<PdfCore.PdfTextRun>();
+            var emittedNoteTokens = new HashSet<int>();
+            List<WordParagraph> runs = nativeDefaults.RunningContentContext == null
+                ? GetNativeRuns(paragraph, includeInlineContentControls: true)
+                : GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
+            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            string content = hasEquationContent
+                ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
+                : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+            if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
+                content = AppendNativeHeaderFooterFormControlText(string.Concat(runs.Select(run => run.Text)), paragraph) ?? string.Empty;
+            bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
+            bool hasInlineImages = inlineImages != null && runs.Any(run =>
+                !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>
+                    inlineImages.ContainsKey(image.OccurrenceElement)));
+            bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
+                .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
+            int tabIndex = 0;
+            IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
+            var inlineControls = new NativeInlineContentControlProjection(tableCell: true);
+
+            if ((hasRenderableRuns || hasInlineImages || runs.Any(run => HasNativeNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
+                foreach (WordParagraph run in runs) {
+                    if (IsNativeHiddenTextRun(run, paragraph)) {
+                        continue;
+                    }
+                    if (inlineControls.TryCreateRuns(run, tableStyleDefaults, nativeDefaults, nativeFontMap,
+                        tabStops, ref tabIndex, out IReadOnlyList<PdfCore.PdfTextRun> controlRuns)) {
+                        result.AddRange(controlRuns);
+                        continue;
+                    }
+                    if (run.IsImage && run.Image != null) {
+                        if (inlineImages != null) {
+                            foreach (WordImage image in run.EnumerateImages())
+                                if (inlineImages.TryGetValue(image.OccurrenceElement, out PdfCore.PdfTextRun? inline))
+                                    result.Add(inline);
+                        }
+                        continue;
+                    }
+
+                    if (IsNativeTextWrappingBreak(run) && string.IsNullOrEmpty(run.Text)) {
+                        AddNativeCellRun(result, "\n", run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                        continue;
+                    }
+
+                    if (!TryAddNativeNoteCellRun(result, run, footnoteNumbersById, tableStyleDefaults,
+                        nativeDefaults, nativeFontMap, tabStops, ref tabIndex, emittedNoteTokens))
+                        AddNativeCellRun(result, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                }
+
+                string? supplementalText = GetNativeSupplementalTextAfterRuns(content, runs);
+                if (!string.IsNullOrEmpty(supplementalText)) {
+                    AddNativeCellText(result, supplementalText!, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                }
+            } else if (hasEquationContent) {
+                AddNativeCellEquationContent(result, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex,
+                    footnoteNumbersById, emittedNoteTokens);
+            } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
+                AddNativeCellHyperLinkRun(result, paragraph.Hyperlink.Text, paragraph, paragraph.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+            } else if (shouldRenderDirectContent) {
+                AddNativeCellText(result, content, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+            }
+
+            foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
+                foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
+                    if (string.IsNullOrWhiteSpace(itemText)) {
+                        continue;
+                    }
+
+                    if (result.Count > 0) {
+                        result.Add(PdfCore.PdfTextRun.LineBreak());
+                        tabIndex = 0;
+                    }
+
+                    AddNativeCellText(result, itemText, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                }
+            }
+
+            if (footnoteNumbersById != null) {
+                List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
+                result.AddRange(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
+                    nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography, emittedNoteTokens));
+            }
+
+            // Empty cells still contain a Word paragraph mark. Give that mark
+            // its own resolved metrics instead of relying on the PDF table's
+            // fallback leading for an empty or spacing-only rich-run list.
+            // Keep authored zero cell margins and hidden paragraph marks intact.
+            bool hasOnlySpacing = result.All(run => run.InlineElement == null && IsNativeTrailingSpacingOnly(run.Text));
+            if ((hasOnlySpacing && ShouldRenderNativeEmptyParagraphLineBox(paragraph)) ||
+                NeedsNativeParagraphMarkStrut(result, WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
+                result.Add(CreateNativeParagraphMarkStrut(paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
+            }
+            return result;
+        }
+
+        private static void AddNativeCellRun(List<PdfCore.PdfTextRun> target, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            if (HasNativePositionalTabs(run)) {
+                if (IsNativeHiddenTextRun(run)) return;
+                foreach (var child in run.EnumerateEffectiveRunContent()) {
+                    if (child is W.PositionalTab positionalTab) {
+                        target.Add(CreateNativePositionalTab(positionalTab, run, nativeDefaults, tableStyleDefaults));
+                    } else {
+                        WordParagraph view = CreateNativeRunContentView(run, new[] { child });
+                        AddNativeCellRun(target, view.GetTextWithNonTextBreakReplacement('\n'), view, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                    }
+                }
+                return;
+            }
+            AddNativeCellRun(target, run.GetTextWithNonTextBreakReplacement('\n'), run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+        }
+
+        private static void AddNativeCellRun(List<PdfCore.PdfTextRun> target, string text, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            if (string.IsNullOrEmpty(text)) {
+                return;
+            }
+
+            if (run.IsHyperLink && run.Hyperlink != null) {
+                AddNativeCellHyperLinkRun(target, text, run, run.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                return;
+            }
+
+            AddNativeCasedCellTextRuns(target, text, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+        }
+
+        private static void AddNativeCellEquationContent(List<PdfCore.PdfTextRun> target, WordParagraph paragraph,
+            NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
+            IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, NativeNoteNumbering? notes, ISet<int> emittedNoteTokens) {
+            foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                if (segment.ArtifactElement != null && TryCreateNativeNoteMarker(segment.ArtifactElement,
+                    sourceRun, paragraph, notes, nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle,
+                    tableStyleDefaults.UseConfiguredTypography, out PdfCore.PdfTextRun? marker, out int? token)) {
+                    target.Add(marker!);
+                    if (token.HasValue) emittedNoteTokens.Add(token.Value);
+                    continue;
+                }
+                string visibleText = GetNativeEquationSegmentText(segment);
+                if (string.IsNullOrEmpty(visibleText)) continue;
+                AddNativeCellRun(target, visibleText, sourceRun, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+            }
+        }
+
+        private static void AddNativeCellText(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            AddNativeCasedCellTextRuns(target, text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+        }
+
+        private static void AddNativeCellHyperLinkRun(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            AddNativeCasedCellTextRuns(target, text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex, hyperlink);
+        }
+
+        private static void AddNativeCasedCellTextRuns(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph,
+            NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
+            IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null) {
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(text, style)) {
+                AddNativeCellTextRuns(target, segment.Text, value => hyperlink == null
+                    ? CreateNativeCellTextRun(value, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, segment.Style)
+                    : CreateNativeCellLinkRun(value, paragraph, hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, segment.Style), tabStops, ref tabIndex);
+            }
+        }
+
+        private static void AddNativeCellTextRuns(List<PdfCore.PdfTextRun> target, string text, Func<string, PdfCore.PdfTextRun> createRun, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            int currentTabIndex = tabIndex;
+            AddNativeTextSegments(
+                text,
+                value => AddOrMergeNativeCellTextRun(target, createRun(value)),
+                () => target.Add(createRun("\n")),
+                () => {
+                    target.Add(CreateNativeCellTabRun(tabStops, currentTabIndex));
+                    currentTabIndex++;
+                },
+                () => currentTabIndex = 0);
+            tabIndex = currentTabIndex;
+        }
+
+        private static void AddOrMergeNativeCellTextRun(List<PdfCore.PdfTextRun> target, PdfCore.PdfTextRun run) {
+            if (target.Count == 0 || !CanMergeNativeCellTextRuns(target[target.Count - 1], run)) {
+                target.Add(run);
+                return;
+            }
+
+            PdfCore.PdfTextRun previous = target[target.Count - 1];
+            target[target.Count - 1] = CopyNativeTextSpacing(previous, new PdfCore.PdfTextRun(
+                previous.Text + run.Text,
+                bold: previous.Bold,
+                underline: previous.Underline,
+                color: previous.Color,
+                italic: previous.Italic,
+                strike: previous.Strike,
+                fontSize: previous.FontSize,
+                font: previous.Font,
+                baseline: previous.Baseline,
+                backgroundColor: previous.BackgroundColor,
+                fontFamily: previous.FontFamily,
+                underlineStyle: previous.UnderlineStyle,
+                strikeStyle: previous.StrikeStyle));
+        }
+
+        private static bool CanMergeNativeCellTextRuns(PdfCore.PdfTextRun left, PdfCore.PdfTextRun right) =>
+            left.InlineElement == null && right.InlineElement == null &&
+            ReferenceEquals(left.FormField, right.FormField) &&
+            left.LinkUri == null &&
+            left.FootnoteReference == null && right.FootnoteReference == null &&
+            left.LinkDestinationName == null &&
+            right.LinkUri == null &&
+            right.LinkDestinationName == null &&
+            left.TabLeader == PdfCore.PdfTabLeaderStyle.None &&
+            right.TabLeader == PdfCore.PdfTabLeaderStyle.None &&
+            left.TabAlignment == PdfCore.PdfTabAlignment.Left &&
+            right.TabAlignment == PdfCore.PdfTabAlignment.Left &&
+            left.Text != "\n" &&
+            left.Text != "\t" &&
+            right.Text != "\n" &&
+            right.Text != "\t" &&
+            left.Bold == right.Bold &&
+            left.UnderlineStyle == right.UnderlineStyle &&
+            left.Italic == right.Italic &&
+            left.StrikeStyle == right.StrikeStyle &&
+            NullableDoubleEquals(left.FontSize, right.FontSize) &&
+            left.Font == right.Font &&
+            string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
+            left.Baseline == right.Baseline &&
+            left.HorizontalTextScaling == right.HorizontalTextScaling &&
+            left.CharacterSpacing == right.CharacterSpacing &&
+            left.FeatureSettings.Equals(right.FeatureSettings) &&
+            Equals(left.Color, right.Color) &&
+            Equals(left.BackgroundColor, right.BackgroundColor);
+
+        private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+            NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            return style.ApplyTo(new PdfCore.PdfTextRun(
+                ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
+                bold: style.Bold,
+                underline: style.Underline,
+                color: style.Color,
+                italic: style.Italic,
+                strike: style.Strike,
+                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
+                font: style.Font,
+                baseline: style.Baseline,
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily,
+                underlineStyle: style.UnderlineStyle,
+                strikeStyle: style.StrikeStyle));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+            Uri? uri = hyperlink.Uri;
+            string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
+            string? destinationName = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
+            if (linkUri == null && destinationName == null) {
+                return CreateNativeCellTextRun(text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, resolvedStyle);
+            }
+
+            string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
+            NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            return style.ApplyTo(new PdfCore.PdfTextRun(
+                ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
+                bold: style.Bold,
+                underline: style.Underline || linkUri != null || destinationName != null,
+                color: style.Color,
+                italic: style.Italic,
+                strike: style.Strike,
+                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
+                font: style.Font,
+                linkUri: linkUri,
+                linkContents: contents,
+                baseline: style.Baseline,
+                linkDestinationName: destinationName,
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily,
+                underlineStyle: style.Underline || linkUri != null || destinationName != null
+                    ? style.UnderlineStyle == OfficeTextDecorationStyle.None
+                        ? OfficeTextDecorationStyle.Single
+                        : style.UnderlineStyle
+                    : OfficeTextDecorationStyle.None,
+                strikeStyle: style.StrikeStyle));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeCellTabRun(IReadOnlyList<WordTabStop> tabStops, int tabIndex) {
+            if (tabIndex < tabStops.Count) {
+                WordTabStop tabStop = tabStops[tabIndex];
+                return PdfCore.PdfTextRun.Tab(MapNativeTabLeader(tabStop.Leader), MapNativeTabAlignment(tabStop.Alignment));
+            }
+
+            return PdfCore.PdfTextRun.Tab();
+        }
+
+        private static string GetNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById) {
+            var parts = new List<string>();
+            foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
+                string? paragraphText = GetNativeCellParagraphText(paragraph);
+                if (!string.IsNullOrEmpty(paragraphText)) {
+                    string text = paragraphText;
+                    if (footnoteNumbersById != null) {
+                        List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, GetNativeRuns(paragraph), Array.Empty<int>(), footnoteNumbersById);
+                        if (paragraphFootnoteNumbers.Count > 0) {
+                            text += string.Concat(paragraphFootnoteNumbers.Select(footnoteNumbersById.GetLabel));
+                        }
+                    }
+
+                    parts.Add(text);
+                }
+            }
+
+            return string.Join(Environment.NewLine, parts);
+        }
+
+        private static IEnumerable<WordParagraph> GetNativeCellParagraphs(WordTableCell cell) {
+            foreach (WordElement element in CollapseNativeParagraphElements(cell.Paragraphs.Cast<WordElement>())) {
+                if (element is WordParagraph paragraph) {
+                    yield return paragraph;
+                }
+            }
+        }
+
+        private static string GetNativeCellParagraphText(WordParagraph paragraph) {
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
+            }
+            if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
+                return ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph);
+            }
+
+            if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Text)) {
+                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
+            }
+
+            var parts = new List<string>();
+            foreach (WordParagraph run in runs) {
+                if (IsNativeHiddenTextRun(run, paragraph)) {
+                    continue;
+                }
+
+                string runText = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Text : run.Text;
+                if (!string.IsNullOrEmpty(runText)) {
+                    parts.Add(ApplyNativeTextTransform(runText, run, paragraph));
+                }
+            }
+
+            string text = string.Concat(parts);
+            return AppendNativeTextWithEquation(text, paragraph);
+        }
+
+    }
+}

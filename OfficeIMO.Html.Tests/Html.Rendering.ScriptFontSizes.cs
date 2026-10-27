@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
             node => node.Name.LocalName == "text" && node.Value == "X");
         Assert.Equal(expectedSize, ParseScriptCoordinate(painted, "font-size"), 3);
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
         var pdfX = Assert.Single(visible, letter => letter.Value == "X");
         Assert.Equal(expectedSize * 0.75D, pdfX.FontSize, 3);
@@ -143,7 +143,7 @@ public sealed partial class HtmlRenderingTests {
         if (raised) Assert.True(ParseScriptCoordinate(svgCall, "y") < ParseScriptCoordinate(svgBase, "y"));
         else Assert.Equal(ParseScriptCoordinate(svgBase, "y"), ParseScriptCoordinate(svgCall, "y"), 3);
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
         var pdfCall = Assert.Single(visible, letter => letter.Value == "1");
         Assert.Equal(expectedSize * 0.75D, pdfCall.FontSize, 3);

@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? atom = container.Children.FirstOrDefault(record =>
                 record.Type == RecordHeadersFootersAtom);
             if (atom == null || atom.PayloadLength < 4) {
-                AddDiagnostic("PPT-HEADER-FOOTER-ATOM",
+                AddDiagnostic("ppt-header-footer-atom",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {ownerDescription} header/footer container has no complete atom and remains preserve-only.",
                     atom?.Offset ?? container.Offset);
@@ -42,19 +42,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             short formatId = atom.ReadInt16(0);
             ushort flags = atom.ReadUInt16(2);
             if (formatId < 0 || formatId > 13) {
-                AddDiagnostic("PPT-HEADER-FOOTER-FORMAT",
+                AddDiagnostic("ppt-header-footer-format",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {ownerDescription} date/time format id {formatId} is outside the defined range.",
                     atom.Offset);
             }
             if (options.ReportUnsupportedContent && (flags & 0xFFC0) != 0) {
-                AddDiagnostic("PPT-HEADER-FOOTER-RESERVED",
+                AddDiagnostic("ppt-header-footer-reserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"The {ownerDescription} header/footer atom has nonzero reserved flags that remain preserve-only.",
                     atom.Offset);
             }
             if (!allowHeader && options.ReportUnsupportedContent && (flags & 0x0010) != 0) {
-                AddDiagnostic("PPT-SLIDE-HEADER-IGNORED",
+                AddDiagnostic("ppt-slide-header-ignored",
                     LegacyPptDiagnosticSeverity.Information,
                     "The slide header flag is ignored by the binary PowerPoint format.", atom.Offset);
             }

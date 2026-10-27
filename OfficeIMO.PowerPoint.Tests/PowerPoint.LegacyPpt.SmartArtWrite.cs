@@ -46,12 +46,10 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 LegacyPptWriteFinding finding = Assert.Single(
                     preflight.Findings, candidate =>
-                        candidate.Code == "PPT-WRITE-SMARTART-CONVERTED");
+                        candidate.Code == "ppt-write-smartart-converted");
                 Assert.Equal(LegacyPptFeature.SmartArt, finding.Feature);
-                Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                    PowerPointFileFormat.Ppt));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -76,7 +74,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(projected.Slides[0].Pictures);
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
     }
 }

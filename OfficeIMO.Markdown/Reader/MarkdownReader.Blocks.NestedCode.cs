@@ -4,12 +4,12 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool TryParseNestedFencedCodeBlock(
         string[] lines,
         ref int index,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out IMarkdownBlock? block) {
         block = null;
@@ -113,7 +113,7 @@ public static partial class MarkdownReader {
         Table
     }
 
-    private static bool TryParseNestedIndentedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out CodeBlock? block) {
+    private static bool TryParseNestedIndentedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, out CodeBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.IndentedCodeBlocks) return false;

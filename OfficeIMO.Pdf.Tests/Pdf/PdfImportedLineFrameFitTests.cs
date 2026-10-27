@@ -89,7 +89,7 @@ public sealed class PdfImportedLineFrameFitTests {
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
 
-    private static PdfOptions Options(double bodyHeight) => new() {
+    private static PdfCreateOptions Options(double bodyHeight) => new() {
         PageWidth = 200D, PageHeight = bodyHeight + 40D, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 10D, MarginTop = 20D, MarginBottom = 20D, MarginLeft = 20D, MarginRight = 20D
     };

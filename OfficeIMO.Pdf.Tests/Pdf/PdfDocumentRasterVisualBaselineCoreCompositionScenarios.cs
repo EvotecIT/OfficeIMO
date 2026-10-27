@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
     private static byte[] CreateFlowDsl() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10,
             DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -31,7 +31,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return PdfDocument.Create(options)
             .Compose(document => {
                 document.Page(page => {
-                    page.Size(PageSizes.A5);
+                    page.Size(PdfPageSizes.A5);
                     page.Margin(36, 42, 36, 42);
                     page.DefaultTextStyle(x => x
                         .Font(PdfStandardFont.Helvetica)
@@ -87,7 +87,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     internal static byte[] CreateShowcaseDashboard() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
                 DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
@@ -110,7 +110,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 keywords: "OfficeIMO,Pdf,dashboard,drawings,tables")
             .Compose(document => {
                 document.Page(page => {
-                    page.Size(PageSizes.A4).Landscape().Margin(42, 38, 42, 42);
+                    page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
                     page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
                     page.Content(content => {
                         content.Item(item => item.H1("Quarterly Operations Dashboard", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
@@ -231,7 +231,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateDrawingGallery() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -322,7 +322,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateWatermark() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -377,7 +377,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -429,7 +429,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreatePageBorder() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -485,7 +485,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -539,7 +539,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateBackgroundShapes() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -595,7 +595,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateRowColumns() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -684,7 +684,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateHeadersFooters() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -719,7 +719,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateStyleCheatsheet() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -781,7 +781,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Flow", "Generic", "Borders and row separators should reveal each preset shape at raster level." }
         };
 
-        PdfDocument doc = CreateVisualBaselineDocument(new PdfOptions {
+        PdfDocument doc = CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -809,7 +809,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         };
 
         foreach (string styleName in visualStyleNames) {
-            PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
+            PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
             style.Caption = styleName;
             style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
             style.CaptionFontSize = 8.5;
@@ -842,7 +842,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static PdfTableStyle CreateWordAccentSwatchStyle() {
-        var style = TableStyles.ListTable1Light();
+        var style = PdfTableStyles.ListTable1Light();
         style.Caption = "Accent swatches";
         style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
         style.CaptionFontSize = 8.5;
@@ -867,8 +867,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         var cellFills = new Dictionary<(int Row, int Column), PdfColor>();
         for (int accent = 1; accent <= 6; accent++) {
-            PdfTableStyle grid = TableStyles.FromWordTableStyle("GridTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            PdfTableStyle list = TableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            PdfTableStyle grid = PdfTableStyles.FromWordTableStyle("GridTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            PdfTableStyle list = PdfTableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
             cellFills[(1, accent)] = grid.BorderColor ?? PdfColor.White;
             cellFills[(2, accent)] = grid.HeaderSeparatorColor ?? PdfColor.White;
             cellFills[(3, accent)] = list.RowStripeFill ?? PdfColor.White;

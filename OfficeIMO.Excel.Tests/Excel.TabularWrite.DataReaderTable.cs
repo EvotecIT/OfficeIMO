@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Query Results",
                     CreateTable = true,
                     TableName = "QueryResults",
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     CreateTable = true,
                     TableName = "EmptyResults",
                     IncludeAutoFilter = true,
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     CreateTable = true,
                     TableName = "StreamedResults",
                     IncludeCellReferences = false,
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "'[]:*?/ '",
                     CreateTable = true,
                     TableName = requestedTableName,
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = new string('S', 40),
                     IncludeCellReferences = false,
                     UseSharedStrings = false
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult compactResult = ExcelDocument.WriteDataReader(
                 compactOutput,
                 compactReader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Data",
                     CreateTable = true,
                     IncludeCellReferences = false,
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult bufferedResult = ExcelDocument.WriteDataReader(
                 bufferedOutput,
                 bufferedReader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Data",
                     CreateTable = true,
                     UseSharedStrings = true

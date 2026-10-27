@@ -42,11 +42,11 @@ public sealed class HtmlFirstPartyFontProgramTests {
         string html = FontHtml("Source Sans CFF", "font/otf", fontData, text, link: false);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
         string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
 
-        Assert.Contains(text, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(text, PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("/FontFile3 ", raw, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
         Assert.False(result.HasLoss, FormatWarnings(result));
@@ -67,9 +67,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
             options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F, ["wdth"] = 112F };
         }
 
-        PdfCore.PdfDocumentConversionResult first = source.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult first = source.ConvertToPdfWithEvidence(options);
         byte[] firstPdf = first.ToBytes();
-        byte[] secondPdf = source.ToPdfDocumentResult(options).ToBytes();
+        byte[] secondPdf = source.ConvertToPdfWithEvidence(options).ToBytes();
 
         Assert.Equal(Hash(firstPdf), Hash(secondPdf));
         Assert.Contains(text, PdfCore.PdfReadDocument.Open(firstPdf).ExtractText(), StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
         OfficeShape[] glyphs = PaintedShapes(pdf)
@@ -119,10 +119,10 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Collection Face", "font/ttf", collection, text, link: false));
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
 
-        Assert.Contains(text, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(text, PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("StaticPdfEmbeddable", out string? staticEmbeddable)
@@ -144,7 +144,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -165,8 +165,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var black = new HtmlToPdfOptions();
         black.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 900F, ["wdth"] = 120F };
 
-        byte[] lightPdf = source.ToPdfDocumentResult(light).ToBytes();
-        byte[] blackPdf = source.ToPdfDocumentResult(black).ToBytes();
+        byte[] lightPdf = source.ConvertToPdfWithEvidence(light).ToBytes();
+        byte[] blackPdf = source.ConvertToPdfWithEvidence(black).ToBytes();
 
         Assert.NotEqual(Hash(lightPdf), Hash(blackPdf));
     }
@@ -183,8 +183,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         shapedOptions.TextShapingProvider = shapingProvider;
         shapedOptions.TextShapingLanguage = "pl-PL";
 
-        byte[] unshapedPdf = source.ToPdfDocumentResult(unshapedOptions).ToBytes();
-        byte[] shapedPdf = source.ToPdfDocumentResult(shapedOptions).ToBytes();
+        byte[] unshapedPdf = source.ConvertToPdfWithEvidence(unshapedOptions).ToBytes();
+        byte[] shapedPdf = source.ConvertToPdfWithEvidence(shapedOptions).ToBytes();
         int unshapedCommandCount = PaintedShapes(unshapedPdf)
             .Sum(shape => shape.Shape.PathCommands.Count);
         int shapedCommandCount = PaintedShapes(shapedPdf)
@@ -212,7 +212,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
 
         Assert.True(provider.Requests.Count >= 2);
         Assert.Contains(result.Report.Warnings, warning =>
@@ -223,7 +223,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         options.TextShapingProvider = strictProvider;
         options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
         HtmlConversionException strict = Assert.Throws<HtmlConversionException>(() =>
-            source.ToPdfDocumentResult(options));
+            source.ConvertToPdfWithEvidence(options));
         Assert.True(strictProvider.Requests.Count >= 2);
         Assert.Contains(strict.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
@@ -276,8 +276,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument plain = HtmlConversionDocument.Parse(prefix + "}</style><p>A</p></html>");
         HtmlConversionDocument spaced = HtmlConversionDocument.Parse(prefix + ";letter-spacing:18px}</style><p>A</p></html>");
 
-        double plainWidth = OutlinedPathWidth(plain.ToPdfDocumentResult().ToBytes());
-        double spacedWidth = OutlinedPathWidth(spaced.ToPdfDocumentResult().ToBytes());
+        double plainWidth = OutlinedPathWidth(plain.ConvertToPdfWithEvidence().ToBytes());
+        double spacedWidth = OutlinedPathWidth(spaced.ConvertToPdfWithEvidence().ToBytes());
 
         Assert.Equal(plainWidth, spacedWidth, 3);
     }
@@ -296,9 +296,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument requested = HtmlConversionDocument.Parse(prefix + ";font-weight:700;font-style:italic}</style><p>Ω</p></html>");
 
         IReadOnlyList<OfficePathCommand> regularCommands = Assert.Single(
-            PaintedShapes(regular.ToPdfDocumentResult().ToBytes())).Shape.PathCommands;
+            PaintedShapes(regular.ConvertToPdfWithEvidence().ToBytes())).Shape.PathCommands;
         IReadOnlyList<OfficePathCommand> requestedCommands = Assert.Single(
-            PaintedShapes(requested.ToPdfDocumentResult().ToBytes())).Shape.PathCommands;
+            PaintedShapes(requested.ConvertToPdfWithEvidence().ToBytes())).Shape.PathCommands;
 
         Assert.Equal(regularCommands.Count * 2, requestedCommands.Count);
         Assert.True(OutlinedPathWidth(requestedCommands) > OutlinedPathWidth(regularCommands));
@@ -322,7 +322,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            source.ToPdfDocumentResultAsync(options, cancellation.Token));
+            source.ConvertToPdfWithEvidenceAsync(options, cancellation.Token));
 
         Assert.True(shapingProvider.Requests.Count >= 2);
         Assert.All(shapingProvider.Requests, request => Assert.Equal("pl-PL", request.Language));
@@ -337,7 +337,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
 
-        byte[] pdf = source.ToPdfDocumentResult(options).ToBytes();
+        byte[] pdf = source.ConvertToPdfWithEvidence(options).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Contains(text, read.ExtractText(), StringComparison.Ordinal);
         AssertVariableOutlineLinkFragments(source, options, read, text);
@@ -345,13 +345,13 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         var characterLimited = options.ClonePdf();
         characterLimited.MaxOutlinedTextCharactersPerRun = 4;
-        InvalidOperationException characterException = Assert.Throws<InvalidOperationException>(() => source.ToPdfDocumentResult(characterLimited));
+        InvalidOperationException characterException = Assert.Throws<InvalidOperationException>(() => source.ConvertToPdfWithEvidence(characterLimited));
         Assert.Contains("character budget", characterException.Message, StringComparison.Ordinal);
         var commandLimited = options.ClonePdf();
         var shapingProvider = new CollapsingTextShapingProvider();
         commandLimited.TextShapingProvider = shapingProvider;
         commandLimited.MaxOutlinedTextPathCommands = 1;
-        PdfCore.PdfDocumentConversionResult commandResult = source.ToPdfDocumentResult(commandLimited);
+        PdfCore.PdfDocumentConversionResult commandResult = source.ConvertToPdfWithEvidence(commandLimited);
         byte[] commandPdf = commandResult.ToBytes();
         Assert.Contains(text, PdfCore.PdfReadDocument.Open(commandPdf).ExtractText(), StringComparison.Ordinal);
         AssertVariableOutlineLinkFragments(source, commandLimited, PdfCore.PdfReadDocument.Open(commandPdf), text);
@@ -368,7 +368,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         string firstHtml = FontHtml("Exact Variable", "font/ttf", fontData, "A", link: false);
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
-        byte[] firstPdf = HtmlConversionDocument.Parse(firstHtml).ToPdfDocumentResult(options).ToBytes();
+        byte[] firstPdf = HtmlConversionDocument.Parse(firstHtml).ConvertToPdfWithEvidence(options).ToBytes();
         int firstCommands = PaintedShapes(firstPdf)
             .Sum(shape => shape.Shape.PathCommands.Count);
         Assert.True(firstCommands > 0);
@@ -376,7 +376,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var exact = options.ClonePdf();
         exact.MaxOutlinedTextPathCommands = firstCommands;
         string twoRuns = firstHtml.Replace("</html>", "<p>B</p></html>");
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(twoRuns).ToPdfDocumentResult(exact);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(twoRuns).ConvertToPdfWithEvidence(exact);
         string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
 
         Assert.Contains("A", extracted, StringComparison.Ordinal);
@@ -396,8 +396,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         Assert.Contains("Visible", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain("\uF50E", extracted, StringComparison.Ordinal);
         Assert.Contains(result.Report.Warnings, warning =>
@@ -407,7 +407,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var characterLimited = options.ClonePdf();
         characterLimited.MaxOutlinedTextCharactersPerRun = 2;
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(characterLimited));
+            HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(characterLimited));
         Assert.Contains("character budget", exception.Message, StringComparison.Ordinal);
     }
 
@@ -420,8 +420,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("CallerIcon", fontData));
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains("\uF50E Retained", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Report.Warnings, warning =>

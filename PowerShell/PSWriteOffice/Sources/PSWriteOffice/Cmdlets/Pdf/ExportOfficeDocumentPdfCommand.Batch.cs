@@ -1,11 +1,10 @@
+using OfficeIMO;
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
-#if !FRAMEWORK
 using OfficeIMO.Workflows;
-#endif
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -62,30 +61,28 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
     public string? SummaryVariable { get; set; }
 
     private async Task ExportBatchAsync(string[]? paths) {
-#if FRAMEWORK
-        await Task.CompletedTask;
-        throw new PlatformNotSupportedException("Batch PDF export requires PowerShell 7.4 or newer. Single-file export supports Windows PowerShell 5.1.");
-#else
-        var request = new OfficeConversionBatchRequest {
+        var request = new OfficeBatchOptions {
             InputDirectory = paths == null ? PdfCommandUtilities.ResolvePath(this, InputDirectory) : null,
             InputPaths = paths,
             ConversionRouteId = ConversionRouteId,
             OutputDirectory = PdfCommandUtilities.ResolvePath(this, OutputDirectory),
-            CheckpointDirectory = CheckpointDirectory == null ? null : PdfCommandUtilities.ResolvePath(this, CheckpointDirectory),
-            MaximumConcurrency = MaximumConcurrency, MaximumFiles = MaximumFiles,
+            ResumeFrom = CheckpointDirectory == null ? null : System.IO.Path.Combine(PdfCommandUtilities.ResolvePath(this, CheckpointDirectory), "plan.json"),
+            MaxParallelism = MaximumConcurrency, MaximumFiles = MaximumFiles,
             MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes,
-            Recursive = !NoRecurse.IsPresent, SourceExtensions = SourceExtensions, RetryFailed = RetryFailed.IsPresent,
-            ConflictPolicy = (OfficeWorkflowConflictPolicy)Enum.Parse(typeof(OfficeWorkflowConflictPolicy), ConflictPolicy, true),
-            ConversionOptions = new OfficeWorkflowConversionOptions {
+            Recursive = !NoRecurse.IsPresent, Extensions = SourceExtensions, RetryFailed = RetryFailed.IsPresent,
+            ConflictPolicy = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, true),
+            ConversionOptions = new OfficeConversionOptions {
                 SourcePassword = Password,
                 Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
-                Markdown = MarkdownOptions, Rtf = RtfOptions, Html = HtmlOptions, PlainText = TextOptions,
-                LegacyDocLossPolicy = AllowLegacyImportLoss.IsPresent ? OfficeIMO.OfficeConversionLossPolicy.Allow : OfficeIMO.OfficeConversionLossPolicy.Block
+                Markdown = MarkdownOptions, Html = HtmlOptions, PlainText = TextOptions,
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = RtfOptions },
+                WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent }
             }
         };
         if (!ShouldProcess(request.OutputDirectory, "Export selected documents to PDF")) return;
         var progress = new BatchProgress(this);
-        var result = await PSWriteOffice.Services.OfficeWorkflowCommandUtilities.CreateRunner().RunBatchAsync(request, progress, CancelToken);
+        PSWriteOffice.Services.OfficeWorkflowCommandUtilities.RegisterConversions();
+        var result = (await OfficeConverter.ConvertAsync(request, progress, CancelToken)).Summary;
         if (!ItemResults.IsPresent && progress.Failures > BatchProgress.MaximumFailureWarnings) {
             WriteWarning($"{progress.Failures - BatchProgress.MaximumFailureWarnings} further failure messages were suppressed. Use -ItemResults for structured per-file outcomes.");
         }
@@ -94,20 +91,17 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
         ErrorRecord? error = PSWriteOffice.Services.OfficeWorkflowCommandUtilities.GetBatchError(result, AllowEmpty.IsPresent, "OfficeDocumentPdfBatch");
         if (error != null) WriteError(error);
         if (!ItemResults.IsPresent) WriteObject(result);
-#endif
     }
-#if !FRAMEWORK
-    private sealed class BatchProgress(ExportOfficeDocumentPdfCommand command) : IProgress<OfficeConversionBatchItemResult> {
+    private sealed class BatchProgress(ExportOfficeDocumentPdfCommand command) : IProgress<OfficeBatchItemReport> {
         internal const int MaximumFailureWarnings = 100;
         private int _failures;
         public int Failures => Volatile.Read(ref _failures);
-        public void Report(OfficeConversionBatchItemResult item) {
+        public void Report(OfficeBatchItemReport item) {
             if (command.ItemResults.IsPresent) {
                 command.WriteObject(item);
-            } else if (item.Status == OfficeWorkflowStatus.Failed && Interlocked.Increment(ref _failures) <= MaximumFailureWarnings) {
+            } else if (item.Status == OfficeBatchItemStatus.Failed && Interlocked.Increment(ref _failures) <= MaximumFailureWarnings) {
                 command.WriteWarning(item.InputPath + ": " + item.Summary);
             }
         }
     }
-#endif
 }

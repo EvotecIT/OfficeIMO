@@ -24,7 +24,7 @@ internal static class OfficeWorkflowInputReader {
         string sourceName,
         long maximumInputBytes,
         CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source == null) throw new ArgumentNullException(nameof(source));
         if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
         if (maximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumInputBytes));
 
@@ -49,7 +49,7 @@ internal static class OfficeWorkflowInputReader {
             if (total > maximumInputBytes) {
                 throw CreateLimitException(sourceName, total, maximumInputBytes);
             }
-            if (total > Array.MaxLength) {
+            if (total > OfficeRuntimeCompatibility.MaximumArrayLength) {
                 throw new InvalidOperationException(
                     $"Input '{sourceName}' cannot be materialized as one byte array because it exceeds the runtime array limit.");
             }

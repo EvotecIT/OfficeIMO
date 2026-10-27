@@ -10,7 +10,7 @@ BeforeAll {
 Describe 'Markdown cmdlets' {
     It 'parses Markdown text into a document' {
         $doc = Get-OfficeMarkdown -Text "# Title`n`nHello"
-        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
     }
 
     It 'supports reader profiles when parsing Markdown' {
@@ -43,7 +43,7 @@ Describe 'Markdown cmdlets' {
 
     It 'converts HTML to a Markdown document' {
         $doc = ConvertFrom-OfficeMarkdownHtml -Html '<h1>Title</h1><p>Hello</p>' -AsDocument
-        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
         $doc.ToMarkdown() | Should -Match '# Title'
     }
 
@@ -69,7 +69,7 @@ Describe 'Markdown cmdlets' {
 "@
 
         $nodes = Get-OfficeMarkdownNode -Text $markdown
-        $nodes[0].Type | Should -Be 'MarkdownDoc'
+        $nodes[0].Type | Should -Be 'MarkdownDocument'
         $nodes.Type | Should -Contain 'HeadingBlock'
         $nodes.Type | Should -Contain 'CalloutBlock'
         $nodes.Type | Should -Contain 'TableBlock'
@@ -82,7 +82,7 @@ Describe 'Markdown cmdlets' {
 
         $nodes.Count | Should -Be 2
         $nodes.Type | Should -Contain 'HeadingBlock'
-        ($nodes | Where-Object Type -EQ 'MarkdownDoc').Count | Should -Be 0
+        ($nodes | Where-Object Type -EQ 'MarkdownDocument').Count | Should -Be 0
     }
 
     It 'gets front matter entries from Markdown' {
@@ -257,7 +257,7 @@ Describe 'Markdown cmdlets' {
             MarkdownHeading -Level 1 -Text 'Draft'
         }
 
-        $document.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $document.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
         $document.ToMarkdown() | Should -Match '# Draft'
         Test-Path $path | Should -BeFalse
     }

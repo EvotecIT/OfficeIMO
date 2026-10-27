@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Named block parser extension registration used by <see cref="MarkdownReaderPipeline.Default(MarkdownReaderOptions?)"/>.
+/// Named block parser extension registration used by <see cref="MarkdownReaderPipeline.Default(MarkdownLoadOptions?)"/>.
 /// </summary>
 public sealed class MarkdownBlockParserExtension {
     /// <summary>
@@ -11,7 +11,7 @@ public sealed class MarkdownBlockParserExtension {
         string name,
         MarkdownBlockParserPlacement placement,
         MarkdownBlockParser parser,
-        Func<MarkdownReaderOptions, bool>? isEnabled = null)
+        Func<MarkdownLoadOptions, bool>? isEnabled = null)
         : this(name, placement, new DelegateMarkdownBlockParser(parser), isEnabled) {
     }
 
@@ -22,7 +22,7 @@ public sealed class MarkdownBlockParserExtension {
         string name,
         MarkdownBlockParserPlacement placement,
         IMarkdownBlockParser parser,
-        Func<MarkdownReaderOptions, bool>? isEnabled = null) {
+        Func<MarkdownLoadOptions, bool>? isEnabled = null) {
         if (string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
         }
@@ -45,8 +45,8 @@ public sealed class MarkdownBlockParserExtension {
     /// <summary>
     /// Optional predicate that decides whether the extension should apply for a specific options instance.
     /// </summary>
-    public Func<MarkdownReaderOptions, bool>? IsEnabled { get; }
+    public Func<MarkdownLoadOptions, bool>? IsEnabled { get; }
 
     /// <summary>Returns <see langword="true"/> when the extension should participate in parsing.</summary>
-    public bool AppliesTo(MarkdownReaderOptions options) => IsEnabled?.Invoke(options) ?? true;
+    public bool AppliesTo(MarkdownLoadOptions options) => IsEnabled?.Invoke(options) ?? true;
 }

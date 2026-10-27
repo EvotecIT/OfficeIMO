@@ -80,15 +80,15 @@ namespace OfficeIMO.Tests {
                 PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict));
 
             Assert.False(report.IsSuccessful);
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingDocumentTitle");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingShapeTitle");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingAlternativeText");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingLanguage");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingTableHeader");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.LowContrast" &&
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-document-title");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-shape-title");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-alternative-text");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-language");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-missing-table-header");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-low-contrast" &&
                 finding.MeasuredValue < finding.RequiredValue);
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.UnclearLinkLabel");
-            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.ChartColorOnlyMeaning");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-unclear-link-label");
+            Assert.Contains(report.Findings, finding => finding.Code == "accessibility-chart-color-only-meaning");
             Assert.Throws<PowerPointAccessibilityException>(() => report.EnsureCompliant());
             Assert.Contains("\"profile\":\"Strict\"", report.ToJson(), StringComparison.Ordinal);
         }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();
 
             Assert.DoesNotContain(report.Findings,
-                finding => finding.Code == "Accessibility.UnclearLinkLabel");
+                finding => finding.Code == "accessibility-unclear-link-label");
         }
 
         [Fact]
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(defaultReport.Findings, finding => finding.SlideIndex == 0);
             Assert.Single(includedReport.Slides);
             Assert.Contains(includedReport.Findings,
-                finding => finding.SlideIndex == 0 && finding.Code == "Accessibility.MissingSlideTitle");
+                finding => finding.SlideIndex == 0 && finding.Code == "accessibility-missing-slide-title");
         }
 
         [Fact]
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();
 
             Assert.Contains(report.Findings, finding =>
-                finding.SlideIndex == 0 && finding.Code == "Accessibility.MissingSlideTitle");
+                finding.SlideIndex == 0 && finding.Code == "accessibility-missing-slide-title");
             Assert.Null(Assert.Single(report.Slides).Title);
         }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "Accessibility.MissingTableHeader" && finding.ShapeId == table.Id);
+                finding.Code == "accessibility-missing-table-header" && finding.ShapeId == table.Id);
             Assert.Contains(Assert.Single(report.Slides).Shapes, shape => shape.ShapeId == table.Id);
         }
 
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "Accessibility.LowContrast" && finding.ShapeId == text.Id);
+                finding.Code == "accessibility-low-contrast" && finding.ShapeId == text.Id);
         }
     }
 }

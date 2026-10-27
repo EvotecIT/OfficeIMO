@@ -38,8 +38,8 @@ public partial class Word {
             }
         }
         using (WordDocument document = WordDocument.Load(source)) {
-            document.SaveAsPdf(target, new WordToPdfOptions { IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400), Margins = PdfCore.PageMargins.Uniform(40) });
+            document.SaveAsPdf(target, new WordPdfExportOptions { IncludePageNumbers = false,
+                PageSize = new PdfCore.PdfPageSize(500, 400), Margins = PdfCore.PdfPageMargins.Uniform(40) });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -63,10 +63,10 @@ public partial class Word {
             document.AddParagraph("RightColumnMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(612, 792),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 
@@ -106,10 +106,10 @@ public partial class Word {
             right.FontFamily = "Arial"; right.FontSize = 12;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(612, 792),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 
@@ -143,10 +143,10 @@ public partial class Word {
             document.AddParagraph("SeparatorRightMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(612, 792),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 
@@ -175,10 +175,10 @@ public partial class Word {
             document.AddParagraph("AutoRightColumnMarker starts in the second automatic Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(612, 792),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 
@@ -217,10 +217,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(500, 400),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -271,10 +271,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(500, 400),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
 
@@ -307,10 +307,10 @@ public partial class Word {
             paragraph.AddText("InlineRightColumnMarker starts after the inline Word column break.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(612, 792),
+                Margins = PdfCore.PdfPageMargins.Uniform(36)
             });
         }
 

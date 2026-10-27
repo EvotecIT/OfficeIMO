@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         internal static byte[] CreateFixture(double bodyHeight, double padding, double lineAdvance) {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = 200D, PageHeight = bodyHeight + 40D, DefaultFontSize = 10D,
                 MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
             };

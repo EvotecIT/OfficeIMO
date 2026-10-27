@@ -11,10 +11,10 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream(new byte[32], writable: false);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                ExcelDocumentReader.Open(stream, new ExcelReadOptions { MaxInputBytes = 16 }));
+                ExcelDocumentReader.Open(stream, new ExcelReaderOptions { MaxInputBytes = 16 }));
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxInputBytes), exception.LimitName);
             Assert.Equal(16, exception.Maximum);
             Assert.Contains("configured maximum size", exception.InnerException!.Message, StringComparison.Ordinal);
         }

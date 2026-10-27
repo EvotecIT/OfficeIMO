@@ -54,10 +54,10 @@ public partial class Word {
         using (var stream = new MemoryStream(source))
         using (WordDocument loaded = WordDocument.Load(stream)) {
             Assert.Equal(suppressBalancing, loaded.CompatibilitySettings.DoNotBalanceTextColumns);
-            loaded.SaveAsPdf(target, new WordToPdfOptions {
+            loaded.SaveAsPdf(target, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(500, 400),
+                Margins = PdfCore.PdfPageMargins.Uniform(40)
             });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));

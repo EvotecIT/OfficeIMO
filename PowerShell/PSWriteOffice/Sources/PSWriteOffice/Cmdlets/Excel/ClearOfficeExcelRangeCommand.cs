@@ -37,7 +37,7 @@ public sealed class ClearOfficeExcelRangeCommand : PSWriteOffice.Cmdlets.OfficeM
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range to clear.</summary>
+    /// <summary>ExcelA1 range to clear.</summary>
     [Parameter(Mandatory = true)]
     public string Range { get; set; } = string.Empty;
 

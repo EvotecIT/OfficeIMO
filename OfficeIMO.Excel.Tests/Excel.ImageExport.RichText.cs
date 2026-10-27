@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 new ExcelRichTextRun(" gone") { Strikethrough = true, FontColor = "6B7280", FontSize = 12D });
 
             ExcelRange range = sheet.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
 
                 using ExcelDocument loaded = ExcelDocument.Load(filePath);
                 ExcelRange range = loaded.Sheets[0].Range("A1:A1");
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
                 OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg,
                     new ExcelImageExportOptions { ShowGridlines = false });
                 OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png,
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
             OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = Encoding.UTF8.GetString(svgResult.Bytes);

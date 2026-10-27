@@ -16,7 +16,7 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
     [InlineData("OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf", " ")]
     public void SavedPdfGlyphsExportAsSvgContoursWithoutBrowserFontSubstitution(string relativeFont, string text) {
         byte[] fontData = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), relativeFont));
-        var options = new PdfOptions().UseManagedTextShaping()
+        var options = new PdfCreateOptions().UseManagedTextShaping()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Svg Projection");
         byte[] bytes = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
             new[] { new PdfTextRun(text, fontSize: 20D) }, PdfCanvasTextStructureRole.Paragraph,
@@ -38,7 +38,7 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
         Assert.Equal(!string.IsNullOrWhiteSpace(text), paths.Any(path => path.Contains('M')));
 
         Assert.NotEmpty(OfficeDrawingRasterRenderer.Render(drawing).GetPixels());
-        var replayOptions = new PdfOptions {
+        var replayOptions = new PdfCreateOptions {
             PageWidth = drawing.Width,
             PageHeight = drawing.Height,
             MarginLeft = 0D,

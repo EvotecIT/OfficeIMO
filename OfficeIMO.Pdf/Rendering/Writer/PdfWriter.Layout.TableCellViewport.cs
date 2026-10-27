@@ -122,7 +122,7 @@ internal static partial class PdfWriter {
         List<List<RichSeg>> lines, IReadOnlyList<double> heights,
         IReadOnlyList<PdfAlign?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
         PdfAlign alignment, double baseline, double textX, double textWidth,
-        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfOptions options, PdfStandardFont? baselineFont = null) {
+        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfCreateOptions options, PdfStandardFont? baselineFont = null) {
         double lineY = baseline;
         for (int index = 0; index < lines.Count; index++) {
             List<RichSeg> line = lines[index];

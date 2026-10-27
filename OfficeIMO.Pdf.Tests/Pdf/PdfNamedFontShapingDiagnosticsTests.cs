@@ -17,7 +17,7 @@ public sealed class PdfNamedFontShapingDiagnosticsTests {
             ? new DecliningProvider()
             : new ManagedTextShapingTestAssets.RecordingProvider();
         var report = new PdfConversionReport();
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, font))
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report);
@@ -26,7 +26,7 @@ public sealed class PdfNamedFontShapingDiagnosticsTests {
 
         Assert.Empty(document.AnalyzeTextEncoding());
         Assert.Empty(report.Warnings);
-        byte[] bytes = document.ToBytes();
+        byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         if (declines) {

@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the stroke color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the stroke color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public Color Color {
             get {

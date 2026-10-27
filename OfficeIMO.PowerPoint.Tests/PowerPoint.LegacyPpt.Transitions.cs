@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 slide.TransitionAdvanceAfterSeconds = 4.25;
 
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptTransition binary = Assert.IsType<LegacyPptTransition>(
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
 
             LegacyPptWriteFinding finding = Assert.Single(report.Findings,
-                item => item.Code == "PPT-WRITE-TRANSITION");
+                item => item.Code == "ppt-write-transition");
             Assert.Contains("no PowerPoint 97-2003 representation",
                 finding.Description, StringComparison.Ordinal);
         }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Transition = PowerPointSlideTransition.Fade;
                 slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Slow;
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
                 slide.TransitionAdvanceAfterSeconds = 7.5;
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

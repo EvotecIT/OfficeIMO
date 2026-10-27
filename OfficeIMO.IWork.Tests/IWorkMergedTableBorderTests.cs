@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
             authoredTable.HeightPoints = authoredTable.Rows * 60D;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
-            var pdf = reopened.ToPdfDocument();
+            var pdf = reopened.ToPdf();
             var rendered = pdf.Render.Pages("1", new PdfCore.PdfPageRenderOptions {
                 Format = PdfCore.PdfPageRenderFormat.Svg, ContinueOnError = false
             }).Single();

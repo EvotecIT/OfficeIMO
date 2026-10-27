@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 ConditionalFormattingDate = new DateTime(2026, 6, 24)
             };
             ExcelRange range = sheet.Range("A1:B3");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
 

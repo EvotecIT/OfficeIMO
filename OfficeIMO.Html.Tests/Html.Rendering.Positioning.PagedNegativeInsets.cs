@@ -24,8 +24,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(60D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         Assert.DoesNotContain("OffTopMarker", text, StringComparison.Ordinal);
         Assert.DoesNotContain("OffLeftMarker", text, StringComparison.Ordinal);
@@ -49,8 +49,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(60D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         Assert.Contains("VisibleChildMarker", text, StringComparison.Ordinal);
         Assert.Contains("MainFlowMarker", text, StringComparison.Ordinal);

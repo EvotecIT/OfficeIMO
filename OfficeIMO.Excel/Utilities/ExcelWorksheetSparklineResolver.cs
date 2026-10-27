@@ -53,19 +53,19 @@ namespace OfficeIMO.Excel.Utilities {
 
         private static IEnumerable<string> ExpandLocation(string location) {
             string normalized = NormalizeReference(location);
-            if (A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (ExcelA1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 for (int row = firstRow; row <= lastRow; row++) {
                     for (int column = firstColumn; column <= lastColumn; column++) {
-                        yield return A1.CellReference(row, column);
+                        yield return ExcelA1.CellReference(row, column);
                     }
                 }
 
                 yield break;
             }
 
-            (int singleRow, int singleColumn) = A1.ParseCellRef(normalized);
+            (int singleRow, int singleColumn) = ExcelA1.ParseCellRef(normalized);
             if (singleRow > 0 && singleColumn > 0) {
-                yield return A1.CellReference(singleRow, singleColumn);
+                yield return ExcelA1.CellReference(singleRow, singleColumn);
             }
         }
 

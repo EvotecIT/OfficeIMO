@@ -172,7 +172,7 @@ public sealed class ExcelPictureHyperlinkTests {
         ExcelImage second = sheet.AddImage(4, 1, png, "image/png", 32, 16);
         first.HyperlinkUri = new Uri("https://example.org/photos#first");
         second.HyperlinkUri = new Uri("https://example.org/photos#second");
-        using var artifact = document.ToStream();
+        using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
         ExcelImage[] images = reopened.Sheets[0].Images.ToArray();
         Assert.Equal("https://example.org/photos#first", images[0].HyperlinkUri!.OriginalString);
@@ -208,7 +208,7 @@ public sealed class ExcelPictureHyperlinkTests {
             new Dictionary<string, object?> { ["Name"] = "North" },
             new Dictionary<string, object?> { ["Name"] = "South" }
         }, (values, index) => (string)values["Name"]!);
-        using var artifact = document.ToStream();
+        using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
         foreach (ExcelSheet sheet in reopened.Sheets) {
             Assert.Equal(2, sheet.Images.Count());
@@ -239,7 +239,7 @@ public sealed class ExcelPictureHyperlinkTests {
         var target = new Uri("https://example.org/template#photo");
         template.AddImage(3, 1, blue, "image/png", 32, 16).HyperlinkUri = target;
         template.AddImage(5, 1, red, "image/png", 32, 16).HyperlinkUri = target;
-        using var serialized = original.ToStream();
+        using var serialized = new System.IO.MemoryStream(original.ToBytes());
         using var edited = new MemoryStream();
         serialized.CopyTo(edited);
         edited.Position = 0;
@@ -288,7 +288,7 @@ public sealed class ExcelPictureHyperlinkTests {
             Assert.Equal(red, images[1].ToBytes());
             Assert.All(images, image => Assert.Equal(target.OriginalString, image.HyperlinkUri!.OriginalString));
         }
-        using var saved = document.ToStream();
+        using var saved = new System.IO.MemoryStream(document.ToBytes());
         byte[] clonedBytes = saved.ToArray();
         using (var native = SpreadsheetDocument.Open(new MemoryStream(clonedBytes), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(native));

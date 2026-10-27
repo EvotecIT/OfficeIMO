@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfComplianceAnalyzer {
     // These profiles intentionally omit EN 16931 line, payment and party fields.
     // Select from the XML, then independently check that XMP agrees with it.
-    private static bool TryGetReducedInvoiceProfile(PdfOptions options, out Shared.InvoiceProfile profile) {
+    private static bool TryGetReducedInvoiceProfile(PdfCreateOptions options, out Shared.InvoiceProfile profile) {
         profile = default;
         PdfEmbeddedFile? file = options.EmbeddedFiles.FirstOrDefault(item => item.FileName == "factur-x.xml");
         return file != null && TryReadCiiProfileContext(file, out string? context, out _) &&
@@ -16,7 +16,7 @@ internal static partial class PdfComplianceAnalyzer {
             profile is Shared.InvoiceProfile.Minimum or Shared.InvoiceProfile.BasicWithoutLines or Shared.InvoiceProfile.Basic;
     }
 
-    private static void AddReducedInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options, Shared.InvoiceProfile profile) {
+    private static void AddReducedInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfCreateOptions options, Shared.InvoiceProfile profile) {
         requirements.Add(BuildElectronicInvoiceXmlAttachmentRequirement(options));
         requirements.Add(BuildElectronicInvoiceXmlProfileContextRequirement(options));
         requirements.Add(BuildElectronicInvoiceProfileConsistencyRequirement(options));
@@ -54,7 +54,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     // Lightweight structural and arithmetic readiness, not a replacement for the
     // profile-specific XSD/Schematron authority gate in Invoicing.Validation.
-    private static PdfComplianceRequirement BuildReducedInvoiceFieldsRequirement(PdfOptions options, Shared.InvoiceProfile profile) {
+    private static PdfComplianceRequirement BuildReducedInvoiceFieldsRequirement(PdfCreateOptions options, Shared.InvoiceProfile profile) {
         var diagnostics = new List<string>();
         try {
             PdfEmbeddedFile file = options.EmbeddedFiles.First(item => item.FileName == "factur-x.xml");

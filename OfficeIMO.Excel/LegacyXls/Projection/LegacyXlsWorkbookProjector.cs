@@ -588,7 +588,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             if (view.FirstVisibleRow.HasValue && view.FirstVisibleColumn.HasValue) {
-                sheetView.TopLeftCell = A1.CellReference(view.FirstVisibleRow.Value + 1, view.FirstVisibleColumn.Value + 1);
+                sheetView.TopLeftCell = ExcelA1.CellReference(view.FirstVisibleRow.Value + 1, view.FirstVisibleColumn.Value + 1);
             }
 
             if (view.ZoomScale.HasValue) {
@@ -799,7 +799,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
                     if (legacySheet.FirstVisibleRow.HasValue && legacySheet.FirstVisibleColumn.HasValue) {
                         sheetView ??= GetOrCreatePrimarySheetView(currentSheet);
-                        sheetView.TopLeftCell = A1.CellReference(legacySheet.FirstVisibleRow.Value + 1, legacySheet.FirstVisibleColumn.Value + 1);
+                        sheetView.TopLeftCell = ExcelA1.CellReference(legacySheet.FirstVisibleRow.Value + 1, legacySheet.FirstVisibleColumn.Value + 1);
                     }
 
                     if (legacySheet.ShowGridLines.HasValue) {
@@ -1318,7 +1318,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectSelection(ExcelSheet sheet, LegacyXlsSelection selection, bool hasFrozenPane) {
-            string activeCell = A1.CellReference(selection.ActiveRow, selection.ActiveColumn);
+            string activeCell = ExcelA1.CellReference(selection.ActiveRow, selection.ActiveColumn);
             IReadOnlyList<string> selectedRanges = selection.SelectedRanges
                 .Select(range => range.Reference)
                 .ToArray();
@@ -1406,15 +1406,15 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 return false;
             }
 
-            if (A1.TryParseRange(normalized, out r1, out c1, out r2, out c2)) {
+            if (ExcelA1.TryParseRange(normalized, out r1, out c1, out r2, out c2)) {
                 normalizedReference = BuildA1Range(r1, c1, r2, c2);
                 return true;
             }
 
-            if (A1.TryParseCellReferenceFast(normalized, out r1, out c1)) {
+            if (ExcelA1.TryParseCellReferenceFast(normalized, out r1, out c1)) {
                 r2 = r1;
                 c2 = c1;
-                normalizedReference = A1.CellReference(r1, c1);
+                normalizedReference = ExcelA1.CellReference(r1, c1);
                 return true;
             }
 
@@ -1422,7 +1422,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static string BuildA1Range(int firstRow, int firstColumn, int lastRow, int lastColumn) {
-            return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
+            return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow, lastColumn);
         }
 
         private static PaneValues? ToPane(byte pane) {
@@ -1442,7 +1442,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 State = PaneStateValues.Split,
                 HorizontalSplit = splitPane.HorizontalSplit,
                 VerticalSplit = splitPane.VerticalSplit,
-                TopLeftCell = A1.CellReference(splitPane.TopRow + 1, splitPane.LeftColumn + 1)
+                TopLeftCell = ExcelA1.CellReference(splitPane.TopRow + 1, splitPane.LeftColumn + 1)
             };
 
             PaneValues? activePane = ToPane(splitPane.ActivePane);
@@ -1943,8 +1943,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     continue;
                 }
 
-                int parsedFirstColumn = A1.ColumnLettersToIndex(start);
-                int parsedLastColumn = A1.ColumnLettersToIndex(end);
+                int parsedFirstColumn = ExcelA1.ColumnLettersToIndex(start);
+                int parsedLastColumn = ExcelA1.ColumnLettersToIndex(end);
                 if (parsedFirstColumn <= 0 || parsedLastColumn < parsedFirstColumn) {
                     return false;
                 }
@@ -2436,14 +2436,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static string ToA1Range(LegacyXlsMergedRange mergedRange) {
-            string start = A1.CellReference(mergedRange.StartRow, mergedRange.StartColumn);
-            string end = A1.CellReference(mergedRange.EndRow, mergedRange.EndColumn);
+            string start = ExcelA1.CellReference(mergedRange.StartRow, mergedRange.StartColumn);
+            string end = ExcelA1.CellReference(mergedRange.EndRow, mergedRange.EndColumn);
             return start == end ? start : start + ":" + end;
         }
 
         private static string ToA1Range(LegacyXlsHyperlink hyperlink) {
-            string start = A1.CellReference(hyperlink.StartRow, hyperlink.StartColumn);
-            string end = A1.CellReference(hyperlink.EndRow, hyperlink.EndColumn);
+            string start = ExcelA1.CellReference(hyperlink.StartRow, hyperlink.StartColumn);
+            string end = ExcelA1.CellReference(hyperlink.EndRow, hyperlink.EndColumn);
             return start == end ? start : start + ":" + end;
         }
 

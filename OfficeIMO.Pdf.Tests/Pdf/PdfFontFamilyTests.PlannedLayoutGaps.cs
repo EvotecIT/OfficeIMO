@@ -16,7 +16,7 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A'))
         });
-        var options = new PdfOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = 10 }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily())
             .RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Explicit Mapped Font",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 'A')))

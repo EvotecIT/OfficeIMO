@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOAutomaticMapping() {
             using MemoryStream stream = new MemoryStream(_workbook, writable: false);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(stream);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(stream);
             long sum = 0;
             foreach (ColdStartRecord record in reader.RowsAs<ColdStartRecord>()) sum += record.Id;
             return ColdStartWorkload.Check(sum);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 foreach (ColdStartRecord record in parser.Parse(workbook.FirstSheet)) ColdStartWorkload.ValidateRecord(record, ++rows);
                 if (rows != ColdStartWorkload.Rows) throw new InvalidDataException("Cold parser strategy count differs.");
             }
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook);
             int count = 0;
             foreach (ColdStartRecord record in reader.RowsAs<ColdStartRecord>()) ColdStartWorkload.ValidateRecord(record, ++count);
             if (count != ColdStartWorkload.Rows) throw new InvalidDataException("Cold projection count differs.");

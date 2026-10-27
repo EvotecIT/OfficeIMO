@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel.Xlsb {
             workbook.SharedStringCount = sharedStrings.Count;
             if (workbook.PreservedRecords.Count > 0) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                    "XLSB-RECORDS-PRESERVED",
+                    "xlsb-records-preserved",
                     XlsbImportDiagnosticSeverity.Information,
                     $"Preserved {workbook.PreservedRecords.Count} BIFF12 records that are not yet projected into the normal workbook model."));
             }
@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel.Xlsb {
                 }
 
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                    "XLSB-DEFINED-NAME-PRESERVED",
+                    "xlsb-defined-name-preserved",
                     XlsbImportDiagnosticSeverity.Warning,
                     $"Preserved defined name '{definedName.Name}' without projecting {reason ?? "its formula"}.",
                     partName,
@@ -720,7 +720,7 @@ namespace OfficeIMO.Excel.Xlsb {
                         XlsbWorksheetPrintSettingsReader.ValidatePrinterSettingsRelationship(record, worksheet.PageSetup, worksheetRelationships);
                         if (worksheet.PageSetup.UseFirstPageNumber && worksheet.PageSetup.FirstPageNumber < 0) {
                             workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                                "XLSB-PAGESETUP-FIRST-PAGE-PRESERVED",
+                                "xlsb-pagesetup-first-page-preserved",
                                 XlsbImportDiagnosticSeverity.Warning,
                                 $"Preserved the negative first-page number {worksheet.PageSetup.FirstPageNumber} on worksheet '{worksheet.Name}', which has no equivalent in SpreadsheetML.",
                                 partName,
@@ -785,7 +785,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
             if (worksheet.AutoFilter?.HasUnsupportedContent == true) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                    "XLSB-AUTOFILTER-PARTIAL",
+                    "xlsb-autofilter-partial",
                     XlsbImportDiagnosticSeverity.Warning,
                     $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list subset.",
                     partName));
@@ -802,7 +802,7 @@ namespace OfficeIMO.Excel.Xlsb {
                         int count = checked((int)XlsbFormulaGroup.Read(materialized, 2));
                         if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex)) member.FormulaText = text;
                     } catch (NotSupportedException) {
-                        workbook.AddDiagnostic(new XlsbImportDiagnostic("XLSB-FORMULA-PRESERVED", XlsbImportDiagnosticSeverity.Warning,
+                        workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-formula-preserved", XlsbImportDiagnosticSeverity.Warning,
                             "Preserved an unsupported grouped formula and its cached result.", partName));
                     }
                 }
@@ -828,7 +828,7 @@ namespace OfficeIMO.Excel.Xlsb {
             uint lastRow = cursor.ReadUInt32();
             uint firstColumn = cursor.ReadUInt32();
             uint lastColumn = cursor.ReadUInt32();
-            if (firstRow > lastRow || lastRow >= A1.MaxRows || firstColumn > lastColumn || lastColumn >= A1.MaxColumns) {
+            if (firstRow > lastRow || lastRow >= ExcelA1.MaxRows || firstColumn > lastColumn || lastColumn >= ExcelA1.MaxColumns) {
                 throw new InvalidDataException($"The {recordName} record at offset {record.Offset} contains an invalid worksheet range.");
             }
 
@@ -928,7 +928,7 @@ namespace OfficeIMO.Excel.Xlsb {
             byte flags = cursor.ReadByte();
             if (double.IsNaN(horizontalSplit) || double.IsInfinity(horizontalSplit) || horizontalSplit < 0D
                 || double.IsNaN(verticalSplit) || double.IsInfinity(verticalSplit) || verticalSplit < 0D
-                || topRow >= A1.MaxRows || leftColumn >= A1.MaxColumns || activePane > 3U || (flags & 0xFC) != 0) {
+                || topRow >= ExcelA1.MaxRows || leftColumn >= ExcelA1.MaxColumns || activePane > 3U || (flags & 0xFC) != 0) {
                 throw new InvalidDataException($"The BrtPane record at offset {record.Offset} contains invalid pane metadata.");
             }
 
@@ -953,7 +953,7 @@ namespace OfficeIMO.Excel.Xlsb {
             uint encodedWidth = cursor.ReadUInt32();
             uint styleIndex = cursor.ReadUInt32();
             ushort flags = cursor.ReadUInt16();
-            if (firstColumn > lastColumn || lastColumn >= A1.MaxColumns || encodedWidth > 255U * 256U || (flags & ~0x170F) != 0) {
+            if (firstColumn > lastColumn || lastColumn >= ExcelA1.MaxColumns || encodedWidth > 255U * 256U || (flags & ~0x170F) != 0) {
                 throw new InvalidDataException($"The BrtColInfo record at offset {record.Offset} contains invalid column metadata.");
             }
             ValidateStyleIndex(styleIndex, workbook, $"The BrtColInfo record at offset {record.Offset}");
@@ -984,7 +984,7 @@ namespace OfficeIMO.Excel.Xlsb {
             byte flags = cursor.ReadByte();
             byte phoneticFlags = cursor.ReadByte();
             uint spanCount = cursor.ReadUInt32();
-            if (zeroBasedRow >= A1.MaxRows || (extraFlags & 0xFC) != 0 || (flags & 0x80) != 0 || (phoneticFlags & 0xFE) != 0 || spanCount > 16) {
+            if (zeroBasedRow >= ExcelA1.MaxRows || (extraFlags & 0xFC) != 0 || (flags & 0x80) != 0 || (phoneticFlags & 0xFE) != 0 || spanCount > 16) {
                 throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} contains invalid row metadata.");
             }
             if (cursor.Remaining != checked((int)spanCount * 8)) {
@@ -1007,7 +1007,7 @@ namespace OfficeIMO.Excel.Xlsb {
                 uint firstColumn = cursor.ReadUInt32();
                 uint lastColumn = cursor.ReadUInt32();
                 if (firstColumn > lastColumn
-                    || lastColumn >= A1.MaxColumns
+                    || lastColumn >= ExcelA1.MaxColumns
                     || firstColumn / 1024U != lastColumn / 1024U
                     || firstColumn <= previousLast) {
                     throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} contains an invalid column span.");

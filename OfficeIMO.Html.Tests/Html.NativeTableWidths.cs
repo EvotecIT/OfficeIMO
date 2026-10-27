@@ -11,8 +11,8 @@ public class HtmlNativeTableWidths {
 
     [Fact]
     public void HtmlToWord_DefaultFiveColumnTableFitsSectionAfterSaveAndReopen() {
-        using WordDocument word = HtmlConversionDocument.Parse("<table>" + FiveColumns + "</table>").ToWordDocument();
-        using MemoryStream saved = word.ToStream();
+        using WordDocument word = HtmlConversionDocument.Parse("<table>" + FiveColumns + "</table>").ToWord();
+        using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
         WordSection section = reopened.Sections[0];
@@ -26,14 +26,14 @@ public class HtmlNativeTableWidths {
     [InlineData("style='width:600px'", "", 9000)]
     [InlineData("", "<colgroup><col span='5' style='width:100px'></colgroup>", 7500)]
     public void HtmlToWord_AuthoredTableAndColumnWidthsArePreserved(string attributes, string columns, int width) {
-        using WordDocument word = HtmlConversionDocument.Parse("<table " + attributes + ">" + columns + FiveColumns + "</table>").ToWordDocument();
+        using WordDocument word = HtmlConversionDocument.Parse("<table " + attributes + ">" + columns + FiveColumns + "</table>").ToWord();
         WordTable table = Assert.Single(word.Tables);
         Assert.Equal(width, table.GridColumnWidth.Sum());
     }
 
     [Fact]
     public void HtmlToWord_DefaultNestedTableFitsItsContainingCell() {
-        using WordDocument word = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><table>" + FiveColumns + "</table></td></tr></table>").ToWordDocument();
+        using WordDocument word = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><table>" + FiveColumns + "</table></td></tr></table>").ToWord();
         WordTable outer = Assert.Single(word.Tables);
         WordTableCell containingCell = outer.Rows[0].Cells[1];
         WordTable nested = Assert.Single(containingCell.NestedTables);
@@ -44,10 +44,10 @@ public class HtmlNativeTableWidths {
     [InlineData("style='width:100%'", "")]
     [InlineData("", "<colgroup><col span='5' style='width:20%'></colgroup>")]
     public void HtmlToWord_ListItemNestedTableFitsItsActualHostCell(string attributes, string columns) {
-        using WordDocument word = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><ul><li><table " + attributes + ">" + columns + FiveColumns + "</table></li></ul></td></tr></table>").ToWordDocument();
+        using WordDocument word = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><ul><li><table " + attributes + ">" + columns + FiveColumns + "</table></li></ul></td></tr></table>").ToWord();
         WordTable outer = Assert.Single(word.Tables);
         WordTableCell containingCell = outer.Rows[0].Cells[1];
-        using MemoryStream saved = word.ToStream();
+        using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read);
         using var xml = archive.GetEntry("word/document.xml")!.Open();
         var document = System.Xml.Linq.XDocument.Load(xml);
@@ -76,7 +76,7 @@ public class HtmlNativeTableWidths {
         if (scope == "header") word.AddHtmlToHeader(html);
         else if (scope == "footer") word.AddHtmlToFooter(html);
         else word.AddHtmlToBody(html);
-        using MemoryStream saved = word.ToStream();
+        using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read);
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         int[] widths = archive.Entries.Where(entry => entry.FullName.StartsWith("word/", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
@@ -118,9 +118,9 @@ public class HtmlNativeTableWidths {
         }
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table style='width:" + percent + "%'>" + FiveColumns + "</table></li></ul>");
         if (footer) word.AddHtmlToFooter(html); else word.AddHtmlToHeader(html);
-        using MemoryStream saved = word.ToStream();
+        using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
-        using MemoryStream resaved = reopened.ToStream();
+        using MemoryStream resaved = new System.IO.MemoryStream(reopened.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(resaved, System.IO.Compression.ZipArchiveMode.Read);
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         int[] widths = archive.Entries.Where(entry => entry.FullName.StartsWith(footer ? "word/footer" : "word/header", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
@@ -145,7 +145,7 @@ public class HtmlNativeTableWidths {
         WordParagraph anchor = word.AddParagraph("Second section anchor");
         table.Remove();
         word.InsertTableAfter(anchor, table);
-        using MemoryStream saved = word.ToStream();
+        using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(9000, Assert.Single(reopened.Tables).GridColumnWidth.Sum());
     }

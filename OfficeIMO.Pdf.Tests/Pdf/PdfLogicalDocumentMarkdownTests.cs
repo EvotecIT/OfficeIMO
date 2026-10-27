@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentReadResultTests {
     [Fact]
     public void ToMarkdown_RendersLogicalHeadingsParagraphsListsTablesAndImages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -36,7 +36,7 @@ public partial class PdfDocumentReadResultTests {
             ForceSingleColumn = true
         });
 
-        string markdown = logical.ToMarkdown();
+        string markdown = logical.ExtractMarkdown();
         string normalizedMarkdown = Normalize(markdown);
 
         Assert.Contains("# Logical Heading", markdown, StringComparison.Ordinal);
@@ -53,7 +53,7 @@ public partial class PdfDocumentReadResultTests {
             "|Code|Name|Qty|",
             "[Image:page1");
 
-        string withoutImages = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+        string withoutImages = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
             IncludeImagePlaceholders = false
         });
         Assert.DoesNotContain("[Image:", withoutImages, StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void ToMarkdown_RightAlignsNumericTableColumns() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -82,7 +82,7 @@ public partial class PdfDocumentReadResultTests {
 
         string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
-        }).ToMarkdown();
+        }).ExtractMarkdown();
 
         Assert.Contains("| Item | Qty | Amount |", markdown, StringComparison.Ordinal);
         Assert.Contains("| --- | ---: | ---: |", markdown, StringComparison.Ordinal);
@@ -91,7 +91,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_ExposesColumnProfilesForAdapters() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -131,7 +131,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_RecoversGeneratedHeaderBandForColumnProfiles() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 460,
                 PageHeight = 380,
                 MarginLeft = 36,
@@ -180,7 +180,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_PreservesOrdinaryTwoColumnTableHeaders() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -219,7 +219,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_KeepsMixedNumericFirstRowsAsBodyRows() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 460,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -253,7 +253,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_DoesNotPromoteAnAllTextDataRowWithoutStructuralHeaderEvidence() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 460,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -302,7 +302,7 @@ public partial class PdfDocumentReadResultTests {
                 Array.Empty<PdfUnderstandingLine>(),
                 evidence: new[] {
                     new PdfInferenceEvidence(
-                        "table.header-emphasis",
+                        "table-header-emphasis",
                         "The first row has distinct source typography.",
                         0.9D)
                 }));
@@ -312,12 +312,12 @@ public partial class PdfDocumentReadResultTests {
         Assert.Equal(PdfLogicalTableSchemaKind.HeaderRow, data.Structure.SchemaKind);
         Assert.Equal(new[] { "1", "1", "" }, data.Columns);
         Assert.Equal(new[] { "A", "B", "C" }, data.Rows[0]);
-        Assert.Contains(data.Structure.SchemaEvidence, static evidence => evidence.Code == "table.header-emphasis");
+        Assert.Contains(data.Structure.SchemaEvidence, static evidence => evidence.Code == "table-header-emphasis");
     }
 
     [Fact]
     public void TableAnalysis_UsesDistinctHeaderTypographyWithoutHeaderVocabulary() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 460,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -346,7 +346,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void TableAnalysis_ReportsHeaderlessTwoColumnShapeAsUnknown() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -380,7 +380,7 @@ public partial class PdfDocumentReadResultTests {
         Assert.False(structure.HasHeaderRow);
         Assert.Equal(PdfLogicalTableSchemaKind.Unknown, structure.SchemaKind);
         Assert.Equal(0D, structure.SchemaConfidence);
-        Assert.Contains(structure.SchemaEvidence, static evidence => evidence.Code == "table.schema-unknown");
+        Assert.Contains(structure.SchemaEvidence, static evidence => evidence.Code == "table-schema-unknown");
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table, maxRows: 2);
         Assert.Equal(new[] { "", "" }, data.Columns);
         Assert.Equal(2, data.Rows.Count);
@@ -394,14 +394,14 @@ public partial class PdfDocumentReadResultTests {
         Assert.Equal(table.DetectionKind, extraction.DetectionKind);
         Assert.True(extraction.Data.Truncated);
 
-        string markdown = logical.ToMarkdown();
+        string markdown = logical.ExtractMarkdown();
         Assert.Contains("|  |  |", markdown, StringComparison.Ordinal);
         Assert.Contains("| InvoiceId | INV-001 |", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ToMarkdown_EscapesMarkdownControlSyntaxFromPdfText() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 36,
@@ -416,7 +416,7 @@ public partial class PdfDocumentReadResultTests {
 
         string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
-        }).ToMarkdown();
+        }).ExtractMarkdown();
 
         string normalized = Normalize(markdown);
         Assert.Contains("\\#Literalheadingmarker", normalized, StringComparison.Ordinal);
@@ -427,7 +427,7 @@ public partial class PdfDocumentReadResultTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ToMarkdown_DoesNotDuplicateLeaderRows(bool includeSecondRow) {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 36,
@@ -441,7 +441,7 @@ public partial class PdfDocumentReadResultTests {
 
         string markdown = PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions {
             ForceSingleColumn = true
-        }).ToMarkdown();
+        }).ExtractMarkdown();
 
         Assert.True(CountOccurrences(markdown, "Chapter One") == 1, markdown);
         if (includeSecondRow) Assert.True(CountOccurrences(markdown, "Chapter Two") == 1, markdown);
@@ -451,7 +451,7 @@ public partial class PdfDocumentReadResultTests {
     public void ToMarkdown_RendersDirectDestinationLinkAnnotations() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDirectDestinationLinkPdf());
 
-        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true
         });
 
@@ -462,7 +462,7 @@ public partial class PdfDocumentReadResultTests {
     public void ToMarkdown_RendersNamedActionLinkAnnotations() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildNamedActionLinkPdf());
 
-        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true
         });
 
@@ -473,7 +473,7 @@ public partial class PdfDocumentReadResultTests {
     public void ToMarkdown_RendersRemoteGoToLinkAnnotations() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildRemoteGoToLinkPdf());
 
-        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true
         });
 

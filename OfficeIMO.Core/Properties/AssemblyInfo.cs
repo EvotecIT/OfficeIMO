@@ -47,3 +47,13 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Opml")]
 [assembly: InternalsVisibleTo("OfficeIMO.DocBook")]
 [assembly: InternalsVisibleTo("OfficeIMO.Xps")]
+
+[assembly: InternalsVisibleTo("OfficeIMO")]
+
+[assembly: InternalsVisibleTo("OfficeIMO.Markdown.Html")]
+
+[assembly: InternalsVisibleTo("OfficeIMO.Pdf.Word")]
+
+[assembly: InternalsVisibleTo("OfficeIMO.Pdf.Excel")]
+
+[assembly: InternalsVisibleTo("OfficeIMO.Pdf.PowerPoint")]

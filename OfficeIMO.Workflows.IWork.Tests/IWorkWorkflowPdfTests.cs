@@ -21,9 +21,9 @@ public sealed partial class IWorkWorkflowTests {
         request.ConversionOptions = new() { CompressPdfOutput = true };
         OfficeWorkflowResult result = await runner.RunAsync(request);
         Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
-        Assert.Contains(result.Diagnostics, item => item.Code == "PdfOutputCompression");
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
-        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        Assert.Contains(result.Diagnostics, item => item.Code == "pdf-output-compressed");
+        Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
+        using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(pages, pdf.Pages.Count);
         Assert.Contains(text, pdf.ExtractText());
         Assert.Equal("iwork-editable,pdf", result.ConversionEvidence!.Facts["conversionStages"]);
@@ -41,7 +41,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowRequest request = files.Request("keynote-pdf");
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         request.ConversionOptions = new() { CompressPdfOutput = compress };
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
 
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
 
@@ -67,7 +67,7 @@ public sealed partial class IWorkWorkflowTests {
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("keynote-pdf");
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
 
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
 
@@ -75,14 +75,14 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(files.Output, result.OutputPath);
         byte[] output = File.ReadAllBytes(files.Output);
         Assert.Equal((long)output.Length, result.OutputBytes);
-        PdfReadDocument pdf = PdfReadDocument.Open(output);
+        using PdfDocument pdf = PdfDocument.Load(new MemoryStream(output));
         Assert.Single(pdf.Pages);
         Assert.Equal(string.Concat(text.Where(character => !char.IsWhiteSpace(character))),
             string.Concat(pdf.ExtractText().Where(character => !char.IsWhiteSpace(character))));
         Assert.DoesNotContain(result.ConversionEvidence!.FidelityDiagnostics,
             diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 
@@ -99,18 +99,18 @@ public sealed partial class IWorkWorkflowTests {
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("keynote-pdf");
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal("0", result.ConversionEvidence!.Facts["omittedSourceUnitCount"]);
         Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(2, pdf.Pages.Count);
         Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
         PdfLinkAnnotation[] links = pdf.Pages.SelectMany(page => page.GetLinkAnnotations()).ToArray();
         Assert.NotEmpty(links);
         Assert.All(links, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 
@@ -126,7 +126,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
         Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics,
             diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
-        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(3, pdf.Pages.Count);
         string text = pdf.ExtractText();
         foreach (string expected in new[] { "Slide links", "Go to slide two", "Frame to next slide", "Back to slide one", "Final slide" })
@@ -135,7 +135,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(3, links.Length);
         Assert.Equal(new int?[] { 2, 2, 1 }, links.Select(link => pdf.NamedDestinations.Single(
             destination => destination.Name == link.DestinationName).PageNumber));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 
@@ -147,7 +147,7 @@ public sealed partial class IWorkWorkflowTests {
         settings.PagesPdfOptions.MaxImagesPerParagraph = 0;
         OfficeWorkflowRequest request = files.Request("pages-pdf");
         request.RegisteredConversionSettings = settings;
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Equal("pdf", result.ConversionEvidence!.Facts["conversionFailureStage"]);
@@ -165,7 +165,7 @@ public sealed partial class IWorkWorkflowTests {
         UseCompletePdfFixture(files, source);
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request(route);
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         using var cancellation = new CancellationTokenSource();
         bool reachedPublication = false;
@@ -177,7 +177,7 @@ public sealed partial class IWorkWorkflowTests {
             }), cancellation.Token);
         Assert.True(reachedPublication);
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         Assert.Equal("keep existing", File.ReadAllText(files.Output));
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
@@ -193,10 +193,10 @@ public sealed partial class IWorkWorkflowTests {
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
-        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(pages, pdf.Pages.Count);
         Assert.Contains(text, pdf.ExtractText());
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
         Assert.Equal("iwork-editable,pdf", evidence.Facts["conversionStages"]);
         Assert.Equal("False", evidence.Facts["partialEditableReconstruction"]);
@@ -213,7 +213,7 @@ public sealed partial class IWorkWorkflowTests {
         using var files = new Files("pages", "pdf");
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("pages-pdf");
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         request.RegisteredConversionSettings = new IWorkWorkflowSettings {
             ConversionOptions = new() { Mode = mode, AllowPartialEditableReconstruction = partial, RequireCompleteVisualCoverage = false }
         };
@@ -229,7 +229,7 @@ public sealed partial class IWorkWorkflowTests {
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("pages-pdf");
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         request.Limits.MaximumOutputBytes = 32;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
@@ -260,7 +260,7 @@ public sealed partial class IWorkWorkflowTests {
         settings.KeynotePdfOptions.IncludeTextBoxes = false;
         OfficeWorkflowRequest request = files.Request("keynote-pdf");
         request.RegisteredConversionSettings = settings;
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Contains("content type", result.Summary);
@@ -277,7 +277,7 @@ public sealed partial class IWorkWorkflowTests {
         settings.KeynotePdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
         settings.KeynotePdfOptions.TextFallbacks = PdfTextFallbackFeatures.None;
         request.RegisteredConversionSettings = settings;
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Contains("font", result.Summary, StringComparison.OrdinalIgnoreCase);

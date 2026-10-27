@@ -50,7 +50,7 @@ internal static class RtfPdfMapping {
     }
 
     internal static PdfCore.PdfParagraphStyle ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph,
-        IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfOptions options) {
+        IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfCreateOptions options) {
         paragraph = document.GetParagraphFormatting(paragraph);
 
         int? leftIndent = paragraph.LeftIndentTwips;

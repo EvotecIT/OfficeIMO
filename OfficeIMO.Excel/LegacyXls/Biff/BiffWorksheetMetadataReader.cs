@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (value != 0 && value != 1) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-GRIDSET-VALUE-UNEXPECTED",
+                    "xls-biff-gridset-value-unexpected",
                     $"The GRIDSET record contains unexpected value {value}.",
                     sheetName: sheetName,
                     recordOffset: record.Offset,

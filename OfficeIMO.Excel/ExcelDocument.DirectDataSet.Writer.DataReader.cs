@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 int rowCount = 0;
-                int maximumDataRows = A1.MaxRows - (sheet.IncludeHeaders ? 1 : 0);
+                int maximumDataRows = ExcelA1.MaxRows - (sheet.IncludeHeaders ? 1 : 0);
                 bool canCancel = ct.CanBeCanceled;
                 bool useBulkRead = ExcelSheet.CanUseBulkDataReaderValues(reader);
                 object?[] values = new object?[columnCount];

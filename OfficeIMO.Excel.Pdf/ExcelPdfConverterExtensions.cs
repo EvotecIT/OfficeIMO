@@ -8,26 +8,20 @@ namespace OfficeIMO.Excel.Pdf {
     /// First-party Excel workbook to PDF conversion helpers.
     /// </summary>
     public static partial class ExcelPdfConverterExtensions {
-        /// <summary>
-        /// Converts an Excel workbook to a first-party OfficeIMO PDF document model.
-        /// </summary>
-        public static PdfCore.PdfDocument ToPdfDocument(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocumentResult(options, cancellationToken).Value;
-        }
 
-        private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelToPdfOptions options) {
+
+        private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
             CancellationToken cancellationToken = options.CancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
+            PdfCore.PdfCreateOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
             PdfCore.PdfStandardFont defaultFontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
             // Styled output needs the original serial, including negative sub-day durations
             // and precision that a DateTime carrier cannot preserve.
-            using ExcelDocumentReader reader = document.CreateReader(new ExcelReadOptions {
+            using ExcelDocumentReader reader = document.CreateReader(new ExcelReaderOptions {
                 TreatDatesUsingNumberFormat = !options.UseWorksheetCellStyles
             });
             IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
@@ -114,13 +108,13 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Converts an Excel workbook to a PDF document and returns conversion diagnostics with it.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this ExcelDocument document, ExcelPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            ExcelToPdfOptions operation = (options ?? new ExcelToPdfOptions()).CloneForConversion();
+            ExcelPdfExportOptions operation = (options ?? new ExcelPdfExportOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;
             PdfCore.PdfDocument pdf = ConvertToPdfDocument(document, operation);
             return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
@@ -136,110 +130,23 @@ namespace OfficeIMO.Excel.Pdf {
             return style;
         }
 
-        /// <summary>
-        /// Converts an Excel workbook to PDF bytes.
-        /// </summary>
-        /// <example><code>byte[] pdf = workbook.ToPdfBytes();</code></example>
-        public static byte[] ToPdfBytes(this ExcelDocument document, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocument(options, cancellationToken).ToBytes(cancellationToken);
-        }
 
-        /// <summary>
-        /// Saves an Excel workbook as a PDF file.
-        /// </summary>
-        public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, string path, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-            document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
 
-        /// <summary>
-        /// Attempts to save an Excel workbook as a PDF file and returns output diagnostics instead of throwing.
-        /// </summary>
-        public static PdfCore.PdfSaveResult SaveAsPdfResult(this ExcelDocument document, string path, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-            try {
-                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken);
-            } catch (OperationCanceledException) {
-                throw;
-            } catch (Exception ex) {
-                return PdfCore.PdfSaveResult.FromFailure(path, ex);
-            }
-        }
 
-        /// <summary>
-        /// Writes an Excel workbook as PDF to a stream.
-        /// </summary>
-        public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, Stream stream, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
-            document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
 
-        /// <summary>
-        /// Attempts to write an Excel workbook as PDF to a stream and returns output diagnostics instead of throwing.
-        /// </summary>
-        public static PdfCore.PdfSaveResult SaveAsPdfResult(this ExcelDocument document, Stream stream, ExcelToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-            try {
-                return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken);
-            } catch (OperationCanceledException) {
-                throw;
-            } catch (Exception ex) {
-                return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
-            }
-        }
 
-        /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF at the specified path.</summary>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
-            this ExcelDocument document,
-            string path,
-            ExcelToPdfOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            return await document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken).ConfigureAwait(false);
-        }
 
-        /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF to a caller-owned stream.</summary>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
-            this ExcelDocument document,
-            Stream stream,
-            ExcelToPdfOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            return await document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-        }
 
-        /// <summary>Attempts to asynchronously save an Excel workbook as PDF at the specified path.</summary>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(
-            this ExcelDocument document,
-            string path,
-            ExcelToPdfOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            try {
-                return await document.ToPdfDocumentResult(options, cancellationToken)
-                    .SaveResultAsync(path, cancellationToken)
-                    .ConfigureAwait(false);
-            } catch (OperationCanceledException) {
-                throw;
-            } catch (Exception ex) {
-                return PdfCore.PdfSaveResult.FromFailure(path, ex);
-            }
-        }
 
-        /// <summary>Attempts to asynchronously save an Excel workbook as PDF to a caller-owned stream.</summary>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(
-            this ExcelDocument document,
-            Stream stream,
-            ExcelToPdfOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            try {
-                return await document.ToPdfDocumentResult(options, cancellationToken)
-                    .SaveResultAsync(stream, cancellationToken)
-                    .ConfigureAwait(false);
-            } catch (OperationCanceledException) {
-                throw;
-            } catch (Exception ex) {
-                return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
-            }
-        }
+
+
+
+
+
+
+
+
+
 
 
 

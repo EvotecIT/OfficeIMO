@@ -39,10 +39,10 @@ public partial class Word {
         first.AvoidWidowAndOrphanOverride = rule == "widow";
         table.MergeCells(0, 0, 3, 1, copyParagraphs: true);
         Assert.Empty(document.ValidateDocument());
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(300, 140),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 140),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, word.Text))).ToArray();
         int PageOf(string marker) => Assert.Single(words, word => word.Text == marker).Number;
         if (rule == "next") Assert.Equal(PageOf("First3"), PageOf("Second1"));
@@ -58,7 +58,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(3, 2);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
@@ -78,10 +78,10 @@ public partial class Word {
         }
         table.MergeCells(0, 0, 3, 1, copyParagraphs: true);
         Assert.Empty(document.ValidateDocument());
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(300, 120),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 120),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.True(pdf.NumberOfPages > 1);
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, Word: word))).ToArray();
         for (int token = 1; token <= paragraphsPerRow * 3; token++) {

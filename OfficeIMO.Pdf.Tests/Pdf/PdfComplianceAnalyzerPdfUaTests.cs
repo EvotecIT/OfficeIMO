@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void PdfUaReadinessReportsLanguageAndAccessibilityGaps() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             Language = "en-US",
             IncludeStandardFontToUnicodeMaps = true
@@ -55,7 +55,7 @@ public partial class PdfComplianceAnalyzerTests {
     [InlineData("English")]
     [InlineData("en_US")]
     public void PdfUaReadinessRejectsInvalidLanguageTags(string language) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             Language = language,
             IncludeStandardFontToUnicodeMaps = true
@@ -73,7 +73,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfUaReadinessRecognizesTaggedCatalogMarkersWithoutClaimingFullStructure() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             Language = "en-US",
             IncludeStandardFontToUnicodeMaps = true
@@ -115,7 +115,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfUaGroundworkHelperSatisfiesConfigurableAccessibilityReadinessWithoutEnablingProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfUaGroundwork("en-US");
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, options);
@@ -139,7 +139,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfUaReadinessReportsViewerDisplayTitlePreference() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             Language = "en-US",
             IncludeStandardFontToUnicodeMaps = true,
             ViewerPreferences = new PdfViewerPreferencesOptions {
@@ -154,7 +154,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfUaReadinessReportsMissingIdentification() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             Language = "en-US",
             IncludeStandardFontToUnicodeMaps = true
         };

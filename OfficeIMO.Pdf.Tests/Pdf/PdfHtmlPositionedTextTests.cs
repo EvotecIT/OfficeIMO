@@ -28,6 +28,6 @@ public sealed class PdfHtmlPositionedTextTests {
         Assert.Equal("rgb(12,34,56)", (string?)text.Attribute("fill"));
         Assert.Equal(document.Pages[0].TextBlocks.SelectMany(b => b.Spans).Distinct().Count(s => s.IsVisible && s.Text.Length > 0),
             svg.Descendants(ns + "text").Count());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PositionedFontSubstitution);
     }
 }

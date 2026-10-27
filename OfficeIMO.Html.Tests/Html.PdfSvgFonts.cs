@@ -24,7 +24,7 @@ public sealed class HtmlPdfSvgFontTests {
         string html = "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='80' " + rootAttributes + ">"
             + beforeText + "<text x='8' y='30' font-family='Chart Unicode' font-size='20'>" + PolishText + "</text>" + afterText + "</svg>";
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains(PolishText, pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -39,7 +39,7 @@ public sealed class HtmlPdfSvgFontTests {
         const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><svg width='200' height='60'><text x='5' y='30'>ęłź</text></svg></svg>";
 
         HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+            (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes());
         Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-text-glyph"
             && diagnostic.Severity == HtmlDiagnosticSeverity.Error
             && diagnostic.LossKind == OfficeConversionLossKind.Failure

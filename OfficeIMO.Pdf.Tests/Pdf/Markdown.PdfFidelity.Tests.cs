@@ -14,12 +14,12 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData("日本語のテキスト。 中文文本。")]
     [InlineData("العربية עברית")]
     public void DefaultExportUsesMultilingualFallbacksAndPreservesCoveredLogicalText(string text) {
-        Assert.True((new MarkdownToPdfOptions().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
+        Assert.True((new MarkdownPdfExportOptions().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
         // Installed candidates establish available scalar coverage. Complete shaping
         // is verified separately with a pinned font rather than inferred from coverage.
-        var fallback = new PdfOptions().UseTextFallbacks().EmbeddedFontFallbacks;
+        var fallback = new PdfCreateOptions().UseTextFallbacks().EmbeddedFontFallbacks;
         if (fallback == null || !fallback.PlanText(text).IsFullyCovered) return;
-        var conversion = MarkdownReader.Parse(text).ToPdfDocumentResult();
+        var conversion = MarkdownDocument.Parse(text).ConvertToPdfWithEvidence();
         byte[] bytes = conversion.ToBytes();
         Assert.NotEmpty(bytes);
         Assert.Contains(text, PdfReadDocument.Open(bytes).ExtractText());
@@ -29,13 +29,13 @@ public sealed class MarkdownPdfFidelityTests {
     public void ExplicitNotoArabicFontPreservesLogicalTextWithoutUnsupportedShapingWarnings() {
         const string text = "مرحبا بالعالم";
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "NotoSansArabic-Regular.ttf"));
-        var options = new MarkdownToPdfOptions {
-            PdfOptions = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Noto Arabic"),
+        var options = new MarkdownPdfExportOptions {
+            PdfOptions = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Noto Arabic"),
             TextFallbacks = PdfTextFallbackFeatures.None,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
 
-        PdfDocumentConversionResult conversion = MarkdownReader.Parse(text).ToPdfDocumentResult(options);
+        PdfDocumentConversionResult conversion = MarkdownDocument.Parse(text).ConvertToPdfWithEvidence(options);
         byte[] bytes = conversion.ToBytes();
 
         Assert.Equal(text, PdfReadDocument.Open(bytes).ExtractText().Trim());
@@ -49,17 +49,17 @@ public sealed class MarkdownPdfFidelityTests {
         var options = new RtfToPdfOptions();
         Assert.True((options.Clone().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
         const string text = "日本語のテキスト。 中文文本。";
-        var fallback = new PdfOptions().UseTextFallbacks().EmbeddedFontFallbacks;
+        var fallback = new PdfCreateOptions().UseTextFallbacks().EmbeddedFontFallbacks;
         if (fallback == null || !fallback.PlanText(text).IsFullyCovered) return;
         var document = RtfDocument.Create();
         document.AddParagraph(text);
-        Assert.Contains("中文文本", PdfReadDocument.Open(document.ToPdfBytes()).ExtractText());
+        Assert.Contains("中文文本", PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText());
     }
 
     [Fact]
     public void CodeBlocksKeepLeadingSpacesTabsAndRepeatedWhitespaceWithoutChangingProse() {
-        var document = MarkdownReader.Parse("```text\nROOT\n    SPACE  GAP\n\tTAB\n\t\tDEEP\n```\n\nProse   normal.");
-        using var pdf = PdfPig.Open(document.ToPdfBytes(new MarkdownToPdfOptions { TextFallbacks = PdfTextFallbackFeatures.None }));
+        var document = MarkdownDocument.Parse("```text\nROOT\n    SPACE  GAP\n\tTAB\n\t\tDEEP\n```\n\nProse   normal.");
+        using var pdf = PdfPig.Open((document.ToPdf(new MarkdownPdfExportOptions { TextFallbacks = PdfTextFallbackFeatures.None })).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         var root = letters.First(l => l.Value == "R");
         var space = letters.First(l => l.Value == "S");
@@ -79,7 +79,7 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData("Body `WiMi` end.")]
     [InlineData("| H |\n| --- |\n| `WiMi` |")]
     public void InlineCodeUsesTheCodeBlockMonospaceFamily(string source) {
-        using var pdf = PdfPig.Open(MarkdownReader.Parse(source).ToPdfBytes(new MarkdownToPdfOptions { TextFallbacks = PdfTextFallbackFeatures.None }));
+        using var pdf = PdfPig.Open((MarkdownDocument.Parse(source).ToPdf(new MarkdownPdfExportOptions { TextFallbacks = PdfTextFallbackFeatures.None })).ToBytes());
         var code = pdf.GetPage(1).Letters.Where(l => "WiMi".Contains(l.Value) && l.Value.Length == 1).ToArray();
         Assert.Equal(4, code.Length);
         Assert.All(code, letter => Assert.Contains("Courier", letter.FontName));
@@ -91,7 +91,7 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData(true)]
     public void FootnoteReferenceIsSuperscriptWithDestinationAndDefinitionFollowsBody(bool table) {
         string lead = table ? "| Header |\n| --- |\n| Body[^1]. |" : "Body[^1].";
-        var result = MarkdownReader.Parse(lead + "\n\n[^1]: Data source: dashboard.\n\nTail.").ToPdfDocumentResult();
+        var result = MarkdownDocument.Parse(lead + "\n\n[^1]: Data source: dashboard.\n\nTail.").ConvertToPdfWithEvidence();
         byte[] bytes = result.ToBytes();
         using var pdf = PdfPig.Open(bytes);
         var letters = pdf.GetPage(1).Letters;
@@ -111,8 +111,8 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Svg)]
     public void MarkdownPageImagesUseSerializedPdfPaginationAndGeometry(OfficeImageExportFormat format) {
-        var conversion = MarkdownReader.Parse("# First\n\n```text\n    Indented\n```\n\n" + string.Join("\n\n", Enumerable.Repeat("A paragraph with `code` and a note[^1].", 30)) + "\n\n[^1]: Data source: dashboard.")
-            .ToPdfDocumentResult(new MarkdownToPdfOptions { PdfOptions = new PdfOptions { PageWidth = 300, PageHeight = 300, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20 } });
+        var conversion = MarkdownDocument.Parse("# First\n\n```text\n    Indented\n```\n\n" + string.Join("\n\n", Enumerable.Repeat("A paragraph with `code` and a note[^1].", 30)) + "\n\n[^1]: Data source: dashboard.")
+            .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageWidth = 300, PageHeight = 300, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20 } });
         var options = new PdfImageExportOptions { TargetDpi = 72 };
         var direct = conversion.ToImages(options).As(format).Export();
         var reopened = PdfReadDocument.Open(conversion.ToBytes());

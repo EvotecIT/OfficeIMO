@@ -11,7 +11,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(false)]
     [InlineData(true)]
     public void KeepWithNextRetainsOnlyTheTerminalParagraphsFirstLegalFragment(bool inherited) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         var kept = NoteLineStyle(20);
         kept.KeepWithNext = true;
         if (inherited) options.DefaultParagraphStyle = kept;
@@ -41,7 +41,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(false, 4D, 4, 3)]
     public void DecoratedNoteFragmentsReserveTheirActualPaddingAndPreserveTheCapturedStyle(
         bool repeat, double inset, int pages, int markerPage) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageHeight = 200;
         var panelStyle = new PdfPanelStyle {
             Background = PdfColor.FromRgb(255, 255, 0), BorderColor = PdfColor.Black,
@@ -113,7 +113,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(false)]
     [InlineData(true)]
     public void DecoratedNotesStillRejectEffectiveAnchoredContent(bool inherited) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         var unsupported = new PdfPanelStyle {
             AnchoredCanvas = new PdfCanvasBlock(new PdfPageCanvas().ForegroundImage(PdfPngTestImages.Create16BitRgbPng(), 0, 0, 4, 4).Items)
         };
@@ -129,7 +129,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("Rule", false)]
     [InlineData("Rule", true)]
     public void NonTextNoteKeepsRetainTheirFollowingParagraph(string kind, bool inherited) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         var imageStyle = new PdfImageStyle { KeepWithNext = true, SpacingBefore = 0, SpacingAfter = 0 };
         var ruleStyle = new PdfHorizontalRuleStyle { KeepWithNext = true, Thickness = 20, SpacingBefore = 0, SpacingAfter = 0 };
         if (inherited) {

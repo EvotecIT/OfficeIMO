@@ -44,11 +44,11 @@ Second overlapping box
         using (bounded.Value)
         using (explicitCollisionScan.Value) {
             Assert.DoesNotContain(bounded.Report.Preflight.Findings,
-                finding => finding.Code == "Layout.ShapeCollision");
+                finding => finding.Code == "layout-shape-collision");
             Assert.Contains(explicitCollisionScan.Report.Preflight.Findings,
-                finding => finding.Code == "Layout.ShapeCollision");
+                finding => finding.Code == "layout-shape-collision");
             Assert.Contains(explicitCollisionScan.Report.FidelityDiagnostics,
-                diagnostic => diagnostic.Code == "Layout.ShapeCollision" &&
+                diagnostic => diagnostic.Code == "layout-shape-collision" &&
                               diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(explicitCollisionScan.Report.HasLoss);
         }

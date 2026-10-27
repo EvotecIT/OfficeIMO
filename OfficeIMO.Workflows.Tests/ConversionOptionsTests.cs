@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Pdf;
@@ -7,14 +8,17 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ConversionOptionsTests {
     [Fact]
-    public void FluentSettingsRemainIndependentOfCallerAndBuiltRequests() {
-        var settings = new OfficeWorkflowConversionOptions { PageRanges = "2", WordMode = PdfWordImportMode.VisualPages };
-        var builder = OfficeWorkflow.Convert("input.pdf").To("output.docx").WithConversionOptions(settings);
-        settings.PageRanges = "1";
-        var first = builder.Build();
-        Assert.Equal("2", first.ConversionOptions!.PageRanges);
-        first.ConversionOptions.PageRanges = "3";
-        Assert.Equal("2", builder.Build().ConversionOptions!.PageRanges);
+    public void ClonedConversionSettingsRetainIndependentFormatOptions() {
+        var settings = new OfficeConversionOptions {
+            PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
+            PdfWord = WordPdfImportOptions.CreateVisualPages()
+        };
+        OfficeConversionOptions first = settings.Clone();
+        settings.PdfLoad.PageSelection = PdfPageSelection.Parse("1");
+        Assert.Equal("2", first.PdfLoad!.PageSelection!.ToString());
+        OfficeConversionOptions second = first.Clone();
+        first.PdfLoad.PageSelection = PdfPageSelection.Parse("3");
+        Assert.Equal("2", second.PdfLoad!.PageSelection!.ToString());
     }
 
     [Theory]
@@ -24,31 +28,50 @@ public sealed class ConversionOptionsTests {
     public void RouteCapabilitiesAndInvalidOptionsHaveOneOwner(string id, bool pages) {
         var route = OfficeWorkflowCatalog.ExecutableRoutes.Single(item => item.Id == id);
         Assert.Equal(pages, route.SupportsPageSelection);
-        Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionOptions { RasterDpi = 144 }.Snapshot(route));
-        Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionOptions { WordMode = (PdfWordImportMode)999 }.Snapshot(route));
-        if (!pages) Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionOptions { PageRanges = "1" }.Snapshot(route));
-        if (!route.SupportsPdfCompression) Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionOptions { CompressPdfOutput = true }.Snapshot(route));
+        Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
+            PdfWord = new WordPdfImportOptions { Dpi = 144 }
+        }).Snapshot(route));
+        Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
+            PdfWord = new WordPdfImportOptions { Mode = (WordPdfImportMode)999 }
+        }).Snapshot(route));
+        if (!pages) Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
+            PdfLoad = "1" == null ? null : new OfficeIMO.Pdf.PdfLoadOptions { PageSelection = OfficeIMO.Pdf.PdfPageSelection.Parse("1") }
+        }).Snapshot(route));
+        if (!route.SupportsPdfCompression) Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
+            CompressPdfOutput = true
+        }).Snapshot(route));
     }
 
     [Theory]
-    [InlineData(PdfWordImportMode.EditableContent)]
-    [InlineData(PdfWordImportMode.VisualPages)]
-    public async Task WordRouteAppliesSelectedPageAndContentModeToPublishedArtifact(PdfWordImportMode mode) {
+    [InlineData(WordPdfImportMode.EditableContent)]
+    [InlineData(WordPdfImportMode.VisualPages)]
+    public async Task WordRouteAppliesSelectedPageAndContentModeToPublishedArtifact(WordPdfImportMode mode) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-conversion-options-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             string input = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "result.docx");
             File.WriteAllBytes(input, Source().ToBytes());
-            var result = await new OfficeWorkflowRunner().RunAsync(OfficeWorkflow.Convert(input).To(output)
-                .WithConversionOptions(new() { PageRanges = "2", WordMode = mode, RasterDpi = mode == PdfWordImportMode.VisualPages ? 72 : null }).Build());
+            var result = await new OfficeWorkflowRunner().RunAsync(((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionOptions = (new OfficeConversionOptions() {
+                    PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
+                    PdfWord = new WordPdfImportOptions { Mode = mode, Dpi = mode == WordPdfImportMode.VisualPages ? 72 : 144 }
+                }
+
+    ).Clone()
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+            })));
             Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary + string.Join(" ", result.Diagnostics.Select(d => d.Message)));
             using var package = WordprocessingDocument.Open(output, false);
             string text = package.MainDocumentPart!.Document!.InnerText;
-            if (mode == PdfWordImportMode.VisualPages) {
+            if (mode == WordPdfImportMode.VisualPages) {
                 Assert.Single(package.MainDocumentPart!.ImageParts);
                 Assert.DoesNotContain("Second", text);
-                Assert.Contains(result.Diagnostics, d => d.Code == "VisualPagesNotEditable"
-                    && d.Details["source"] == "OfficeIMO.Word.Pdf" && d.Details["lossKind"] == "Approximation");
+                Assert.Contains(result.Diagnostics, d => d.Code == "visual-pages-not-editable"
+                    && d.Details["source"] == "OfficeIMO.Pdf.Word" && d.Details["lossKind"] == "Approximation");
             } else {
                 Assert.Contains("Second", text);
                 Assert.DoesNotContain("First", text);
@@ -84,10 +107,20 @@ public sealed class ConversionOptionsTests {
         try {
             string input = Path.Combine(root, "source.html"), output = Path.Combine(root, "result.pdf");
             File.WriteAllText(input, "<p>Conversion compression contract</p>", Encoding.UTF8);
-            var result = await new OfficeWorkflowRunner().RunAsync(OfficeWorkflow.Convert(input).To(output)
-                .WithConversionOptions(new() { CompressPdfOutput = true }).Build());
+            var result = await new OfficeWorkflowRunner().RunAsync(((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionOptions = (new OfficeConversionOptions() {
+                    CompressPdfOutput = true
+                }
+
+    ).Clone()
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+            })));
             Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
-            Assert.Contains(result.Diagnostics, d => d.Code == "PdfOutputCompression");
+            Assert.Contains(result.Diagnostics, d => d.Code == "pdf-output-compressed");
             Assert.Contains("Conversion compression contract", PdfDocument.Load(output).Reader.Text());
         } finally { Directory.Delete(root, true); }
     }
@@ -105,13 +138,33 @@ public sealed class ConversionOptionsTests {
                 word.Save();
             }
             var runner = new OfficeWorkflowRunner();
-            var baseline = await runner.RunAsync(OfficeWorkflow.Convert(input).To(original).WithProfile(OfficeWorkflowOutputProfile.Lightweight).Build());
+            var baseline = await runner.RunAsync(((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = original,
+                OutputProfile = OfficeConversionProfile.Lightweight
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(original), executableOnly: true)?.Id
+            })));
             Assert.Equal(OfficeWorkflowStatus.Completed, baseline.Status);
             long originalBytes = new FileInfo(original).Length;
-            var result = await runner.RunAsync(OfficeWorkflow.Convert(input).To(output)
-                .WithProfile(OfficeWorkflowOutputProfile.Lightweight)
-                .WithLimits(1024 * 1024, tightLimit ? originalBytes : 1024 * 1024)
-                .WithConversionOptions(new() { CompressPdfOutput = true }).Build());
+            var result = await runner.RunAsync(((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                OutputProfile = OfficeConversionProfile.Lightweight,
+                Limits = new OfficeOperationLimits {
+                    MaximumInputBytes = 1024 * 1024,
+                    MaximumOutputBytes = tightLimit ? originalBytes : 1024 * 1024
+                },
+                ConversionOptions = (new OfficeConversionOptions() {
+                    CompressPdfOutput = true
+                }
+
+    ).Clone()
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+            })));
             Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary + string.Join(" ", result.Diagnostics.Select(d => d.Message)));
             Assert.InRange(new FileInfo(output).Length, 1, originalBytes);
             Assert.Contains("x", PdfDocument.Load(output).Reader.Text());

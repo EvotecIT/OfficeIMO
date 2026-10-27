@@ -177,7 +177,7 @@ public class PdfSequentialColumnFlowTests {
         Assert.InRange(X(read, 1, "Row8Line3"), 259.9, 260.1);
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
         MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false
     };

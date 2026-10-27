@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
 
                 int startRow = _chartDataNextRow;
                 long nextRow = (long)startRow + slotRows;
-                if (nextRow - 1L > A1.MaxRows) {
+                if (nextRow - 1L > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Chart data exceeds Excel's worksheet row limit.");
                 }
                 _chartDataNextRow = checked((int)nextRow);
@@ -72,14 +72,14 @@ namespace OfficeIMO.Excel {
                 if (liveReferences.Any(reference => reference.Intersects(range))) continue;
                 range.GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
                 dataSheet.ClearRange(
-                    A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn),
+                    ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow, lastColumn),
                     ExcelClearOptions.All);
             }
             if (obsolete.Count == 1
                 && obsolete[0].Equals(current)
                 && !liveReferences.Any(reference => reference.Intersects(current))) {
                 current.GetBounds(out int firstRow, out _, out int lastRow, out _);
-                int releaseLastRow = Math.Min(A1.MaxRows, checked(lastRow + 2));
+                int releaseLastRow = Math.Min(ExcelA1.MaxRows, checked(lastRow + 2));
                 foreach (ExcelReference reference in liveReferences) {
                     reference.GetBounds(out int liveFirstRow, out _, out _, out _);
                     if (liveFirstRow > lastRow && liveFirstRow <= releaseLastRow) {
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
             void Add(int r1, int c1, int r2, int c2) {
                 if (r1 > r2 || c1 > c2) return;
                 ranges.Add(ExcelReference.Parse(
-                    A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, c2)));
+                    ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(r2, c2)));
             }
             Add(currentFirstRow, currentFirstColumn, firstRow - 1, currentLastColumn);
             Add(lastRow + 1, currentFirstColumn, currentLastRow, currentLastColumn);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
 
         private static int CalculateInitialChartDataRow(ExcelSheet sheet) {
             string used = sheet.UsedRangeA1;
-            var (r1, c1, r2, c2) = A1.ParseRange(used);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(used);
             if (r2 <= 1 && c2 <= 1) {
                 if (!sheet.TryGetCellText(1, 1, out var text) || string.IsNullOrEmpty(text)) {
                     return 1;

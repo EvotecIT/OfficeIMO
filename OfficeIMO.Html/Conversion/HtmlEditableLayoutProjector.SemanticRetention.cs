@@ -290,7 +290,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
         string backgroundColor = style.GetValue("background-color").Trim();
         if (backgroundColor.Length > 0
-            && HtmlRenderCssValues.TryColor(backgroundColor, out OfficeIMO.Drawing.OfficeColor parsedBackground)
+            && HtmlRenderCssValues.TryColor(backgroundColor, out OfficeIMO.OfficeColor parsedBackground)
             && parsedBackground.A < byte.MaxValue) {
             effects.Add(prefix + "background-color=" + backgroundColor);
         }
@@ -419,7 +419,7 @@ public static partial class HtmlEditableLayoutProjector {
             && colorValue.Length == 0 && offsetValue.Length == 0) return;
         if (!HtmlCssBoxStrokeParser.TryParseOutline(
                 style, 100D, 16D, 16D, 100D, 100D,
-                OfficeIMO.Drawing.OfficeColor.Black,
+                OfficeIMO.OfficeColor.Black,
                 out double width, out string outlineStyle, out _, out _, out _, out string detail)) {
             effects.Add(prefix + (detail.Length > 0 ? detail : "outline=unsupported"));
             return;

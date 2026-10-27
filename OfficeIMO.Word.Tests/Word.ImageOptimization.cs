@@ -96,7 +96,7 @@ public class WordImageOptimizationTests {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph(), 96, 48);
         image.CropLeft = 49998; image.CropRight = 50001;
-        Assert.Throws<NotSupportedException>(() => word.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 
     [Fact]
@@ -271,13 +271,13 @@ public class WordImageOptimizationTests {
     public void SupportedLegacyInlinePictureCanBeOptimizedAndWrittenBack() {
         using WordDocument word = WordDocument.Create();
         Insert(word.AddParagraph("Picture"), 96, 48);
-        using var source = new MemoryStream(word.ToBytes(WordFileFormat.Doc));
+        using var source = new MemoryStream(word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument legacy = WordDocument.Load(source);
         var report = legacy.OptimizeImages(new WordImageOptimizationOptions {
             Mode = OfficeImageOptimizationMode.Recompress, JpegQuality = 35
         });
         Assert.Equal(1, report.OptimizedCount);
-        using var saved = new MemoryStream(legacy.ToBytes(WordFileFormat.Doc));
+        using var saved = new MemoryStream(legacy.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(800, OfficeImageReader.Identify(reopened.Images[0].ToBytes()).Width);
         Assert.True(reopened.Images[0].ToBytes().Length < word.Images[0].ToBytes().Length);
@@ -288,13 +288,13 @@ public class WordImageOptimizationTests {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph("Cropped picture"), 96, 48);
         image.CropLeft = 25000; image.CropRight = 25000; image.CropTop = 12500;
-        using var source = new MemoryStream(word.ToBytes(WordFileFormat.Doc));
+        using var source = new MemoryStream(word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument imported = WordDocument.Load(source);
         Assert.Equal(25000, imported.Images[0].CropLeft);
         Assert.Equal(12500, imported.Images[0].CropTop);
         var report = imported.OptimizeImages(new() { TargetDpi = 96, KeepOriginalWhenNotSmaller = false });
         Assert.Equal(192, Assert.Single(report.Images).Final.Width);
-        using var saved = new MemoryStream(imported.ToBytes(WordFileFormat.Doc));
+        using var saved = new MemoryStream(imported.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(25000, reopened.Images[0].CropLeft);
         Assert.Equal(25000, reopened.Images[0].CropRight);
@@ -307,13 +307,13 @@ public class WordImageOptimizationTests {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph("Text stays text"), 192, 96);
         byte[] source = image.ToBytes();
-        byte[] pdf = word.ToPdfBytes(new WordToPdfOptions {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+        byte[] pdf = word.ToPdf(new WordPdfExportOptions {
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                 ImageOptimization = new OfficeIMO.Pdf.PdfImageOptimizationOptions {
                     Enabled = true, Mode = OfficeImageOptimizationMode.Recompress, JpegQuality = 35
                 }
             }
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var exported = Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal(800, exported.Width);
         Assert.True(exported.Bytes.Length < source.Length);

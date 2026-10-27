@@ -38,7 +38,7 @@ public partial class Excel {
             RowIndex = 1U
         });
 
-        byte[] payload = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] payload = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(payload, writable: false));
 
         Assert.True(loaded["Duplicates"].TryGetCellText(1, 1, out string? value));
@@ -57,7 +57,7 @@ public partial class Excel {
             RowIndex = 1U
         });
 
-        byte[] payload = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] payload = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(payload, writable: false));
 
         Assert.False(loaded["Duplicates"].TryGetCellText(1, 1, out _));

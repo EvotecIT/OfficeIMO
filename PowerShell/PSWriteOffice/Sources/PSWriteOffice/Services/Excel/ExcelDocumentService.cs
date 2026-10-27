@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.Core.Internal;
 using PSWriteOffice.Services;
 
 namespace PSWriteOffice.Services.Excel;
@@ -19,7 +20,7 @@ internal static partial class ExcelDocumentService
     }
 
     public static ExcelDocument CreateFromTemplate(string templatePath, string destinationPath) {
-        var document = ExcelDocument.CreateFromTemplate(templatePath);
+        var document = ExcelDocument.Create(new ExcelCreateOptions { Template = templatePath });
         UpdateSaveAssociation(document, destinationPath, encrypted: false);
         return document;
     }
@@ -51,12 +52,11 @@ internal static partial class ExcelDocumentService
             throw new ArgumentException("File path cannot be empty.", nameof(filePath));
         }
 
-        return ExcelDocument.CreateFromTemplate(
-            Path.GetFullPath(templatePath),
+        return ExcelDocument.Create(
             Path.GetFullPath(filePath),
-            new ExcelTemplateCreateOptions
+            new ExcelCreateOptions
             {
-                Overwrite = true,
+                Template = Path.GetFullPath(templatePath),
                 PersistenceMode = autoSave ? DocumentPersistenceMode.SaveOnDispose : DocumentPersistenceMode.Explicit
             });
     }
@@ -73,10 +73,10 @@ internal static partial class ExcelDocumentService
             throw new ArgumentException("Destination path cannot be empty.", nameof(destinationPath));
         }
 
-        ExcelDocument.CopyPackage(
-            Path.GetFullPath(sourcePath),
-            Path.GetFullPath(destinationPath),
-            overwrite: overwrite);
+        using var document = ExcelDocument.Load(Path.GetFullPath(sourcePath), new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadWrite, PersistenceMode = DocumentPersistenceMode.Explicit
+        });
+        OfficeFileOutput.Write(Path.GetFullPath(destinationPath), overwrite, temporaryPath => document.SaveCopy(temporaryPath));
     }
 
     public static ExcelDocument LoadDocument(string filePath, bool readOnly, bool autoSave, string? password = null)
@@ -109,11 +109,10 @@ internal static partial class ExcelDocumentService
             throw new NotSupportedException("Encrypted remote workbook loads are not supported.");
         }
 
-        return ExcelDocument.LoadAsync(
-            uri,
-            ExcelHttpLoadService.CreateOptions(allowHttp),
-            CreateLoadOptions(readOnly, autoSave: false),
-            cancellationToken);
+        var options = ExcelHttpLoadService.CreateOptions(allowHttp);
+        options.AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite;
+        options.PersistenceMode = DocumentPersistenceMode.Explicit;
+        return ExcelDocument.LoadAsync(uri, options, cancellationToken);
     }
 
     public static void SaveDocument(ExcelDocument document, bool show, string? filePath, string? password = null, ExcelSaveOptions? saveOptions = null)

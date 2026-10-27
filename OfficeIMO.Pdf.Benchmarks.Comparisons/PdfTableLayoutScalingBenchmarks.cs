@@ -32,7 +32,7 @@ public class PdfTableLayoutScalingBenchmarks {
     public void Setup() {
         BenchmarkAffinityGuard.Validate();
         _rows = CreateRows(RecordCount, CellMode);
-        _style = TableStyles.TableGrid();
+        _style = PdfTableStyles.TableGrid();
         _style.HeaderRowCount = 1;
         _style.RepeatHeaderRowCount = 1;
         _style.ColumnWidthPoints = new List<double?> { 54D, 58D, 72D, 80D, 72D, 78D, 54D };
@@ -48,7 +48,7 @@ public class PdfTableLayoutScalingBenchmarks {
 
     [Benchmark]
     public byte[] ComposeTablePdf() {
-        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Table(_rows, style: _style)), new PdfOptions {
+        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Table(_rows, style: _style)), new PdfCreateOptions {
             PageWidth = 612D,
             PageHeight = 792D,
             MarginLeft = 54D,

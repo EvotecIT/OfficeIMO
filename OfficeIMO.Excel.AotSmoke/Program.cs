@@ -32,7 +32,7 @@ try {
             ExcelDataSetImportResult dataReaderResult = ExcelDocument.WriteDataReader(
                 dataReaderPackage,
                 dataReader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     CreateTable = true,
                     TableName = "AotDataReader",
                     IncludeCellReferences = false,
@@ -44,7 +44,7 @@ try {
             }
 
             dataReaderPackage.Position = 0;
-            using ExcelWorkbookDataReader dataReaderWorkbook = ExcelDocument.OpenDataReader(dataReaderPackage);
+            using ExcelWorkbookDataReader dataReaderWorkbook = ExcelDocument.OpenReader(dataReaderPackage);
             if (!dataReaderWorkbook.Read() || dataReaderWorkbook.GetString(0) != "North" ||
                 !dataReaderWorkbook.Read() ||
                 Convert.ToDecimal(dataReaderWorkbook.GetValue(1), System.Globalization.CultureInfo.InvariantCulture) != 980000M) {

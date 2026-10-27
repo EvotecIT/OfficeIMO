@@ -1,6 +1,6 @@
 using OfficeIMO.Markdown;
 
-string markdown = MarkdownDoc.Create()
+string markdown = MarkdownDocument.Create()
     .H1("OfficeIMO NativeAOT")
     .P("Markdown rendering is executing inside the published native binary.")
     .ToMarkdown();

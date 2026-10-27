@@ -15,18 +15,7 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        /// <summary>
-        /// Creates a new Excel document with a single worksheet.
-        /// </summary>
-        /// <param name="filePath">Path to the new file.</param>
-        /// <param name="worksheetName">Name of the worksheet.</param>
-        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(string filePath, string worksheetName) {
-            ExcelDocument excelDocument = Create(filePath);
-            // Prefer a sanitized sheet name for convenience in the common Create(path, name) flow
-            excelDocument.AddWorksheet(worksheetName, ExcelSheetNameValidationMode.Sanitize);
-            return excelDocument;
-        }
+
 
         /// <summary>
         /// Adds a worksheet to the document.

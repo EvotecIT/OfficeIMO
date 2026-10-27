@@ -24,7 +24,7 @@ public partial class Word {
         string sourceXml = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         double originalWidth = TableLayoutContractPdfWidth(source);
         Assert.Equal(sourceXml, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(WordTableLayoutMode.AutoFit, native.Tables[0].LayoutMode);
         Assert.Equal(originalWidth, TableLayoutContractPdfWidth(native), 2);
         table._tableProperties.TableLayout = new W.TableLayout { Type = W.TableLayoutValues.Autofit };
@@ -32,7 +32,7 @@ public partial class Word {
     }
 
     private static double TableLayoutContractPdfWidth(WordDocument document) {
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var boxes = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
             .Where(box => box.HasValue).Select(box => box!.Value).ToArray();

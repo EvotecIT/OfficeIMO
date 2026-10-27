@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double MeasureImportedTableTextWidth(TableCellLayout cell,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
         bool wholeLine = false, bool objectsOnly = false) {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
@@ -64,7 +64,7 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasureImportedTableWordMinimumWithIndents(System.Collections.Generic.IReadOnlyList<RichSeg> segments,
-        PdfOptions? options, double continuationIndents, double firstLineIndents) {
+        PdfCreateOptions? options, double continuationIndents, double firstLineIndents) {
         if (segments.Count == 0) return continuationIndents;
         string text = string.Concat(segments.Select(segment => segment.Text));
         if (text.Length == 0) return segments.Sum(GetRichSegmentWidth) +
@@ -112,7 +112,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveImportedTableCellWrapWidth(TableCellLayout cell, double innerWidth,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale,
         double minimumShrinkFontSize, bool wrapOversizedNoWrap) {
         bool noWrap = cell.NoWrap;
         // Word can enlarge an automatic grid for a no-wrap cell, but falls

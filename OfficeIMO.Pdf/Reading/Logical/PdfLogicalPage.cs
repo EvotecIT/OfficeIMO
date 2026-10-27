@@ -368,7 +368,7 @@ public sealed partial class PdfLogicalPage {
 
     private static void ReplaceProjectionLines(
         PdfReadPage page,
-        StructuredPage structured,
+        PdfStructuredPage structured,
         List<PdfUnderstandingLine> sourceLines,
         CancellationToken cancellationToken) {
         structured.Lines.Clear();
@@ -387,7 +387,7 @@ public sealed partial class PdfLogicalPage {
             }
             string text = sourceLine.Text.Trim();
             if (text.Length > 0) structured.Lines.Add(text);
-            structured.LinesDetailed.Add(new StructuredLine {
+            structured.LinesDetailed.Add(new PdfStructuredLine {
                 Y = sourceLine.BaselineY,
                 XStart = sourceLine.XStart,
                 XEnd = sourceLine.XEnd,
@@ -471,7 +471,7 @@ public sealed partial class PdfLogicalPage {
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(
         int pageNumber,
-        List<StructuredParagraph> paragraphs,
+        List<PdfStructuredParagraph> paragraphs,
         List<PdfLogicalTextBlock> textBlocks,
         LogicalTextBlockSourceIndex textBlockSourceIndex) {
         if (paragraphs.Count == 0) {
@@ -527,21 +527,21 @@ public sealed partial class PdfLogicalPage {
         return result.AsReadOnly();
     }
 
-    private static StructuredPage CreateStructuredProjection(
+    private static PdfStructuredPage CreateStructuredProjection(
         PdfReadPage page,
         List<PdfUnderstandingLine> sourceLines,
         IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates,
         PdfUnderstandingPageResult analysis,
         PdfTextLayoutOptions? options,
         CancellationToken cancellationToken) {
-        var structured = new StructuredPage();
+        var structured = new PdfStructuredPage();
         ReplaceProjectionLines(page, structured,
             SplitTableProjectionLines(sourceLines, tableCandidates, analysis, options, cancellationToken),
             cancellationToken);
         for (int tableIndex = 0; tableIndex < tableCandidates.Count; tableIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (tableCandidates[tableIndex].SourceKind != PdfLogicalContentSourceKind.Native) continue;
-            StructuredTable table = tableCandidates[tableIndex].ToStructuredTable(
+            PdfStructuredTable table = tableCandidates[tableIndex].ToStructuredTable(
                 page,
                 analysis.ConsumeWork,
                 analysis.CancellationCheck);
@@ -619,7 +619,7 @@ public sealed partial class PdfLogicalPage {
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalListItem> BuildListItems(
         int pageNumber,
-        List<StructuredListItem> listItems,
+        List<PdfStructuredListItem> listItems,
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
@@ -694,10 +694,10 @@ public sealed partial class PdfLogicalPage {
 
     private static bool PreservesListContinuationOwnership(PdfUnderstandingSemanticElement semantic) {
         if (semantic.Evidence.Any(static evidence =>
-                string.Equals(evidence.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) return true;
+                string.Equals(evidence.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal))) return true;
         if (semantic.Region.Lines.Count < 2 ||
             !semantic.Evidence.Any(static evidence =>
-                string.Equals(evidence.Code, "semantic.list-marker", StringComparison.Ordinal)) ||
+                string.Equals(evidence.Code, "semantic-list-marker", StringComparison.Ordinal)) ||
             !ContentStructureExtractor.IsListItemText(semantic.Region.Lines[0].Text)) return false;
         for (int lineIndex = 1; lineIndex < semantic.Region.Lines.Count; lineIndex++) {
             if (ContentStructureExtractor.IsListItemText(semantic.Region.Lines[lineIndex].Text)) return false;
@@ -720,7 +720,7 @@ public sealed partial class PdfLogicalPage {
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalHeading> BuildHeadings(
         int pageNumber,
-        List<StructuredHeading> headings,
+        List<PdfStructuredHeading> headings,
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         SemanticElementIndex semanticIndex,
@@ -768,7 +768,7 @@ public sealed partial class PdfLogicalPage {
 
     private static PdfLogicalElementKind? ToLogicalKind(
         PdfUnderstandingSemanticElement? semantic,
-        StructuredLine line,
+        PdfStructuredLine line,
         bool isStructuredHeading) => semantic?.Kind switch {
         PdfUnderstandingSemanticKind.Heading when isStructuredHeading || SupportsRegionHeadingProjection(semantic, line) => PdfLogicalElementKind.Heading,
         PdfUnderstandingSemanticKind.ListItem => PdfLogicalElementKind.ListItem,
@@ -779,7 +779,7 @@ public sealed partial class PdfLogicalPage {
         _ => null
     };
 
-    private static bool SupportsRegionHeadingProjection(PdfUnderstandingSemanticElement semantic, StructuredLine line) {
+    private static bool SupportsRegionHeadingProjection(PdfUnderstandingSemanticElement semantic, PdfStructuredLine line) {
         if (HasExplicitStructuralEvidence(semantic)) return true;
         if (semantic.Region.Lines.Count == 1) return true;
         double[] sizes = semantic.Region.Lines.Select(static candidate => candidate.FontSize).OrderBy(static size => size).ToArray();
@@ -797,8 +797,8 @@ public sealed partial class PdfLogicalPage {
 
     private static bool HasExplicitStructuralEvidence(PdfUnderstandingSemanticElement element) =>
         element.Evidence.Any(static evidence =>
-            string.Equals(evidence.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
-            string.Equals(evidence.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "semantic-outline-heading", StringComparison.Ordinal) ||
+            string.Equals(evidence.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));
 
     private static Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>>
         CreateLogicalTextBlockLookup(List<PdfLogicalTextBlock> textBlocks) {
@@ -816,7 +816,7 @@ public sealed partial class PdfLogicalPage {
     }
 
     private static PdfLogicalTextBlock? FindTextBlock(
-        StructuredLine line,
+        PdfStructuredLine line,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
         LogicalTextBlockSourceIndex textBlockSourceIndex,
         PdfLogicalElementKind kind) {
@@ -826,7 +826,7 @@ public sealed partial class PdfLogicalPage {
             : textBlockSourceIndex.Find(line, kind);
     }
 
-    private static (long BaselineY, long XStart, string Text) CreateStructuredLineKey(StructuredLine line) =>
+    private static (long BaselineY, long XStart, string Text) CreateStructuredLineKey(PdfStructuredLine line) =>
         (BitConverter.DoubleToInt64Bits(line.Y), BitConverter.DoubleToInt64Bits(line.XStart), line.Text.Trim());
 
     private sealed class LogicalTableSourceIndex {
@@ -836,7 +836,7 @@ public sealed partial class PdfLogicalPage {
         private LogicalTableSourceIndex() { }
 
         internal static LogicalTableSourceIndex Create(
-            List<StructuredTable>? structuredTables,
+            List<PdfStructuredTable>? structuredTables,
             IReadOnlyList<PdfUnderstandingTableCandidate>? candidates) {
             var index = new LogicalTableSourceIndex();
             if (structuredTables is not null) {
@@ -865,7 +865,7 @@ public sealed partial class PdfLogicalPage {
             return index;
         }
 
-        internal bool Contains(StructuredLine line) {
+        internal bool Contains(PdfStructuredLine line) {
             bool hasSourceRun = false;
             for (int runIndex = 0; runIndex < line.Spans.Count; runIndex++) {
                 if (!_sourceRuns.Contains(line.Spans[runIndex])) return false;
@@ -1021,7 +1021,7 @@ public sealed partial class PdfLogicalPage {
             return new LogicalTextBlockSourceIndex(bySourceRun);
         }
 
-        internal PdfLogicalTextBlock? Find(StructuredLine line, PdfLogicalElementKind kind) {
+        internal PdfLogicalTextBlock? Find(PdfStructuredLine line, PdfLogicalElementKind kind) {
             var matches = new Dictionary<PdfLogicalTextBlock, int>();
             for (int runIndex = 0; runIndex < line.Spans.Count; runIndex++) {
                 if (!_bySourceRun.TryGetValue(line.Spans[runIndex], out HashSet<PdfLogicalTextBlock>? blocks)) continue;

@@ -64,9 +64,9 @@ public class RtfStyleVisibilityRegressionTests {
     [Fact]
     public void PdfOmitsInheritedHiddenTextAndRetainsExplicitVisibleOverrides() {
         RtfDocument document = RtfDocument.Read(Input).Document;
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf(new RtfToPdfOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        })).ExtractText();
+        })).ToBytes()).ExtractText();
         Assert.DoesNotContain("Secret marker", text, StringComparison.Ordinal);
         Assert.Contains("Visible marker", text, StringComparison.Ordinal);
         Assert.Contains("Plain marker", text, StringComparison.Ordinal);

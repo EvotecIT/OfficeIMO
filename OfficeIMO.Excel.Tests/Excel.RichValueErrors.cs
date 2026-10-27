@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         [InlineData("Blocked", "I1", "#SPILL!")]
         public void RichValueErrors_NativeCachesAgreeAcrossObjectModelAndReaders(string sheetName, string anchor, string expected) {
             string path = Path.Combine(_directoryDocuments, "ExcelFormulaCorpus", "dynamic-spills.xlsx");
-            var (row, column) = A1.ParseCellRef(anchor);
+            var (row, column) = ExcelA1.ParseCellRef(anchor);
             using (var document = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document[sheetName];
                 Assert.Equal(expected, sheet.CellAt(row, column).GetValue().Value);
@@ -28,19 +28,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, text);
                 Assert.True(sheet.TryGetCachedFormulaValue(row, column, out string? cached));
                 Assert.Equal(expected, cached);
-                using var dataReader = document.CreateDataReader(new ExcelReadOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false });
+                using var dataReader = document.CreateDataReader(new ExcelReaderOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false });
                 Assert.True(dataReader.Read());
                 Assert.Equal(expected, dataReader.GetValue(0));
             }
             using (var reader = ExcelDocumentReader.Open(path)) {
                 Assert.Equal(expected, reader.GetSheet(sheetName).ReadRange(anchor + ":" + anchor)[0, 0]);
             }
-            var options = new ExcelReadOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false };
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            var options = new ExcelReaderOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false };
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }
-            using (var reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(path), options)) {
+            using (var reader = ExcelDocument.OpenReader(File.ReadAllBytes(path), options)) {
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 7, out _));
                 document.Save();
             }
-            using var reader = ExcelDocument.OpenDataReader(path,
-                new ExcelReadOptions { SheetName = "Data", A1Range = "G1:G1", HasHeaderRow = false });
+            using var reader = ExcelDocument.OpenReader(path,
+                new ExcelReaderOptions { SheetName = "Data", A1Range = "G1:G1", HasHeaderRow = false });
             Assert.True(reader.Read());
             Assert.Equal("_xlfn.SEQUENCE(0)", reader.GetValue(0));
         }

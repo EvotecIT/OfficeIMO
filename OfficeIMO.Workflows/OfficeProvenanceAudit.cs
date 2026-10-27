@@ -1,4 +1,6 @@
+#if NET8_0_OR_GREATER
 using System.IO.Enumeration;
+#endif
 using OfficeIMO.Internal;
 using OfficeIMO.Provenance;
 
@@ -30,11 +32,11 @@ public sealed class OfficeProvenanceAuditRequest {
 public static class OfficeProvenanceAudit {
     /// <summary>Discovers a deterministic, bounded set. Directory symlinks and generated/VCS directories are not followed.</summary>
     public static IReadOnlyList<string> Discover(OfficeProvenanceAuditRequest request, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.Inputs.Count == 0) throw new ArgumentException("At least one audit input is required.");
         if (request.MaximumItems is < 1 or > 10_000 || request.MaximumVisitedEntries < 1 || request.MaximumInputBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(request));
-        var paths = new SortedSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var paths = new SortedSet<string>(OfficeRuntimeCompatibility.IsWindows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         int visited = 0;
         foreach (string input in request.Inputs) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -57,7 +59,7 @@ public static class OfficeProvenanceAudit {
                     if (++visited > request.MaximumVisitedEntries) throw new InvalidDataException("Audit discovery exceeded the visited-entry limit.");
                     FileAttributes attributes = File.GetAttributes(entry);
                     if ((attributes & FileAttributes.ReparsePoint) != 0) continue;
-                    string relative = Path.GetRelativePath(root, entry).Replace('\\', '/');
+                    string relative = OfficeRuntimeCompatibility.GetRelativePath(root, entry).Replace('\\', '/');
                     if ((attributes & FileAttributes.Directory) != 0) {
                         string name = Path.GetFileName(entry);
                         if (request.Recursive && name is not ".git" and not "bin" and not "obj" and not "node_modules" && !Excluded(relative))
@@ -81,7 +83,7 @@ public static class OfficeProvenanceAudit {
     /// <summary>Assesses discovered inputs without publishing or modifying assets.</summary>
     public static async Task<IReadOnlyList<OfficeProvenanceWorkflowResult>> RunAsync(OfficeProvenanceAuditRequest request,
         IOfficeProvenanceWorkflowRunner? runner = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         var roots = request.Inputs.Select(input => {
             string selected = Path.GetFullPath(input);
             string directory = Directory.Exists(selected) ? selected : Path.GetDirectoryName(selected)!;
@@ -94,12 +96,12 @@ public static class OfficeProvenanceAudit {
         return await runner.RunProvenanceBatchAsync(paths.Select(path => {
             var selectedRoot = roots.Where(root => root.IsDirectory
                     ? IsSelectedPath(path, root.Selected)
-                    : string.Equals(path, root.Selected, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                    : string.Equals(path, root.Selected, OfficeRuntimeCompatibility.IsWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
                 .OrderByDescending(root => root.Selected.Length).FirstOrDefault();
             if (selectedRoot.Physical == null && File.Exists(path))
                 throw new InvalidDataException("An audit input has no selected source root.");
             var item = new OfficeProvenanceWorkflowRequest { InputPath = path, Operation = OfficeProvenanceWorkflowOperation.Assess,
-                Limits = new OfficeWorkflowLimits { MaximumInputBytes = request.MaximumInputBytes },
+                Limits = new OfficeOperationLimits { MaximumInputBytes = request.MaximumInputBytes },
                 AuditRootPhysicalPath = selectedRoot.Physical, AuditRootIdentity = selectedRoot.Identity };
             item.Assessment.Structural.MaxAssetBytes = Math.Min(request.MaximumInputBytes, int.MaxValue);
             item.Assessment.TextIntegrity.MaxEncodedBytes = Math.Min(request.MaximumInputBytes, int.MaxValue);
@@ -113,9 +115,33 @@ public static class OfficeProvenanceAudit {
     public static bool HasFindings(OfficeProvenanceWorkflowResult result, bool carriers = false, bool dangerousText = true) =>
         carriers && (result.Assessment?.Structural ?? result.Inspection)?.Evidence.Count > 0 ||
         dangerousText && result.Assessment?.TextIntegrity?.HasPotentiallyDangerousFindings == true;
-    private static bool Matches(string pattern, string path) => FileSystemName.MatchesSimpleExpression(pattern.Replace('\\', '/'), path, OperatingSystem.IsWindows());
+    private static bool Matches(string pattern, string path) {
+#if NET8_0_OR_GREATER
+        return FileSystemName.MatchesSimpleExpression(pattern.Replace('\\', '/'), path, OfficeRuntimeCompatibility.IsWindows);
+#else
+        return MatchesWildcard(pattern.Replace('\\', '/'), path, OfficeRuntimeCompatibility.IsWindows);
+#endif
+    }
+
+#if !NET8_0_OR_GREATER
+    // MatchesSimpleExpression accepts only '*' and '?' wildcards; neither is a regex.
+    private static bool MatchesWildcard(string pattern, string value, bool ignoreCase) {
+        int patternIndex = 0, valueIndex = 0, star = -1, retry = 0;
+        while (valueIndex < value.Length) {
+            if (patternIndex < pattern.Length && (pattern[patternIndex] == '?' ||
+                (ignoreCase ? char.ToUpperInvariant(pattern[patternIndex]) == char.ToUpperInvariant(value[valueIndex]) : pattern[patternIndex] == value[valueIndex]))) {
+                patternIndex++; valueIndex++;
+            } else if (patternIndex < pattern.Length && pattern[patternIndex] == '*') {
+                star = patternIndex++; retry = valueIndex;
+            } else if (star >= 0) { patternIndex = star + 1; valueIndex = ++retry; }
+            else return false;
+        }
+        while (patternIndex < pattern.Length && pattern[patternIndex] == '*') patternIndex++;
+        return patternIndex == pattern.Length;
+    }
+#endif
     private static bool IsSelectedPath(string path, string root) {
-        string relative = Path.GetRelativePath(root, path);
+        string relative = OfficeRuntimeCompatibility.GetRelativePath(root, path);
         return relative == "." || !Path.IsPathRooted(relative) && relative != ".." &&
             !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }

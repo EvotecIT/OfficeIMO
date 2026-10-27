@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
         // Virtual reservations use the same page-space geometry as painting, but never
         // emit content or mutate capture/destination state. The caller restores them.
         private bool TryMeasureFloatingTable(TableBlock table, double frameWidth, double fontSize, out double bottom) {
-            var style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            var style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             bottom = y;
             if (style.Position is not { } position) return false;
             double height = MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: false);

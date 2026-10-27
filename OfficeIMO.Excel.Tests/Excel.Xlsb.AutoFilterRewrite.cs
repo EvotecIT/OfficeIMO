@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
-                source = document.ToBytes(ExcelFileFormat.Xlsb);
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false));
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 [1U] = new[] { "Ada" }
             });
 
-            byte[] rewritten = loaded.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] rewritten = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             Assert.Equal(
                 ReadPackageEntry(source, "xl/workbook.bin"),
                 ReadPackageEntry(rewritten, "xl/workbook.bin"));
@@ -67,13 +67,13 @@ namespace OfficeIMO.Tests {
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
-                source = document.ToBytes(ExcelFileFormat.Xlsb);
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false));
             Assert.True(Assert.Single(loaded.Sheets).ClearAutoFilterColumn(0U));
 
-            byte[] rewritten = loaded.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] rewritten = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
             AutoFilter filter = Assert.IsType<AutoFilter>(
                 Assert.Single(reloaded.Sheets).WorksheetPart.Worksheet.GetFirstChild<AutoFilter>());
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                     sheet.AddAutoFilter("A1:A3", new Dictionary<uint, IEnumerable<string>> {
                         [0U] = new[] { "Open" }
                     });
-                    source = document.ToBytes(ExcelFileFormat.Xlsb);
+                    source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
                 }
 
                 using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false))) {
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                         new Dictionary<uint, IEnumerable<string>> {
                             [0U] = new[] { "Open", "Closed" }
                         });
-                    File.WriteAllBytes(path, loaded.ToBytes(ExcelFileFormat.Xlsb));
+                    File.WriteAllBytes(path, loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
                 }
 
                 AssertWorkbookOpensViaExcelComWhenAvailable(
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
-                source = document.ToBytes(ExcelFileFormat.Xlsb);
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
             byte[] nonCanonical = InsertWorksheetRecordBeforeAutoFilterEnd(
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(nonCanonical, writable: false))) {
                 ExcelSheet sheet = Assert.Single(loaded.Sheets);
                 sheet.CellValue(2, 1, "Edited");
-                byte[] rewritten = loaded.ToBytes(ExcelFileFormat.Xlsb);
+                byte[] rewritten = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
                 IReadOnlyList<XlsbRecord> records = ReadWorksheetRecords(rewritten);
                 int begin = records.ToList().FindIndex(record => record.Type == 161);
                 int end = records.ToList().FindIndex(record => record.Type == 162);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                     [0U] = new[] { "Open", "Closed" }
                 });
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => changed.ToBytes(ExcelFileFormat.Xlsb));
+                () => changed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Assert.Contains("outside the supported equality-list subset", exception.Message, StringComparison.Ordinal);
         }
 
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
-                source = document.ToBytes(ExcelFileFormat.Xlsb);
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false));
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             values.SetAttribute(new OpenXmlAttribute("ext", "blank", "urn:officeimo:test", "1"));
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => loaded.ToBytes(ExcelFileFormat.Xlsb));
+                () => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Assert.Contains("attribute 'blank'", exception.Message, StringComparison.Ordinal);
         }
 
@@ -197,14 +197,14 @@ namespace OfficeIMO.Tests {
                 display: "OfficeIMO",
                 style: false);
 
-            Assert.NotEmpty(document.ToBytes(ExcelFileFormat.Xlsb));
+            Assert.NotEmpty(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Hyperlink hyperlink = Assert.Single(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<Hyperlinks>()!.Elements<Hyperlink>());
             Assert.False(string.IsNullOrEmpty(hyperlink.Id?.Value));
             hyperlink.SetAttribute(new OpenXmlAttribute(string.Empty, "id", string.Empty, "rIdShadow"));
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => document.ToBytes(ExcelFileFormat.Xlsb));
+                () => document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Assert.Contains("attribute 'id'", exception.Message, StringComparison.Ordinal);
         }
 
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
             pageSetup.SetAttribute(new OpenXmlAttribute(string.Empty, "id", string.Empty, "rIdShadow"));
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => document.ToBytes(ExcelFileFormat.Xlsb));
+                () => document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Assert.Contains("attribute 'id'", exception.Message, StringComparison.Ordinal);
         }
 
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Open");
                 sheet.AddAutoFilter("A1:A2");
-                source = document.ToBytes(ExcelFileFormat.Xlsb);
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source, writable: false));
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
             }
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => loaded.ToBytes(ExcelFileFormat.Xlsb));
+                () => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             Assert.Contains("_FilterDatabase", exception.Message, StringComparison.Ordinal);
         }
 

@@ -181,7 +181,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
         Assert.Equal(12D, lead.Letters[0].StartBaseLine.Y - following.Letters[0].StartBaseLine.Y, 3);
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 300D, PageHeight = 300D,
         MarginLeft = 32D, MarginRight = 32D, MarginTop = 32D, MarginBottom = 32D,
         DefaultFontSize = 10D

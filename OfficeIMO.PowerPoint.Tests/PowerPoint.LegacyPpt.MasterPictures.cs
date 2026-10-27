@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             AssertMasterPicture(Assert.Single(binary.Masters).Shapes,
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                     .PresentationPart!.HandoutMasterPart!, out _), imageBytes);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(bytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -94,13 +94,11 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWriteFinding finding = Assert.Single(presentation
                 .AnalyzeLegacyPptWrite().Findings, item =>
-                    item.Code == "PPT-WRITE-MASTER-TABLE");
+                    item.Code == "ppt-write-master-table");
             Assert.Equal(LegacyPptFeature.Tables, finding.Feature);
-            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(
-                PowerPointFileFormat.Ppt));
+            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions {
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
@@ -138,7 +136,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             Assert.All(binary.Slides, slide => AssertMasterPicture(
@@ -168,7 +166,7 @@ namespace OfficeIMO.Tests {
                 picture.NonVisualPictureProperties!
                     .NonVisualDrawingProperties!.Hidden = true;
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -190,7 +188,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation edited = LegacyPptPresentation.Load(
@@ -215,7 +213,7 @@ namespace OfficeIMO.Tests {
                 shape => shape is PowerPointPicture));
             Assert.False(reopenedPicture.Hidden);
             Assert.Equal(editedBytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -240,7 +238,7 @@ namespace OfficeIMO.Tests {
             Assert.False(preflight.CanWrite);
             LegacyPptWriteFinding finding = Assert.Single(
                 preflight.Findings, item =>
-                    item.Code == "PPT-WRITE-LAYOUT-PICTURE");
+                    item.Code == "ppt-write-layout-picture");
             Assert.Equal(LegacyPptFeature.Layouts, finding.Feature);
             Assert.Contains("does not materialize into any owning slide",
                 finding.Description);
@@ -268,7 +266,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-LAYOUT-PICTURE"
+                finding.Code == "ppt-write-layout-picture"
                 && finding.Description.Contains("does not materialize",
                     StringComparison.Ordinal));
         }
@@ -301,7 +299,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-LAYOUT-PICTURE");
+                finding.Code == "ppt-write-layout-picture");
         }
 
         [Fact]
@@ -324,7 +322,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-MASTER-SHAPE");
+                finding.Code == "ppt-write-master-shape");
         }
 
         [Fact]
@@ -347,7 +345,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-PICTURE"
+                finding.Code == "ppt-write-picture"
                 && finding.Description.Contains("no-resize",
                     StringComparison.Ordinal));
         }

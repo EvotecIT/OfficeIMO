@@ -23,7 +23,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfPrintPageRange mutableRange = new PdfPrintPageRange(2, 3);
         preferencesOptions.AddPrintPageRange(mutableRange);
 
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ViewerPreferences = preferencesOptions
         };
 
@@ -125,7 +125,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ViewerPreferences_RejectPrintPageRangeBeyondGeneratedPageCount() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ViewerPreferences = new PdfViewerPreferencesOptions().AddPrintPageRange(2, 2)
         };
 

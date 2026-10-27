@@ -12,7 +12,7 @@ public sealed class PdfBookmarkTableOfContentsTests {
     public void TableOfContents_UnequalColumnContinuationUsesEachActualRightEdge(bool moveBeforeFirstEntry) {
         var entries = Enumerable.Range(0, 6)
             .Select(index => new PdfTableOfContentsEntry("Item " + (char)('A' + index), "details")).ToArray();
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 460, PageHeight = 200, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
         }).Columns(column => {
             column.Spacer(moveBeforeFirstEntry ? 145 : 60);
@@ -39,7 +39,7 @@ public sealed class PdfBookmarkTableOfContentsTests {
     public void TableOfContents_SequentialColumnsKeepFinalPageLinksAndBalancedEntries(bool balance) {
         var entries = Enumerable.Range(0, 16)
             .Select(index => new PdfTableOfContentsEntry("Column entry " + index, "details")).ToArray();
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageHeight = 400, MarginTop = 30, MarginBottom = 30 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageHeight = 400, MarginTop = 30, MarginBottom = 30 })
             .Columns(column => column.TableOfContents(new PdfTableOfContentsOptions {
                 Entries = entries, PageNumberFormatter = page => "page-" + page
             }), new PdfMultiColumnOptions { BalanceLastPage = balance })

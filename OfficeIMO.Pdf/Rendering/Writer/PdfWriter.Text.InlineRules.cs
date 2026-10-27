@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
 
     private static (List<List<RichSeg>> Lines, List<double> LineHeights) WrapRichRunsIntrinsic(
         IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont,
-        double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options) =>
+        double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options) =>
         WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight,
             firstLineWidthPts, null, tabStopWidth, options, purpose: RichWrapPurpose.IntrinsicMeasurement);
 

@@ -11,8 +11,8 @@ namespace OfficeIMO.Excel.Pdf {
             seriesLegendWidthRatio: 0.0001D,
             categoryLegendWidthRatio: 0.0001D);
 
-        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelToPdfOptions options) {
-            ExcelChartSnapshot snapshot = chart.Snapshot;
+        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelPdfExportOptions options) {
+            ExcelChartInfo snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
                 item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
             }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Pdf {
                 CreateChartLegendStyle(useStyledRadialLegend ? 0 : GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 
-        private static void AddChartQualityWarning(ExcelToPdfOptions options, string sheetName, ExcelChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
+        private static void AddChartQualityWarning(ExcelPdfExportOptions options, string sheetName, ExcelChartInfo snapshot, OfficeDrawingQualityReport qualityReport) {
             if (!qualityReport.HasIssues) {
                 return;
             }
@@ -44,11 +44,11 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelToPdfOptions options) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartInfo snapshot, ExcelPdfExportOptions options) {
             return CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: false);
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelToPdfOptions options, bool preserveWorksheetLegend) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartInfo snapshot, ExcelPdfExportOptions options, bool preserveWorksheetLegend) {
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static string[][] CreateChartLegendRows(ExcelChartSnapshot snapshot) {
+        private static string[][] CreateChartLegendRows(ExcelChartInfo snapshot) {
             if (IsPieLikeChart(snapshot.ChartType)) {
                 return CreatePieChartLegendRows(snapshot);
             }
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel.Pdf {
             return rows.ToArray();
         }
 
-        private static string[][] CreatePieChartLegendRows(ExcelChartSnapshot snapshot) {
+        private static string[][] CreatePieChartLegendRows(ExcelChartInfo snapshot) {
             var rows = new List<string[]> {
                 new[] { "Category", "Value" }
             };
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel.Pdf {
             return rows.ToArray();
         }
 
-        private static int GetChartLegendColorCount(ExcelChartSnapshot snapshot) {
+        private static int GetChartLegendColorCount(ExcelChartInfo snapshot) {
             if (IsPieLikeChart(snapshot.ChartType)) {
                 return snapshot.Data.Categories.Count;
             }
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel.Pdf {
             return snapshot.Data.Series.Count;
         }
 
-        private static bool HasStyledRadialPoints(ExcelChartSnapshot snapshot) {
+        private static bool HasStyledRadialPoints(ExcelChartInfo snapshot) {
             if (!IsPieLikeChart(snapshot.ChartType)) return false;
             return snapshot.Data.Series.Any(series =>
                 series.PointStyles?.Any(style => style != null) == true ||

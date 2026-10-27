@@ -133,7 +133,7 @@ internal static partial class PdfWriter {
         public bool PageContentSpilled => _contentStore.IsSpilled;
         public long PeakRetainedPageContentBytes => _contentStore.PeakRetainedMemoryBytes;
         public sealed class Page {
-            public PdfOptions Options { get; set; } = null!;
+            public PdfCreateOptions Options { get; set; } = null!;
             public int PageGroupId { get; set; }
             public int? RunningContentSectionId { get; set; }
             public HashSet<int>? RunningContentSections { get; set; }

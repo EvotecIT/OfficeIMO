@@ -292,7 +292,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             byte[] pdf = File.ReadAllBytes(pdfPath);
             Assert.True(pdf.Length > 100);
             Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
-            Assert.Single(PdfReadDocument.Open(pdf).Pages);
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages);
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
@@ -307,7 +307,7 @@ public sealed partial class OfficeVisualIntegrationTests {
 
         byte[] pdf = PdfDocument.Create(
                 _ => { },
-                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+                new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
             .AddVisualArtifact(visual, style: style)
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
@@ -327,7 +327,7 @@ public sealed partial class OfficeVisualIntegrationTests {
 
         byte[] pdf = PdfDocument.Create(
                 _ => { },
-                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+                new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
             .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = 6D })
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
@@ -427,12 +427,12 @@ public sealed partial class OfficeVisualIntegrationTests {
             Assert.Contains(preserved.Drawing.Elements, element => element is OfficeDrawingEffectGroup);
             OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(preserved.Drawing, scale: 96D / 72D);
 
-            byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+            byte[] pdf = PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false })
                 .AddVisualArtifact(preserved)
                 .ToBytes();
             Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
             Assert.Contains("/Subtype /Image", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-            PdfExtractedImage embedded = Assert.Single(PdfDocument.Load(pdf).Images.Extract());
+            PdfExtractedImage embedded = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Images.Extract());
             Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actual));
             Assert.NotNull(actual);
             Assert.Equal(expected.Width, actual!.Width);
@@ -459,7 +459,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         Assert.Contains(
             visual.Drawing.Elements,
             element => element is OfficeDrawingGroup || element is OfficeDrawingEffectGroup);
-        byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false })
             .AddVisualArtifact(visual)
             .ToBytes();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));

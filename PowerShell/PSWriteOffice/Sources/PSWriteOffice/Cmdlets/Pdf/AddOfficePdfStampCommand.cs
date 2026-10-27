@@ -115,7 +115,7 @@ public sealed class AddOfficePdfStampCommand : PSWriteOffice.Cmdlets.OfficeMutat
             : StampText(document);
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 

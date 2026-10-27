@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     // Header/footer presentation and point sizes do not select the document's
     // body font. Named families are reusable run-level resources rather than
     // a default-font selection; converters retain them for matching source runs.

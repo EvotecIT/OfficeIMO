@@ -246,7 +246,7 @@ internal sealed class PdfRedactionTextGlyphIdentity {
     internal double RotationDegrees { get; }
     internal bool IsVisible { get; }
     internal int TextRenderingMode { get; }
-    internal OfficeIMO.Drawing.OfficeColor? Color { get; }
+    internal OfficeIMO.OfficeColor? Color { get; }
     internal string? VisualPaintIdentity { get; }
     internal int? MarkedContentId { get; }
     internal PdfPageClipPath? ClipPath { get; }

@@ -11,7 +11,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void ImageAlternativeTextEmitsMarkedFigureContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Image(CreateMinimalRgbPng(), 24, 24, alternativeText: "Company logo")
@@ -25,7 +25,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedImageAlternativeTextEmitsFigureStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -50,7 +50,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedDocumentStructureRootEmitsLanguageMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 Language = "en-US"
             })
@@ -66,7 +66,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedHeadingParagraphAndImageEmitStructureReferencesWithPageScopedMcids() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -92,7 +92,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedImageStructureFollowsFlowOrderBetweenParagraphs() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -111,7 +111,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedParagraphLinkEmitsStructureTabOrder() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -154,7 +154,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedLinkedHeadingEmitsLinkStructureForVisibleText() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -174,7 +174,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedWrappedLinkedHeadingPreservesAllAnnotationStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 PageWidth = 170,
                 MarginLeft = 24,
@@ -195,7 +195,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRichTextDecorationsEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -213,7 +213,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRichTextBackgroundFillsEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -230,7 +230,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedLinkedBaselineShiftResetsTextRiseBeforeNormalText() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -250,7 +250,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void UntaggedParagraphLinksDoNotEmitDanglingMarkedContentReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph

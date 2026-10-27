@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             byte[] package = destination.ToArray();
             AssertXlsbStringStorage(package, sharedStrings == true, 8,
                 new[] { "Text", "Id", "Enabled", "Alpha", " Alpha & <β>\r ", "", "alpha" });
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(new[] { "Text", "Id", "Enabled" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             for (int index = 0; index < texts.Length; index++) {
                 Assert.True(reader.Read());
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             second.CellValue(1, 1, "Alpha");
             second.CellValue(2, 1, "alpha");
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
 
             AssertXlsbStringStorage(package, true, 3, new[] { "Alpha", "alpha" });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
 
                 byte[] rewritten = File.ReadAllBytes(path);
                 Assert.Equal(originalTable, ReadXlsbPackagePart(rewritten, "xl/sharedStrings.bin"));
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(rewritten);
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(rewritten);
                 Assert.True(reader.Read());
                 Assert.Equal("Beta", reader.GetString(0));
                 Assert.False(reader.Read());
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         public async Task Xlsb_StringStorage_RejectsImportedOverridesBeforeMutatingStreamOrFile(bool sharedStrings, bool asynchronous) {
             using ExcelDocument source = ExcelDocument.Create();
             source.AddWorksheet("Data").CellValue(1, 1, "Alpha");
-            byte[] package = source.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
+            byte[] package = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(package, writable: false));
             if (!sharedStrings) imported.Sheets[0].CellValue(1, 1, "Edited");
             var options = new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings };
@@ -181,9 +181,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, text);
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             AssertXlsbStringStorage(package, true, 2, new[] { "Value", text });
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.True(reader.Read());
             Assert.Equal(text, reader.GetString(0));
             Assert.False(reader.Read());
@@ -193,13 +193,13 @@ namespace OfficeIMO.Tests {
         public void Xlsb_SharedStrings_AllowAnEmptyTableForNumericOnlyWorkbooks() {
             using ExcelDocument document = ExcelDocument.Create();
             document.AddWorksheet("Numbers").CellValue(1, 1, 42);
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             AssertXlsbStringStorage(package, true, 0, Array.Empty<string>());
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            ExcelCellValueSnapshot value = AssertCellValue(reloaded.Sheets[0], 1, 1);
+            ExcelNativeCellValueInfo value = AssertCellValue(reloaded.Sheets[0], 1, 1);
             Assert.Equal(ExcelCellValueKind.Number, value.Kind);
             Assert.Equal("42", value.RawValue);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.True(reader.Read());
             Assert.Equal(42, reader.GetInt32(0));
             Assert.False(reader.Read());
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
                 });
                 byte[] package = File.ReadAllBytes(destinationPath);
                 AssertXlsbStringStorage(package, sharedStrings, 3, new[] { "Text", "Alpha" });
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
                 Assert.True(reader.Read());
                 Assert.Equal("Alpha", reader.GetString(0));
                 Assert.True(reader.Read());

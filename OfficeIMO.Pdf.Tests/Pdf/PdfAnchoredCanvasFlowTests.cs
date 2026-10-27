@@ -12,7 +12,7 @@ public sealed class PdfAnchoredCanvasFlowTests {
         byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(12, 12, OfficeColor.Black), OfficeImageExportFormat.Png);
         var canvas = new PdfPageCanvas().ForegroundImage(image, 5, 5, 12, 12);
         var style = new PdfParagraphStyle { AnchoredCanvas = new PdfCanvasBlock(canvas.Items) };
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 10
         }).Columns(content => content.Paragraph(paragraph => paragraph.Text("ANCHOR " +

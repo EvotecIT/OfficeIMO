@@ -3,7 +3,7 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private void ProcessPreformattedElement(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessPreformattedElement(IElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var textContent = element.TextContent;
             var lines = textContent.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
             int start = 0;
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void AddPreformattedLine(IElement element, WordParagraph paragraph, string line, string? mono, ref bool bookmarkAdded, HtmlToWordOptions options) {
+        private void AddPreformattedLine(IElement element, WordParagraph paragraph, string line, string? mono, ref bool bookmarkAdded, WordHtmlImportOptions options) {
             paragraph.SetStyleId("HTMLPreformatted");
             if (!string.IsNullOrEmpty(mono)) {
                 paragraph.SetFontFamily(mono!);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Html {
             AddTextRun(paragraph, line, fmt, options);
         }
 
-        private void ProcessInlineCodeElement(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter, WordList? headingList) {
+        private void ProcessInlineCodeElement(IElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter, WordList? headingList) {
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
 
             var fmt = formatting;

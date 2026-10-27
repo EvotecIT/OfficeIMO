@@ -127,7 +127,7 @@ public sealed partial class TableBlock {
             return Array.Empty<InlineSequence>();
         }
 
-        var options = InlineRenderOptions ?? new MarkdownReaderOptions();
+        var options = InlineRenderOptions ?? new MarkdownLoadOptions();
         var state = InlineRenderState ?? new MarkdownReaderState();
         var parsed = new InlineSequence[cells.Count];
         for (int i = 0; i < cells.Count; i++) {
@@ -408,9 +408,9 @@ public sealed partial class TableBlock {
         return columnCount;
     }
 
-    private ColumnAlignment GetAlignment(int index) {
-        if (index < 0) return ColumnAlignment.None;
-        return index < Alignments.Count ? Alignments[index] : ColumnAlignment.None;
+    private MarkdownColumnAlignment GetAlignment(int index) {
+        if (index < 0) return MarkdownColumnAlignment.None;
+        return index < Alignments.Count ? Alignments[index] : MarkdownColumnAlignment.None;
     }
 
     private static IReadOnlyList<string> PrepareRowCells(IReadOnlyList<string>? row, int expectedCount) {

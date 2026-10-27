@@ -18,8 +18,8 @@ public sealed class PdfParagraphImageAnchorsTests {
         image.HorizontalPositionOffset = 30 * 12700;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Line;
         image.VerticalPositionOffset = 0;
-        var conversion = word.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        var conversion = word.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());
         Assert.Single(pdf.Images.Placements());
         Assert.Contains("Anchor line", pdf.Reader.Text());
@@ -44,15 +44,15 @@ public sealed class PdfParagraphImageAnchorsTests {
             new DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment { Text = "right" };
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
         image.VerticalPositionOffset = -5 * 12700;
-        var conversion = word.ToPdfDocumentResult(new WordToPdfOptions {
-            Margins = PdfCore.PageMargins.Uniform(30),
+        var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            Margins = PdfCore.PdfPageMargins.Uniform(30),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());
         Assert.Equal(1, pdf.Inspect().PageCount);
         var placement = Assert.Single(pdf.Images.Placements());
         Assert.Equal(240D, placement.X, 3);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         // Image top follows the actual paragraph, rather than entering document flow or using page Y=0.
         Assert.InRange(300D - placement.Y - placement.Height, 30D, 80D);
         var page = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0];

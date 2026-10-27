@@ -10,7 +10,7 @@ public sealed class LatexIndependentConversionTests {
     public void LaTeXProject_samples_keep_supported_text_and_structured_children(string file) {
         LatexDocument document = LatexDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "latex2e", file));
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
-        string pdf = PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
+        string pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfDocumentResult().Value.ToBytes())).ExtractText();
         if (file == "small2e.tex") {
             Assert.Equal(new[] { "Simple Text", "A Warning or Two" }, result.Value.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Text));
             Assert.Single(result.Value.Descendants().OfType<BoldSequenceInline>());

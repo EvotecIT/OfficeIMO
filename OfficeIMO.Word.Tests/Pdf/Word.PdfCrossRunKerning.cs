@@ -53,12 +53,12 @@ public sealed class WordPdfCrossRunKerningTests {
             index++;
         }
         if (route is "header" or "footer") document.AddParagraph("Body").FontFamily = "Courier";
-        var options = new PdfOptions { DefaultFontSize = 20D };
+        var options = new PdfCreateOptions { DefaultFontSize = 20D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "V").ToArray();
     }
 }

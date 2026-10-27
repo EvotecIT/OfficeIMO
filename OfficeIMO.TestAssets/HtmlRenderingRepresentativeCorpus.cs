@@ -76,7 +76,7 @@ internal static class HtmlRenderingRepresentativeCorpus {
             LoadHtml("email-render"),
             new[] { "Action Required", "Review the attached status update", "2 checks need attention", "Blocked status image" },
             linkUri: "https://example.test/action",
-            diagnosticCodes: new[] { "ImageResourceRejectedByPolicy", "HyperlinkRejectedByPolicy" },
+            diagnosticCodes: new[] { global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy, "HyperlinkRejectedByPolicy" },
             minimumVisualCount: 20),
         new HtmlRenderingCorpusCase(
             "dashboard-print",

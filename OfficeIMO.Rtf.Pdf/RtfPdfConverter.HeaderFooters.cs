@@ -21,7 +21,7 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Retains the established plain-story presentation when callers explicitly configure that projection.</summary>
-    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfOptions? options, bool isFooter) => options != null &&
+    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
             ? options.FooterOffsetY != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
                 options.FooterFontSize != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
@@ -30,7 +30,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,
-        PdfCore.PdfOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
+        PdfCore.PdfCreateOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
         IReadOnlyList<RtfHeaderFooter> declarations, Action<Action<PdfCore.PdfHeaderBuilder>> configureHeader,
         Action<Action<PdfCore.PdfFooterBuilder>> configureFooter) {
         if (!options.IncludeHeaderFooters || declarations.Count == 0) return;

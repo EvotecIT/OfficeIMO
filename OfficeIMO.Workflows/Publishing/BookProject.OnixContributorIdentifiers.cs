@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -5,14 +6,14 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixContributorIdentifiers(IReadOnlyList<BookOnixContributorIdentifier> identifiers) {
-        ArgumentNullException.ThrowIfNull(identifiers);
+        if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
         if (identifiers.Count > 16) throw new ArgumentException("At most 16 contributor identifiers are supported.", nameof(identifiers));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var schemes = new HashSet<(BookOnixContributorIdentifierType, string?)>();
         foreach (var identifier in identifiers) {
-            ArgumentNullException.ThrowIfNull(identifier);
-            if (!Enum.IsDefined(identifier.Type)) throw new ArgumentOutOfRangeException(nameof(identifier.Type));
+            if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+            if (!OfficeRuntimeCompatibility.IsDefined(identifier.Type)) throw new ArgumentOutOfRangeException(nameof(identifier.Type));
             RequireOnixText(identifier.Value, nameof(identifier.Value));
             if (identifier.Value.Length > 100) throw new ArgumentException("Contributor identifiers are limited to 100 characters.", nameof(identifiers));
             if (identifier.Type == BookOnixContributorIdentifierType.Proprietary) {
@@ -36,7 +37,7 @@ public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixResourceContributorReferences(
         IReadOnlyList<BookOnixContributorIdentifier> references, IReadOnlyList<XElement> contributors,
         ref int textBudget, CancellationToken token) {
-        ArgumentNullException.ThrowIfNull(references);
+        if (references == null) throw new ArgumentNullException(nameof(references));
         if (references.Count > 16) throw new ArgumentException("At most 16 resource contributor references are supported.", nameof(references));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();

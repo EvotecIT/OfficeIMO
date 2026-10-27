@@ -410,7 +410,7 @@ internal static partial class PdfWriter {
             }
 
             if (!item.PreservePositionedText)
-                ReportFullyClippedFrameLine("CanvasTextContentClipped", "PdfCanvasText",
+                ReportFullyClippedFrameLine("canvas-text-content-clipped", "PdfCanvasText",
                     wrap.Lines, wrap.LineHeights,
                     FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, currentOpts.PageHeight - item.Y),
                     size, leading, ChooseNormal(currentOpts.DefaultFont), currentOpts.PageHeight - item.Y - item.Height,
@@ -436,7 +436,7 @@ internal static partial class PdfWriter {
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
             int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
-            ReportRichPaintDiagnostics("CanvasText", "PdfCanvasText", block, lines, lineHeights,
+            ReportRichPaintDiagnostics(PaintDiagnosticCodes.CanvasText, "PdfCanvasText", block, lines, lineHeights,
                 item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
                 size, leading, item.X, width, new TableCellContentFrame(item.X, topY + item.PositionedClipTopOverflow, width, item.Height + item.PositionedClipTopOverflow),
                 clipsToFrame: !item.PreservePositionedText);
@@ -510,7 +510,7 @@ internal static partial class PdfWriter {
             if (prepared.Lines.Count > 0) {
                 double textContentHeight = prepared.ContentHeight;
                 double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
-                ReportFullyClippedFrameLine("CanvasTextBoxContentClipped", "PdfCanvasTextBox",
+                ReportFullyClippedFrameLine("canvas-text-box-content-clipped", "PdfCanvasTextBox",
                     prepared.Lines, prepared.LineHeights,
                     FirstTextBaselineFromTop(baseFont, size, textTopY - verticalOffset),
                     size, leading, baseFont, textBottomY, textHeight, item.X, topY, item.Width, item.Height);
@@ -525,7 +525,7 @@ internal static partial class PdfWriter {
                         item.Height));
                 }
 
-                ReportRichPaintDiagnostics("CanvasTextBox", "PdfCanvasTextBox", blockText, prepared.Lines, prepared.LineHeights,
+                ReportRichPaintDiagnostics(PaintDiagnosticCodes.CanvasTextBox, "PdfCanvasTextBox", blockText, prepared.Lines, prepared.LineHeights,
                     FirstTextBaselineFromTop(baseFont, size, textTopY - verticalOffset), size, leading, textX, textWidth,
                     new TableCellContentFrame(textX, textTopY, textWidth, textHeight), baselineFont: baseFont,
                     localTransform: CreateCanvasRotationTransform(item.X, bottomY, item.Width, item.Height, item.RotationAngle));

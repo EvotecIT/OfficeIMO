@@ -17,20 +17,20 @@ public static class AsciiDocMarkdownConverterExtensions {
         AsciiDocToMarkdownConverter.Convert(document, options);
 
     /// <summary>Converts an AsciiDoc document to a typed Markdown document.</summary>
-    public static MarkdownDoc ToMarkdownDocument(
+    public static MarkdownDocument ToMarkdownDocument(
         this AsciiDocDocument document,
         AsciiDocToMarkdownOptions? options = null) =>
         document.ToMarkdownDocumentResult(options).Value;
 
     /// <summary>Converts an OfficeIMO Markdown document to canonical lossless AsciiDoc.</summary>
     public static MarkdownToAsciiDocResult ToAsciiDocDocumentResult(
-        this MarkdownDoc document,
+        this MarkdownDocument document,
         MarkdownToAsciiDocOptions? options = null) =>
         MarkdownToAsciiDocConverter.Convert(document, options);
 
     /// <summary>Converts a Markdown document to a parsed canonical AsciiDoc document.</summary>
     public static AsciiDocDocument ToAsciiDocDocument(
-        this MarkdownDoc document,
+        this MarkdownDocument document,
         MarkdownToAsciiDocOptions? options = null) =>
         document.ToAsciiDocDocumentResult(options).Value;
 }

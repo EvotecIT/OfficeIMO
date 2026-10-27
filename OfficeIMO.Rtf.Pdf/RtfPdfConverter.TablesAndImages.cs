@@ -130,7 +130,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Projects the common resolved paragraph style into the PDF table paragraph contract.</summary>
     private static PdfCore.PdfTableCellParagraph ToCellParagraph(RtfDocument document, RtfParagraph paragraph,
-        List<PdfCore.PdfTextRun> runs, PdfCore.PdfOptions options) {
+        List<PdfCore.PdfTextRun> runs, PdfCore.PdfCreateOptions options) {
         RtfParagraph formatting = document.GetParagraphFormatting(paragraph);
         PdfCore.PdfParagraphStyle style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, options);
         return new PdfCore.PdfTableCellParagraph(
@@ -275,7 +275,7 @@ internal static partial class RtfPdfConverter {
 
         AddConversionWarning(
             options,
-            "UnsupportedImage",
+            global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedImage,
             source,
             "Only PNG and JPEG RTF images can be embedded directly in PDF output.",
             new Dictionary<string, string> {

@@ -42,9 +42,9 @@ public class HtmlOfficeAdaptersExcelMergedCells {
 
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal(new[] { "A1:C2", "B4:C4" }, mergedRanges);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? title));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? title));
         Assert.Equal("Quarterly result", title!.Text);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? approval));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? approval));
         Assert.Equal("Approved", approval!.Text);
     }
 
@@ -68,9 +68,9 @@ public class HtmlOfficeAdaptersExcelMergedCells {
 
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal(new[] { "B2:C3", "C4:D4" }, sheet.GetMergedRanges().Select(merge => merge.A1Range).OrderBy(range => range).ToArray());
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 4, out ExcelCellValueSnapshot? q1));
+        Assert.True(sheet.TryGetCellValueSnapshot(2, 4, out ExcelNativeCellValueInfo? q1));
         Assert.Equal("Q1", q1!.Text);
-        Assert.True(sheet.TryGetCellValueSnapshot(3, 4, out ExcelCellValueSnapshot? ten));
+        Assert.True(sheet.TryGetCellValueSnapshot(3, 4, out ExcelNativeCellValueInfo? ten));
         Assert.Equal("10", ten!.Text);
     }
 

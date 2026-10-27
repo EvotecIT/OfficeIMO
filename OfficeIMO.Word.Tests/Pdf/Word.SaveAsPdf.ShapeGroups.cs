@@ -41,14 +41,14 @@ public sealed class PdfShapeGroupTests {
         anchor.HorizontalPosition!.RelativeFrom = marginRelative ? DW.HorizontalRelativePositionValues.Margin : DW.HorizontalRelativePositionValues.Page;
         anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Page;
 
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         Assert.Equal(2, pdf.Reader.Pages().Count);
         double x = marginRelative ? (startNumber == 1 ? 70 : 40) + 10 : 10;
         var bitmap = Render(pdf, 2);
         AssertPixel(bitmap, (int)x + 6, 66, 255, 0, 0);
         AssertPixel(bitmap, (int)x + 28, 66, 0, 0, 255);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeShapeGroup"));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("native-shape-group-"));
     }
 
     // Public reporter fixture: https://github.com/EvotecIT/OfficeIMO/issues/2675
@@ -72,18 +72,18 @@ public sealed class PdfShapeGroupTests {
         }
         string before = word._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var output = new MemoryStream();
-        var result = word.SaveAsPdfResult(output);
+        var result = word.ConvertToPdfWithEvidence().Save(output);
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(before, word._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        var pdf = PdfCore.PdfDocument.Load(output.ToArray());
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Single(pdf.Reader.Pages());
         var bitmap = Render(pdf, 1);
         AssertPixel(bitmap, 90, 80, 255, 0, 0); // panel, in page points
         AssertPixel(bitmap, 95, 102, 255, 255, 255); // white warning triangle
         AssertPixel(bitmap, 103, 100, 0, 0, 0); // exclamation mark
         AssertPixel(bitmap, 300, 80, 255, 255, 255); // outside the 217-point group
-        Assert.DoesNotContain(result.FidelityDiagnostics, item => item.Code == "NativeShapeGroupUnsupported");
-        if (!legacyOnly) Assert.Contains(result.FidelityDiagnostics, item => item.Code == "NativeShapeGroupVmlFallback");
+        Assert.DoesNotContain(result.FidelityDiagnostics, item => item.Code == "native-shape-group-unsupported");
+        if (!legacyOnly) Assert.Contains(result.FidelityDiagnostics, item => item.Code == "native-shape-group-vml-fallback");
         SaveEvidence(pdf, legacyOnly ? "reporter-vml" : "reporter-drawingml");
     }
 
@@ -116,10 +116,10 @@ public sealed class PdfShapeGroupTests {
         if (alternateContent) WrapInAlternateContent(paragraph._run!, drawing, "wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
         Assert.True(paragraph.IsShapeGroup);
         Assert.False(paragraph.IsShape);
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         Assert.Single(pdf.Reader.Pages());
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeShapeGroup"));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("native-shape-group-"));
         var bitmap = Render(pdf, 1);
         AssertPixel(bitmap, 80, 80, 255, 0, 0);
         AssertPixel(bitmap, 190, 115, 0, 0, 255);
@@ -157,8 +157,8 @@ public sealed class PdfShapeGroupTests {
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 40 * 12700;
         image.VerticalPositionOffset = 10 * 12700;
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { Margins = PdfCore.PageMargins.Uniform(30) });
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));
         Assert.True(page.PageNumber > 1);
         Assert.Equal(page.PageNumber, Assert.Single(pdf.Images.Placements()).PageNumber);
@@ -168,9 +168,9 @@ public sealed class PdfShapeGroupTests {
         byte[] pixels = bitmap.GetPixels();
         int redRow = Enumerable.Range(0, bitmap.Height).First(row => pixels[(row * bitmap.Width + 15) * 4] > 240 && pixels[(row * bitmap.Width + 15) * 4 + 1] < 20);
         Assert.True(redRow >= 30);
-        var span = Assert.Single(PdfCore.PdfReadDocument.Open(pdf.ToBytes()).Pages[page.PageNumber - 1].GetTextSpans(), item => item.Text.Contains("ANCHOR"));
+        var span = Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages[page.PageNumber - 1].GetTextSpans(), item => item.Text.Contains("ANCHOR"));
         Assert.InRange(300D - span.Y - redRow, 0D, span.FontSize + 5D);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeShapeGroup"));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("native-shape-group-"));
         SaveEvidence(pdf, "paragraph-group-" + columns + "-heading-" + heading);
     }
 
@@ -185,7 +185,7 @@ public sealed class PdfShapeGroupTests {
             Style = "width:4320pt;height:900pt", FillColor = "blue"
         }));
         Assert.Equal("FF0000", paragraph.Shape!.FillColorHex);
-        var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(word.ToPdf().ToBytes()));
         AssertPixel(Render(pdf, 1), 80, 80, 255, 0, 0);
     }
 
@@ -200,10 +200,10 @@ public sealed class PdfShapeGroupTests {
         var properties = paragraph._run!.Descendants<Wps.ShapeProperties>().First();
         properties.RemoveAllChildren<A.PresetGeometry>();
         properties.Append(new A.CustomGeometry());
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         Assert.Contains("Visible text", pdf.Reader.Text());
-        Assert.Contains(result.Warnings, item => item.Code == "NativeShapeGroupUnsupported");
+        Assert.Contains(result.Warnings, item => item.Code == "native-shape-group-unsupported");
     }
 
     [Fact]
@@ -214,12 +214,12 @@ public sealed class PdfShapeGroupTests {
             new WordShapeGroupItem(WordShapeType.Rectangle, 54, 0, 36, 18) { FillColorHex = "0000FF" }
         }, 10, 10);
         word.AddParagraph("Following text");
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         AssertPixel(Render(pdf, 1), 80, 80, 255, 0, 0);
         AssertPixel(Render(pdf, 1), 135, 80, 0, 0, 255);
         Assert.Contains("Following text", pdf.Reader.Text());
-        Assert.Contains(result.Warnings, warning => warning.Code == "NativeShapeGroupFlowed");
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-shape-group-flowed");
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class PdfShapeGroupTests {
         var properties = paragraph._run!.Descendants<Wps.ShapeProperties>().Last();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.InsertAt(new A.NoFill(), 2);
-        var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(word.ToPdf().ToBytes()));
         AssertPixel(Render(pdf, 1), 80, 80, 255, 0, 0);
     }
 
@@ -253,7 +253,7 @@ public sealed class PdfShapeGroupTests {
             anchor.RemoveAllChildren<DW.WrapSquare>();
             anchor.Append(new DW.WrapNone());
         }
-        var pdf = PdfCore.PdfDocument.Load(word.ToPdfDocument().ToBytes());
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(word.ToPdf().ToBytes()));
         var bitmap = Render(pdf, 1);
         AssertPixel(bitmap, 65, 65, 0, 255, 0);
         byte[] pixels = bitmap.GetPixels();
@@ -287,8 +287,8 @@ public sealed class PdfShapeGroupTests {
             picture.Append(group);
             if (bodyTextInSameRun) paragraph._run.Append(new W.Text("Body text"));
             Assert.False(paragraph.IsImage);
-            var result = word.ToPdfDocumentResult();
-            var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+            var result = word.ConvertToPdfWithEvidence();
+            var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
             var image = Assert.Single(pdf.Images.Placements());
             Assert.Equal(72D, image.X, 3);
             Assert.Equal(20D, image.Width, 3);
@@ -296,7 +296,7 @@ public sealed class PdfShapeGroupTests {
             AssertPixel(Render(pdf, 1), 80, 90, 255, 0, 0);
             AssertPixel(Render(pdf, 1), 100, 90, 0, 0, 255);
             if (bodyTextInSameRun) Assert.Contains("Body text", pdf.Reader.Text());
-            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-shape-group-unsupported");
             SaveEvidence(pdf, "group-image-body-text-" + bodyTextInSameRun);
         } finally { File.Delete(imagePath); }
     }
@@ -321,9 +321,9 @@ public sealed class PdfShapeGroupTests {
             group.Append(shape, second);
             picture.Append(group);
 
-            Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
-            var allowed = word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 2 });
-            var pdf = PdfCore.PdfDocument.Load(allowed.Value.ToBytes());
+            Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
+            var allowed = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 2 });
+            var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(allowed.Value.ToBytes()));
             Assert.Equal(2, pdf.Images.Placements().Count());
         } finally { File.Delete(imagePath); }
     }
@@ -344,13 +344,13 @@ public sealed class PdfShapeGroupTests {
         paragraph._run!.Append(new W.Picture(group));
         Assert.Null(paragraph.TextBox);
         Assert.Equal("Body text", paragraph.Text);
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         string text = pdf.Reader.Text();
         Assert.Contains("Body text", text);
         Assert.Equal(1, text.Split(new[] { "GROUP LABEL" }, StringSplitOptions.None).Length - 1);
         AssertPixel(Render(pdf, 1), 220, 120, 255, 0, 0);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-shape-group-unsupported");
         SaveEvidence(pdf, "group-label");
     }
 
@@ -377,11 +377,11 @@ public sealed class PdfShapeGroupTests {
             group.Append(new V.Rectangle { Style = "position:absolute;left:0;top:0;width:40;height:20", FillColor = item.Color, Stroked = false });
             word.AddParagraph(whitespaceOnly ? " " : "X")._run!.Append(new W.Picture(group));
         }
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         SaveEvidence(pdf, "legacy-stack-order-" + whitespaceOnly);
         AssertPixel(Render(pdf, 1), 100, 80, 0, 128, 0);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-shape-group-unsupported");
     }
 
     [Theory]
@@ -410,17 +410,17 @@ public sealed class PdfShapeGroupTests {
         anchor.Append(new DW.WrapNone());
         anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Paragraph;
         paragraph.AddText("ANCHOR " + string.Join(" ", Enumerable.Range(0, 40).Select(index => "word" + index)));
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PageSize(400, pageHeight), Margins = PdfCore.PageMargins.Uniform(40)
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(400, pageHeight), Margins = PdfCore.PdfPageMargins.Uniform(40)
         });
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));
         var bitmap = Render(pdf, page.PageNumber);
         byte[] pixels = bitmap.GetPixels();
         int redRow = Enumerable.Range(0, bitmap.Height).First(row => pixels[(row * bitmap.Width + 15) * 4] > 250 && pixels[(row * bitmap.Width + 15) * 4 + 1] < 5);
-        var span = Assert.Single(PdfCore.PdfReadDocument.Open(pdf.ToBytes()).Pages[page.PageNumber - 1].GetTextSpans(), item => item.Text.Contains("ANCHOR"));
+        var span = Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages[page.PageNumber - 1].GetTextSpans(), item => item.Text.Contains("ANCHOR"));
         Assert.InRange(pageHeight - span.Y - redRow, 0D, span.FontSize + 5D);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-shape-group-unsupported");
         SaveEvidence(pdf, "floating-table-group-" + tableOffset);
     }
 
@@ -439,13 +439,13 @@ public sealed class PdfShapeGroupTests {
         anchor.RemoveAllChildren<DW.WrapSquare>();
         anchor.Append(new DW.WrapNone());
         anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Paragraph;
-        var result = word.ToPdfDocumentResult();
-        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var result = word.ConvertToPdfWithEvidence();
+        var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         AssertPixel(Render(pdf, 1), 15, 75, 255, 0, 0);
         Assert.Contains("List anchor", pdf.Reader.Text());
         if (listStyle == WordListStyle.Numbered) Assert.Contains("1.", pdf.Reader.Text());
         else Assert.Contains("•", pdf.Reader.Text());
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-shape-group-unsupported");
         SaveEvidence(pdf, "list-group-" + listStyle);
     }
 

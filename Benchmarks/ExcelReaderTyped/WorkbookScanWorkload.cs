@@ -95,8 +95,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         internal long OfficeIMO(bool streamInput = false) {
             using MemoryStream? stream = streamInput ? new MemoryStream(_bytes, writable: false) : null;
             using ExcelWorkbookDataReader reader = streamInput
-                ? ExcelDocument.OpenDataReader(stream!, new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 })
-                : ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 });
+                ? ExcelDocument.OpenReader(stream!, new ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 })
+                : ExcelDocument.OpenReader(_bytes, new ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
             long sum = 0;
             int rows = 0;
             while (reader.Read()) {

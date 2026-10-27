@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Measures projected fill and stroke after the shape's actual clip geometry.</summary>
     private static bool TryGetShapePaintBounds(OfficeShape shape, double x, double bottomY,
-        PdfOptions? options, string source, string contentKind,
+        PdfCreateOptions? options, string source, string contentKind,
         out double left, out double bottom, out double width, out double height, bool conservativeWhenUnmeasured = false) {
         try {
             return TryMeasureShapePaintBounds(shape, x, bottomY, options, source, contentKind,
@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
         } catch (Exception error) when (error is InvalidOperationException or NotSupportedException) {
             // Diagnostic inspection may exhaust its bounded geometry work even
             // when the native writer can emit the original path and dash array.
-            options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+            options?.AddUnassessedLayoutWarning("header-footer-paint-bounds-unmeasured", source,
                 source + " " + contentKind + " paint bounds exceed the geometry inspection limit; physical page clipping is unassessed.");
             left = bottom = width = height = 0D;
             if (!conservativeWhenUnmeasured) return false;
@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryMeasureShapePaintBounds(OfficeShape shape, double x, double bottomY,
-        PdfOptions? options, string source, string contentKind,
+        PdfCreateOptions? options, string source, string contentKind,
         out double left, out double bottom, out double width, out double height, bool conservativeWhenUnmeasured) {
         left = bottom = width = height = 0D;
         if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return false;
@@ -83,7 +83,7 @@ internal static partial class PdfWriter {
             var linear = stroke ? geometry.StrokeGradient : geometry.FillGradient;
             var radial = stroke ? geometry.StrokeRadialGradient : geometry.FillRadialGradient;
             if (!TryCreateGradientAlphaContours(geometry, paint, linear, radial, out var alpha)) {
-                options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+                options?.AddUnassessedLayoutWarning("header-footer-paint-bounds-unmeasured", source,
                     source + " " + contentKind + " gradient alpha bounds are unassessed; physical page clipping is unassessed.");
                 if (conservativeWhenUnmeasured) IncludeUnmeasuredGeometry(MappedPaint());
                 return;
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
             }
             var bounds = OfficeRasterCanvas.MeasureNominalFilledContourBounds(MappedPaint(), rule, effectiveClips);
             if (!bounds.IsMeasured) {
-                options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+                options?.AddUnassessedLayoutWarning("header-footer-paint-bounds-unmeasured", source,
                     source + " " + contentKind + " paint bounds exceed the contour inspection limit; physical page clipping is unassessed.");
                 if (conservativeWhenUnmeasured) IncludeUnmeasuredGeometry(MappedPaint());
             } else if (bounds.HasInk) {

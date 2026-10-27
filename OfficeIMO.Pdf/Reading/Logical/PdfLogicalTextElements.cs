@@ -222,7 +222,7 @@ public sealed class PdfLogicalTextRun {
     public double FontSize => SourceSpan?.FontSize ?? 0D;
 
     /// <summary>Source text color, when available.</summary>
-    public OfficeIMO.Drawing.OfficeColor? Color => SourceSpan?.Color;
+    public OfficeIMO.OfficeColor? Color => SourceSpan?.Color;
 
     /// <summary>Bold classification from declared weight, with a legacy font-name fallback.</summary>
     public bool IsBold => SourceSpan?.IsBold == true;
@@ -250,7 +250,7 @@ public sealed class PdfLogicalHeading {
         Line = line;
         Confidence = PdfInference.Clamp(confidence);
         Evidence = evidence is null
-            ? new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
+            ? new[] { new PdfInferenceEvidence("heading-font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
             : PdfInference.Snapshot(evidence);
     }
 
@@ -274,8 +274,8 @@ public sealed class PdfLogicalHeading {
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
     internal bool CanApplyDocumentFontTier => !Evidence.Any(static item =>
-        string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
-        string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal));
+        string.Equals(item.Code, "semantic-outline-heading", StringComparison.Ordinal) ||
+        string.Equals(item.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));
 
     internal void ApplyDocumentFontTier(int level) {
         if (!CanApplyDocumentFontTier) return;
@@ -321,7 +321,7 @@ public sealed class PdfLogicalListItem {
         Runs = sourceRuns is null ? BuildRuns(Lines, lineTexts) : Array.AsReadOnly(sourceRuns.ToArray());
         Confidence = PdfInference.Clamp(confidence ?? (string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D));
         Evidence = evidence is null
-            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
+            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list-indentation" : "list-marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
             : PdfInference.Snapshot(evidence);
     }
 
@@ -446,7 +446,7 @@ public sealed class PdfLogicalParagraph {
     /// <summary>Bottom baseline Y coordinate in PDF points.</summary>
     public double YBottom { get; }
 
-    internal static PdfLogicalParagraph From(int pageNumber, StructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {
+    internal static PdfLogicalParagraph From(int pageNumber, PdfStructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {
         return new PdfLogicalParagraph(
             pageNumber,
             paragraph.Text,

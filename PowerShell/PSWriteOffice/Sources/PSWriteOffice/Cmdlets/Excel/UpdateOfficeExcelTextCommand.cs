@@ -52,7 +52,7 @@ public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeM
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range to update. Defaults to each selected worksheet's used range.</summary>
+    /// <summary>ExcelA1 range to update. Defaults to each selected worksheet's used range.</summary>
     [Parameter]
     public string? Range { get; set; }
 

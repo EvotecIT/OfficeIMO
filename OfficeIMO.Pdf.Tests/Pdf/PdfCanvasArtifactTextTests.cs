@@ -11,7 +11,7 @@ public sealed class PdfCanvasArtifactTextTests {
     [InlineData(true)]
     public void ArtifactTextDoesNotRegisterLinkPaintWhileOrdinaryLinksRemainTagged(bool textBox) {
         const string uri = "https://example.test/canvas-link";
-        byte[] Render(bool artifact) => PdfDocument.Create(new PdfOptions {
+        byte[] Render(bool artifact) => PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => {
@@ -39,7 +39,7 @@ public sealed class PdfCanvasArtifactTextTests {
 
     [Fact]
     public void SecondaryTextPaintIsALayoutArtifactWithoutDuplicateExtraction() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => canvas
@@ -64,7 +64,7 @@ public sealed class PdfCanvasArtifactTextTests {
         if (explicitlyDecorative) {
             structure.Add("decoration", new PdfCanvasSourceContent(Array.Empty<PdfCanvasStructureStep>(), 0, artifact: true));
         }
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => canvas.SourceStructuredDrawing(drawing, 180D, 40D, structure)).ToBytes();

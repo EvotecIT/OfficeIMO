@@ -201,7 +201,7 @@ public class PdfDocumentImageValidationTests {
             ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -234,7 +234,7 @@ public class PdfDocumentImageValidationTests {
             ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -275,7 +275,7 @@ public class PdfDocumentImageValidationTests {
             ScaleDownToFit = true,
             RotationAngle = 12
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultImageStyle = style
         };
 
@@ -294,7 +294,7 @@ public class PdfDocumentImageValidationTests {
         readback.ScaleDownToFit = false;
         readback.RotationAngle = 3;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
@@ -324,7 +324,7 @@ public class PdfDocumentImageValidationTests {
         var theme = new PdfTheme {
             ImageStyle = imageStyle
         };
-        var options = new PdfOptions().ApplyTheme(theme);
+        var options = new PdfCreateOptions().ApplyTheme(theme);
 
         imageStyle.Align = PdfAlign.Right;
         imageStyle.Fit = OfficeImageFit.Cover;
@@ -332,7 +332,7 @@ public class PdfDocumentImageValidationTests {
         imageStyle.KeepWithNext = false;
         imageStyle.ScaleDownToFit = false;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
@@ -554,7 +554,7 @@ public class PdfDocumentImageValidationTests {
         using var image = new MemoryStream(CreateMinimalGif());
         document.AddParagraph().AddImage(image, "pixel.gif", 24, 24);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = (document.ToPdf()).ToBytes();
 
         PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal("image/png", embedded.MimeType);
@@ -566,7 +566,7 @@ public class PdfDocumentImageValidationTests {
         ExcelSheet sheet = workbook.AddWorksheet("Raster");
         sheet.AddImage(1, 1, CreateMinimalGif(), "image/gif", 24, 24);
 
-        byte[] pdf = workbook.ToPdfBytes();
+        byte[] pdf = (workbook.ToPdf()).ToBytes();
 
         PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal("image/png", embedded.MimeType);
@@ -683,7 +683,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void Image_WithHeightExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 140,
             MarginLeft = 20,
@@ -703,7 +703,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void Image_WithWidthExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 20,
@@ -723,7 +723,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void Image_WithScaleDownToFit_ReducesOversizedImageIntoContentFrame() {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 20,
@@ -997,7 +997,7 @@ public class PdfDocumentImageValidationTests {
             SpacingAfter = 12
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -1035,7 +1035,7 @@ public class PdfDocumentImageValidationTests {
             SpacingAfter = 8
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -1061,7 +1061,7 @@ public class PdfDocumentImageValidationTests {
     public void RowColumnImage_WithScaleDownToFit_ReducesOversizedImageIntoColumnFrame() {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 20,

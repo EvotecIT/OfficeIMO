@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
         /// Applies a number format to every cell in the range.
         /// </summary>
         public void FormatRange(string a1Range, string numberFormat) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void FillRange(string a1Range, string hexColor) {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
         /// Clears selected parts of every cell and attached worksheet metadata in the range.
         /// </summary>
         public void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (options == ExcelClearOptions.None) {
                 return;
             }

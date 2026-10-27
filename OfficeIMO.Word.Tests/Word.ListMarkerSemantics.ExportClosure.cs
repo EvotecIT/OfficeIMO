@@ -21,7 +21,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.AddItem("Visible child", 1);
         list.AddItem("Visible grandchild", 2);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         Assert.Contains("Top level markerless", markdown, StringComparison.Ordinal);
         Assert.Contains("- Visible child", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain(markdown.Split('\n'), line => line.Trim() == "-");
@@ -85,7 +85,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         tenItem.Text = "TableTen";
         AttachToList(tenItem, list.NumberId);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         (double Start, double End) nine = PdfLetterRun(pdf, "9.");
         (double Start, double End) ten = PdfLetterRun(pdf, "10.");
         (double Start, double End) nineText = PdfLetterRun(pdf, "TableNine");
@@ -121,7 +121,7 @@ public sealed partial class WordListMarkerSemanticsTests {
             string.Join(" | ", markers.Select(item => item.Key.Text + ":" + item.Value.Marker)));
         Assert.Equal("◆", laterResolved.Marker);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages[0].GetTextSpans().ToArray();
         string renderedSpans = string.Join(" | ", spans.Select(span => $"'{span.Text}'/{span.FontSize}/{span.Color}"));
         PdfTextSpan[] nestedMarkers = spans.Where(span => span.Text.Contains("*", StringComparison.Ordinal)).ToArray();
         PdfTextSpan[] laterMarkers = spans.Where(span => span.Text.Contains("◆", StringComparison.Ordinal)).ToArray();
@@ -157,8 +157,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(evenHeader.AddParagraph("Even picture marker"), list.NumberId);
         document.AddParagraph("Body");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Equal(expectWarning, result.Warnings.Any(warning => warning.Code == "NativePictureBulletTextFallback"));
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Equal(expectWarning, result.Warnings.Any(warning => warning.Code == "native-picture-bullet-text-fallback"));
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(document.Header!.Default!.AddParagraph("Header list item"), list.NumberId);
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
         Assert.Contains("<header", html, StringComparison.Ordinal);
         Assert.Contains("<ul", html, StringComparison.Ordinal);
         Assert.Contains("<li>Header list item</li>", html, StringComparison.Ordinal);
@@ -177,8 +177,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
         WordList pictureList = document.AddPictureBulletList(image, "Kulek.jpg");
         AttachToList(document.Header.Default.AddParagraph("Header picture marker"), pictureList.NumberId);
-        var bodyOnly = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = false });
-        Assert.DoesNotContain(bodyOnly.Report.Diagnostics, diagnostic => diagnostic.Code == "PictureBulletTextFallback");
+        var bodyOnly = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = false });
+        Assert.DoesNotContain(bodyOnly.Report.Diagnostics, diagnostic => diagnostic.Code == "picture-bullet-text-fallback");
     }
 
     [Theory]
@@ -195,7 +195,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        string text = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
     }
 
@@ -210,7 +210,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("HeaderStyledMarker", StringComparison.Ordinal));
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
@@ -233,7 +233,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan reference = Assert.Single(spans, span => span.Text.Contains("PlainHeaderReference", StringComparison.Ordinal));
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("IndentedHeaderItem", StringComparison.Ordinal));
@@ -268,7 +268,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan nineText = Assert.Single(spans, span => span.Text.Contains("HeaderNine", StringComparison.Ordinal));
@@ -292,7 +292,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.InRange(pdf.Length, 1, 1_000_000);
         Assert.Contains("ExtremeIndentHeader", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -310,12 +310,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
         Assert.True(marker.IsBold);
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
-        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         Assert.Contains("Before * StyledHeaderBox", text, StringComparison.Ordinal);
         Assert.True(text.IndexOf("StyledHeaderBox", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
     }
@@ -330,7 +330,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("Body");
 
         PdfTextSpan marker = Assert.Single(
-            PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
+            PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
             span => span.Text == "*");
         Assert.True(marker.Advance > 0D);
     }
@@ -356,7 +356,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
         AttachToList(box.Paragraphs[1], list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan pdfNine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan pdfTen = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan pdfNineText = Assert.Single(spans, span => span.Text.Contains("TextBoxNine", StringComparison.Ordinal));
@@ -388,10 +388,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         cell.Text = "ImageSuffixCell";
         AttachToList(cell, list.NumberId);
 
-        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        var layout = new WordPdfExportOptions { IncludePageNumbers = false };
         var options = new WordImageExportOptions { LayoutOptions = layout };
-        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdfBytes(layout)).Pages);
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf(layout).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
+        WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot(options);
         string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
         Assert.Contains("ImageSuffixBody", text, StringComparison.Ordinal);
         Assert.Contains("ImageSuffixBox", text, StringComparison.Ordinal);
@@ -449,7 +449,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         }
         document.AddParagraph("Body");
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.ToPdfBytes());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("text-box nesting exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -460,16 +460,16 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
         list.AddItem("Picture item");
 
-        var html = document.ToHtmlResult();
+        var html = document.ConvertToHtmlWithEvidence();
         Assert.Contains(html.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "PictureBulletTextFallback" &&
+            diagnostic.Code == "picture-bullet-text-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot();
         Assert.Contains(snapshot.Diagnostics, diagnostic =>
-            diagnostic.Code == "NativePictureBulletTextFallback" &&
+            diagnostic.Code == "native-picture-bullet-text-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
-            diagnostic.Code == "NativePictureBulletTextFallback");
+            diagnostic.Code == "native-picture-bullet-text-fallback");
     }
 
     [Fact]
@@ -488,7 +488,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[1], bulletList.NumberId);
         AttachToList(box.Paragraphs[2], markerlessList.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         var lines = spans.GroupBy(span => Math.Round(span.Y, 2)).Select(group => new {
             Text = string.Concat(group.OrderBy(span => span.X).Select(span => span.Text)),
             Spans = group.OrderBy(span => span.X).ToArray()
@@ -516,11 +516,11 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordTextBox box = host.AddTextBox("UnnumberedInner", WordImageTextWrapping.Square);
         AttachToList(host, list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("1.", StringComparison.Ordinal));
         PdfTextSpan inner = Assert.Single(spans, span => span.Text.Contains("UnnumberedInner", StringComparison.Ordinal));
         Assert.NotEqual(marker.Y, inner.Y);
-        Assert.Equal(1, PdfReadDocument.Open(document.ToPdfBytes()).ExtractText()
+        Assert.Equal(1, PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText()
             .Split(new[] { "1." }, StringSplitOptions.None).Length - 1);
         Assert.NotNull(box);
     }
@@ -540,7 +540,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         cell.Text = "SuffixCell";
         AttachToList(cell, list.NumberId);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         (double Start, double End) marker = PdfLetterRun(pdf, "*");
         (double Start, double End) content = PdfLetterRun(pdf, "SuffixCell");
         Assert.InRange(content.Start - marker.End, minimumGap, maximumGap);

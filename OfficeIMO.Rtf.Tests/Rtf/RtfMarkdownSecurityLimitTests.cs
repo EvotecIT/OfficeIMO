@@ -11,7 +11,7 @@ public class RtfMarkdownSecurityLimitTests {
         var table = new TableBlock();
         table.Headers.AddRange(new[] { "A", "B" });
         table.Rows.Add(new[] { "1", "2" });
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(table);
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(table);
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
@@ -26,7 +26,7 @@ public class RtfMarkdownSecurityLimitTests {
         table.Rows.Add(new[] { "1", "2" });
         ListItem item = ListItem.Text("Item");
         item.NestedBlocks.Add(table);
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { item } });
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { item } });
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
@@ -37,7 +37,7 @@ public class RtfMarkdownSecurityLimitTests {
     [Fact]
     public void MarkdownListConversionCapsAuthoredRtfLevels() {
         string markdownText = "- zero\n  - one\n    - two\n      - three\n        - four\n";
-        RtfConversionResult<OfficeIMO.Rtf.RtfDocument> result = MarkdownReader.Parse(markdownText).ToRtfDocumentResult(
+        RtfConversionResult<OfficeIMO.Rtf.RtfDocument> result = MarkdownDocument.Parse(markdownText).ToRtfDocumentResult(
             new MarkdownToRtfOptions { MaxListNestingDepth = 3 });
 
         Assert.All(result.Value.ListDefinitions, definition => Assert.InRange(definition.Levels.Count, 1, 3));
@@ -52,7 +52,7 @@ public class RtfMarkdownSecurityLimitTests {
         ListItem second = ListItem.Text("BetaSibling");
         ListItem root = ListItem.Text("Root");
         root.NestedBlocks.Add(new UnorderedListBlock { Items = { first, second } });
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
 
         string roundTrip = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 }).ToMarkdown();
 
@@ -71,7 +71,7 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Task("Pending")
             }
         });
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -93,7 +93,7 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Text("Fourth")
             }
         });
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -111,7 +111,7 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Text("Second child")
             }
         });
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -123,7 +123,7 @@ public class RtfMarkdownSecurityLimitTests {
     [Fact]
     public void CodeBlockInfoBookmarkPayloadIsBounded() {
         string infoString = new string('x', 2_000);
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new CodeBlock(infoString, "value"));
+        MarkdownDocument markdown = MarkdownDocument.Create().Add(new CodeBlock(infoString, "value"));
 
         string roundTrip = markdown.ToRtfDocument().ToMarkdown();
 
@@ -140,6 +140,6 @@ public class RtfMarkdownSecurityLimitTests {
             MaxTableCells = maxCells
         };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownDoc.Create().ToRtfDocument(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownDocument.Create().ToRtfDocument(options));
     }
 }

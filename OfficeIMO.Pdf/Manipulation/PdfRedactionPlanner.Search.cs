@@ -10,7 +10,7 @@ internal static partial class PdfRedactionPlanner {
             return SearchCore(pdf, search, layoutOptions, readOptions);
         } catch (PdfUnsupportedTextMappingException error) {
             return CreateUnsupportedTextMappingPlan(pdf, error, readOptions,
-                "RedactionSearchTextMappingUnsupported", search.CancellationToken);
+                "redaction-search-text-mapping-unsupported", search.CancellationToken);
         }
     }
 
@@ -96,7 +96,7 @@ internal static partial class PdfRedactionPlanner {
             if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(widget.PageNumber)) continue;
             if (widget.FieldName is not null && requestedFields.Contains(widget.FieldName)) AddArea(areas, keys, new PdfRedactionArea(widget.PageNumber, widget.X1, widget.Y1, widget.Width, widget.Height, "field:" + widget.FieldName), search.MaximumCandidates, search.ContentScope);
         }
-        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "RedactionSearchNoMatches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()));
+        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "redaction-search-no-matches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()));
         PdfRedactionPlan planned = Plan(pdf, areas, layoutOptions, readOptions, search.CancellationToken);
         search.CancellationToken.ThrowIfCancellationRequested();
         return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings, DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout);

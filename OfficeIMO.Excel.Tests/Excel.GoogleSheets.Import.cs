@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
 
                 GoogleSheetsImportResult result = await session.ImportGoogleSheetAsync("sheet123");
                 using (result.Document) {
-                    ExcelWorkbookSnapshot snapshot = result.Document.CreateInspectionSnapshot();
+                    ExcelWorkbookInfo snapshot = result.Document.Inspect();
                     Assert.Contains(snapshot.Worksheets.Single().Cells, cell => cell.Row == 2 && cell.Column == 1 && Equals(cell.Value, "Alpha"));
                 }
                 Assert.Equal(17, result.Source.DriveVersion);
@@ -164,8 +164,8 @@ namespace OfficeIMO.Tests {
             });
 
             using (result.Document) {
-                ExcelWorkbookSnapshot snapshot = result.Document.CreateInspectionSnapshot();
-                ExcelWorksheetSnapshot sheet = Assert.Single(snapshot.Worksheets);
+                ExcelWorkbookInfo snapshot = result.Document.Inspect();
+                ExcelWorksheetInfo sheet = Assert.Single(snapshot.Worksheets);
                 Assert.True(sheet.RightToLeft);
                 Assert.False(sheet.ShowGridlines);
                 Assert.Equal(1, sheet.FrozenRowCount);
@@ -195,11 +195,11 @@ namespace OfficeIMO.Tests {
                 Assert.Null(rowsRange.StartColumnIndex);
                 Assert.Null(rowsRange.EndColumnIndex);
                 Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Formula == "SUM(1,2)");
-                ExcelRowSnapshot importedRow = Assert.Single(sheet.Rows, row => row.Index == 2);
+                ExcelRowInfo importedRow = Assert.Single(sheet.Rows, row => row.Index == 2);
                 Assert.Equal(30d, importedRow.Height);
                 Assert.True(importedRow.Hidden);
                 Assert.Equal((byte)1, importedRow.OutlineLevel);
-                ExcelColumnSnapshot importedColumn = Assert.Single(sheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
+                ExcelColumnInfo importedColumn = Assert.Single(sheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
                 Assert.True(importedColumn.Hidden);
                 Assert.Equal((byte)1, importedColumn.OutlineLevel);
                 GoogleSheetsUpdateDimensionPropertiesRequest rowUpdate = Assert.Single(
@@ -216,11 +216,11 @@ namespace OfficeIMO.Tests {
                     request => request.DimensionKind == GoogleSheetsDimensionKind.Rows && request.StartIndex == 1 && request.EndIndexExclusive == 3);
                 Assert.Contains(roundTripBatch.Requests.OfType<GoogleSheetsAddDimensionGroupRequest>(),
                     request => request.DimensionKind == GoogleSheetsDimensionKind.Columns && request.StartIndex == 1 && request.EndIndexExclusive == 3);
-                ExcelCellSnapshot header = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+                ExcelCellInfo header = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
                 Assert.True(header.Style!.Bold);
                 Assert.Equal("Arial", header.Style.FontName);
                 Assert.Equal("FFFFFF00", header.Style.FillColorArgb);
-                ExcelCellSnapshot formula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
+                ExcelCellInfo formula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
                 Assert.Equal("0.00", formula.Style!.NumberFormatCode);
                 Assert.Equal(135, formula.Style.TextRotation);
                 IReadOnlyList<ExcelRichTextRun> richText = result.Document.Sheets[0].CellAt(2, 1).GetRichText();

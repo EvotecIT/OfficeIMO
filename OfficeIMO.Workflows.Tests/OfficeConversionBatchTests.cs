@@ -21,24 +21,25 @@ public sealed class OfficeConversionBatchTests {
         using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Excel source"); excel.Save(); }
         using (var slides = PowerPointPresentation.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Slide source", 40, 40, 500, 60); slides.Save(); }
         var items = new Items();
-        var builder = OfficeWorkflow.ConvertDirectory(scope.Input).ToDirectory(scope.Output).WithCheckpoint(scope.State)
-            .WithConversionOptions(new OfficeWorkflowConversionOptions {
-                Word = new OfficeIMO.Word.Pdf.WordToPdfOptions { Title = "Batch Word" },
-                Excel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions { PdfOptions = new PdfOptions { DefaultFontSize = 12 } },
-                PowerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions { PdfOptions = new PdfOptions { DefaultFontSize = 12 } },
+        var builder = (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
+            ConversionOptions = new OfficeConversionOptions {
+                Word = new OfficeIMO.Word.Pdf.WordPdfExportOptions { Title = "Batch Word" },
+                Excel = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = 12 } },
+                PowerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = 12 } },
                 Html = new OfficeIMO.Html.Pdf.HtmlToPdfOptions(),
-                Markdown = new OfficeIMO.Markdown.Pdf.MarkdownToPdfOptions { Title = "Batch Markdown" },
-                Rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions()
-            });
-        var first = await builder.RunAsync(progress: items);
+                Markdown = new OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions { Title = "Batch Markdown" },
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions() }
+            }.Clone()
+        });
+        var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder, progress: items);
         Assert.Equal(7, first.Completed); Assert.Equal(0, first.Failed); Assert.Equal(1, first.Skipped);
         Assert.Single(items.Values, item => item.Skipped);
         foreach (var item in items.Values.Where(item => !item.Skipped)) {
-            Assert.Equal(OfficeWorkflowStatus.Completed, item.Status);
+            Assert.Equal(OfficeBatchItemStatus.Completed, item.Status);
             using var pdf = ReadPdf.Open(item.OutputPath!);
             Assert.NotEmpty(pdf.GetPages());
         }
-        var second = await builder.RunAsync();
+        var second = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder);
         Assert.Equal(7, second.Reused); Assert.Equal(1, second.Skipped);
     }
 
@@ -48,10 +49,13 @@ public sealed class OfficeConversionBatchTests {
         const string password = "Batch qualification secret";
         string wordPath = Path.Combine(scope.Input, "locked.docx");
         string excelPath = Path.Combine(scope.Input, "locked.xlsx");
-        using (var word = WordDocument.Create(wordPath)) { word.AddParagraph("Encrypted Word source"); word.SaveEncrypted(wordPath, password); }
-        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel source"); excel.SaveEncrypted(excelPath, password); }
-        var result = await OfficeWorkflow.ConvertDirectory(scope.Input).ToDirectory(scope.Output).WithCheckpoint(scope.State)
-            .WithConversionOptions(new OfficeWorkflowConversionOptions { SourcePassword = password }).RunAsync();
+        using (var word = WordDocument.Create(wordPath)) { word.AddParagraph("Encrypted Word source"); word.Save(wordPath, new WordSaveOptions { Password = password }); }
+        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel source"); excel.Save(excelPath, new ExcelSaveOptions { Password = password }); }
+        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
+            ConversionOptions = new OfficeConversionOptions {
+                SourcePassword = password
+            }.Clone()
+        }));
         Assert.Equal(2, result.Completed); Assert.Equal(0, result.Failed);
         foreach (string checkpoint in Directory.EnumerateFiles(scope.State, "*.json", SearchOption.AllDirectories))
             Assert.DoesNotContain(password, File.ReadAllText(checkpoint));
@@ -62,7 +66,7 @@ public sealed class OfficeConversionBatchTests {
         using var scope = new BatchDirectory();
         string source = Path.Combine(scope.Input, "source.pdf");
         PdfPlainTextConverter.ToPdfDocumentResult("PDF batch source").Save(source);
-        var result = await OfficeWorkflow.ConvertFiles(source).ToDirectory(scope.Output, ".html").WithCheckpoint(scope.State).RunAsync();
+        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), ((new OfficeBatchOptions { InputPaths = [source] } with { OutputDirectory = scope.Output, TargetExtension = ".html" }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }));
         Assert.Equal(1, result.Completed);
         Assert.Contains("PDF batch source", File.ReadAllText(Path.Combine(scope.Output, "source.pdf.html")));
     }
@@ -72,25 +76,50 @@ public sealed class OfficeConversionBatchTests {
         using var scope = new BatchDirectory();
         string source = Path.Combine(scope.Input, "geometry.txt");
         File.WriteAllText(source, "literal geometry");
-        var text = new PdfPlainTextOptions { PdfOptions = new PdfOptions {
-            PageWidth = 240, PageHeight = 180, MarginLeft = 12, MarginRight = 12, MarginTop = 12, MarginBottom = 12,
-            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 14
-        } };
-        var options = new OfficeWorkflowConversionOptions { PlainText = text };
-        var single = await OfficeWorkflow.Convert(source).To(Path.Combine(scope.Output, "single.pdf")).WithConversionOptions(options).RunAsync();
+        var text = new PdfTextImportOptions {
+            PdfOptions = new PdfCreateOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                MarginLeft = 12,
+                MarginRight = 12,
+                MarginTop = 12,
+                MarginBottom = 12,
+                DefaultFont = PdfStandardFont.Courier,
+                DefaultFontSize = 14
+            }
+        };
+        var options = new OfficeConversionOptions {
+            PlainText = text
+        };
+        var single = await OfficeWorkflow.RunAsync((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = source,
+            OutputPath = Path.Combine(scope.Output, "single.pdf"),
+            ConversionOptions = (options).Clone()
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(source), Path.GetExtension(Path.Combine(scope.Output, "single.pdf")), executableOnly: true)?.Id
+        }));
         Assert.True(single.Succeeded);
-        var request = new OfficeConversionBatchRequest { InputPaths = [source], OutputDirectory = scope.Output,
-            CheckpointDirectory = scope.State, ConversionOptions = options, MaximumFiles = 1 };
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Completed);
+        var request = new OfficeBatchOptions {
+            InputPaths = [source],
+            OutputDirectory = scope.Output,
+            ResumeFrom = Path.Combine(scope.State, "plan.json"),
+            ConversionOptions = options,
+            MaximumFiles = 1
+        };
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Completed);
         using (var pdf = ReadPdf.Open(Path.Combine(scope.Output, "geometry.txt.pdf"))) {
             Assert.Equal(240, pdf.GetPage(1).Width); Assert.Equal(180, pdf.GetPage(1).Height);
         }
-        var resumed = await new OfficeWorkflowRunner().RunBatchAsync(request with {
-            MaximumConcurrency = 9, MaximumFiles = 10, MaximumInputBytes = 128 * 1024 * 1024, MaximumOutputBytes = 512 * 1024 * 1024
+        var resumed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with {
+            MaxParallelism = 9,
+            MaximumFiles = 10,
+            MaximumInputBytes = 128 * 1024 * 1024,
+            MaximumOutputBytes = 512 * 1024 * 1024
         });
         Assert.Equal(1, resumed.Reused);
         text.PdfOptions.DefaultFontSize = 18;
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Failed);
     }
 
     [Fact]
@@ -98,12 +127,12 @@ public sealed class OfficeConversionBatchTests {
         using var scope = new BatchDirectory();
         string source = Path.Combine(scope.Input, "one.txt");
         File.WriteAllText(source, "First text");
-        var builder = OfficeWorkflow.ConvertFiles(source).ToDirectory(scope.Output);
-        Assert.Equal(1, (await builder.RunAsync()).Completed);
-        Assert.Equal(1, (await builder.OnConflict(OfficeWorkflowConflictPolicy.Rename).RunAsync()).Completed);
+        var builder = (new OfficeBatchOptions { InputPaths = [source] } with { OutputDirectory = scope.Output });
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder)).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), (builder with { ConflictPolicy = OfficePublicationPolicy.Rename }))).Completed);
         Assert.Equal(2, Directory.GetFiles(scope.Output, "*.pdf").Length);
         File.WriteAllText(source, "Replacement text");
-        Assert.Equal(1, (await builder.OnConflict(OfficeWorkflowConflictPolicy.Replace).RunAsync()).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), (builder with { ConflictPolicy = OfficePublicationPolicy.Replace }))).Completed);
         using var pdf = ReadPdf.Open(Path.Combine(scope.Output, "one.txt.pdf"));
         Assert.Contains("Replacement text", pdf.GetPage(1).Text);
     }
@@ -115,18 +144,22 @@ public sealed class OfficeConversionBatchTests {
         using var scope = new BatchDirectory();
         string source = Path.Combine(scope.Input, "spaces.docx");
         using (var word = WordDocument.Create(source)) { word.AddParagraph("ALPHA   BETA"); word.Save(); }
-        var pdfOptions = new PdfOptions();
-        var request = new OfficeConversionBatchRequest { InputPaths = [source], OutputDirectory = scope.Output,
-            CheckpointDirectory = scope.State, ConversionOptions = new() {
+        var pdfOptions = new PdfCreateOptions();
+        var request = new OfficeBatchOptions {
+            InputPaths = [source],
+            OutputDirectory = scope.Output,
+            ResumeFrom = Path.Combine(scope.State, "plan.json"),
+            ConversionOptions = new() {
                 Word = new() { IncludePageNumbers = false, PdfOptions = pdfOptions }
-            } };
+            }
+        };
         var runner = new OfficeWorkflowRunner();
-        Assert.Equal(1, (await runner.RunBatchAsync(request)).Completed);
-        Assert.Equal(1, (await runner.RunBatchAsync(request)).Reused);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
         byte[] original = File.ReadAllBytes(Path.Combine(scope.Output, "spaces.docx.pdf"));
         if (legacyBoolean) pdfOptions.PreserveTextWhitespace = false;
         else pdfOptions.TextWhitespaceMode = PdfTextWhitespaceMode.Collapse;
-        var changed = await runner.RunBatchAsync(request);
+        var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
         Assert.Equal(0, changed.Reused);
         Assert.Equal(1, changed.Failed);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(scope.Output, "spaces.docx.pdf")));
@@ -138,12 +171,12 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "page.html"), "<html><head><link rel='stylesheet' href='style.css'></head><body><p>Styled source</p></body></html>");
         string css = Path.Combine(scope.Input, "style.css");
         File.WriteAllText(css, "p { font-size: 18px; }");
-        var builder = OfficeWorkflow.ConvertDirectory(scope.Input).ToDirectory(scope.Output).WithCheckpoint(scope.State);
-        Assert.Equal(1, (await builder.RunAsync()).Completed);
-        Assert.Equal(1, (await builder.RunAsync()).Reused);
+        var builder = ((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false });
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder)).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder)).Reused);
         byte[] original = File.ReadAllBytes(Path.Combine(scope.Output, "page.html.pdf"));
         File.WriteAllText(css, "p { font-size: 28px; }");
-        Assert.Equal(1, (await builder.RunAsync()).Failed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder)).Failed);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(scope.Output, "page.html.pdf")));
     }
 
@@ -154,7 +187,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "two.md"), "# Unselected");
         Directory.CreateDirectory(Path.Combine(scope.Input, "nested"));
         File.WriteAllText(Path.Combine(scope.Input, "nested", "three.txt"), "Nested text");
-        var result = await OfficeWorkflow.ConvertDirectory(scope.Input).ToDirectory(scope.Output).SelectExtensions(false, ".txt").RunAsync();
+        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), ((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { Recursive = false, Extensions = [".txt"] }));
         Assert.Equal(1, result.Completed); Assert.Equal(1, result.Skipped);
         using var pdf = ReadPdf.Open(Path.Combine(scope.Output, "one.txt.pdf"));
         Assert.Contains("<h1>literal text</h1>", pdf.GetPage(1).Text);
@@ -175,25 +208,32 @@ public sealed class OfficeConversionBatchTests {
         using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
         using (var slides = PowerPointPresentation.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Encrypted slides", 40, 40, 500, 60); slides.Save(); }
         const string userPassword = "Synthetic output reader", ownerPassword = "Synthetic output owner";
-        PdfOptions Encryption() => new PdfOptions().SetEncryption(userPassword, ownerPassword);
-        var request = new OfficeConversionBatchRequest { InputDirectory = scope.Input, OutputDirectory = scope.Output,
-            CheckpointDirectory = checkpoint ? scope.State : null, PdfPassword = "Unrelated source password",
+        PdfCreateOptions Encryption() => new PdfCreateOptions().SetEncryption(userPassword, ownerPassword);
+        var request = new OfficeBatchOptions {
+            InputDirectory = scope.Input,
+            OutputDirectory = scope.Output,
+            ResumeFrom = checkpoint ? Path.Combine(scope.State, "plan.json") : null,
             ConversionOptions = new() {
-                PlainText = new() { PdfOptions = Encryption() }, Word = new() { PdfOptions = Encryption() },
-                Excel = new() { PdfOptions = Encryption() }, PowerPoint = new() { PdfOptions = Encryption() },
-                Html = new() { PdfOptions = Encryption() }, Markdown = new() { PdfOptions = Encryption() },
-                Rtf = new() { PdfOptions = Encryption() }, CompressPdfOutput = compress
+                PdfLoad = new() { Password = "Unrelated source password" },
+                PlainText = new() { PdfOptions = Encryption() },
+                Word = new() { PdfOptions = Encryption() },
+                Excel = new() { PdfOptions = Encryption() },
+                PowerPoint = new() { PdfOptions = Encryption() },
+                Html = new() { PdfOptions = Encryption() },
+                Markdown = new() { PdfOptions = Encryption() },
+                CompressPdfOutput = compress,
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { PdfOptions = Encryption() } }
             }
         };
         var items = new Items();
-        var result = await new OfficeWorkflowRunner().RunBatchAsync(request, items);
+        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, items);
         Assert.True(result.Failed == 0, string.Join("\n", items.Values.Select(item => item.Summary))); Assert.Equal(7, result.Completed);
         foreach (var item in items.Values) {
             var pdf = PdfDocument.Load(item.OutputPath!, new PdfLoadOptions { Password = userPassword });
             Assert.True(pdf.Inspect().Security.HasEncryption); Assert.NotEmpty(pdf.Read().Pages);
         }
         if (checkpoint) {
-            Assert.Equal(7, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Reused);
+            Assert.Equal(7, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
             foreach (string receipt in Directory.EnumerateFiles(scope.State, "*.json", SearchOption.AllDirectories)) {
                 Assert.DoesNotContain(userPassword, File.ReadAllText(receipt));
                 Assert.DoesNotContain(ownerPassword, File.ReadAllText(receipt));
@@ -210,22 +250,28 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(input, "# Image source\n![image](image.asset)");
         byte[] png = OcrSessionWorkflowTests.Png();
         File.WriteAllBytes(image, png);
-        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
-            OutputDirectory = scope.Output, CheckpointDirectory = scope.State,
-            ConversionOptions = new() { Markdown = new() { BaseDirectory = scope.Input,
-                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true } } }
+        var request = new OfficeBatchOptions {
+            InputPaths = [input],
+            InputDirectory = scope.Input,
+            OutputDirectory = scope.Output,
+            ResumeFrom = Path.Combine(scope.State, "plan.json"),
+            ConversionOptions = new() {
+                Markdown = new() {
+                    BaseDirectory = scope.Input,
+                    ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true }
+                }
+            }
         };
         if (mutateAtPublication) {
-            var result = await new OfficeWorkflowRunner().RunBatchAsync(request,
-                publicationGuard: new ChangeResource(image));
+            var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, publicationGuard: new ChangeResource(image));
             Assert.Equal(1, result.Failed); Assert.False(File.Exists(Path.Combine(scope.Output, "page.md.pdf")));
         } else {
-            Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Completed);
+            Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Completed);
             string output = Path.Combine(scope.Output, "page.md.pdf");
             using (var pdf = ReadPdf.Open(output)) Assert.NotEmpty(pdf.GetPage(1).GetImages());
             byte[] original = File.ReadAllBytes(output);
             File.WriteAllBytes(image, [.. png, 0]);
-            Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+            Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Failed);
             Assert.Equal(original, File.ReadAllBytes(output));
         }
     }
@@ -236,15 +282,21 @@ public sealed class OfficeConversionBatchTests {
         string input = Path.Combine(scope.Input, "page.md");
         File.WriteAllText(input, "# Image source\n![image](../external.png)");
         File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(scope.Input)!, "external.png"), OcrSessionWorkflowTests.Png());
-        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
-            OutputDirectory = scope.Output, ConversionOptions = new() { Markdown = new() {
-                BaseDirectory = scope.Input, RestrictLocalImagesToBaseDirectory = false,
-                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true }
-            } }
+        var request = new OfficeBatchOptions {
+            InputPaths = [input],
+            InputDirectory = scope.Input,
+            OutputDirectory = scope.Output,
+            ConversionOptions = new() {
+                Markdown = new() {
+                    BaseDirectory = scope.Input,
+                    RestrictLocalImagesToBaseDirectory = false,
+                    ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true }
+                }
+            }
         };
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Completed);
         using (var pdf = ReadPdf.Open(Path.Combine(scope.Output, "page.md.pdf"))) Assert.NotEmpty(pdf.GetPage(1).GetImages());
-        var durable = await new OfficeWorkflowRunner().RunBatchAsync(request with { CheckpointDirectory = scope.State });
+        var durable = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with { ResumeFrom = Path.Combine(scope.State, "plan.json") });
         Assert.Equal(1, durable.Failed); Assert.Equal(0, durable.Reused);
     }
 
@@ -257,29 +309,37 @@ public sealed class OfficeConversionBatchTests {
         // Distinct paragraphs keep the compressed PDF above the bound; repeated text compresses below it.
         File.WriteAllText(input, string.Join("\n", Enumerable.Range(0, 3000).Select(index =>
             "<p>A long source " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + " that exceeds the bounded PDF output.</p>")));
-        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
-            OutputDirectory = scope.Output, CheckpointDirectory = scope.State, MaximumOutputBytes = 16 * 1024,
-            ConversionOptions = new() { Markdown = new() { BaseDirectory = scope.Input,
-                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true } } }
+        var request = new OfficeBatchOptions {
+            InputPaths = [input],
+            InputDirectory = scope.Input,
+            OutputDirectory = scope.Output,
+            ResumeFrom = Path.Combine(scope.State, "plan.json"),
+            MaximumOutputBytes = 16 * 1024,
+            ConversionOptions = new() {
+                Markdown = new() {
+                    BaseDirectory = scope.Input,
+                    ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true }
+                }
+            }
         };
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Failed);
         File.WriteAllText(input, "Corrected source");
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
-        var repaired = await new OfficeWorkflowRunner().RunBatchAsync(request with { RetryFailed = true });
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Failed);
+        var repaired = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with { RetryFailed = true });
         Assert.Equal(0, repaired.Failed); Assert.Equal(1, repaired.Completed);
-        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Reused);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
     }
 
-    private sealed class ChangeResource(string resource) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
-            if (!directory) File.WriteAllText(resource, "Changed at publication");
-            return ValueTask.FromResult(true);
+    private sealed class ChangeResource(string resource) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
+            if (!directory && Path.GetExtension(path) == ".pdf") File.WriteAllText(resource, "Changed at publication");
+            return Task.FromResult(true);
         }
     }
 
-    private sealed class Items : IProgress<OfficeConversionBatchItemResult> {
-        public ConcurrentBag<OfficeConversionBatchItemResult> Values { get; } = [];
-        public void Report(OfficeConversionBatchItemResult item) => Values.Add(item);
+    private sealed class Items : IProgress<OfficeBatchItemReport> {
+        public ConcurrentBag<OfficeBatchItemReport> Values { get; } = [];
+        public void Report(OfficeBatchItemReport item) => Values.Add(item);
     }
     private sealed class BatchDirectory : IDisposable {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "officeimo-conversion-batch-" + Guid.NewGuid().ToString("N"));

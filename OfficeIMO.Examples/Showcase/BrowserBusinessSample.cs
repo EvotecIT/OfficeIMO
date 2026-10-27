@@ -45,7 +45,7 @@ internal static class BrowserBusinessSample {
             paragraph.FontFamily = "Carlito";
             paragraph.FontSize = size;
             paragraph.Bold = bold;
-            paragraph.Color = OfficeIMO.Drawing.OfficeColor.FromRgb(15, 23, 42);
+            paragraph.Color = OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
             paragraph.LineSpacingBeforePoints = size == 16 ? 14 : 3;
             paragraph.LineSpacingAfterPoints = size == 26 ? 10 : 6;
         }

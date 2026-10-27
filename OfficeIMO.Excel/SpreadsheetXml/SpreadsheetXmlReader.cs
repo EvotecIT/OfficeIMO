@@ -83,7 +83,7 @@ internal static class SpreadsheetXmlReader {
                 if (nextColumn <= columnIndex) throw new InvalidDataException("Worksheet cell indexes must increase.");
                 columnIndex = nextColumn;
                 context.Inspect(sourceCell, new[] { "Data", "Comment", "NamedCell" }, new[] { "Index", "StyleID", "Formula", "MergeAcross", "MergeDown", "HRef", (X + "HRefScreenTip").ToString() });
-                var cell = new Cell { CellReference = A1.CellReference(rowIndex, columnIndex), StyleIndex = Style(sourceCell, styles, sourceRow.Attribute(Ss + "StyleID") != null ? rowStyle : columnStyles[columnIndex] ?? tableStyle) };
+                var cell = new Cell { CellReference = ExcelA1.CellReference(rowIndex, columnIndex), StyleIndex = Style(sourceCell, styles, sourceRow.Attribute(Ss + "StyleID") != null ? rowStyle : columnStyles[columnIndex] ?? tableStyle) };
                 XElement[] values = sourceCell.Elements(Ss + "Data").ToArray();
                 if (values.Length > 1) throw new InvalidDataException("A cell cannot contain multiple values.");
                 if (values.Length == 1) ReadValue(values[0], cell, date1904, sheet, context);
@@ -107,7 +107,7 @@ internal static class SpreadsheetXmlReader {
                     if (occupied[covered] >= rowIndex) throw new InvalidDataException("Overlapping XML Spreadsheet cells or merges.");
                     occupied[covered] = rowIndex + down;
                 }
-                if (across > 0 || down > 0) merges.Append(new MergeCell { Reference = cell.CellReference!.Value + ":" + A1.CellReference(rowIndex + down, columnIndex + across) });
+                if (across > 0 || down > 0) merges.Append(new MergeCell { Reference = cell.CellReference!.Value + ":" + ExcelA1.CellReference(rowIndex + down, columnIndex + across) });
                 annotations.Add((sourceCell, rowIndex, columnIndex));
                 columnIndex += across;
             }

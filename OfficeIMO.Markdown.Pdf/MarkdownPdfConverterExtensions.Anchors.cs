@@ -9,9 +9,9 @@ public static partial class MarkdownPdfConverterExtensions {
         private readonly HashSet<string> _known = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _registered = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _missing = new HashSet<string>(StringComparer.Ordinal);
-        private readonly MarkdownToPdfOptions _options;
+        private readonly MarkdownPdfExportOptions _options;
 
-        internal AnchorContext(MarkdownDoc document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownToPdfOptions options) {
+        internal AnchorContext(MarkdownDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownPdfExportOptions options) {
             _options = options;
             foreach (IMarkdownBlock block in blocks) {
                 if (!(block is MarkdownObject root)) continue;

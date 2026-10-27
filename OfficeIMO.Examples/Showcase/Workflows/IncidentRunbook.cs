@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Authors a portable incident runbook with structured steps, a decision table, and a warning.</summary>
 internal static class IncidentRunbook {
     internal static void Create(string folder) {
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("Service incident runbook")
             .P("Owner: Operations | Applies to: the Northwind request portal")
             .Callout("warning", "Before changing the service",

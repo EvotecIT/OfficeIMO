@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private static void AddDiagnostic(
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             string code,
             string message,
             string? source = null,

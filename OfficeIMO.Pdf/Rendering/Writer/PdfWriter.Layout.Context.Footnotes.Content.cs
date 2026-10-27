@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private PreparedFootnote PrepareFootnote(PdfFootnoteDefinition definition) {
-            PdfOptions noteOptions = footnotePageOptions ?? currentOpts;
+            PdfCreateOptions noteOptions = footnotePageOptions ?? currentOpts;
             // Page defaults can differ from those at definition capture. Reject any
             // effective constraint that this fragment planner does not implement.
             PdfDocument.ValidateFootnoteBlocks(definition.Blocks, noteOptions);
@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateFootnoteBlocks(definition.ContinuationNotice, noteOptions, allowTables: false);
             var key = (definition, currentPageBaseOptions, noteOptions.PageWidth - noteOptions.MarginLeft - noteOptions.MarginRight);
             if (preparedFootnotes.TryGetValue(key, out PreparedFootnote? prepared)) return prepared;
-            PdfOptions saved = currentOpts;
+            PdfCreateOptions saved = currentOpts;
             currentOpts = noteOptions;
             try {
                 var units = PrepareFootnoteUnits(definition.Blocks);
@@ -68,7 +68,7 @@ internal static partial class PdfWriter {
                     case TableBlock table:
                         if (GetTableColumnCount(table) == 0) break;
                         PdfTableStyle tableStyle = PreparePairedTableBorders(table,
-                            table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light());
+                            table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light());
                         PreparedTableGeometry geometry = PrepareTableGeometry(table, tableStyle, frameWidth);
                         double tableHeight = tableStyle.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights,
                             0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter;

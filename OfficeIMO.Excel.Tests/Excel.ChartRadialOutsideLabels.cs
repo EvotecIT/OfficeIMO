@@ -42,7 +42,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
             new C.ShowCategoryName { Val = true },
             new C.ShowLeaderLines { Val = true }), true);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 1 }, snapshot.Layout!.DataLabelSeriesIndexes);
         Assert.True(snapshot.Layout.ShowDataLabelLeaderLines);
         Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
@@ -66,7 +66,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         labels.AddChild(new C.ShowLeaderLines { Val = showLeaderLines }, true);
         native.AddChild(labels, true);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout!.DataLabelPosition);
         Assert.Equal(showLeaderLines, snapshot.Layout.ShowDataLabelLeaderLines);
         Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Png).Bytes);
@@ -93,7 +93,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
             item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
 
         labels.GetFirstChild<C.ShowLeaderLines>()!.Val = null;
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot inheritedSnapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo inheritedSnapshot));
         Assert.True(inheritedSnapshot.Layout!.ShowDataLabelLeaderLines);
         result = chart.ExportImage(OfficeImageExportFormat.Png);
         Assert.DoesNotContain(result.Diagnostics, item =>

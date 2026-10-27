@@ -63,12 +63,12 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
     public void ShortConfiguredWordPageKeepsContinuousRegionsInSemanticFlow() {
         const string html = "<div style='position:absolute;top:500px;width:120px;height:30px'>Page owned</div>";
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             DefaultPageSize = WordPageSize.A6,
             DefaultOrientation = OfficePageOrientation.Landscape
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);

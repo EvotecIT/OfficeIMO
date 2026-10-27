@@ -17,12 +17,12 @@ internal sealed partial class HtmlToMarkdownConverter {
     internal IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
 
     internal sealed class ConversionContext {
-        public ConversionContext(HtmlToMarkdownOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        public ConversionContext(MarkdownHtmlImportOptions options, System.Threading.CancellationToken cancellationToken = default) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
             CancellationToken = cancellationToken;
         }
 
-        public HtmlToMarkdownOptions Options { get; }
+        public MarkdownHtmlImportOptions Options { get; }
         public System.Threading.CancellationToken CancellationToken { get; }
         public List<HtmlDiagnostic> Diagnostics { get; } = new();
         public int SavedBase64ImageCount { get; set; }
@@ -35,17 +35,17 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// <summary>
     /// Converts a prepared HTML DOM into Markdown text without reparsing source text.
     /// </summary>
-    public string Convert(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
-        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+    public string Convert(IHtmlDocument document, MarkdownHtmlImportOptions? options = null) {
+        var effectiveOptions = options?.Clone() ?? new MarkdownHtmlImportOptions();
         return ConvertToDocument(document, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions, _cancellationToken);
     }
 
     /// <summary>
     /// Converts a prepared HTML DOM into a Markdown document without mutating the caller's DOM.
     /// </summary>
-    public MarkdownDoc ConvertToDocument(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
+    public MarkdownDocument ConvertToDocument(IHtmlDocument document, MarkdownHtmlImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        var effectiveOptions = options?.Clone() ?? new MarkdownHtmlImportOptions();
         IHtmlDocument filteredDocument = PrepareDocument(document, effectiveOptions, _cancellationToken);
         return ConvertFilteredDocument(filteredDocument, effectiveOptions);
     }
@@ -54,9 +54,9 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// Converts an independently owned DOM after applying operation filters in place. The caller
     /// supplies the original input length so bounded conversion does not have to serialize the DOM.
     /// </summary>
-    internal MarkdownDoc ConvertPreparedDocumentToDocument(
+    internal MarkdownDocument ConvertPreparedDocumentToDocument(
         IHtmlDocument document,
-        HtmlToMarkdownOptions effectiveOptions,
+        MarkdownHtmlImportOptions effectiveOptions,
         int sourceLength) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
@@ -69,9 +69,9 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// <summary>
     /// Converts a caller-owned read-only DOM when no operation requires source mutation.
     /// </summary>
-    internal MarkdownDoc ConvertReadOnlyDocumentToDocument(
+    internal MarkdownDocument ConvertReadOnlyDocumentToDocument(
         IHtmlDocument document,
-        HtmlToMarkdownOptions effectiveOptions,
+        MarkdownHtmlImportOptions effectiveOptions,
         int sourceLength) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
@@ -89,7 +89,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// Creates the filtered, caller-independent DOM used by the converter and internal
     /// projection consumers without introducing a second HTML parsing path.
     /// </summary>
-    internal static IHtmlDocument PrepareDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions, System.Threading.CancellationToken cancellationToken = default) {
+    internal static IHtmlDocument PrepareDocument(IHtmlDocument document, MarkdownHtmlImportOptions effectiveOptions, System.Threading.CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
         cancellationToken.ThrowIfCancellationRequested();
@@ -100,7 +100,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return filteredDocument;
     }
 
-    private MarkdownDoc ConvertFilteredDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
+    private MarkdownDocument ConvertFilteredDocument(IHtmlDocument document, MarkdownHtmlImportOptions effectiveOptions) {
         _cancellationToken.ThrowIfCancellationRequested();
         _diagnostics.Clear();
         if (HasRoleTableCandidate(document)) {
@@ -122,11 +122,11 @@ internal sealed partial class HtmlToMarkdownConverter {
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);
         context.Footnotes = HtmlFootnoteConversionState.Create(root, _cancellationToken);
 
-        var markdown = MarkdownDoc.Create();
+        var markdown = MarkdownDocument.Create();
         markdown.AddRange(ConvertNodesToBlocks(root.ChildNodes, context));
         _diagnostics.AddRange(context.Diagnostics);
 
-        MarkdownDoc result = MarkdownDocumentTransformPipeline.Apply(
+        MarkdownDocument result = MarkdownDocumentTransformPipeline.Apply(
             markdown,
             effectiveOptions.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions), _cancellationToken);
@@ -161,7 +161,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static bool ShouldSuppressListingCardMetadataElement(IElement element, ConversionContext context) {
         if (element == null
             || context?.Options == null
-            || context.Options.ListingCardMetadataMode != HtmlListingCardMetadataMode.SuppressInRepeatedCards) {
+            || context.Options.ListingCardMetadataMode != MarkdownHtmlListingCardMetadataMode.SuppressInRepeatedCards) {
             return false;
         }
 
@@ -307,7 +307,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string NormalizeRawElement(IElement element, ConversionContext? context) {
-        HtmlToMarkdownOptions options = context?.Options ?? new HtmlToMarkdownOptions();
+        MarkdownHtmlImportOptions options = context?.Options ?? new MarkdownHtmlImportOptions();
         return HtmlNormalizer.NormalizePreparedElement(
             element,
             new HtmlNormalizationOptions {

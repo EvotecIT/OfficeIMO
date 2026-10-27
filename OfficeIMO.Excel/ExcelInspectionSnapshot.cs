@@ -2,9 +2,9 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable workbook inspection snapshot exposed by OfficeIMO.Excel for downstream integrations.
     /// </summary>
-    public sealed class ExcelWorkbookSnapshot {
-        private readonly List<ExcelWorksheetSnapshot> _worksheets = new List<ExcelWorksheetSnapshot>();
-        private readonly List<ExcelNamedRangeSnapshot> _namedRanges = new List<ExcelNamedRangeSnapshot>();
+    public sealed class ExcelWorkbookInfo {
+        private readonly List<ExcelWorksheetInfo> _worksheets = new List<ExcelWorksheetInfo>();
+        private readonly List<ExcelNamedRangeInspectionInfo> _namedRanges = new List<ExcelNamedRangeInspectionInfo>();
 
         /// <summary>
         /// Workbook title, when present in package properties.
@@ -43,12 +43,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Worksheets in workbook order.
         /// </summary>
-        public IReadOnlyList<ExcelWorksheetSnapshot> Worksheets => _worksheets;
+        public IReadOnlyList<ExcelWorksheetInfo> Worksheets => _worksheets;
 
         /// <summary>
         /// Workbook and sheet-local named ranges discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelNamedRangeSnapshot> NamedRanges => _namedRanges;
+        public IReadOnlyList<ExcelNamedRangeInspectionInfo> NamedRanges => _namedRanges;
 
         /// <summary>
         /// Number of package parts related to Excel slicers discovered during inspection.
@@ -132,12 +132,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool HasPivotTables => PivotTablePartCount > 0;
 
-        internal void AddWorksheet(ExcelWorksheetSnapshot worksheet) {
+        internal void AddWorksheet(ExcelWorksheetInfo worksheet) {
             if (worksheet == null) throw new ArgumentNullException(nameof(worksheet));
             _worksheets.Add(worksheet);
         }
 
-        internal void AddNamedRange(ExcelNamedRangeSnapshot namedRange) {
+        internal void AddNamedRange(ExcelNamedRangeInspectionInfo namedRange) {
             if (namedRange == null) throw new ArgumentNullException(nameof(namedRange));
             _namedRanges.Add(namedRange);
         }
@@ -146,14 +146,14 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable worksheet inspection snapshot.
     /// </summary>
-    public sealed class ExcelWorksheetSnapshot {
-        private readonly List<ExcelCellSnapshot> _cells = new List<ExcelCellSnapshot>();
-        private readonly List<ExcelMergedRangeSnapshot> _mergedRanges = new List<ExcelMergedRangeSnapshot>();
-        private readonly List<ExcelColumnSnapshot> _columns = new List<ExcelColumnSnapshot>();
-        private readonly List<ExcelRowSnapshot> _rows = new List<ExcelRowSnapshot>();
-        private readonly List<ExcelDataValidationSnapshot> _validations = new List<ExcelDataValidationSnapshot>();
-        private readonly List<ExcelTableSnapshot> _tables = new List<ExcelTableSnapshot>();
-        private readonly List<ExcelThreadedCommentSnapshot> _threadedComments = new List<ExcelThreadedCommentSnapshot>();
+    public sealed class ExcelWorksheetInfo {
+        private readonly List<ExcelCellInfo> _cells = new List<ExcelCellInfo>();
+        private readonly List<ExcelMergedRangeInfo> _mergedRanges = new List<ExcelMergedRangeInfo>();
+        private readonly List<ExcelColumnInfo> _columns = new List<ExcelColumnInfo>();
+        private readonly List<ExcelRowInfo> _rows = new List<ExcelRowInfo>();
+        private readonly List<ExcelDataValidationInspectionInfo> _validations = new List<ExcelDataValidationInspectionInfo>();
+        private readonly List<ExcelTableInspectionInfo> _tables = new List<ExcelTableInspectionInfo>();
+        private readonly List<ExcelThreadedCommentInfo> _threadedComments = new List<ExcelThreadedCommentInfo>();
 
         /// <summary>
         /// Worksheet name.
@@ -238,79 +238,79 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Non-empty cells discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelCellSnapshot> Cells => _cells;
+        public IReadOnlyList<ExcelCellInfo> Cells => _cells;
 
         /// <summary>
         /// Merged ranges discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelMergedRangeSnapshot> MergedRanges => _mergedRanges;
+        public IReadOnlyList<ExcelMergedRangeInfo> MergedRanges => _mergedRanges;
 
         /// <summary>
         /// Explicit column definitions discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelColumnSnapshot> Columns => _columns;
+        public IReadOnlyList<ExcelColumnInfo> Columns => _columns;
 
         /// <summary>
         /// Explicit row definitions discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelRowSnapshot> Rows => _rows;
+        public IReadOnlyList<ExcelRowInfo> Rows => _rows;
 
         /// <summary>
         /// Worksheet data validations discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelDataValidationSnapshot> Validations => _validations;
+        public IReadOnlyList<ExcelDataValidationInspectionInfo> Validations => _validations;
 
         /// <summary>
         /// Worksheet-level auto filter discovered during inspection, when present.
         /// </summary>
-        public ExcelAutoFilterSnapshot? AutoFilter { get; internal set; }
+        public ExcelAutoFilterInspectionInfo? AutoFilter { get; internal set; }
 
         /// <summary>
         /// Worksheet protection discovered during inspection, when present.
         /// </summary>
-        public ExcelWorksheetProtectionSnapshot? Protection { get; internal set; }
+        public ExcelWorksheetProtectionInfo? Protection { get; internal set; }
 
         /// <summary>
         /// Tables discovered on the worksheet.
         /// </summary>
-        public IReadOnlyList<ExcelTableSnapshot> Tables => _tables;
+        public IReadOnlyList<ExcelTableInspectionInfo> Tables => _tables;
 
         /// <summary>
         /// Threaded comments discovered on the worksheet.
         /// </summary>
-        public IReadOnlyList<ExcelThreadedCommentSnapshot> ThreadedComments => _threadedComments;
+        public IReadOnlyList<ExcelThreadedCommentInfo> ThreadedComments => _threadedComments;
 
-        internal void AddCell(ExcelCellSnapshot cell) {
+        internal void AddCell(ExcelCellInfo cell) {
             if (cell == null) throw new ArgumentNullException(nameof(cell));
             _cells.Add(cell);
         }
 
-        internal void AddMergedRange(ExcelMergedRangeSnapshot mergedRange) {
+        internal void AddMergedRange(ExcelMergedRangeInfo mergedRange) {
             if (mergedRange == null) throw new ArgumentNullException(nameof(mergedRange));
             _mergedRanges.Add(mergedRange);
         }
 
-        internal void AddColumn(ExcelColumnSnapshot column) {
+        internal void AddColumn(ExcelColumnInfo column) {
             if (column == null) throw new ArgumentNullException(nameof(column));
             _columns.Add(column);
         }
 
-        internal void AddRow(ExcelRowSnapshot row) {
+        internal void AddRow(ExcelRowInfo row) {
             if (row == null) throw new ArgumentNullException(nameof(row));
             _rows.Add(row);
         }
 
-        internal void AddValidation(ExcelDataValidationSnapshot validation) {
+        internal void AddValidation(ExcelDataValidationInspectionInfo validation) {
             if (validation == null) throw new ArgumentNullException(nameof(validation));
             _validations.Add(validation);
         }
 
-        internal void AddTable(ExcelTableSnapshot table) {
+        internal void AddTable(ExcelTableInspectionInfo table) {
             if (table == null) throw new ArgumentNullException(nameof(table));
             _tables.Add(table);
         }
 
-        internal void AddThreadedComment(ExcelThreadedCommentSnapshot comment) {
+        internal void AddThreadedComment(ExcelThreadedCommentInfo comment) {
             if (comment == null) throw new ArgumentNullException(nameof(comment));
             _threadedComments.Add(comment);
         }
@@ -319,7 +319,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable worksheet-protection metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelWorksheetProtectionSnapshot {
+    public sealed class ExcelWorksheetProtectionInfo {
         /// <summary>
         /// Whether selecting locked cells is allowed.
         /// </summary>
@@ -389,7 +389,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable worksheet data-validation metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelDataValidationSnapshot {
+    public sealed class ExcelDataValidationInspectionInfo {
         private readonly List<string> _a1Ranges = new List<string>();
 
         /// <summary>
@@ -460,7 +460,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable cell inspection snapshot.
     /// </summary>
-    public sealed class ExcelCellSnapshot {
+    public sealed class ExcelCellInfo {
         /// <summary>
         /// One-based row index.
         /// </summary>
@@ -500,22 +500,22 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Resolved OfficeIMO style metadata for the cell, when available.
         /// </summary>
-        public ExcelCellStyleSnapshot? Style { get; internal set; }
+        public ExcelCellStyleInfo? Style { get; internal set; }
 
         /// <summary>
         /// Hyperlink metadata attached to the cell, when present.
         /// </summary>
-        public ExcelHyperlinkSnapshot? Hyperlink { get; internal set; }
+        public ExcelHyperlinkInfo? Hyperlink { get; internal set; }
 
         /// <summary>
         /// Comment metadata attached to the cell, when present.
         /// </summary>
-        public ExcelCommentSnapshot? Comment { get; internal set; }
+        public ExcelCommentInspectionInfo? Comment { get; internal set; }
 
         /// <summary>
         /// Threaded comment metadata attached to the cell, when present.
         /// </summary>
-        public ExcelThreadedCommentSnapshot? ThreadedComment { get; internal set; }
+        public ExcelThreadedCommentInfo? ThreadedComment { get; internal set; }
 
         /// <summary>Rich inline text runs attached to the cell, when present.</summary>
         public IReadOnlyList<ExcelRichTextRun> RichTextRuns { get; internal set; } = Array.Empty<ExcelRichTextRun>();
@@ -524,7 +524,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable comment metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelCommentSnapshot {
+    public sealed class ExcelCommentInspectionInfo {
         /// <summary>
         /// Comment author display name, when available.
         /// </summary>
@@ -544,7 +544,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable threaded comment metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelThreadedCommentSnapshot {
+    public sealed class ExcelThreadedCommentInfo {
         /// <summary>
         /// Worksheet name that owns the threaded comment.
         /// </summary>
@@ -594,7 +594,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable merge-range inspection snapshot.
     /// </summary>
-    public sealed class ExcelMergedRangeSnapshot {
+    public sealed class ExcelMergedRangeInfo {
         /// <summary>
         /// Merged range in A1 notation.
         /// </summary>
@@ -624,7 +624,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable explicit column metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelColumnSnapshot {
+    public sealed class ExcelColumnInfo {
         /// <summary>
         /// One-based starting column index covered by the definition.
         /// </summary>
@@ -669,7 +669,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable explicit row metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelRowSnapshot {
+    public sealed class ExcelRowInfo {
         /// <summary>
         /// One-based row index.
         /// </summary>
@@ -714,8 +714,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable auto-filter metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelAutoFilterSnapshot {
-        private readonly List<ExcelFilterColumnSnapshot> _columns = new List<ExcelFilterColumnSnapshot>();
+    public sealed class ExcelAutoFilterInspectionInfo {
+        private readonly List<ExcelFilterColumnInfo> _columns = new List<ExcelFilterColumnInfo>();
 
         /// <summary>
         /// Filtered range in A1 notation.
@@ -745,9 +745,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Filter criteria defined per relative column.
         /// </summary>
-        public IReadOnlyList<ExcelFilterColumnSnapshot> Columns => _columns;
+        public IReadOnlyList<ExcelFilterColumnInfo> Columns => _columns;
 
-        internal void AddColumn(ExcelFilterColumnSnapshot column) {
+        internal void AddColumn(ExcelFilterColumnInfo column) {
             if (column == null) throw new ArgumentNullException(nameof(column));
             _columns.Add(column);
         }
@@ -756,7 +756,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable filter-column metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelFilterColumnSnapshot {
+    public sealed class ExcelFilterColumnInfo {
         private readonly List<string> _values = new List<string>();
 
         /// <summary>
@@ -772,7 +772,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Custom filter predicates recorded for this column, when present.
         /// </summary>
-        public ExcelCustomFiltersSnapshot? CustomFilters { get; internal set; }
+        public ExcelCustomFiltersInfo? CustomFilters { get; internal set; }
 
         internal void AddValue(string value) {
             _values.Add(value ?? string.Empty);
@@ -782,8 +782,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable custom-filter metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelCustomFiltersSnapshot {
-        private readonly List<ExcelCustomFilterConditionSnapshot> _conditions = new List<ExcelCustomFilterConditionSnapshot>();
+    public sealed class ExcelCustomFiltersInfo {
+        private readonly List<ExcelCustomFilterConditionInfo> _conditions = new List<ExcelCustomFilterConditionInfo>();
 
         /// <summary>
         /// Whether all custom-filter conditions must match.
@@ -793,9 +793,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Individual custom-filter conditions.
         /// </summary>
-        public IReadOnlyList<ExcelCustomFilterConditionSnapshot> Conditions => _conditions;
+        public IReadOnlyList<ExcelCustomFilterConditionInfo> Conditions => _conditions;
 
-        internal void AddCondition(ExcelCustomFilterConditionSnapshot condition) {
+        internal void AddCondition(ExcelCustomFilterConditionInfo condition) {
             if (condition == null) throw new ArgumentNullException(nameof(condition));
             _conditions.Add(condition);
         }
@@ -804,7 +804,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable single custom-filter predicate discovered during inspection.
     /// </summary>
-    public sealed class ExcelCustomFilterConditionSnapshot {
+    public sealed class ExcelCustomFilterConditionInfo {
         /// <summary>
         /// Custom-filter operator name, when present.
         /// </summary>
@@ -819,8 +819,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable table metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelTableSnapshot {
-        private readonly List<ExcelTableColumnSnapshot> _columns = new List<ExcelTableColumnSnapshot>();
+    public sealed class ExcelTableInspectionInfo {
+        private readonly List<ExcelTableColumnInspectionInfo> _columns = new List<ExcelTableColumnInspectionInfo>();
 
         /// <summary>
         /// Table name.
@@ -870,14 +870,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Table-scoped auto filter metadata, when present.
         /// </summary>
-        public ExcelAutoFilterSnapshot? AutoFilter { get; internal set; }
+        public ExcelAutoFilterInspectionInfo? AutoFilter { get; internal set; }
 
         /// <summary>
         /// Table columns discovered during inspection.
         /// </summary>
-        public IReadOnlyList<ExcelTableColumnSnapshot> Columns => _columns;
+        public IReadOnlyList<ExcelTableColumnInspectionInfo> Columns => _columns;
 
-        internal void AddColumn(ExcelTableColumnSnapshot column) {
+        internal void AddColumn(ExcelTableColumnInspectionInfo column) {
             if (column == null) throw new ArgumentNullException(nameof(column));
             _columns.Add(column);
         }
@@ -886,7 +886,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable table-column metadata discovered during inspection.
     /// </summary>
-    public sealed class ExcelTableColumnSnapshot {
+    public sealed class ExcelTableColumnInspectionInfo {
         /// <summary>
         /// One-based table column ordinal.
         /// </summary>
@@ -906,7 +906,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable named-range inspection snapshot.
     /// </summary>
-    public sealed class ExcelNamedRangeSnapshot {
+    public sealed class ExcelNamedRangeInspectionInfo {
         /// <summary>
         /// Defined name.
         /// </summary>
@@ -931,7 +931,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable style metadata resolved for a cell.
     /// </summary>
-    public sealed partial class ExcelCellStyleSnapshot {
+    public sealed partial class ExcelCellStyleInfo {
         /// <summary>
         /// Original style index.
         /// </summary>
@@ -1046,7 +1046,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Linear gradient fill stops in offset order, when directly resolvable.
         /// </summary>
-        public IReadOnlyList<ExcelGradientFillStopSnapshot> FillGradientStops { get; internal set; } = Array.Empty<ExcelGradientFillStopSnapshot>();
+        public IReadOnlyList<ExcelGradientFillStopInspectionInfo> FillGradientStops { get; internal set; } = Array.Empty<ExcelGradientFillStopInspectionInfo>();
 
         /// <summary>
         /// Simple linear gradient angle in degrees, when directly resolvable.
@@ -1095,7 +1095,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Border metadata resolved for the cell style, when available.
         /// </summary>
-        public ExcelCellBorderSnapshot? Border { get; internal set; }
+        public ExcelCellBorderInfo? Border { get; internal set; }
 
         /// <summary>
         /// Horizontal alignment value, when specified.
@@ -1135,8 +1135,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Resolved Excel linear gradient stop metadata.
     /// </summary>
-    public sealed class ExcelGradientFillStopSnapshot {
-        internal ExcelGradientFillStopSnapshot(double offset, string colorArgb) {
+    public sealed class ExcelGradientFillStopInspectionInfo {
+        internal ExcelGradientFillStopInspectionInfo(double offset, string colorArgb) {
             Offset = offset;
             ColorArgb = colorArgb;
         }
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable border metadata resolved for a cell style.
     /// </summary>
-    public sealed class ExcelCellBorderSnapshot {
+    public sealed class ExcelCellBorderInfo {
         /// <summary>
         /// Creates border metadata that can be used when authoring a conditional-formatting differential style.
         /// </summary>
@@ -1162,12 +1162,12 @@ namespace OfficeIMO.Excel {
         /// <param name="diagonal">Diagonal border side.</param>
         /// <param name="diagonalUp">Whether the diagonal runs from bottom-left to top-right.</param>
         /// <param name="diagonalDown">Whether the diagonal runs from top-left to bottom-right.</param>
-        public ExcelCellBorderSnapshot(
-            ExcelBorderSideSnapshot? left = null,
-            ExcelBorderSideSnapshot? right = null,
-            ExcelBorderSideSnapshot? top = null,
-            ExcelBorderSideSnapshot? bottom = null,
-            ExcelBorderSideSnapshot? diagonal = null,
+        public ExcelCellBorderInfo(
+            ExcelBorderSideInfo? left = null,
+            ExcelBorderSideInfo? right = null,
+            ExcelBorderSideInfo? top = null,
+            ExcelBorderSideInfo? bottom = null,
+            ExcelBorderSideInfo? diagonal = null,
             bool diagonalUp = false,
             bool diagonalDown = false) {
             Left = left;
@@ -1182,27 +1182,27 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Left border side.
         /// </summary>
-        public ExcelBorderSideSnapshot? Left { get; internal set; }
+        public ExcelBorderSideInfo? Left { get; internal set; }
 
         /// <summary>
         /// Right border side.
         /// </summary>
-        public ExcelBorderSideSnapshot? Right { get; internal set; }
+        public ExcelBorderSideInfo? Right { get; internal set; }
 
         /// <summary>
         /// Top border side.
         /// </summary>
-        public ExcelBorderSideSnapshot? Top { get; internal set; }
+        public ExcelBorderSideInfo? Top { get; internal set; }
 
         /// <summary>
         /// Bottom border side.
         /// </summary>
-        public ExcelBorderSideSnapshot? Bottom { get; internal set; }
+        public ExcelBorderSideInfo? Bottom { get; internal set; }
 
         /// <summary>
         /// Diagonal border side.
         /// </summary>
-        public ExcelBorderSideSnapshot? Diagonal { get; internal set; }
+        public ExcelBorderSideInfo? Diagonal { get; internal set; }
 
         /// <summary>
         /// Whether the diagonal border runs from bottom-left to top-right.
@@ -1218,15 +1218,15 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable single-border-side metadata resolved from an OpenXML border definition.
     /// </summary>
-    public sealed class ExcelBorderSideSnapshot {
-        internal ExcelBorderSideSnapshot() { }
+    public sealed class ExcelBorderSideInfo {
+        internal ExcelBorderSideInfo() { }
 
         /// <summary>
         /// Creates border-side metadata that can be used when authoring a conditional-formatting differential style.
         /// </summary>
         /// <param name="style">SpreadsheetML border style name.</param>
         /// <param name="colorArgb">Optional border color in ARGB hexadecimal form.</param>
-        public ExcelBorderSideSnapshot(string style, string? colorArgb = null) {
+        public ExcelBorderSideInfo(string style, string? colorArgb = null) {
             Style = style;
             ColorArgb = colorArgb;
         }
@@ -1245,7 +1245,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable hyperlink metadata resolved for a cell.
     /// </summary>
-    public sealed class ExcelHyperlinkSnapshot {
+    public sealed class ExcelHyperlinkInfo {
         /// <summary>
         /// Whether the hyperlink targets an external address.
         /// </summary>

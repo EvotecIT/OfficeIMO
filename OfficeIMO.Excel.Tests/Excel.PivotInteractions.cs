@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                     rowFields: new[] { "Region" },
                     dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
-                Assert.True(sheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? blankDate));
+                Assert.True(sheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? blankDate));
                 Assert.Equal(ExcelCellValueKind.Text, blankDate!.Kind);
                 Assert.Equal(string.Empty, blankDate.Text);
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Slicer_Region", Assert.Single(document.GetWorkbookSlicerCaches()).Name);
                 Assert.Equal("SalesDateTimeline", Assert.Single(document.GetWorkbookTimelineCaches()).Name);
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.False(snapshot.HasSlicers);
                 Assert.False(snapshot.HasTimelines);
                 Assert.Equal(1, snapshot.SlicerBindingMetadataPartCount);

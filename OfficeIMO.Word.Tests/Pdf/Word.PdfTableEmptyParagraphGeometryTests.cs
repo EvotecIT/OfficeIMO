@@ -45,7 +45,7 @@ public partial class Word {
             paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
         }
         table.Rows[1].Cells[0].MarginLeftWidth = 0;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double defaultX = Assert.Single(words, word => word.Text == "DefaultInset").Letters[0].StartBaseLine.X;
         double explicitX = Assert.Single(words, word => word.Text == "ExplicitZero").Letters[0].StartBaseLine.X;
@@ -87,7 +87,7 @@ public partial class Word {
                     new W.Text(text) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
         }
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var words = pdf.GetPage(1).GetWords().ToArray();
         if (string.IsNullOrWhiteSpace(text)) Assert.DoesNotContain(words, word => word.Text == "X");

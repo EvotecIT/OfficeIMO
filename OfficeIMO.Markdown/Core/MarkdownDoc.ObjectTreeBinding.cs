@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public partial class MarkdownDoc {
+public partial class MarkdownDocument {
     private int _objectTreeBindingDeferralDepth;
     private bool _objectTreeBindingPending;
 
@@ -56,10 +56,10 @@ public partial class MarkdownDoc {
     }
 
     private sealed class ObjectTreeBindingDeferral : IDisposable {
-        private MarkdownDoc? _document;
+        private MarkdownDocument? _document;
         private readonly bool _completeBinding;
 
-        internal ObjectTreeBindingDeferral(MarkdownDoc document, bool completeBinding) {
+        internal ObjectTreeBindingDeferral(MarkdownDocument document, bool completeBinding) {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _completeBinding = completeBinding;
         }

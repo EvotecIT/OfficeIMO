@@ -39,6 +39,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string AccountingUnderlineApproximation = "accounting-underline-approximation";
     /// <summary>Stable code: <c>acro-form-append-only</c>.</summary>
     public const string AcroFormAppendOnly = "acro-form-append-only";
+    /// <summary>Stable code: <c>acro-form-xfa-detected</c>.</summary>
+    public const string AcroFormXfaDetected = "acro-form-xfa-detected";
     /// <summary>Stable code: <c>active-content-detected</c>.</summary>
     public const string ActiveContentDetected = "active-content-detected";
     /// <summary>Stable code: <c>ambiguous-label</c>.</summary>
@@ -135,8 +137,22 @@ public static partial class OfficeDiagnosticCodes {
     public const string ContentApproximated = "content-approximated";
     /// <summary>Stable code: <c>content-omitted</c>.</summary>
     public const string ContentOmitted = "content-omitted";
+    /// <summary>Stable code: <c>conversion-failed</c>.</summary>
+    public const string ConversionFailed = "conversion-failed";
+    /// <summary>Stable code: <c>conversion-input-not-found</c>.</summary>
+    public const string ConversionInputNotFound = "conversion-input-not-found";
+    /// <summary>Stable code: <c>conversion-input-skipped</c>.</summary>
+    public const string ConversionInputSkipped = "conversion-input-skipped";
+    /// <summary>Stable code: <c>conversion-input-unsupported</c>.</summary>
+    public const string ConversionInputUnsupported = "conversion-input-unsupported";
+    /// <summary>Stable code: <c>conversion-output-failed</c>.</summary>
+    public const string ConversionOutputFailed = "conversion-output-failed";
+    /// <summary>Stable code: <c>conversion-output-reopened</c>.</summary>
+    public const string ConversionOutputReopened = "conversion-output-reopened";
     /// <summary>Stable code: <c>conversion-report-untyped-loss</c>.</summary>
     public const string ConversionReportUntypedLoss = "conversion-report-untyped-loss";
+    /// <summary>Stable code: <c>conversion-request-invalid</c>.</summary>
+    public const string ConversionRequestInvalid = "conversion-request-invalid";
     /// <summary>Stable code: <c>cryptographic-provider-failed</c>.</summary>
     public const string CryptographicProviderFailed = "cryptographic-provider-failed";
     /// <summary>Stable code: <c>cryptographic-trust-not-verified</c>.</summary>

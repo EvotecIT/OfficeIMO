@@ -75,7 +75,7 @@ internal static partial class PdfWriter {
     private static PdfTabLeaderStyle ResolveTabLeader(PdfTabLeaderStyle runLeader, PdfTabStop? tabStop) =>
         tabStop != null && runLeader == PdfTabLeaderStyle.None ? tabStop.Leader : runLeader;
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, char? decimalSeparator = null) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfCreateOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, char? decimalSeparator = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
@@ -108,10 +108,10 @@ internal static partial class PdfWriter {
         return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
     }
 
-    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null) =>
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfCreateOptions? options = null, double? maxWidth = null) =>
         CalculateTabAdvanceToStop(lineWidth, followingTextWidth, spaceWidth, alignment, tabStopWidth, followingText, followingFont, fontSize, baseline, options, maxWidth, explicitTabStopPosition: null);
 
-    private static double CalculateTabAdvanceToStop(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null, double? explicitTabStopPosition = null) {
+    private static double CalculateTabAdvanceToStop(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfCreateOptions? options = null, double? maxWidth = null, double? explicitTabStopPosition = null) {
         if (alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth, explicitTabStopPosition, maxWidth);
         }
@@ -157,13 +157,13 @@ internal static partial class PdfWriter {
 
     // A short effective gap can select a leader without painting any glyphs.
     // Keep line metrics on exactly the same decision as the painter.
-    private static bool HasPaintedRichTabLeader(RichSeg segment, PdfOptions? options) =>
+    private static bool HasPaintedRichTabLeader(RichSeg segment, PdfCreateOptions? options) =>
         segment.LeadingSpace && segment.LeadingIsTab &&
         segment.LeadingTabLeader != PdfTabLeaderStyle.None &&
-        BuildTabLeaderText(segment.LeadingAdvance, segment, options ?? new PdfOptions()).Length > 0;
+        BuildTabLeaderText(segment.LeadingAdvance, segment, options ?? new PdfCreateOptions()).Length > 0;
     private const int MaxTabLeaderGlyphCount = 4_096;
 
-    private static string BuildTabLeaderText(double gap, RichSeg segment, PdfOptions options) {
+    private static string BuildTabLeaderText(double gap, RichSeg segment, PdfCreateOptions options) {
         string leaderGlyph = segment.LeadingTabLeader switch {
             PdfTabLeaderStyle.Dots => ".",
             PdfTabLeaderStyle.Hyphens => "-",

@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "Inferred worksheet column types are normalized to OfficeIMO's closed scalar set and are used only as DataColumn conversion tokens.")]
         public DataTable ReadRangeAsDataTable(string a1Range, bool headersInFirstRow = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
             int rows = r2 - r1 + 1;
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellCount > _opt.MaxRangeCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 

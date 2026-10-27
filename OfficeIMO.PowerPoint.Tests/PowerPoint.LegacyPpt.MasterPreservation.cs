@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                imported.ToBytes(PowerPointFileFormat.Ppt));
+                imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters,
                 master => master.MasterId == originalMaster.MasterId);
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             textBox.PlaceholderSize = PowerPointPlaceholderSize.Half;
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters);
 
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
             reopenedText.PlaceholderType = null;
             Assert.False(reopenedText.IsPlaceholder);
             Assert.True(reopened.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] removedBytes = reopened.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] removedBytes = reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation removed = LegacyPptPresentation.Load(
                 removedBytes);
             LegacyPptMaster removedMaster = Assert.Single(removed.Masters);
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                imported.ToBytes(PowerPointFileFormat.Ppt));
+                imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = saved.Masters
                 .SelectMany(master => master.Shapes)
                 .First();
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
             accent6.Append(new A.RgbColorModelHex { Val = "2468AC" });
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptSpecialMaster savedMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(saved.NotesMaster);
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
                         placeholder: null, text: null,
                         shapeType: A.ShapeTypeValues.Ellipse));
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
             LegacyPptSpecialMaster originalMaster = Assert.IsType<
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
                 CreateSolidBackground("ABCDEF");
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptSpecialMaster savedMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(saved.HandoutMaster);
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptMaster savedTitleMaster = Assert.Single(saved.Masters,
                 master => master.MasterId == originalTitleMaster.MasterId);
@@ -499,7 +499,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptSlide savedTitleSlide = Assert.Single(saved.Slides,
                 slide => slide.MasterId == titleMaster.MasterId);
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
                         new A.Run(new A.Text("Master label")),
                         new A.EndParagraphRunProperties()))));
             presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+            return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         private static byte[] CreateBinaryWithEditableTitleMaster() {
@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests {
             target.ImportSlide(source, 0);
 
             LegacyPptPresentation generated = LegacyPptPresentation.Load(
-                target.ToBytes(PowerPointFileFormat.Ppt));
+                target.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster[] generatedMasters = generated.Masters.ToArray();
             Assert.Equal(2, generatedMasters.Length);
             LegacyPptMaster parent = generatedMasters[0];

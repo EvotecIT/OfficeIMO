@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         internal static byte[] CreateFixture(bool useFontUnits) {
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A', 'B');
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = 4000D, PageHeight = 200D, DefaultFontSize = 20D,
                 MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
                 UseFontUnitTextLayout = useFontUnits

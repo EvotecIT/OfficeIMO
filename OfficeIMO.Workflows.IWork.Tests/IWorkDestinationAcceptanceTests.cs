@@ -39,9 +39,9 @@ public sealed partial class IWorkWorkflowTests {
                 diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(files.Output);
             Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         } else {
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         }
     }
 }

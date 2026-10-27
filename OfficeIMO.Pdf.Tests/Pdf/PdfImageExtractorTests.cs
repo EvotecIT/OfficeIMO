@@ -795,12 +795,12 @@ public class PdfImageExtractorTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
             });
         });
@@ -812,17 +812,17 @@ public class PdfImageExtractorTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page body"))));
             });
         });

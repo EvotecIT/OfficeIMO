@@ -97,11 +97,11 @@ public sealed partial class PdfDocumentRedactions {
         _document.ApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options);
 
     /// <summary>Attempts to apply redactions and returns preflight diagnostics when blocked.</summary>
-    public PdfOperationResult<PdfDocument> ApplyResult(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
+    internal PdfOperationResult<PdfDocument> ApplyResult(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
         _document.TryApplyRedactions(areas, applyOptions, layoutOptions, options);
 
     /// <summary>Attempts to apply a reviewed plan and returns diagnostics instead of throwing when the mutation is blocked or fails.</summary>
-    public PdfOperationResult<PdfRedactionApplyResult> ApplyWithEvidenceResult(
+    internal PdfOperationResult<PdfRedactionApplyResult> ApplyWithEvidenceResult(
         PdfRedactionPlan plan,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfRedactionVerificationOptions? verificationOptions = null,

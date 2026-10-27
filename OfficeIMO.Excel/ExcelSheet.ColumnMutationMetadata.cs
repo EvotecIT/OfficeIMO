@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                     if (placement == VmlAnchorPlacement.OneCell) {
                         int oneBasedFromColumn = values[0] + 1;
                         if (oneBasedFromColumn >= firstColumn
-                            && (long)values[4] + count >= A1.MaxColumns) {
+                            && (long)values[4] + count >= ExcelA1.MaxColumns) {
                             throw new InvalidOperationException(
                                 "Column insertion would move a comment note anchor beyond Excel's column limit.");
                         }
@@ -100,13 +100,13 @@ namespace OfficeIMO.Excel {
                     try {
                         ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                             ExcelReference.Parse(
-                                A1.CellReference(1, firstSpannedColumn) + ":" +
-                                A1.CellReference(1, lastSpannedColumn)),
+                                ExcelA1.CellReference(1, firstSpannedColumn) + ":" +
+                                ExcelA1.CellReference(1, lastSpannedColumn)),
                             firstColumn,
                             lastDeletedColumn: 0,
                             count,
                             deleting: false);
-                        if (mapped?.End.Column >= A1.MaxColumns) {
+                        if (mapped?.End.Column >= ExcelA1.MaxColumns) {
                             throw new ArgumentOutOfRangeException(nameof(count));
                         }
                     } catch (ArgumentOutOfRangeException) {
@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel {
                     || !TryParseVmlCoordinate(clientData.Element(x + "Row")?.Value, out int zeroBasedRow)
                     || !TryParseVmlCoordinate(clientData.Element(x + "Column")?.Value, out int zeroBasedColumn)) continue;
 
-                ExcelReference point = ExcelReference.Parse(A1.CellReference(zeroBasedRow + 1, zeroBasedColumn + 1));
+                ExcelReference point = ExcelReference.Parse(ExcelA1.CellReference(zeroBasedRow + 1, zeroBasedColumn + 1));
                 ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                     point,
                     firstColumn,

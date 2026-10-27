@@ -13,8 +13,8 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
-    private static byte[] CreateTableCellSpacingProbe(PdfOptions options, double cellSpacing, bool useRowColumnFlow) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableCellSpacingProbe(PdfCreateOptions options, double cellSpacing, bool useRowColumnFlow) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 1;
         style.CellPaddingY = 1;
@@ -41,8 +41,8 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePaddingProbe(PdfOptions options, bool useRowColumnFlow, bool useSidePadding) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useSidePadding) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;
@@ -73,8 +73,8 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePerCellPaddingProbe(PdfOptions options, bool useRowColumnFlow, bool useCellPadding) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePerCellPaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellPadding) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;
@@ -109,8 +109,8 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePerCellAlignmentProbe(PdfOptions options, bool useRowColumnFlow, bool useCellAlignment) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePerCellAlignmentProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellAlignment) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 2;
         style.CellPaddingY = 2;
@@ -144,8 +144,8 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTableLineHeightProbe(PdfOptions options, double? lineHeight, bool useRowColumnFlow) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableLineHeightProbe(PdfCreateOptions options, double? lineHeight, bool useRowColumnFlow) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FontSize = 10;
         style.LineHeight = lineHeight;
@@ -170,8 +170,8 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTableSpacingProbe(PdfOptions options, double spacingBefore, double spacingAfter) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableSpacingProbe(PdfCreateOptions options, double spacingBefore, double spacingAfter) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.SpacingBefore = spacingBefore;
         style.SpacingAfter = spacingAfter;
@@ -186,7 +186,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateLightTableRhythmProbe(PdfOptions options, PdfTableStyle? style) {
+    private static byte[] CreateLightTableRhythmProbe(PdfCreateOptions options, PdfTableStyle? style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"))
             .Table(new[] {
@@ -198,7 +198,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateCompressionProbe(bool compressContentStreams) {
-        PdfDocument doc = PdfDocument.Create(new PdfOptions {
+        PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 420,
             PageHeight = 1200,
             MarginLeft = 42,
@@ -251,7 +251,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static string RenderTableStyleContent(PdfTableStyle style) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -333,7 +333,7 @@ public partial class PdfDocumentVisualQualityTests {
         return segments;
     }
 
-    private static byte[] CreateParagraphSpacingProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphSpacingProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"))
             .Paragraph(p => p.Text("TargetMarker"), style: style)
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreatePanelSpacingProbe(PdfOptions options, PdfPanelStyle style) {
+    private static byte[] CreatePanelSpacingProbe(PdfCreateOptions options, PdfPanelStyle style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 0
@@ -351,7 +351,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateParagraphLineHeightProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphLineHeightProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p
                 .Text("FirstLine")
@@ -362,7 +362,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateParagraphIndentProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphIndentProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("IndentedMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), style: style)
             .ToBytes();
@@ -453,8 +453,8 @@ public partial class PdfDocumentVisualQualityTests {
         }
     }
 
-    private static PdfOptions CreateFlowSpacingProbeOptions() {
-        return new PdfOptions {
+    private static PdfCreateOptions CreateFlowSpacingProbeOptions() {
+        return new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,

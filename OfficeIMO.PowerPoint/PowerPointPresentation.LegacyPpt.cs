@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         private const double EmusPerLegacyMasterUnit = 1587.5d;
 
         /// <summary>Loads a binary `.ppt`, `.pot`, or `.pps` file into the normal editable PowerPoint model.</summary>
-        public static PowerPointPresentation LoadLegacyPpt(string path, LegacyPptImportOptions? options = null) {
+        internal static PowerPointPresentation LoadLegacyPpt(string path, LegacyPptImportOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(path, options);
             return ProjectLoadedLegacyPpt(legacy, path,
@@ -21,14 +21,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads a binary PowerPoint stream into the normal editable PowerPoint model.</summary>
-        public static PowerPointPresentation LoadLegacyPpt(Stream stream, LegacyPptImportOptions? options = null) {
+        internal static PowerPointPresentation LoadLegacyPpt(Stream stream, LegacyPptImportOptions? options = null) {
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(stream, options);
             return ProjectLoadedLegacyPpt(legacy, sourcePath: null, PowerPointFileFormat.Ppt,
                 new PowerPointLoadOptions());
         }
 
         /// <summary>Loads a binary PowerPoint file and returns its projected presentation and import report.</summary>
-        public static LegacyPptLoadResult LoadLegacyPptWithReport(string path, LegacyPptImportOptions? options = null) {
+        internal static LegacyPptLoadResult LoadLegacyPptWithReport(string path, LegacyPptImportOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(path, options);
             try {
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads a binary PowerPoint stream and returns its projected presentation and import report.</summary>
-        public static LegacyPptLoadResult LoadLegacyPptWithReport(Stream stream, LegacyPptImportOptions? options = null) {
+        internal static LegacyPptLoadResult LoadLegacyPptWithReport(Stream stream, LegacyPptImportOptions? options = null) {
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(stream, options);
             try {
                 return new LegacyPptLoadResult(ProjectLoadedLegacyPpt(legacy, sourcePath: null,

@@ -11,7 +11,7 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Normalizes saved rotation and reports the rewrite route and restrictions.</summary>
     /// <exception cref="OperationCanceledException">The caller requests cancellation.</exception>
-    public PdfOperationResult<PdfDocument> NormalizeRotationResult(PdfPageSelection? selection = null,
+    internal PdfOperationResult<PdfDocument> NormalizeRotationResult(PdfPageSelection? selection = null,
         PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         PdfLoadOptions effective = options ?? _document.ReadOptions;
         return _document.TryMutationOperation("Normalize page rotation", PdfPreflightCapability.ManipulatePages,

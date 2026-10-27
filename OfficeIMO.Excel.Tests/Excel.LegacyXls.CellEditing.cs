@@ -30,7 +30,7 @@ public sealed class ExcelLegacyCellEditingTests {
         sheet.CellBold(201, 3);
         sheet.CellValue(202, 3, "removed cell");
         sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "C202").Remove();
-        byte[] saved = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
         Assert.Equal(3.141592653589793D, reloaded.Sheets[0].CellAt(1, 1).GetValue<double>());
         Assert.True(reloaded.Sheets[0].CellAt(200, 3).GetValue<bool>());
@@ -51,13 +51,13 @@ public sealed class ExcelLegacyCellEditingTests {
     [Fact]
     public void Repeated_native_load_edit_save_cycles_reuse_existing_format_records() {
         using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Native format reuse");
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls); int firstCount = 0, firstReferences = 0, firstBooks = 0;
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }); int firstCount = 0, firstReferences = 0, firstBooks = 0;
         for (int iteration = 0; iteration < 5; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
             document.Sheets[0].CellValue(200 + iteration, 1, 3.141592653589793D);
             document.Sheets[0].CellFormula(200 + iteration, 2, "'Data'!A" + (200 + iteration) + "+1");
             document.Sheets[0].RecalculateSupportedFormulas();
-            bytes = document.ToBytes(ExcelFileFormat.Xls);
+            bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             int count = LegacyXlsWorkbook.Load(new MemoryStream(bytes)).CellFormats.Count;
             Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out _));
             var records = BiffRecordReader.ReadRecords(compound!.Streams["Workbook"], new());
@@ -73,13 +73,13 @@ public sealed class ExcelLegacyCellEditingTests {
     public void New_RGB_styles_reuse_only_unreferenced_native_palette_slots() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellValue(1, 1, "Original"); sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         for (int iteration = 0; iteration < 3; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
             document.Sheets[0].CellValue(2, 1, "New color");
             document.Sheets[0].CellAt(2, 1).SetFillColor("#123456");
             document.Sheets[0].CellFontColor(2, 1, "#654321");
-            bytes = document.ToBytes(ExcelFileFormat.Xls);
+            bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
             Assert.Equal("FFABCDEF", loaded.Sheets[0].GetCellStyle(1, 1).FillColorArgb);
             Assert.Equal("FF123456", loaded.Sheets[0].GetCellStyle(2, 1).FillColorArgb);

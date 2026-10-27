@@ -99,14 +99,40 @@
     ],
     "target": [
       "netstandard2.0",
-      "net10.0"
+      "net8.0",
+      "net10.0",
+      "net472"
     ],
-    "change": "Today net8.0;net10.0 only (no netstandard2.0, so PSWriteOffice excludes it on net472). Moving to netstandard2.0 needs polyfills for: ArgumentNullException.ThrowIfNull (235 uses), SHA256.HashData (23), Convert.ToHexString (29), Path.GetRelativePath (11), File.Move(..., overwrite) (12), File.*Async (5), Parallel.ForEachAsync (1), range/index syntax (8), init/required/records (C# features work with polyfill attributes), ImplicitUsings. OfficeConverter and the batch engine move to the OfficeIMO front door, which targets net10.0 only (design: Packages), so the batch engine needs no netstandard2.0 port; .NET Framework callers use the format and adapter packages directly."
+    "change": "Preserve the existing framework reach and the Windows-only net472 condition. The front door and Workflows use the full framework set. net8.0 retirement belongs to a later release.",
+    "windowsAdditionalTarget": [
+      "net472"
+    ],
+    "applied": {
+      "status": "applied",
+      "baseTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "conditionalTargets": [
+        {
+          "condition": " '$([MSBuild]::IsOsPlatform(`Windows`))' ",
+          "value": "$(TargetFrameworks);net472"
+        }
+      ],
+      "authority": "Approved framework decision in c526a10ad2; no framework is dropped in 3.6."
+    },
+    "supersededM0Target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
   },
   "notes": [
     "Workflows references 35 projects (Invoicing, Project, Visio, OCR, DjVu, CHM, Email, EPUB, ...). OfficeConverter cannot absorb Workflows wholesale into the front door without pulling all of them in; see OfficeIMO.json."
   ],
   "openQuestions": [
+    "OfficeConverter in the netstandard2.0 front door requires porting the Workflows batch engine to netstandard2.0 (polyfills listed under frameworks), or OfficeConverter is net10.0-only.",
     "Where BookOnix/publishing types live."
   ],
   "changes": [
@@ -118,7 +144,9 @@
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "Builder chain OfficeWorkflow.Convert(in).Via(route).To(out).WithProfile(...).RunAsync() today."
+      "notes": "Builder chain OfficeWorkflow.Convert(in).Via(route).To(out).WithProfile(...).RunAsync() today.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)",
@@ -128,7 +156,11 @@
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions)."
+      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions).",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)",
@@ -138,7 +170,11 @@
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions)."
+      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions).",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.Inspect(string inputPath)",
@@ -148,7 +184,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.Compare(string inputPath, string comparisonPath)",
@@ -158,7 +196,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.Optimize(string inputPath)",
@@ -168,7 +208,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.PlanRepair(string inputPath)",
@@ -178,7 +220,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.Repair(string inputPath)",
@@ -188,7 +232,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.Sanitize(string inputPath)",
@@ -198,7 +244,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ExtractPages(string inputPath, int[] pageNumbers)",
@@ -208,7 +256,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ProtectPdf(string inputPath, PdfStandardEncryptionOptions encryption)",
@@ -218,7 +268,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.RemovePdfProtection(string inputPath, string ownerPassword)",
@@ -228,7 +280,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.SignPdf(string inputPath, IPdfExternalSigner signer, PdfExternalSignatureOptions options, IPdfSignatureCryptographyProvider verifier)",
@@ -238,7 +292,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflow.RunAsync(OfficeWorkflowRequest request, IProgress<OfficeWorkflowProgress> progress = null, CancellationToken cancellationToken = null)",
@@ -248,7 +304,9 @@
       "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
-      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflowBuilder",
@@ -257,7 +315,9 @@
       "new": "OfficeIMO.Workflows.OfficeWorkflowBuilder (conversion members removed)",
       "reason": "Keeps the non-conversion workflows; Convert/Via/To for conversions go to OfficeConverter.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchBuilder",
@@ -266,7 +326,9 @@
       "new": "OfficeIMO.OfficeBatchOptions",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/OfficeConversionBatchBuilder.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchRequest",
@@ -275,7 +337,9 @@
       "new": "OfficeIMO.OfficeBatchOptions",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchResult",
@@ -284,7 +348,9 @@
       "new": "OfficeIMO.OfficeBatchReport",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchReport",
@@ -293,7 +359,9 @@
       "new": "OfficeIMO.OfficeBatchReport",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchReport.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchItemResult",
@@ -302,7 +370,9 @@
       "new": "OfficeIMO.OfficeBatchItemReport",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJob",
@@ -311,7 +381,9 @@
       "new": "OfficeIMO.OfficeBatchOptions",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJob.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobRunReport",
@@ -320,7 +392,9 @@
       "new": "OfficeIMO.OfficeBatchReport",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunReport.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobSerializer",
@@ -329,7 +403,9 @@
       "new": "OfficeIMO.OfficeBatchOptions.Load/Save",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobSerializer.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchSerializer",
@@ -338,7 +414,9 @@
       "new": "OfficeIMO.OfficeBatchOptions.Load/Save",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchSerializer.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionBatchReportSerializer",
@@ -347,7 +425,9 @@
       "new": "OfficeIMO.OfficeBatchReport.Load/Save",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchReportSerializer.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobRunReportSerializer",
@@ -356,7 +436,9 @@
       "new": "OfficeIMO.OfficeBatchReport.Load/Save",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunReportSerializer.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobRunner",
@@ -365,7 +447,9 @@
       "new": "OfficeIMO.OfficeConverter.ConvertAsync(OfficeBatchOptions)",
       "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunner.Recording.cs, OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunner.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobCommands",
@@ -375,7 +459,14 @@
       "reason": "CLI/Studio command plumbing.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobCommands.cs",
       "category": "visibility",
-      "notes": "Candidate."
+      "notes": "Candidate.",
+      "implementation": {
+        "phase": "B",
+        "status": "pending-phase-b"
+      },
+      "phase": "A",
+      "applied": "applied",
+      "note": "The shared batch command kernel is internal to the OfficeIMO front door; CLI and Studio use that owner."
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobOptions",
@@ -385,7 +476,9 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobOptions.cs",
       "category": "options",
-      "notes": "Studio and the CLI save jobs as OfficeBatchOptions."
+      "notes": "Studio and the CLI save jobs as OfficeBatchOptions.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeConversionJobRuntimeOptions",
@@ -395,7 +488,9 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJob.cs",
       "category": "options",
-      "notes": "Runtime settings (parallelism, resume) are OfficeBatchOptions properties."
+      "notes": "Runtime settings (parallelism, resume) are OfficeBatchOptions properties.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflowConversionOptions",
@@ -405,7 +500,9 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Workflows/OfficeWorkflowConversionOptions.cs",
       "category": "options",
-      "notes": "Moves to the OfficeIMO front door with OfficeConverter."
+      "notes": "Moves to the OfficeIMO front door with OfficeConverter.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows.OfficeWorkflowDirectoryReadOptions",
@@ -415,7 +512,9 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Workflows/OfficeWorkflowDirectoryInput.cs",
       "category": "options",
-      "notes": "Input selection (recursion, extensions) becomes OfficeBatchOptions."
+      "notes": "Input selection (recursion, extensions) becomes OfficeBatchOptions.",
+      "phase": "A",
+      "applied": "applied"
     },
     {
       "old": "OfficeIMO.Workflows (BookOnix*, BookManuscriptImporter, Publishing/)",
@@ -425,7 +524,10 @@
       "reason": "ONIX book metadata is a publishing feature, not a workflow; it accounts for most of Workflows' unprefixed public types and keeps the batch engine tied to EPUB.",
       "file": "OfficeIMO.Workflows/Publishing/",
       "category": "package",
-      "notes": "101 public BookOnix* types plus BookManuscriptImporter. Tier 2; decide owner in M2."
+      "notes": "101 public BookOnix* types plus BookManuscriptImporter. Tier 2; decide owner in M2.",
+      "phase": "M4",
+      "applied": "not-applied-tier-2",
+      "note": "Publishing ownership is a Tier 2 Workflows decision. Phase A ports the existing workflow code to all supported targets without moving its publishing API."
     }
   ],
   "packageMoves": [
@@ -442,5 +544,106 @@
       "scope": "Invoicing/, Project/, Printing/, Email/, provenance, redaction, OCR, signing, publication workflows",
       "reason": "Tier 2 workflows; no format package depends on them."
     }
-  ]
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Publication policy ownership",
+      "note": "IOfficeWorkflowPublicationGuard and IOfficeWorkflowStagingGuard move to Core as IOfficePublicationGuard and IOfficeStagingGuard, keeping host ownership checks available to both the front door and workflows without a dependency cycle.",
+      "status": "applied"
+    },
+    {
+      "subject": "Orchestration migration boundary",
+      "note": "Conversion batches, saved definitions, output profiles/limits/publication policy and guarded resource/publication helpers move to their shared owners. Non-conversion workflow operations retain their owning engines. Tier 2 route registration and all host migrations remain in progress.",
+      "status": "in-progress"
+    },
+    {
+      "subject": "Framework registration conflict",
+      "note": "The revised requirement keeps the front door, batch engine and both Workflows libraries on the full framework set. Registration stays in Workflows; modern-only engine references and routes are conditional. No separate assembly is introduced.",
+      "status": "resolved"
+    },
+    {
+      "subject": "Older-framework publishing dates",
+      "note": "DateOnly does not exist on netstandard2.0 or net472. ONIX publishing date options use System.DateTime on these targets and DateOnly on net8.0/net10.0. Calendar-date serialization and date-valued usage limits reject a nonzero time component. No external date polyfill is introduced.",
+      "status": "applied"
+    },
+    {
+      "subject": "Conditional standards validation",
+      "note": "Invoicing.Validation is referenced only on net8.0/net10.0. Validator parameters and standards-report properties are compiled only there. Invoice model inspection, conversion, editing and PDF rendering remain on every target; requesting standards validation on an older target fails closed without returning output.",
+      "status": "applied"
+    },
+    {
+      "subject": "Tier 1 workflow owner",
+      "note": "The workflow runner delegates Tier 1 document conversions to OfficeConverter instead of retaining duplicate import and serialization paths. Existing non-conversion workflows retain their engines.",
+      "status": "applied"
+    },
+    {
+      "subject": "Tier 2 registration",
+      "note": "OfficeWorkflow.RegisterConversions registers its additional engines in OfficeConverter. OfficeWorkflowRouteSettings captures adapter-owned options; internal checkpoint and output-validation contracts preserve configuration hashes and encrypted artifact reopen checks.",
+      "status": "applied"
+    },
+    {
+      "subject": "Shared registration settings",
+      "note": "IOfficeWorkflowConversionSettings merges into OfficeIMO.IOfficeConversionSettings. Workflows and iWork register through OfficeConverter, retaining the existing scoped directory-package snapshots and source verification. Built-in Workflows route fingerprints include FailOnLoss; iWork registrations retain their existing ordinary-batch-only checkpoint boundary.",
+      "status": "applied"
+    },
+    {
+      "subject": "PowerShell payload references",
+      "note": "PSWriteOffice retains net8.0 for PowerShell 7.4+ and net472 for Windows PowerShell 5.1. Its project references the front door and both Workflows libraries on both targets now that those owners support net472. Foundation code, format/type metadata, manifest and build loader remain outside this change.",
+      "status": "applied"
+    },
+    {
+      "subject": "Completed conversion ownership and consumer grammar",
+      "note": "Removed conversion factories and conversion-only builder members, conversion batch executor/contracts/builder and saved-job/run serializers/runners after moving behavior to OfficeConverter and OfficeBatchOptions/Report. OfficeWorkflowRequest uses shared OfficeConversionOptions; native rendering settings are internal. Tier2 fingerprinting remains without a second batch engine; Tier1 preserves advanced shared options and delegates to OfficeConverter.",
+      "status": "applied"
+    },
+    {
+      "change": "Batch and saved-job tests now exercise the shared OfficeIMO owner, v2 schemas, native diagnostic fields, real publication guards and progress callbacks. Narrow internal executor access retains staged-output, cancellation, lease and hash-verification regression proof without exposing test plumbing publicly.",
+      "reason": "Removed Workflows conversion builders, batch executor and saved-job runner are no longer separate supported entry points.",
+      "status": "applied"
+    },
+    {
+      "change": "Registered route failures carry catalog diagnostics for invalid requests, missing/unsupported inputs and failed outputs. The CLI selects its existing exit codes from these shared codes rather than losing classification when result pairs become throwing conversions.",
+      "reason": "The new throwing route bridge must preserve the failure category previously carried by OfficeWorkflowResult.",
+      "status": "applied"
+    },
+    {
+      "applied": "applied",
+      "note": "Registered conversions retain successful native readback as the catalog conversion-output-reopened diagnostic in the shared report. Apple batch tests use OfficeConverter/OfficeBatchOptions with per-operation IWorkWorkflowSettings rather than the deleted runner batch overload."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Tier 1 forwards shared source import reports as import diagnostics, retains output failure evidence and recognizes shared bounded-output markers. Registered routes retain additional owner diagnostics such as reviewed EPUB import omissions. Existing consumers use the new settings clone, report schema and canonical API names."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Saved job review remains reachable in Studio compact navigation: a loaded folder review selects its Queue tab. Existing mouse-driven retry tests and rendered screenshots cover compact and wide views."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Shared PDF serialization output-limit markers use the existing OutputFailed workflow classification for optimization and sanitization, consistent with other bounded output paths. Tests retain no-publication and exact limit-message checks. Reverse-adapter diagnostic producers use OfficeIMO.Pdf.Word."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  }
 }

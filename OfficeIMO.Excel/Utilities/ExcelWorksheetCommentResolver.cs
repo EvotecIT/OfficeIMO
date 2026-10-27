@@ -5,7 +5,7 @@ using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelWorksheetCommentResolver {
-        internal static Dictionary<string, ExcelCommentSnapshot> BuildLegacyCommentMap(WorksheetPart worksheetPart) {
+        internal static Dictionary<string, ExcelCommentInspectionInfo> BuildLegacyCommentMap(WorksheetPart worksheetPart) {
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Utilities {
             var commentsPart = worksheetPart.WorksheetCommentsPart;
             var comments = commentsPart?.Comments;
             if (comments?.CommentList == null) {
-                return new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
+                return new Dictionary<string, ExcelCommentInspectionInfo>(StringComparer.OrdinalIgnoreCase);
             }
 
             var authorNames = comments.Authors?
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Utilities {
                 .ToList()
                 ?? new List<string>();
 
-            var map = new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
+            var map = new Dictionary<string, ExcelCommentInspectionInfo>(StringComparer.OrdinalIgnoreCase);
             WorkbookPart? workbookPart = worksheetPart.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
             foreach (var comment in comments.CommentList.Elements<Comment>()) {
                 string? reference = comment.Reference?.Value;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Utilities {
                     author = authorNames[checked((int)authorId.Value)];
                 }
 
-                map[reference!] = new ExcelCommentSnapshot {
+                map[reference!] = new ExcelCommentInspectionInfo {
                     Author = string.IsNullOrWhiteSpace(author) ? null : author,
                     Text = ExtractCommentText(comment.CommentText),
                     RichTextRuns = ExtractCommentRuns(comment.CommentText, workbookPart),
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.Utilities {
             return people;
         }
 
-        internal static Dictionary<string, List<ExcelThreadedCommentSnapshot>> BuildThreadedCommentMap(
+        internal static Dictionary<string, List<ExcelThreadedCommentInfo>> BuildThreadedCommentMap(
             WorksheetPart worksheetPart,
             IReadOnlyDictionary<string, string> people,
             string? sheetName = null) {
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel.Utilities {
                 throw new ArgumentNullException(nameof(people));
             }
 
-            var map = new Dictionary<string, List<ExcelThreadedCommentSnapshot>>(StringComparer.OrdinalIgnoreCase);
+            var map = new Dictionary<string, List<ExcelThreadedCommentInfo>>(StringComparer.OrdinalIgnoreCase);
             foreach (var commentsPart in worksheetPart.WorksheetThreadedCommentsParts) {
                 var threadedComments = commentsPart.ThreadedComments;
                 if (threadedComments == null) {
@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel.Utilities {
                         author = displayName;
                     }
 
-                    var snapshot = new ExcelThreadedCommentSnapshot {
+                    var snapshot = new ExcelThreadedCommentInfo {
                         SheetName = sheetName ?? string.Empty,
                         CellReference = reference!,
                         Id = NullIfWhiteSpace(comment.Id?.Value),
@@ -117,8 +117,8 @@ namespace OfficeIMO.Excel.Utilities {
                         Done = comment.Done?.Value == true,
                     };
 
-                    if (!map.TryGetValue(reference!, out List<ExcelThreadedCommentSnapshot>? comments)) {
-                        comments = new List<ExcelThreadedCommentSnapshot>();
+                    if (!map.TryGetValue(reference!, out List<ExcelThreadedCommentInfo>? comments)) {
+                        comments = new List<ExcelThreadedCommentInfo>();
                         map[reference!] = comments;
                     }
 

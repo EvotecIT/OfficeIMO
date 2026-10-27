@@ -19,7 +19,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument document = result.RequireValue();
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.ContentOmitted && item.Message.Contains("hyperlink"));
-        using var artifact = document.ToStream();
+        using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
         ExcelImage image = reopened.Sheets.Single().Images.Single();
         Assert.Equal(target, image.HyperlinkUri!.OriginalString);
@@ -41,7 +41,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         string html = source.ToHtml();
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument restored = result.RequireValue();
-        using var artifact = restored.ToStream();
+        using var artifact = new System.IO.MemoryStream(restored.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
         ExcelImage image = reopened.Sheets.Single().Images.Single();
         Assert.Equal(target, image.HyperlinkUri);

@@ -142,9 +142,9 @@ namespace OfficeIMO.Tests {
                 diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
 
             PowerPointDeckRhythmReport report = plan.InspectRhythm(design);
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.RepeatedKind");
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.RepeatedVariant");
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.MissingClosing");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-repeated-kind");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-repeated-variant");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-missing-closing");
             Assert.InRange(report.Score, 0, 99);
         }
 

@@ -23,7 +23,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = AnchoredRunningImageSourceXml(document);
 
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         var picture = Assert.Single(page.GetImages());
@@ -54,7 +54,7 @@ public partial class Word {
             drawing.Remove();
         }
         Assert.Empty(ordinaryHeader.ValidateDocument());
-        using var ordinaryPdf = PdfPigDocument.Open(ordinaryHeader.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var ordinaryPdf = PdfPigDocument.Open(ordinaryHeader.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var ordinaryPage = Assert.Single(ordinaryPdf.GetPages());
         Assert.Empty(ordinaryPage.GetImages());
         var ordinaryWords = ordinaryPage.GetWords().ToArray();
@@ -82,7 +82,7 @@ public partial class Word {
             Assert.InRange(Math.Abs(page.Height - title.Letters[0].StartBaseLine.Y - titleBaseline), 0D, .3D);
             Assert.InRange(Math.Abs(page.Height - body.Letters[0].StartBaseLine.Y - bodyBaseline), 0D, .3D);
         }
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         Assert.Equal(sourceXml, AnchoredRunningImageSourceXml(document));
         Assert.Equal(source, File.ReadAllBytes(path));
     }
@@ -95,7 +95,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
         string sourceXml = AnchoredRunningImageSourceXml(document);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var picture = Assert.Single(page.GetImages());
         // A not-yet-selected text column is outside the qualified anchor

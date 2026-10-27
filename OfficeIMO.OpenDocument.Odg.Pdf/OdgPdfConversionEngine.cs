@@ -10,7 +10,7 @@ internal static class OdgPdfConversionEngine {
         token.ThrowIfCancellationRequested();
         OdgToPdfOptions operation = (options ?? new OdgToPdfOptions()).Snapshot();
         var pdfReport = new PdfConversionReport();
-        PdfOptions pdfOptions = operation.PdfOptions ?? new PdfOptions();
+        PdfCreateOptions pdfOptions = operation.PdfOptions ?? new PdfCreateOptions();
         pdfOptions.ReportDiagnosticsTo(pdfReport, "OfficeIMO.OpenDocument.Odg.Pdf");
         var profile = new OfficeRenderingProfile("odg-pdf",
             textShapingProvider: pdfOptions.TextShapingProvider, textShapingLanguage: pdfOptions.Language);

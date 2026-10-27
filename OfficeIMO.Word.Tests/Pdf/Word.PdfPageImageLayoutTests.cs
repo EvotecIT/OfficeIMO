@@ -21,8 +21,8 @@ public sealed class PdfPageImageLayoutTests {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Table first row";
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Table second row";
         for (int index = 0; index < 20; index++) word.AddParagraph("Paragraph" + index + " complete sentence");
-        var conversion = word.ToPdfDocumentResult(new WordToPdfOptions {
-            Margins = PageMargins.Uniform(30), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            Margins = PdfPageMargins.Uniform(30), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         byte[] bytes = conversion.ToBytes();
         var pdf = PdfDocument.Load(bytes);

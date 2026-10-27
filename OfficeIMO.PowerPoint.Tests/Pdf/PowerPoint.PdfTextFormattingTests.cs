@@ -19,7 +19,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         PowerPointTextBox box = first.AddTextBoxPoints("Linked", 10, 10, 200, 40);
         box.Hyperlink = new Uri("#slide-2", UriKind.Relative);
         box.Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-2", UriKind.Relative);
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
         Assert.Equal(2, pdf.LinkAnnotations.Count);
@@ -46,10 +46,10 @@ public sealed class PowerPointPdfTextFormattingTests {
             paragraph = slide.AddTextBoxPoints(text, 10, 10, 200, 40).Paragraphs[0];
         }
         paragraph.AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
-        var conversion = presentation.ToPdfDocumentResult();
+        var conversion = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
         Assert.DoesNotContain(conversion.Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
     [Fact]
@@ -60,11 +60,11 @@ public sealed class PowerPointPdfTextFormattingTests {
         paragraph.Paragraph.RemoveAllChildren<A.Run>();
         paragraph.AddField("1", "slidenum", "{33333333-3333-3333-3333-333333333333}");
         paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Spacing = 125 });
-        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
         paragraph.InlineNodes.Single().Run!.CharacterSpacingPoints = 0;
-        Assert.DoesNotContain(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public sealed class PowerPointPdfTextFormattingTests {
         PowerPointTextRun run = paragraph.InlineNodes.First(node => node.Run != null).Run!;
         Assert.Null(run.CharacterSpacingPoints);
         Assert.Equal(-2.32, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
-        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED"
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         foreach (PowerPointTextRun authored in title.Paragraphs.SelectMany(item => item.InlineNodes).Where(node => node.Run != null).Select(node => node.Run!)) authored.CharacterSpacingPoints = 0;
         Assert.Equal(0, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
@@ -99,11 +99,11 @@ public sealed class PowerPointPdfTextFormattingTests {
             A.DefaultRunProperties master = level.GetFirstChild<A.DefaultRunProperties>() ?? level.AppendChild(new A.DefaultRunProperties());
             master.Spacing = 125;
         }
-        Assert.Contains(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
         box.Paragraphs[0].Runs[0].CharacterSpacingPoints = 0;
-        Assert.DoesNotContain(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
     [Fact]
@@ -120,8 +120,8 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(bytes.ToArray()));
         Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacingPoints);
         Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacingPoints);
-        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
-        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code.Contains("CHARACTER_SPACING")
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code == OfficeDiagnosticCodes.PowerpointCharacterSpacingApproximated
             && d.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
     }
@@ -143,7 +143,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         authored.FontName = "Aptos";
         authored.FontSizePoints = 14D;
 
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(conversion.Value.Blocks));
         OfficeRichTextRun run = Assert.Single(
             GetDrawingTextRuns(canvas),
@@ -171,7 +171,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         authored.Capitalization = PowerPointCapitalization.AllCaps;
         authored.Language = "tr-TR";
 
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(conversion.Value.Blocks));
         OfficeRichTextRun run = Assert.Single(
             GetDrawingTextRuns(canvas),
@@ -190,7 +190,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         cell.Text = "Cell";
         cell.Paragraphs[0].Runs[0].BaselinePercent = 80D;
 
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
 
         Assert.Single(conversion.Warnings, warning => warning.Code == "baseline-percent-approximation");
     }
@@ -255,7 +255,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         if (end != null) paragraph.InsertBefore(field, end);
         else paragraph.Append(field);
 
-        PdfCore.PdfDocument document = presentation.ToPdfDocument();
+        PdfCore.PdfDocument document = presentation.ConvertToPdfWithEvidence().Value;
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(document.Blocks));
         PdfCore.PdfTextRun[] runs = Assert.Single(
             Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>()).Block.Cells).Single().Runs.ToArray();
@@ -308,7 +308,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Single(paragraph.Elements<A.Run>()).RunProperties = new A.RunProperties();
         textBox.Paragraphs[0].AddField("i", "slidenum", "{33333333-3333-3333-3333-333333333333}");
 
-        PdfCore.PdfDocument document = presentation.ToPdfDocument();
+        PdfCore.PdfDocument document = presentation.ConvertToPdfWithEvidence().Value;
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(document.Blocks));
         OfficeRichTextRun[] runs = GetDrawingTextRuns(canvas)
             .Where(run => run.Text == "İ")
@@ -357,8 +357,8 @@ public sealed class PowerPointPdfTextFormattingTests {
         if (end != null) paragraph.InsertBefore(field, end);
         else paragraph.Append(field);
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(
-            new PowerPointToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(
+            new PowerPointPdfExportOptions {
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
 

@@ -99,7 +99,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
     public void Native_editable_exports_and_PDFs_retain_all_edited_numeric_values_and_displays() {
         using var manifest = Manifest(); var root = manifest.RootElement;
         foreach (JsonElement family in root.GetProperty("families").EnumerateArray()) {
-            var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(family.GetProperty("nativePdf").GetString()!)));
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(family.GetProperty("nativePdf").GetString()!))));
             Assert.Single(pdf.Pages); string text = Compact(pdf.ExtractText());
             foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray())
                 Assert.Contains(Compact(row.GetProperty("label").GetString()! + row.GetProperty("nativeEditedDisplay").GetString()), text);

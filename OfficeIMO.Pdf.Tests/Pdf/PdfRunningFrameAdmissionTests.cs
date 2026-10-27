@@ -98,7 +98,7 @@ public sealed class PdfRunningFrameAdmissionTests {
 
     [Fact]
     public void StrictKeptTableReachesTheLargerRunningFrame() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = style.CellPaddingY = 0D;
         style.SpacingBefore = style.SpacingAfter = 0D;
@@ -157,7 +157,7 @@ public sealed class PdfRunningFrameAdmissionTests {
                 return story => story.Spacer(HeaderHeight(SmallBodyHeight));
             }, HeaderDistance), maximumPages: null);
 
-        Assert.Throws<ArgumentException>(() => document.ToBytes(cancellation.Token));
+        Assert.Throws<ArgumentException>(() => document.ToBytes(cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -448,7 +448,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     }
 
     private static PdfTableStyle ReviewTableStyle(string profile) {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = style.CellPaddingY = 0D;
         style.SpacingBefore = style.SpacingAfter = 0D;
@@ -517,7 +517,7 @@ public sealed class PdfRunningFrameAdmissionTests {
 
     private static PdfDocument CreateContentDocument(Action<PdfContentBuilder> target,
         Action<PdfHeaderBuilder>? configureHeader = null, int? maximumPages = 4) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 240D,
             PageHeight = PageHeight,
             MarginTop = PhysicalMargin,

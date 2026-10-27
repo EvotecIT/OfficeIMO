@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {

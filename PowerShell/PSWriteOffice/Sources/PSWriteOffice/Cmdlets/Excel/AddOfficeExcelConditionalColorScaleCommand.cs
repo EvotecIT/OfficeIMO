@@ -32,7 +32,7 @@ public sealed class AddOfficeExcelConditionalColorScaleCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range to format.</summary>
+    /// <summary>ExcelA1 range to format.</summary>
     [Parameter(Position = 0)]
     public string? Range { get; set; }
 

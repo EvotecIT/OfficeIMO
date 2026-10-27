@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             cancellationToken.ThrowIfCancellationRequested();
             var plan = GoogleDocsPlanBuilder.Build(document, options);
             var report = plan.Report;
-            var snapshot = document.CreateInspectionSnapshot();
+            var snapshot = document.Inspect();
             var title = ResolveTitle(document, snapshot, options);
             var batch = new GoogleDocsBatch(title, plan, report, snapshot);
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 for (int elementIndex = 0; elementIndex < section.Elements.Count; elementIndex++) {
                     var element = section.Elements[elementIndex];
-                    if (element is WordParagraphSnapshot paragraph) {
+                    if (element is WordParagraphInfo paragraph) {
                         bool startsNewSectionBefore = section.Index > 0
                             && elementIndex == 0
                             && !string.IsNullOrWhiteSpace(section.SectionBreakType);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                                 "Word section page size and supported margins are now preserved in the neutral Google Docs batch so the exporter can emit native updateSectionStyle requests.");
                             sectionLayoutNoticeAdded = true;
                         }
-                    } else if (element is WordTableSnapshot table) {
+                    } else if (element is WordTableInfo table) {
                         bool startsNewSectionBefore = section.Index > 0
                             && elementIndex == 0
                             && !string.IsNullOrWhiteSpace(section.SectionBreakType);
@@ -304,7 +304,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsBatch batch,
             TranslationReport report,
             int sectionIndex,
-            WordHeaderFooterSnapshot? source) {
+            WordHeaderFooterInfo? source) {
             if (source == null || source.Elements.Count == 0) {
                 return;
             }
@@ -318,14 +318,14 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             foreach (var element in source.Elements) {
                 switch (element) {
-                    case WordParagraphSnapshot paragraph:
+                    case WordParagraphInfo paragraph:
                         segment.AddRequest(new GoogleDocsInsertParagraphRequest {
                             SectionIndex = sectionIndex,
                             ElementIndex = element.Order,
                             Paragraph = ConvertParagraph(paragraph),
                         });
                         break;
-                    case WordTableSnapshot table:
+                    case WordTableInfo table:
                         segment.AddRequest(new GoogleDocsInsertTableRequest {
                             SectionIndex = sectionIndex,
                             ElementIndex = element.Order,
@@ -355,7 +355,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             batch.AddSegment(segment);
         }
 
-        private static string ResolveTitle(WordDocument document, WordDocumentSnapshot snapshot, GoogleDocsSaveOptions options) {
+        private static string ResolveTitle(WordDocument document, WordDocumentInfo snapshot, GoogleDocsSaveOptions options) {
             if (!string.IsNullOrWhiteSpace(options.Title)) {
                 return options.Title!;
             }
@@ -375,7 +375,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             return "Document";
         }
 
-        private static bool HasFormatting(WordParagraphSnapshot paragraph) {
+        private static bool HasFormatting(WordParagraphInfo paragraph) {
             return !string.IsNullOrWhiteSpace(paragraph.StyleId)
                 || !string.IsNullOrWhiteSpace(paragraph.Alignment)
                 || paragraph.IndentStartPoints.HasValue
@@ -405,11 +405,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                     || !string.IsNullOrWhiteSpace(run.ColorHex));
         }
 
-        private static bool CanMapLineSpacing(WordParagraphSnapshot paragraph) {
+        private static bool CanMapLineSpacing(WordParagraphInfo paragraph) {
             return ResolveLineSpacingPercent(paragraph).HasValue;
         }
 
-        private static double? ResolveLineSpacingPercent(WordParagraphSnapshot paragraph) {
+        private static double? ResolveLineSpacingPercent(WordParagraphInfo paragraph) {
             if (!paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingValue.Value <= 0) {
                 return null;
             }
@@ -424,7 +424,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static GoogleDocsParagraph ConvertParagraph(
-            WordParagraphSnapshot paragraph,
+            WordParagraphInfo paragraph,
             bool startsNewSectionBefore = false,
             string? sectionBreakType = null) {
             var converted = new GoogleDocsParagraph {
@@ -506,10 +506,10 @@ namespace OfficeIMO.Word.GoogleDocs {
             return converted;
         }
 
-        private static string MaterializeTabLeaders(string? text, IReadOnlyList<WordTabStopSnapshot> tabStops) {
+        private static string MaterializeTabLeaders(string? text, IReadOnlyList<WordTabStopInfo> tabStops) {
             string value = text ?? string.Empty;
             if (value.IndexOf('\t') < 0 || tabStops == null || tabStops.Count == 0) return value;
-            WordTabStopSnapshot? leader = tabStops.FirstOrDefault(tab => !string.IsNullOrWhiteSpace(tab.Leader)
+            WordTabStopInfo? leader = tabStops.FirstOrDefault(tab => !string.IsNullOrWhiteSpace(tab.Leader)
                 && !string.Equals(tab.Leader, "None", StringComparison.OrdinalIgnoreCase));
             if (leader == null) return value;
             string fill = leader.Leader!.IndexOf("Hyphen", StringComparison.OrdinalIgnoreCase) >= 0 ? "----"
@@ -518,7 +518,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             return value.Replace("\t", fill + "\t");
         }
 
-        private static GoogleDocsFootnote ConvertFootnote(WordFootnoteSnapshot footnote) {
+        private static GoogleDocsFootnote ConvertFootnote(WordFootnoteInfo footnote) {
             var converted = new GoogleDocsFootnote {
                 ReferenceId = footnote.ReferenceId,
             };
@@ -530,7 +530,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             return converted;
         }
 
-        private static GoogleDocsTableCellBorder? ConvertBorder(WordTableCellBorderSnapshot? border) {
+        private static GoogleDocsTableCellBorder? ConvertBorder(WordTableCellBorderInfo? border) {
             if (border == null) {
                 return null;
             }
@@ -542,7 +542,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
         }
 
-        private static GoogleDocsParagraphBorder? ConvertParagraphBorder(WordParagraphBorderSnapshot? border) {
+        private static GoogleDocsParagraphBorder? ConvertParagraphBorder(WordParagraphBorderInfo? border) {
             if (border == null) {
                 return null;
             }
@@ -555,7 +555,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
         }
 
-        private static bool HasSectionLayout(WordSectionSnapshot section) {
+        private static bool HasSectionLayout(WordSectionInfo section) {
             return section.PageWidthPoints.HasValue
                 || section.PageHeightPoints.HasValue
                 || section.MarginTopPoints.HasValue
@@ -572,7 +572,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 || string.Equals(section.Orientation, "Landscape", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static GoogleDocsSectionStyle? ConvertSectionStyle(WordSectionSnapshot section) {
+        private static GoogleDocsSectionStyle? ConvertSectionStyle(WordSectionInfo section) {
             if (!HasSectionLayout(section)) {
                 return null;
             }
@@ -595,7 +595,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
         }
 
-        private static GoogleDocsTable ConvertTable(WordTableSnapshot table) {
+        private static GoogleDocsTable ConvertTable(WordTableInfo table) {
             var converted = new GoogleDocsTable {
                 RowCount = table.RowCount,
                 ColumnCount = table.ColumnCount,

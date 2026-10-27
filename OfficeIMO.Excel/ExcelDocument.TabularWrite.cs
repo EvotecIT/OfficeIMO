@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<T> items,
             IReadOnlyList<string> headers,
             Action<ExcelTabularRowWriter, T> writeRow,
-            ExcelTabularWriteOptions? options = null,
+            ExcelWriterOptions? options = null,
             CancellationToken ct = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
             IAsyncEnumerable<T> items,
             IReadOnlyList<string> headers,
             Action<ExcelTabularRowWriter, T> writeRow,
-            ExcelTabularWriteOptions? options = null,
+            ExcelWriterOptions? options = null,
             CancellationToken ct = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
@@ -137,12 +137,12 @@ namespace OfficeIMO.Excel {
             return new ExcelDataSetImportResult(sheetName, tableName: null, range, rowCount, tableModel.ColumnCount);
         }
 
-        private static ExcelTabularWriteOptions CreateRowWriteOptions(ExcelTabularWriteOptions? options) {
+        private static ExcelWriterOptions CreateRowWriteOptions(ExcelWriterOptions? options) {
             if (options == null) {
-                return new ExcelTabularWriteOptions { UseSharedStrings = false };
+                return new ExcelWriterOptions { UseSharedStrings = false };
             }
 
-            return new ExcelTabularWriteOptions {
+            return new ExcelWriterOptions {
                 SheetName = options.SheetName,
                 IncludeHeaders = options.IncludeHeaders,
                 CreateTable = options.CreateTable,
@@ -161,7 +161,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static bool CanWriteRowsSinglePass(ExcelTabularWriteOptions options) =>
+        private static bool CanWriteRowsSinglePass(ExcelWriterOptions options) =>
             !options.CreateTable
             && !options.AutoFit;
 
@@ -178,8 +178,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static int GetMaximumDataRows(ExcelTabularWriteOptions options) =>
-            A1.MaxRows - (options.IncludeHeaders ? 1 : 0);
+        private static int GetMaximumDataRows(ExcelWriterOptions options) =>
+            ExcelA1.MaxRows - (options.IncludeHeaders ? 1 : 0);
 
         private static IReadOnlyList<T> MaterializeRows<T>(
             IEnumerable<T> items,
@@ -218,14 +218,14 @@ namespace OfficeIMO.Excel {
         public static ExcelDataSetImportResult WriteDataReader(
             Stream stream,
             IDataReader reader,
-            ExcelTabularWriteOptions? options = null,
+            ExcelWriterOptions? options = null,
             CancellationToken ct = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
             if (reader == null) throw new ArgumentNullException(nameof(reader));
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
 
-            options = CreateRowWriteOptions(options ?? new ExcelTabularWriteOptions());
+            options = CreateRowWriteOptions(options ?? new ExcelWriterOptions());
             ct.ThrowIfCancellationRequested();
             if (options.RequireStreaming && (options.UseSharedStrings || options.AutoFit || (options.CreateTable && !options.IncludeHeaders))) {
                 throw new ArgumentException("Streaming data reader exports require UseSharedStrings=false, AutoFit=false, and headers when creating a table.", nameof(options));
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
             var rows = new List<object?[]>(4096);
             bool canCancel = ct.CanBeCanceled;
             bool useBulkRead = ExcelSheet.CanUseBulkDataReaderValues(reader);
-            int maximumDataRows = A1.MaxRows - (options.IncludeHeaders ? 1 : 0);
+            int maximumDataRows = ExcelA1.MaxRows - (options.IncludeHeaders ? 1 : 0);
             while (reader.Read()) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
             IDataReader reader,
             string[] columnNames,
             Type[] columnTypes,
-            ExcelTabularWriteOptions options,
+            ExcelWriterOptions options,
             CancellationToken ct) {
             var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, Array.Empty<object?[]>());
             string sheetName = DirectDataSetWorkbookModel.SanitizeSheetName(options.SheetName);
@@ -308,11 +308,11 @@ namespace OfficeIMO.Excel {
         private static ExcelDataSetImportResult WriteTabularModel(
             Stream stream,
             DirectDataSetTableModel tableModel,
-            ExcelTabularWriteOptions? options,
+            ExcelWriterOptions? options,
             CancellationToken ct,
             string? defaultTableName = null) {
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
-            options ??= new ExcelTabularWriteOptions();
+            options ??= new ExcelWriterOptions();
             string sheetName = DirectDataSetWorkbookModel.SanitizeSheetName(options.SheetName);
             string range = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, tableModel.RowCount, options.IncludeHeaders);
             var model = DirectDataSetWorkbookModel.CreateSingle(

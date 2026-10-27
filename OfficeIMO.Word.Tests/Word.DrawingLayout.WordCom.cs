@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
                     new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
                 }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? packageLayout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? packageLayout));
                 Assert.NotNull(packageLayout);
                 Assert.Equal(224D, packageLayout.WidthPoints, 6);
                 Assert.Equal(40D, packageLayout.HeightPoints, 6);

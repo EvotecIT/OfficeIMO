@@ -22,13 +22,13 @@ public sealed class PdfInvoiceDocumentTypeTests {
         var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Cii, InvoiceProfile.En16931);
         var snapshot = PdfInvoiceDocument.Create(invoice, contract, layout);
         byte[] font = File.ReadAllBytes(OfficeIMO.Tests.Pdf.PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        var options = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
+        var options = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Source Serif");
         byte[] pdf = snapshot.ToPdfBytes(options);
-        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
         Assert.Contains(heading, text);
         Assert.Contains(invoice.Number, text);
-        Assert.Equal(code, InvoiceParser.Read(Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes).Invoice.TypeCode);
+        Assert.Equal(code, InvoiceParser.Read(Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Attachments.Extract()).Bytes).Invoice.TypeCode);
         Assert.Equal(119m, snapshot.PayableAmount);
     }
 }

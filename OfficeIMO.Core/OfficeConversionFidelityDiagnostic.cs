@@ -56,7 +56,7 @@ public static class OfficeConversionFidelityDiagnostics {
                     diagnostic.LossKind != OfficeConversionLossKind.None)) {
                 string source = report.GetType().FullName ?? report.GetType().Name;
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "CONVERSION_REPORT_UNTYPED_LOSS",
+                    global::OfficeIMO.OfficeDiagnosticCodes.ConversionReportUntypedLoss,
                     "The conversion stage reported aggregate loss without a typed fidelity diagnostic.",
                     OfficeConversionLossKind.Failure,
                     source));

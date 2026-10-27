@@ -90,7 +90,7 @@ internal sealed partial class PdfWorkspace {
     }
 
     /// <summary>Changes the paper size of pages, scaling their content to fit, fill or stretch.</summary>
-    internal Task ResizePagesAsync(IReadOnlyList<int> pageNumbers, PageSize size, PdfPageResizeMode mode, CancellationToken cancellationToken,
+    internal Task ResizePagesAsync(IReadOnlyList<int> pageNumbers, PdfPageSize size, PdfPageResizeMode mode, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateBytesAsync(PdfWorkspaceOperationKind.Resize, "Resized pages", pageNumbers,
             bytes => LoadDocument(bytes).Pages.Resize(new PdfPageResizeOptions(size) { Mode = mode }, pageNumbers.ToArray()).ToBytes(),

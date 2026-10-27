@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 heightPixels: 8,
                 name: "DeepAnchor");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
             sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!.Append(invalidRow);
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.True(snapshot.WidthPixels > 0);
             Assert.True(snapshot.HeightPixels > 0);
         }
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
             sheetData.Append(invalidRow);
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.True(snapshot.WidthPixels > 0);
             Assert.True(snapshot.HeightPixels > 0);
         }
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                 offsetXPixels: -50,
                 name: "Overlap");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);

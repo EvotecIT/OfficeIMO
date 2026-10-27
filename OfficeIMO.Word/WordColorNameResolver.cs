@@ -1,4 +1,4 @@
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 

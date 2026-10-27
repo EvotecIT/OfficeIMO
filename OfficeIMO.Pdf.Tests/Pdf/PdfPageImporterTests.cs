@@ -40,7 +40,7 @@ public class PdfPageImporterTests {
 
     [Fact]
     public void AppendPages_WithFlattenVisualAnnotationsOption_FlattensImportedSourceMarkupOnly() {
-        byte[] target = PdfDocument.Create(new PdfOptions {
+        byte[] target = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(title: "Target", author: "OfficeIMO")
@@ -537,7 +537,7 @@ public class PdfPageImporterTests {
     }
 
     private static byte[] BuildAnnotatedPdf(string title, string pageText) {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")

@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Drawing;
@@ -24,12 +26,13 @@ public sealed class ImageConversionTests
             int calls = 0;
             var engine = new DelegateOcrEngine("table-contract", (_, _) => { calls++; return Task.FromResult(TableResult()); });
             var review = await Source().PrepareSearchableOcrAsync(engine);
-            var options = new PdfTablesToExcelOptions { UseFirstRowAsHeader = true };
+            var options = new ExcelPdfImportOptions { UseFirstRowAsHeader = true };
             string output = Path.Combine(directory, "ledger.xlsx");
             var result = OfficeImageExporter.Export(review, output, false, options, null, default);
             Assert.Same(review, result.Review);
-            var report = Assert.IsType<PdfExcelTableImportReport>(result.ConversionReport);
-            Assert.True(Assert.Single(report.Entries).FirstRowUsedAsHeader);
+            var report = Assert.IsType<OfficeConversionReport>(result.ConversionReport);
+            Assert.Equal("Excel", report.Target);
+            Assert.True(report.ItemsWritten > 0);
             using (var excel = ExcelDocument.Load(output))
             {
                 var sheet = Assert.Single(excel.Sheets);
@@ -126,7 +129,7 @@ public sealed class ImageConversionTests
             runspace.Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            var options = new PdfTablesToExcelOptions();
+            var options = new ExcelPdfImportOptions();
             shell.AddCommand("ConvertFrom-OfficeImage").AddParameter("InputObject", review)
                 .AddParameter("OutputPath", Path.Combine(directory, "preview.xlsx"))
                 .AddParameter("ExcelOptions", options).AddParameter("FirstRowIsHeader").AddParameter("WhatIf");

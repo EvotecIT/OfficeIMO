@@ -10,9 +10,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateMulRkDateHeaderWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { Culture = CultureInfo.InvariantCulture });
+                new ExcelReaderOptions { Culture = CultureInfo.InvariantCulture });
 
             DateTime expected = DateTime.FromOADate(45293D);
             Assert.Equal(expected.ToString(CultureInfo.InvariantCulture), reader.GetName(0));
@@ -26,9 +26,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateInheritedDateStyleWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
 
             Assert.True(reader.Read());
             Assert.Equal(DateTime.FromOADate(45293D), reader.GetDateTime(0));
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateInvalidDateSerialWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
 
             Assert.True(reader.Read());
             Assert.Equal(double.MaxValue, Assert.IsType<double>(reader.GetValue(0)));
@@ -57,9 +57,9 @@ namespace OfficeIMO.Tests {
                 LegacyXlsTestWorkbookBuilder.CreateTruncatedMulBlankWorkbookStream());
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains("MULBLANK", exception.Message, StringComparison.Ordinal);
         }
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateTruncatedScalarCellWorkbookStream(recordType));
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.True(reader.Read());
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.Read());
 
@@ -91,9 +91,9 @@ namespace OfficeIMO.Tests {
                 uint.MaxValue);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "mini stream exceeds configured or physical bounds",
@@ -108,9 +108,9 @@ namespace OfficeIMO.Tests {
                     LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "declared root mini stream length",
@@ -126,9 +126,9 @@ namespace OfficeIMO.Tests {
                     1024);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "allocation table counts exceed configured or physical bounds",
@@ -143,9 +143,9 @@ namespace OfficeIMO.Tests {
                 1024 * 1024);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains("physical bounds", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(compound);
+            using DbDataReader reader = ExcelDocument.OpenReader(compound);
 
             global::OfficeIMO.Excel.Tests.DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);
         }
@@ -168,9 +168,9 @@ namespace OfficeIMO.Tests {
                 LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream(),
                 nestedStreamName);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
 
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());

@@ -54,7 +54,7 @@ public sealed class ExcelSpreadsheetXmlTests {
         using var saved = new MemoryStream(); document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("Edited", reopened.Sheets[0].CellAt(4, 1).GetValue<string>());
-        using var reader = ExcelDocument.OpenDataReader(saved.ToArray(), new ExcelReadOptions { SheetName = "Data", A1Range = "E3:E3", HasHeaderRow = false, TreatDatesUsingNumberFormat = true });
+        using var reader = ExcelDocument.OpenReader(saved.ToArray(), new ExcelReaderOptions { SheetName = "Data", A1Range = "E3:E3", HasHeaderRow = false, TreatDatesUsingNumberFormat = true });
         Assert.True(reader.Read());
         Assert.Equal(new DateTime(2026, 10, 19, 12, 30, 0), reader.GetDateTime(0));
         Assert.Empty(reopened.ValidateOpenXml());

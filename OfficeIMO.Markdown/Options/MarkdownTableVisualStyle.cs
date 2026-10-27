@@ -14,7 +14,7 @@ public sealed class MarkdownTableVisualStyle {
     /// <summary>When true, exporters should emphasize the first row as a header.</summary>
     public bool EmphasizeHeader { get; set; } = true;
 
-    /// <summary>Table border width in renderer points/pixels where applicable.</summary>
+    /// <summary>MarkdownTable border width in renderer points/pixels where applicable.</summary>
     public double BorderWidth {
         get => _borderWidth;
         set => _borderWidth = ValidateNonNegative(value, nameof(BorderWidth));

@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private int? _orderedListNumberId;
 
-        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private void ProcessList(IElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
             bool ordered = element.TagName.Equals("ol", System.StringComparison.OrdinalIgnoreCase);
             int parentDepth = listStack.Count;
@@ -362,7 +362,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private WordParagraph ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private WordParagraph ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter,
             WordParagraph? insertionAnchor) {
             var list = listStack.Peek();

@@ -49,7 +49,7 @@ document.SaveAsHtml(stream);
 
 ### Conversion Options
 
-Customize the conversion with `WordToHtmlOptions`:
+Customize the conversion with `WordHtmlExportOptions`:
 
 ```csharp
 using OfficeIMO.Word;
@@ -57,7 +57,7 @@ using OfficeIMO.Word.Html;
 
 using var document = WordDocument.Load("report.docx");
 
-var options = new WordToHtmlOptions {
+var options = new WordHtmlExportOptions {
     // Include font and list styling in the generated HTML
     IncludeFontStyles = true,
     IncludeListStyles = true,
@@ -104,7 +104,7 @@ document.Save("from-html.docx");
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
 using var document = await source.ToWordDocumentAsync(options);
 document.Save("from-html.docx");
 ```
@@ -114,7 +114,7 @@ document.Save("from-html.docx");
 ```csharp
 using OfficeIMO.Word.Html;
 
-var options = new HtmlToWordOptions {
+var options = new WordHtmlImportOptions {
     FontFamily = "Calibri",
     IncludeListStyles = true,
     BasePath = AppContext.BaseDirectory

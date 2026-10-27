@@ -36,7 +36,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         Assert.Contains(read.Document.ToMarkdownResult().Report.Diagnostics, item => item.Code == code);
         var word = read.Document.ToWordDocumentResult();
         using (word.Value) Assert.Contains(word.Report.Diagnostics, item => item.Code == code);
-        Assert.Contains(read.Document.ToPdfDocumentResult().Report.Warnings, item => item.Code == code);
+        Assert.Contains(read.Document.ConvertToPdfWithEvidence().Report.Warnings, item => item.Code == code);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         AssertDiagnostics(document.ToMarkdownResult().Report);
         var word = document.ToWordDocumentResult();
         using (word.Value) AssertDiagnostics(word.Report);
-        var pdf = document.ToPdfDocumentResult();
+        var pdf = document.ConvertToPdfWithEvidence();
         Assert.Contains(pdf.Report.Warnings, item => item.Code == "RtfStyleInheritanceCycle");
         Assert.Contains(pdf.Report.Warnings, item => item.Code == "RtfStyleReferenceMissing");
 

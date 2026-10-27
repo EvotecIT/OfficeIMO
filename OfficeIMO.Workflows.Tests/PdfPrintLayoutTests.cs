@@ -12,7 +12,7 @@ public sealed class PdfPrintLayoutTests {
         PdfDocument document = Pages(count + 1);
         PdfPrintPlan plan = PdfPrintPlanner.Create(document, new() {
             InputPath = "snapshot.pdf", Pages = string.Join(',', Enumerable.Range(1, count + 1).Reverse()),
-            PagesPerSheet = count, PaperSize = new PageSize(300, 500),
+            PagesPerSheet = count, PaperSize = new PdfPageSize(300, 500),
             Orientation = landscape ? PdfPrintOrientation.Landscape : PdfPrintOrientation.Portrait,
             MarginLeft = 10, MarginTop = 20, MarginRight = 30, MarginBottom = 40
         });
@@ -46,7 +46,7 @@ public sealed class PdfPrintLayoutTests {
     public void CustomPhysicalScaleUsesRequestedAnchorForBothWhitespaceAndOverflow(PdfPrintAlignment alignment, double horizontal, double vertical) {
         foreach (double percent in new[] { 50D, 250D }) {
             PdfPrintPlacement p = Assert.Single(Assert.Single(PdfPrintPlanner.Create(Pages(1), new() {
-                InputPath = "snapshot.pdf", PaperSize = new PageSize(150, 180), Orientation = PdfPrintOrientation.Portrait,
+                InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(150, 180), Orientation = PdfPrintOrientation.Portrait,
                 Margin = 10, ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = percent, Alignment = alignment
             }).Sheets).Placements);
             Assert.Equal(percent / 100D, p.Scale);
@@ -76,7 +76,7 @@ public sealed class PdfPrintLayoutTests {
             InputPath = "snapshot.pdf", PageSubset = PdfPrintPageSubset.Even
         }));
         Assert.Throws<ArgumentException>(() => PdfPrintPlanner.Create(document, new() {
-            InputPath = "snapshot.pdf", PaperSize = new PageSize(100, 120), MarginLeft = 70, MarginRight = 30
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(100, 120), MarginLeft = 70, MarginRight = 30
         }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfPrintPlanner.Create(document, new() {
             InputPath = "snapshot.pdf", ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = double.NaN

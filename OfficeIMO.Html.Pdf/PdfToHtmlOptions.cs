@@ -9,6 +9,9 @@ namespace OfficeIMO.Html.Pdf;
 /// Options for exporting parser-supported PDFs to HTML through the first-party OfficeIMO logical PDF model.
 /// </summary>
 public sealed class PdfToHtmlOptions {
+    /// <summary>Rejects fidelity loss before returning HTML or writing its destination.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Cancellation observed at page and export-summary boundaries.</summary>
     internal System.Threading.CancellationToken CancellationToken { get; set; }
 
@@ -45,11 +48,11 @@ public sealed class PdfToHtmlOptions {
 
     /// <summary>
     /// Canonical semantic-read settings used when exporting an opened <see cref="PdfCore.PdfDocument"/>.
-    /// Null uses <see cref="PdfCore.PdfReadOptions.Default"/>. <see cref="PageRanges"/> overrides the configured
-    /// <see cref="PdfCore.PdfReadOptions.PageSelection"/> when both are supplied. This setting is ignored when the source
+    /// Null uses <see cref="PdfCore.PdfLoadOptions"/>. <see cref="PageRanges"/> overrides the configured
+    /// <see cref="PdfCore.PdfLoadOptions.PageSelection"/> when both are supplied. This setting is ignored when the source
     /// is already a <see cref="PdfCore.PdfDocumentReadResult"/>.
     /// </summary>
-    public PdfCore.PdfReadOptions? ReadOptions { get; set; }
+    public PdfCore.PdfLoadOptions? ReadOptions { get; set; }
 
     /// <summary>Composed document-versus-fragment, theme, title, language, style, and newline settings.</summary>
     public OfficeHtmlDocumentOptions DocumentOutput {
@@ -152,10 +155,11 @@ public sealed class PdfToHtmlOptions {
     internal int EmittedImagePlaceholderCount { get; set; }
 
     internal PdfToHtmlOptions CloneForConversion() => new() {
+        FailOnLoss = FailOnLoss,
         CancellationToken = CancellationToken,
         VisualSource = VisualSource,
         Profile = Profile,
-        ReadOptions = ReadOptions,
+        ReadOptions = ReadOptions?.Clone(),
         DocumentOutput = DocumentOutput.Clone(),
         PageRanges = PageRanges?.ToArray(),
         UseSharedPageReadingOrder = UseSharedPageReadingOrder,

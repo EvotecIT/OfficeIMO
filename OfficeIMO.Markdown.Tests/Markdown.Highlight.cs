@@ -8,9 +8,9 @@ namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
         public void MarkdownReader_RendersHighlightInlineToHtml() {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Paragraph with ==highlight== and ==**nested**==.");
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("Paragraph with ==highlight== and ==**nested**==.");
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
 
             Assert.Contains("<mark>highlight</mark>", html);
             Assert.Contains("<mark><strong>nested</strong></mark>", html);
@@ -20,13 +20,13 @@ namespace OfficeIMO.Tests {
         public void Markdown_Highlight_RoundTrip_PreservesNestedFormatting() {
             const string md = "Text ==highlighted== and ==**important**==.";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
 
             Assert.Contains(runs, r => r.Text == "highlighted" && r.Highlight == OfficeIMO.Word.WordHighlightColor.Yellow);
             Assert.Contains(runs, r => r.Text == "important" && r.Highlight == OfficeIMO.Word.WordHighlightColor.Yellow && r.Bold);
 
-            var roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableHighlight = true });
+            var roundTrip = ((doc.ToMarkdown(new WordMarkdownExportOptions { EnableHighlight = true })).ToMarkdown());
             Assert.Contains("==highlighted==", roundTrip);
             Assert.True(
                 roundTrip.Contains("==**important**==", StringComparison.Ordinal)

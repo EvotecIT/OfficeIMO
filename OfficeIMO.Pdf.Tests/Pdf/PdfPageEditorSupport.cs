@@ -15,17 +15,17 @@ public partial class PdfPageEditorTests {
 
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page marker"))));
             });
 
             compose.Page(page => {
-                page.Size(new PageSize(612, 792));
+                page.Size(new PdfPageSize(612, 792));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page marker"))));
             });
 
             compose.Page(page => {
-                page.Size(new PageSize(300, 500));
+                page.Size(new PdfPageSize(300, 500));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page marker"))));
             });
         });

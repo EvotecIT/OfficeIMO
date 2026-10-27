@@ -54,7 +54,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupDocument document,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         if (!ContainsOfficeSyntax(markup)) {
             return false;
         }
@@ -153,7 +153,7 @@ public static partial class OfficeMarkupParser {
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         foreach (var segment in SplitSlideSegments(markup)) {
             if (string.IsNullOrWhiteSpace(segment)) {
                 continue;
@@ -236,7 +236,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
         OfficeMarkupSlideBlock? slideContext,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var lines = markup.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var markdownLines = new List<string>();
         var inFence = false;
@@ -390,7 +390,7 @@ public static partial class OfficeMarkupParser {
         string sourceText,
         IList<OfficeMarkupDiagnostic> diagnostics,
         OfficeMarkupProfile profile,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var normalized = NormalizeCommand(command);
         OfficeMarkupBlock? block;
         switch (normalized) {
