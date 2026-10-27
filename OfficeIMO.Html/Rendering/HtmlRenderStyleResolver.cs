@@ -155,7 +155,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         // Document mode's code tags whose unstyled fallback remains monospace.
         if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
             defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options));
+        string family = pseudoElement
+            ? ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options))
+            : ResolveElementFontFamily(fontTag, computed, defaultFamily, _options);
         if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
         HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
             ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)
@@ -294,7 +296,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _diagnostics.Add(
                 "OfficeIMO.Html.Renderer",
                 HtmlRenderDiagnosticCodes.FontVariantApproximated,
-                "CSS small-caps used an uppercase managed-rendering approximation because synthetic small-cap glyph sizing is not available.",
+                "CSS small-caps were synthesized from capitals at reduced size because the font's own small-cap glyphs are not used.",
                 HtmlDiagnosticSeverity.Warning,
                 DescribeSource(element),
                 "font-variant-caps=" + fontVariantCaps,
