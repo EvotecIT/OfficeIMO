@@ -290,7 +290,7 @@ namespace OfficeIMO.PowerPoint {
 
                     // The title/body group sits on a shared line across the row, anchored to the card bottom.
                     double groupTop = y + rowHeight - 20D - shared;
-                    writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, groupTop, inner, shared + 8D), paragraphs);
+                    writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, groupTop - 8D, inner, shared + 8D), paragraphs, anchor: "b");
                 }
 
                 index += rowCards.Count;
