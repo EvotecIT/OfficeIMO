@@ -354,7 +354,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .H3(new string('i', 20))
+            .H3(new string('i', 20), style: new PdfHeadingStyle { FontSize = 14 })
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -423,7 +423,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.H3(new string('i', 20)))))))
+                                column.H3(new string('i', 20), style: new PdfHeadingStyle { FontSize = 14 }))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

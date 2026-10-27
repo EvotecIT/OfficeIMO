@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using System.Globalization;
 using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
@@ -13,7 +14,7 @@ namespace OfficeIMO.Examples.Pdf {
                 DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
-                HeaderFormat = "Northwind Support - Q3 operations review (sample data)",
+                HeaderFormat = "Northwind Support \u2013 Q3 operations review (sample data)",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -102,56 +103,73 @@ namespace OfficeIMO.Examples.Pdf {
             return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4, LineHeight = 1.1 };
         }
 
-        private static OfficeDrawing CreateTrendDrawing() {
-            var drawing = new OfficeDrawing(390, 168);
-            var label = new OfficeFontInfo("Helvetica", 8);
-            var muted = OfficeColor.FromRgb(100, 116, 139);
+        // The drawing spans the left column, so its right edge lines up with the table below it.
+        private const double ChartWidth = 429;
 
-            var frame = OfficeShape.RoundedRectangle(390, 168, 8);
-            frame.FillColor = OfficeColor.FromRgb(255, 255, 255);
-            frame.StrokeColor = OfficeColor.FromRgb(203, 213, 225);
-            frame.StrokeWidth = 0.8;
+        private static OfficeDrawing CreateTrendDrawing() {
+            const double height = 176, plotLeft = 40, plotRight = ChartWidth - 12, baseline = 148, ticketsPerPoint = 8;
+            OfficeThemePalette palette = OfficeTheme.Default.Palette;
+            var drawing = new OfficeDrawing(ChartWidth, height);
+            var label = new OfficeFontInfo("Helvetica", 8);
+            OfficeColor muted = palette.TextMuted;
+            OfficeColor text = palette.Text;
+
+            var frame = OfficeShape.Rectangle(ChartWidth, height);
+            frame.FillColor = palette.Background;
+            frame.StrokeColor = OfficeColor.FromRgb(220, 226, 234);
+            frame.StrokeWidth = 0.75;
             drawing.AddShape(frame, 0, 0);
 
-            // Baseline at y = 140; 1 px of bar height is 8 tickets.
-            for (int i = 0; i < 4; i++) {
-                var grid = OfficeShape.Line(0, 0, 340, 0);
-                grid.StrokeColor = OfficeColor.FromRgb(226, 232, 240);
+            // Light gridlines with their values on the axis; the baseline is the zero line.
+            for (int value = 0; value <= 1000; value += 250) {
+                double y = baseline - value / ticketsPerPoint;
+                var grid = OfficeShape.Line(0, 0, plotRight - plotLeft, 0);
+                grid.StrokeColor = value == 0 ? OfficeColor.FromRgb(201, 208, 218) : OfficeColor.FromRgb(230, 234, 240);
                 grid.StrokeWidth = 0.5;
-                drawing.AddShape(grid, 28, 32 + i * 36);
+                drawing.AddShape(grid, plotLeft, y);
+                drawing.AddText(value.ToString("N0", CultureInfo.InvariantCulture), 4, y - 5, plotLeft - 10, 10, label, muted, OfficeTextAlignment.Right);
             }
 
             string[] months = { "July", "August", "September" };
             int[] resolved = { 812, 871, 934 };
+            double slot = (plotRight - plotLeft) / resolved.Length;
             for (int i = 0; i < resolved.Length; i++) {
-                double height = resolved[i] / 8.0;
-                double x = 66 + i * 104;
-                var bar = OfficeShape.RoundedRectangle(64, height, 4);
-                bar.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.FromRgb(14, 165, 233), OfficeColor.FromRgb(37, 99, 235));
+                double barHeight = resolved[i] / ticketsPerPoint;
+                double x = plotLeft + i * slot + slot * 0.25;
+                var bar = OfficeShape.Rectangle(slot * 0.5, barHeight);
+                bar.FillColor = palette.Accent1;
                 bar.StrokeWidth = 0;
-                drawing.AddShape(bar, x, 140 - height);
-                drawing.AddText(resolved[i].ToString("N0"), x, 140 - height + 16, 64, 12, new OfficeFontInfo("Helvetica", 9, OfficeFontStyle.Bold), OfficeColor.FromRgb(255, 255, 255), OfficeTextAlignment.Center);
-                drawing.AddText(months[i], x, 146, 64, 12, label, muted, OfficeTextAlignment.Center);
+                drawing.AddShape(bar, x, baseline - barHeight);
+                // Data labels sit inside the top of each bar; white on the accent fill passes WCAG AA,
+                // and the target line above the shorter bars stays clear of them.
+                drawing.AddText(resolved[i].ToString("N0", CultureInfo.InvariantCulture), x, baseline - barHeight + 5, slot * 0.5, 11, new OfficeFontInfo("Helvetica", 9, OfficeFontStyle.Bold), palette.Background, OfficeTextAlignment.Center);
+                drawing.AddText(months[i], x, baseline + 6, slot * 0.5, 11, label, muted, OfficeTextAlignment.Center);
             }
 
-            // Target line: 850 tickets a month.
-            var target = OfficeShape.Line(0, 0, 340, 0);
-            target.StrokeColor = OfficeColor.FromRgb(15, 23, 42);
-            target.StrokeWidth = 1.2;
+            // Target line: 850 tickets a month, labelled at its left end clear of the bars.
+            double targetY = baseline - 850 / ticketsPerPoint;
+            var target = OfficeShape.Line(0, 0, plotRight - plotLeft, 0);
+            target.StrokeColor = text;
+            target.StrokeWidth = 1;
             target.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
-            drawing.AddShape(target, 28, 140 - 850 / 8.0);
-            drawing.AddText("Target 850", 318, 140 - 850 / 8.0 - 12, 60, 11, label, OfficeColor.FromRgb(15, 23, 42), OfficeTextAlignment.Right);
+            drawing.AddShape(target, plotLeft, targetY);
+            drawing.AddText("Target 850", plotLeft + 4, targetY - 22, 70, 10, label, text, OfficeTextAlignment.Left);
 
             return drawing;
         }
 
-        private static string[][] CreateServiceRows() {
+        private static PdfTableCell[][] CreateServiceRows() {
+            OfficeThemePalette palette = OfficeTheme.Default.Palette;
+            PdfTableCell Status(string status) => PdfTableCell.RichTextCell(new[] {
+                PdfTextRun.Bolded(status, PdfColor.FromOfficeColor(status == "Watch" ? palette.Warning : palette.Success))
+            });
+            PdfTableCell T(string value) => PdfTableCell.TextCell(value);
             return new[] {
-                new[] { "Service line", "SLA", "Response", "Change", "Status" },
-                new[] { "Billing", "96.1%", "1.2 h", "+2.4 pts", "On target" },
-                new[] { "Onboarding", "93.4%", "1.9 h", "+1.1 pts", "On target" },
-                new[] { "Integrations", "89.7%", "3.1 h", "-1.8 pts", "Watch" },
-                new[] { "Security", "97.0%", "0.9 h", "+0.3 pts", "On target" }
+                new[] { T("Service line"), T("SLA"), T("Response"), T("Change"), T("Status") },
+                new[] { T("Billing"), T("96.1%"), T("1.2 h"), T("+2.4 pts"), Status("On target") },
+                new[] { T("Onboarding"), T("93.4%"), T("1.9 h"), T("+1.1 pts"), Status("On target") },
+                new[] { T("Integrations"), T("89.7%"), T("3.1 h"), T("-1.8 pts"), Status("Watch") },
+                new[] { T("Security"), T("97.0%"), T("0.9 h"), T("+0.3 pts"), Status("On target") }
             };
         }
         private static PdfTableCell[][] CreateDecisionRows() {

@@ -107,7 +107,7 @@ public static partial class MarkdownPdfConverterExtensions {
                visualTheme.DocumentHeaderTitleColorSnapshot;
     }
 
-    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme, bool keepWithNext = false) {
         if (TryRenderImageOnlyParagraph(pdf, inlines, options, visualTheme)) {
             return;
         }
@@ -116,7 +116,36 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        pdf.Paragraph(builder => AppendInlines(builder, inlines, CreateInlineStyle(visualTheme, options.Anchors)));
+        PdfCore.PdfParagraphStyle? style = null;
+        if (keepWithNext) {
+            style = visualTheme.DocumentThemeSnapshot?.ParagraphStyle ?? new PdfCore.PdfParagraphStyle();
+            style.KeepWithNext = true;
+        }
+        pdf.Paragraph(builder => AppendInlines(builder, inlines, CreateInlineStyle(visualTheme, options.Anchors)), style: style);
+    }
+
+    private static bool EndsWithColon(InlineSequence inlines) {
+        IReadOnlyList<IMarkdownInline> nodes = inlines.Nodes;
+        for (int i = nodes.Count - 1; i >= 0; i--) {
+            string? text = nodes[i] switch {
+                OfficeIMO.Markdown.MarkdownTextRun run => run.Text,
+                BoldInline bold => bold.Text,
+                ItalicInline italic => italic.Text,
+                _ => null
+            };
+            if (text == null) return false;
+            text = text.TrimEnd();
+            if (text.Length > 0) return text[text.Length - 1] == ':';
+        }
+        return false;
+    }
+
+    // The item that introduces nested content keeps with it, so "3. Build and preview:" is not stranded
+    // at the bottom of a page while its code block starts the next one.
+    private static PdfCore.PdfListStyle? KeepWithChildrenListStyle(MarkdownPdfStyle visualTheme) {
+        PdfCore.PdfListStyle style = visualTheme.DocumentThemeSnapshot?.ListStyle ?? new PdfCore.PdfListStyle();
+        style.KeepWithNext = true;
+        return style;
     }
 
     private static void RenderPlainBlock(PdfCore.PdfDocument pdf, string text) {
@@ -136,9 +165,17 @@ public static partial class MarkdownPdfConverterExtensions {
             IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme, options.Anchors));
             items.Add(PdfCore.PdfListItem.Rich(runs.Count == 0 ? new[] { PdfTextRun.Normal(string.Empty) } : runs));
             if (HasListChildren(item)) {
-                pdf.RichNumbered(items, startNumber: batchStart);
+                PdfCore.PdfListItem introducing = items[items.Count - 1];
+                items.RemoveAt(items.Count - 1);
+                if (items.Count > 0) {
+                    PdfCore.PdfListStyle continuing = visualTheme.DocumentThemeSnapshot?.ListStyle ?? new PdfCore.PdfListStyle();
+                    continuing.SpacingAfter = continuing.ItemSpacing ?? 2D;
+                    pdf.RichNumbered(items, startNumber: batchStart, style: continuing);
+                }
+                pdf.RichNumbered(new[] { introducing }, startNumber: list.Start + i, style: KeepWithChildrenListStyle(visualTheme));
                 items.Clear();
-                RenderListItemChildren(pdf, item, document, options, visualTheme);
+                RenderListItemChildren(pdf, item, document, options, visualTheme,
+                    ListItemTextIndent(visualTheme, (list.Start + i).ToString(System.Globalization.CultureInfo.InvariantCulture).Length + 1));
                 batchStart = list.Start + i + 1;
             }
         }
@@ -156,7 +193,7 @@ public static partial class MarkdownPdfConverterExtensions {
             if (HasListChildren(item)) {
                 RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
                 batch.Clear();
-                RenderListItemChildren(pdf, item, document, options, visualTheme);
+                RenderListItemChildren(pdf, item, document, options, visualTheme, ListItemTextIndent(visualTheme, markerCharacters: 0));
             }
         }
         if (batch.Count > 0) RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
@@ -263,13 +300,31 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool HasListChildren(ListItem item) => item.AdditionalParagraphs.Count > 0 || item.NestedBlocks.Count > 0;
 
-    private static void RenderListItemChildren(PdfCore.PdfDocument pdf, ListItem item, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
+    // Continuation paragraphs, nested lists and code blocks belong to their list item, so they start at the
+    // item's text column instead of the body margin. Blocks that cannot sit inside a panel keep the margin.
+    private static void RenderListItemChildren(PdfCore.PdfDocument pdf, ListItem item, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme, double indent) {
+        var children = new List<IMarkdownBlock>(item.AdditionalParagraphs.Count + item.NestedBlocks.Count);
         for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-            RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
+            children.Add(new ParagraphBlock(item.AdditionalParagraphs[paragraphIndex]));
         }
 
-        for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
-            RenderBlock(pdf, item.NestedBlocks[childIndex], document, options, visualTheme);
-        }
+        children.AddRange(item.NestedBlocks);
+        var indentStyle = new PdfCore.PdfPanelStyle {
+            Background = null,
+            BorderColor = null,
+            BorderWidth = 0D,
+            PaddingX = indent,
+            PaddingY = 0D,
+            SpacingBefore = 0D,
+            SpacingAfter = 4D
+        };
+        RenderBlocksWithPanelRuns(pdf, children, document, options, visualTheme, indentStyle);
+    }
+
+    private static double ListItemTextIndent(MarkdownPdfStyle visualTheme, int markerCharacters) {
+        PdfCore.PdfListStyle? list = visualTheme.DocumentThemeSnapshot?.ListStyle;
+        double fontSize = list?.FontSize ?? 11D;
+        double markerWidth = markerCharacters == 0 ? fontSize * 0.35D : fontSize * 0.56D * markerCharacters;
+        return (list?.LeftIndent ?? 18D) + markerWidth + (list?.MarkerGap ?? 6D);
     }
 }

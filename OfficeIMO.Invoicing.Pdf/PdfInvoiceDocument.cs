@@ -133,6 +133,17 @@ public sealed partial class PdfInvoiceDocument {
             }
             configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
         }
+        if (!_layout.IncludePageIdentity && !configured.ShowPageNumbers) {
+            // Invoices that run over a page keep their page count visible without extra configuration.
+            configured.ShowPageNumbers = true;
+            configured.FooterFormat = Label(InvoicePdfText.Page) + " {page} " + Label(InvoicePdfText.PageOf) + " {pages}";
+            configured.FooterAlign = PdfAlign.Right;
+            if (configured.FooterTextColor == null) configured.FooterTextColor = (_layout.Theme ?? new InvoicePdfTheme()).MutedText;
+        }
+        // The invoice language and its title identify the document to readers and assistive technology.
+        configured.Language ??= _layout.Languages[0].Culture.Name;
+        if (configured.ViewerPreferences?.DisplayDocTitle == null)
+            configured.ConfigureViewerPreferences(preferences => preferences.DisplayDocTitle = true);
         PdfDocument document = PdfDocument.Create(configured);
         document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
         if (_layout.IncludePageIdentity) {
@@ -140,7 +151,7 @@ public sealed partial class PdfInvoiceDocument {
                 throw new InvalidDataException("Page identity requires a single-line invoice number up to 80 characters.");
             document.Compose(builder => builder.Page(page => page.Footer(footer => {
                 Action<PdfFooterTextBuilder> identity = text => text.Text(_invoice.Number);
-                Action<PdfFooterTextBuilder> count = text => text.Text(Label(InvoicePdfText.Page) + " ").CurrentPage().Text(" / ").TotalPages();
+                Action<PdfFooterTextBuilder> count = text => text.Text(Label(InvoicePdfText.Page) + " ").CurrentPage().Text(" " + Label(InvoicePdfText.PageOf) + " ").TotalPages();
                 footer.StyledZones(identity, null, count);
                 if (configured.DifferentFirstPageHeaderFooter) footer.FirstPageStyledZones(identity, null, count);
                 if (configured.DifferentOddAndEvenPagesHeaderFooter) footer.EvenPagesStyledZones(identity, null, count);

@@ -402,12 +402,15 @@ internal static partial class PdfFormFiller {
 
             if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
                 style.BorderColor = borderColor;
+                // A bordered combo box shows its drop-down marker; borderless inline choices read as text.
+                style.ShowDropDownArrow = (fieldFlags & ComboChoiceFlag) != 0;
             }
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
             style.BorderWidth = borderWidth;
         }
+
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
             style.BorderStyle = borderStyle;

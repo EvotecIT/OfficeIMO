@@ -462,7 +462,9 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = 30,
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            // The page geometry is sized for the built-in heading metrics, not the document theme.
+            DefaultHeadingStyles = new PdfHeadingStyles()
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -500,7 +502,9 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = 30,
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            // The page geometry is sized for the built-in heading metrics, not the document theme.
+            DefaultHeadingStyles = new PdfHeadingStyles()
         };
 
         PdfDocument document = PdfDocument.Create(options)

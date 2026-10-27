@@ -111,6 +111,41 @@ internal static partial class PdfWriter {
         return alignment;
     }
 
+    // A header over a column of numbers aligns with its numbers. Body cells are already
+    // right-aligned one by one; the header follows when every body value in its column is numeric.
+    private static PdfTableStyle AlignNumericColumnHeaders(TableBlock table, PdfTableStyle style) {
+        int headerRows = style.HeaderRowCount;
+        if (!style.RightAlignNumeric || headerRows <= 0 || table.Cells.Count <= headerRows) return style;
+        int footerStart = table.Cells.Count - style.FooterRowCount;
+        int columns = table.ColumnCount;
+        System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? aligned = null;
+        for (int column = 0; column < columns; column++) {
+            if (style.Alignments != null && column < style.Alignments.Count && style.Alignments[column] != PdfColumnAlign.Left) continue;
+            bool sawNumber = false, numeric = true;
+            for (int row = headerRows; row < footerStart && numeric; row++) {
+                System.Collections.Generic.IReadOnlyList<PdfTableCell> cells = table.Cells[row];
+                if (column >= cells.Count) continue;
+                string text = cells[column].Text ?? string.Empty;
+                if (text.Trim().Length == 0) continue;
+                if (LooksNumeric(text)) sawNumber = true;
+                else numeric = false;
+            }
+            if (!numeric || !sawNumber) continue;
+            for (int row = 0; row < headerRows; row++) {
+                if (style.CellAlignments != null && style.CellAlignments.ContainsKey((row, column))) continue;
+                (aligned ??= new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>())[(row, column)] = PdfColumnAlign.Right;
+            }
+        }
+        if (aligned == null) return style;
+        PdfTableStyle copy = style.Clone();
+        var merged = copy.CellAlignments == null
+            ? new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>()
+            : new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>(copy.CellAlignments);
+        foreach (var entry in aligned) merged[entry.Key] = entry.Value;
+        copy.CellAlignments = merged;
+        return copy;
+    }
+
     private static PdfCellVerticalAlign GetTableCellVerticalAlignment(PdfTableStyle style, int rowIndex, int columnIndex) {
         if (style.CellVerticalAlignments != null &&
             style.CellVerticalAlignments.TryGetValue((rowIndex, columnIndex), out PdfCellVerticalAlign cellAlignment)) {

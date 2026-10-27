@@ -152,7 +152,20 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += "BT /" + effectiveFontResourceName + " " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textShowing + " ET\n";
         }
 
-        return content + "Q\n";
+        return content + BuildDropDownArrowAppearanceContent(width, height, effectiveStyle) + "Q\n";
+    }
+
+    /// <summary>Draws the closed-list marker that tells readers a combo box offers choices.</summary>
+    internal static string BuildDropDownArrowAppearanceContent(double width, double height, PdfFormFieldStyle style) {
+        if (!style.ShowDropDownArrow || style.IsMultiline) return string.Empty;
+        double half = Math.Min(4D, Math.Max(1.5D, height * 0.16D));
+        double centerX = width - Math.Max(half + 3D, Math.Min(height / 2D, 12D));
+        double centerY = height / 2D;
+        if (centerX - half <= 0D) return string.Empty;
+        return FormatColor(style.TextColor) + " rg " +
+            Format(centerX - half) + " " + Format(centerY + half / 2D) + " m " +
+            Format(centerX + half) + " " + Format(centerY + half / 2D) + " l " +
+            Format(centerX) + " " + Format(centerY - half / 2D) + " l h f\n";
     }
 
     /// <summary>Centers nominal text ascent and descent consistently in authored, regenerated and transient widget appearances.</summary>

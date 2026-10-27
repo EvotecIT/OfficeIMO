@@ -69,7 +69,7 @@ public sealed partial class PdfCreateOptions {
     private string? _pageLabelPrefix;
     private System.Collections.Generic.List<PdfPageLabelRange>? _pageLabelRanges;
     private PdfParagraphStyle? _defaultParagraphStyle;
-    private PdfTableStyle? _defaultTableStyle = PdfTableStyles.Light();
+    private PdfTableStyle? _defaultTableStyle;
     private bool _hasExplicitDefaultTableStyle;
     private PdfHeadingStyles? _defaultHeadingStyles;
     private PdfListStyle? _defaultListStyle;

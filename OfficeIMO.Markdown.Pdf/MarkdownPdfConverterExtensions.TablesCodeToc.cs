@@ -452,11 +452,27 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(visualTheme.CodeBlockFontSizeSnapshot)
                 .Color(visualTheme.CodeBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, content);
-        }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
+        }, style: new PdfCore.PdfParagraphStyle {
+            TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted,
+            // Code reads as a block at a tighter leading than prose, with the panel padding equal on both sides.
+            LineHeight = 1.25D,
+            SpacingBefore = 0D,
+            SpacingAfter = 0D
+        }), ShortCodePanelStyle(visualTheme.CodeBlockPanelStyleSnapshot, content));
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
             pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
         }
+    }
+
+    // Short listings stay on one page; long ones may continue on the next.
+    private const int KeepTogetherCodeLineLimit = 15;
+
+    private static PdfCore.PdfPanelStyle ShortCodePanelStyle(PdfCore.PdfPanelStyle style, string content) {
+        int lines = 1;
+        foreach (char ch in content) if (ch == '\n') lines++;
+        if (lines <= KeepTogetherCodeLineLimit) style.KeepTogether = true;
+        return style;
     }
 
     private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {

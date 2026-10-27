@@ -29,9 +29,9 @@ public sealed partial class PdfCreateOptions {
         get => _defaultParagraphStyle?.Clone();
         set => _defaultParagraphStyle = value?.Clone();
     }
-    /// <summary>Default table style applied when none is provided.</summary>
+    /// <summary>Default table style applied when none is provided. When not assigned, the style comes from <see cref="Theme"/>.</summary>
     public PdfTableStyle? DefaultTableStyle {
-        get => _defaultTableStyle?.Clone();
+        get => DefaultTableStyleSnapshot?.Clone();
         set {
             _defaultTableStyle = value?.Clone();
             _hasExplicitDefaultTableStyle = value != null;
@@ -39,14 +39,14 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Gets whether <see cref="DefaultTableStyle"/> was explicitly supplied by the caller or a theme.</summary>
     public bool HasExplicitDefaultTableStyle => _hasExplicitDefaultTableStyle;
-    /// <summary>Default heading styles applied when H1/H2/H3 blocks do not specify their own style.</summary>
+    /// <summary>Default heading styles applied when H1/H2/H3 blocks do not specify their own style. When not assigned, the styles come from <see cref="Theme"/>.</summary>
     public PdfHeadingStyles? DefaultHeadingStyles {
-        get => _defaultHeadingStyles?.Clone();
+        get => DefaultHeadingStylesSnapshot?.Clone();
         set => _defaultHeadingStyles = value?.Clone();
     }
-    /// <summary>Default list style applied when bullet and numbered lists do not specify their own style.</summary>
+    /// <summary>Default list style applied when bullet and numbered lists do not specify their own style. When not assigned, the style comes from <see cref="Theme"/>.</summary>
     public PdfListStyle? DefaultListStyle {
-        get => _defaultListStyle?.Clone();
+        get => DefaultListStyleSnapshot?.Clone();
         set => _defaultListStyle = value?.Clone();
     }
     /// <summary>Default panel style applied when panel paragraphs do not specify their own style.</summary>
@@ -102,11 +102,11 @@ public sealed partial class PdfCreateOptions {
         return this;
     }
     internal PdfParagraphStyle? DefaultParagraphStyleSnapshot => _defaultParagraphStyle;
-    internal PdfTableStyle? DefaultTableStyleSnapshot => _defaultTableStyle;
+    internal PdfTableStyle? DefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle ? _defaultTableStyle : ThemeDefaults.TableStyleSnapshot;
     internal bool HasExplicitDefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle;
-    internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => _defaultHeadingStyles;
-    internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle;
-    internal PdfPanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle;
+    internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => _defaultHeadingStyles ?? ThemeDefaults.HeadingStylesSnapshot;
+    internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle ?? ThemeDefaults.ListStyleSnapshot;
+    internal PdfPanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle ?? ThemeDefaults.PanelStyleSnapshot;
     internal PdfHorizontalRuleStyle? DefaultHorizontalRuleStyleSnapshot => _defaultHorizontalRuleStyle;
     internal PdfImageStyle? DefaultImageStyleSnapshot => _defaultImageStyle;
     internal PdfDrawingStyle? DefaultDrawingStyleSnapshot => _defaultDrawingStyle;
@@ -116,7 +116,7 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Sets the default style for a built-in heading level.</summary>
     public PdfCreateOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {
         Guard.NotNull(style, nameof(style));
-        (_defaultHeadingStyles ??= new PdfHeadingStyles()).Set(level, style);
+        (_defaultHeadingStyles ??= ThemeDefaults.HeadingStylesSnapshot?.Clone() ?? new PdfHeadingStyles()).Set(level, style);
         return this;
     }
 

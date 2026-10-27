@@ -27,7 +27,7 @@ public partial class PdfDocumentVisualQualityTests {
                     "Generation",
                     "This is a long table cell value that should wrap instead of drawing across the next column or past the page margin."
                 }
-            })
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -241,7 +241,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Bullets(new[] { new string('i', 20) })
+            .Bullets(new[] { new string('i', 20) }, style: new PdfListStyle())
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -310,7 +310,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Numbered(new[] { new string('i', 20) }))))))
+                                column.Numbered(new[] { new string('i', 20) }, style: new PdfListStyle()))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

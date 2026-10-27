@@ -10,6 +10,8 @@ internal sealed class HeadingBlock : IPdfBlock {
     public string? LinkContents { get; }
     public PdfHeadingStyle? Style { get; }
     public System.Collections.Generic.IReadOnlyList<PdfTextRun>? Runs { get; }
+    /// <summary>Document titles sit above the heading hierarchy and stay out of the generated outline.</summary>
+    internal bool IsTitle { get; set; }
     public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null, System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null) {
         if (level < 1 || level > 9) throw new System.ArgumentOutOfRangeException(nameof(level), level, "Heading level must be between 1 and 9.");
         Guard.NotNullOrWhiteSpace(text, nameof(text));

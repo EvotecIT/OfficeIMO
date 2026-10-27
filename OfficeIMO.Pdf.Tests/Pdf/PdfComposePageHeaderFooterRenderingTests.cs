@@ -236,7 +236,11 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("Defaultfooter1/1", pageText, StringComparison.OrdinalIgnoreCase);
 
             int bodyColorIndex = rawPdf.IndexOf("0.1 0.7 0.2 rg", StringComparison.Ordinal);
-            int footerColorIndex = rawPdf.IndexOf("0 0 0 rg", bodyColorIndex + 1, StringComparison.Ordinal);
+            // The default footer uses the theme's muted text colour.
+            OfficeColor muted = OfficeTheme.Default.Palette.TextMuted;
+            string mutedFill = string.Join(" ", new[] { muted.R, muted.G, muted.B }.Select(component =>
+                (component / 255D).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))) + " rg";
+            int footerColorIndex = rawPdf.IndexOf(mutedFill, bodyColorIndex + 1, StringComparison.Ordinal);
 
             Assert.True(bodyColorIndex >= 0, "The body should use its configured text color.");
             Assert.True(footerColorIndex > bodyColorIndex, "The default footer should reset fill color after colored body text.");

@@ -70,8 +70,8 @@ public sealed partial class PdfCreateOptions {
 
     /// <summary>When true, renders page numbers in the footer using <see cref="FooterFormat"/>.</summary>
     public bool ShowPageNumbers { get; set; } // default false
-    /// <summary>Footer text format, supports {page} and {pages}. Default: "Page {page}/{pages}".</summary>
-    public string FooterFormat { get; set; } = "Page {page}/{pages}";
+    /// <summary>Footer text format, supports {page} and {pages}. Default: "Page {page} of {pages}".</summary>
+    public string FooterFormat { get; set; } = "Page {page} of {pages}";
     /// <summary>Footer text format used on page 1 when <see cref="DifferentFirstPageHeaderFooter"/> is true. Supports {page} and {pages}.</summary>
     public string FirstPageFooterFormat { get; set; } = string.Empty;
     /// <summary>Footer text format used on even-numbered pages when <see cref="DifferentOddAndEvenPagesHeaderFooter"/> is true. Supports {page} and {pages}.</summary>

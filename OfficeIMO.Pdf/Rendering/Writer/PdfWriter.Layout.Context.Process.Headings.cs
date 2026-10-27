@@ -128,7 +128,7 @@ internal static partial class PdfWriter {
                 if (firstLogicalLine && headingStyle?.AnchoredCanvas is { } headingCanvas)
                     RenderPictureParagraphCanvas(headingCanvas, y, firstTextTop);
                 pageDirty = true;
-                if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings) {
+                if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings && !hb.IsTitle) {
                     currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = firstTextTop });
                 }
                 double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);

@@ -120,10 +120,18 @@ Business details assigned to those columns appear there once; the `Item` column
 retains the remaining item metadata. Column selection controls the visible table
 and does not change the embedded XML.
 
-The default code display preserves raw codes. Translated descriptions cover
-common UN/ECE units (`C62`, `HUR`, `DAY`, `WEE`, `MON`, `KGM`, `MTR`, `MTK`, `LTR`)
-and UNCL 4461 payment codes (`10`, `30`, `48`, `49`, `58`, `59`) in the ten built-in
-languages. Unknown codes remain visible, and authored payment text is retained.
+Readers see descriptions rather than codes by default: `HUR` reads as "hour",
+VAT category `S` as "Standard rate", document type `380` as "Commercial invoice"
+and payment means `58` as "SEPA credit transfer". Translated descriptions cover
+common UN/ECE units (`C62`, `HUR`, `DAY`, `WEE`, `MON`, `KGM`, `MTR`, `MTK`, `LTR`),
+UNCL 4461 payment codes (`10`, `30`, `48`, `49`, `58`, `59`), UNCL 5305 VAT
+categories and the supported document types in the ten built-in languages. Set
+`UnitCodeDisplay` or `PaymentCodeDisplay` to `Code` or `CodeAndDescription` to
+show the codes. Unknown codes remain visible, and authored payment text is
+retained. Amounts and quantities use the formatting culture's group separator.
+Without page identity or caller page numbers, every page carries a localized
+`Page N of M` footer, and the PDF records the invoice language and shows the
+document title in the viewer.
 Use `InvoicePdfLanguagePack.WithCodeDescriptions` to supply additional descriptions:
 
 ```csharp

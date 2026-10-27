@@ -11,6 +11,11 @@ public static partial class MarkdownPdfConverterExtensions {
         private readonly HashSet<string> _missing = new HashSet<string>(StringComparer.Ordinal);
         private readonly MarkdownPdfExportOptions _options;
 
+        /// <summary>Reports an image that sits inside running text and is written as its alternative text.</summary>
+        internal void ReportInlineImageAsText(string source) =>
+            AddWarning(_options, "InlineImageAsText", source,
+                "An image inside running text is written as its alternative text; place it in its own paragraph to embed it.");
+
         internal AnchorContext(MarkdownDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownPdfExportOptions options) {
             _options = options;
             foreach (IMarkdownBlock block in blocks) {

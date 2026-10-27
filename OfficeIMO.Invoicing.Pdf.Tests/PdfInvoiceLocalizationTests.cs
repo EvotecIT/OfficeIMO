@@ -77,7 +77,8 @@ public class PdfInvoiceLocalizationTests {
         Assert.True(visible.Pages.Count > 1);
         Assert.Contains("Faktura / Invoice " + invoice.Number, text, StringComparison.Ordinal);
         Assert.Contains("Sprzedawca / Seller", text, StringComparison.Ordinal);
-        Assert.Contains("1234,56", text, StringComparison.Ordinal);
+        // Polish groups thousands with a (narrow) no-break space.
+        Assert.Matches(@"1[\s\u00A0\u202F]234,56", text);
         Assert.Contains("Usługa wielojęzyczna", text, StringComparison.Ordinal);
         Assert.Contains("日本語", text, StringComparison.Ordinal);
         Assert.Contains("العربية", text, StringComparison.Ordinal);

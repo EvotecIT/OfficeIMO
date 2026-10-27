@@ -2521,7 +2521,9 @@ public sealed class PdfConversionScenarioManifestTests {
                 MarginRight = 36,
                 MarginTop = 36,
                 MarginBottom = 36,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                // Built-in heading metrics keep this reading fixture independent of the document theme.
+                DefaultHeadingStyles = new PdfCore.PdfHeadingStyles()
             })
             .Meta(title: "Revenue Readback Diagnostics", author: "OfficeIMO")
             .H1("Revenue Readback Diagnostics", linkUri: "https://example.com/pdf-logical-diagnostics", linkContents: "Logical diagnostics")

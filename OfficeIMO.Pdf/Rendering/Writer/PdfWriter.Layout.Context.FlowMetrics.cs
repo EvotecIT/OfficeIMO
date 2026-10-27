@@ -345,6 +345,13 @@ internal static partial class PdfWriter {
             return MeasurePreparedListHeight(prepared);
         }
 
+        private bool KeepsTogetherAsWhole(IPdfBlock block) => block switch {
+            RowBlock row => row.StyleSnapshot?.KeepTogether == true,
+            ContainerBlock container => (container.UseDefaultPanelStyle ? currentOpts.DefaultPanelStyleSnapshot ?? container.Style : container.Style).KeepTogether,
+            RichParagraphBlock paragraph => EffectiveParagraphStyle(paragraph)?.KeepTogether == true,
+            _ => false
+        };
+
         private bool KeepsWithNext(IPdfBlock block) {
             if (block is HeadingBlock heading) {
                 return ResolveHeadingStyle(heading, currentOpts)?.KeepWithNext ?? true;
@@ -569,7 +576,7 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureDeferredTableFirstVisualHeight(DeferredTableBlock table, double frameWidth, double fontSize) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot ?? PdfTableStyles.Light();
             using System.Collections.Generic.IEnumerator<DeferredTableBatch> batches = table.CreateBatches(style).GetEnumerator();
             return batches.MoveNext()
                 ? MeasureTableBlockHeight(batches.Current.Table, frameWidth, fontSize, firstVisualOnly: true)

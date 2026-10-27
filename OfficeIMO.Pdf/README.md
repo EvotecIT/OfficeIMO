@@ -364,6 +364,27 @@ these metrics in rich paragraphs, table cells, page text and positioned text.
 content, components, logical groups, and row columns. This keeps reusable content
 independent of where it is placed.
 
+Composition defaults come from `PdfCreateOptions.Theme`, an `OfficeTheme` that
+defaults to `OfficeTheme.Default`. Headings use the theme type scale, heading
+colour and spacing; tables without a style use the theme table style with a
+header rule, hairline rows, columns fitted to their content and right-aligned
+numbers; lists, panels and footer text follow the theme as well, and page numbers
+read `Page N of M`. Explicit default styles and block styles take precedence.
+`Title` and `Subtitle` sit above the heading hierarchy, and a title stays out of
+the generated outline:
+
+```csharp
+var document = PdfDocument.Create(new PdfCreateOptions { Theme = OfficeTheme.Modern, ShowPageNumbers = true });
+document.Content
+    .Title("Community workshop handbook")
+    .Subtitle("A practical reference for hosts and facilitators.")
+    .H1("Before participants arrive")
+    .Table(new[] { new[] { "Segment", "Minutes" }, new[] { "Welcome", "10" } });
+```
+
+Use `PdfTheme.FromOfficeTheme(theme)` with `ApplyTheme` to copy those styles into
+the options and adjust them.
+
 For incremental authoring, use `var document = PdfDocument.Create(options)` and
 add blocks through `document.Content`. The same builder supports both ordinary
 statements and fluent chains; callbacks remain useful for grouping and page setup.

@@ -83,6 +83,10 @@ public sealed partial class PdfContentBuilder {
         return this;
     }
 
+    /// <summary>Adds a document title above the heading hierarchy. It uses the theme title size and stays out of the generated outline.</summary>
+    public PdfContentBuilder Title(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfHeadingStyle? style = null) { _doc.Title(text, align, color, style); return this; }
+    /// <summary>Adds a subtitle paragraph in the theme accent colour.</summary>
+    public PdfContentBuilder Subtitle(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) { _doc.Subtitle(text, align, color); return this; }
     /// <summary>Adds an H1 heading.</summary>
     public PdfContentBuilder H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>
