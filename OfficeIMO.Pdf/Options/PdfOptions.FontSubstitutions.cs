@@ -73,6 +73,12 @@ public sealed partial class PdfOptions {
         }
 
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(sourceFontFamily!)) {
+            // Keep diagnostic resolution consistent with named-family selection:
+            // a profile-owned source face wins over a configured substitute.
+            if (_renderingProfileOwnedNamedFamilyNames?.Contains(candidate) == true &&
+                TryGetNamedFontFamilyDirect(candidate, out _)) {
+                return false;
+            }
             if (_fontFamilySubstitutions.TryGetValue(
                     NormalizeOfficeFontFamilyKey(candidate),
                     out PdfFontFamilySubstitution? configured) &&

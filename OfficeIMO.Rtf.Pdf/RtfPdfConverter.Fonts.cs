@@ -15,7 +15,7 @@ internal static partial class RtfPdfConverter {
         var familySlots = new Dictionary<string, PdfFontBinding>(StringComparer.OrdinalIgnoreCase);
         var unresolvedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var systemFontFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options, pdfOptions);
+        HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options, pdfOptions, out string requiredText);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
         if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
         if (pdfOptions.HasExplicitHeaderFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.HeaderFont);
@@ -79,7 +79,6 @@ internal static partial class RtfPdfConverter {
             }
         }
 
-        string requiredText = string.Join("\n", Writing.RtfDocumentWriter.EnumerateParagraphs(document).Select(paragraph => paragraph.ToPlainText()));
         PdfCore.PdfTextFallbackFeatures fallbacks = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(options.TextFallbacks, new[] { requiredText });
         if (fallbacks != PdfCore.PdfTextFallbackFeatures.None) {
             // Preserve authored and caller font slots; installed fallback faces only
@@ -102,7 +101,8 @@ internal static partial class RtfPdfConverter {
             }
             options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                 "OfficeIMO.Rtf.Pdf", "FontFamilySubstituted", "Font/" + familyName,
-                familyName, fallback, actualFamily, sourceFontEmbeddingAllowed: allowSystemFontEmbedding));
+                familyName, fallback, actualFamily, sourceFontEmbeddingAllowed: allowSystemFontEmbedding,
+                sourceFontFamilyRequest: OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName)));
         }
     }
 
@@ -133,25 +133,34 @@ internal static partial class RtfPdfConverter {
         return false;
     }
 
-    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options, PdfCore.PdfOptions pdfOptions) {
+    /// <summary>Admits fonts and fallback scalars only from the existing PDF content projection.</summary>
+    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options,
+        PdfCore.PdfOptions pdfOptions, out string requiredText) {
         options.CancellationToken.ThrowIfCancellationRequested();
         var fontIds = new HashSet<int>();
-        var referencedNotes = new HashSet<RtfNote>(document.Notes);
+        var text = new List<string>();
+        // Detached notes and references omitted by the body projection do not
+        // consume resources needed by visible text. Markers remain body text.
+        var referencedNotes = options.IncludeNotes ? new HashSet<RtfNote>() : null;
         if (document.Settings.DefaultFontId.HasValue) {
             fontIds.Add(document.Settings.DefaultFontId.Value);
         }
 
         if (document.Sections.Count > 0) {
             foreach (RtfSection section in document.Sections) {
-                CollectReferencedFontIds(document, section.Blocks, fontIds, referencedNotes);
+                CollectReferencedFontIds(document, section.Blocks, options, fontIds, text, referencedNotes);
             }
         } else {
-            CollectReferencedFontIds(document, document.Blocks, fontIds, referencedNotes);
+            CollectReferencedFontIds(document, document.Blocks, options, fontIds, text, referencedNotes);
         }
 
-        foreach (RtfNote note in referencedNotes) {
-            foreach (RtfParagraph paragraph in note.Paragraphs) {
-                CollectReferencedFontIds(document, paragraph, fontIds);
+        if (referencedNotes != null) {
+            foreach (RtfNote note in referencedNotes) {
+                if (note.Kind == RtfNoteKind.Annotation && note.Author != null) text.Add(note.Author);
+                foreach (RtfParagraph paragraph in note.Paragraphs) {
+                    // Note bodies do not append nested note references.
+                    CollectReferencedFontIds(document, paragraph, options, fontIds, text);
+                }
             }
         }
 
@@ -185,7 +194,8 @@ internal static partial class RtfPdfConverter {
                 }
             }
             foreach (RtfHeaderFooter story in stories)
-                foreach (RtfParagraph paragraph in story.Paragraphs) CollectReferencedFontIds(document, paragraph, fontIds);
+                foreach (RtfParagraph paragraph in story.Paragraphs)
+                    CollectReferencedFontIds(document, paragraph, options, fontIds, text);
 
             void CollectStories(RtfPageSetup setup, IReadOnlyList<RtfHeaderFooter> declarations) {
                 foreach (bool isFooter in new[] { false, true }) {
@@ -195,30 +205,86 @@ internal static partial class RtfPdfConverter {
             }
         }
 
+        requiredText = string.Join("\n", text);
         return fontIds;
     }
 
-    private static void CollectReferencedFontIds(RtfDocument document, IEnumerable<IRtfBlock> blocks, HashSet<int> fontIds,
-        ISet<RtfNote>? referencedNotes = null) {
+    private static void CollectReferencedFontIds(RtfDocument document, IEnumerable<IRtfBlock> blocks,
+        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text,
+        ISet<RtfNote>? referencedNotes = null, bool inTableCell = false) {
         foreach (IRtfBlock block in blocks) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (block is RtfParagraph paragraph) {
-                CollectReferencedFontIds(document, paragraph, fontIds, referencedNotes);
-            } else if (block is RtfTable table) {
+                CollectReferencedFontIds(document, paragraph, options, fontIds, text, referencedNotes);
+            } else if (block is RtfTable table && options.IncludeTables) {
+                if (inTableCell) {
+                    // Nested tables paint plain text in the default family;
+                    // source run fonts and note bodies are not projected.
+                    CollectFlattenedTableText(table, text);
+                    continue;
+                }
                 foreach (RtfTableRow row in table.Rows) {
                     foreach (RtfTableCell cell in row.Cells) {
-                        CollectReferencedFontIds(document, cell.Blocks, fontIds, referencedNotes);
+                        if (cell.HorizontalMerge == RtfTableCellMerge.Continue ||
+                            cell.VerticalMerge == RtfTableCellMerge.Continue) continue;
+                        CollectReferencedFontIds(document, cell.Blocks, options, fontIds, text, referencedNotes,
+                            inTableCell: true);
                     }
                 }
+            } else if (!inTableCell && block is RtfObject rtfObject) {
+                text.Add(rtfObject.ToPlainText());
+            } else if (!inTableCell && block is RtfShape shape) {
+                text.Add(shape.ToPlainText());
             }
         }
     }
 
-    private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph, HashSet<int> fontIds,
-        ISet<RtfNote>? referencedNotes = null) {
-        foreach (RtfRun run in paragraph.Runs) {
-            int? fontId = document.GetRunFormatting(paragraph, run).FontId;
-            if (fontId.HasValue) fontIds.Add(fontId.Value);
-            if (run.Note != null) referencedNotes?.Add(run.Note);
+    private static void CollectFlattenedTableText(RtfTable table, List<string> text) {
+        foreach (RtfTableRow row in table.Rows)
+            foreach (RtfTableCell cell in row.Cells)
+                foreach (IRtfBlock block in cell.Blocks) {
+                    if (block is RtfParagraph paragraph) text.Add(paragraph.ToPlainText());
+                    else if (block is RtfTable nested) CollectFlattenedTableText(nested, text);
+                }
+    }
+
+    private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph,
+        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, ISet<RtfNote>? referencedNotes = null) {
+        options.CancellationToken.ThrowIfCancellationRequested();
+        RtfListFormatting? list = document.ResolveListFormatting(paragraph);
+        if (list != null) {
+            // Number expansion is ASCII; authored marker scalars still need
+            // coverage even though marker runs use the document's default font.
+            string? marker = !list.IsDefined && paragraph.ListText != null
+                ? paragraph.ListText.ToPlainText() : list.Level.Text;
+            if (marker != null) text.Add(marker);
+        }
+        foreach (IRtfInline inline in paragraph.Inlines) {
+            switch (inline) {
+                case RtfRun source:
+                    RtfRun run = document.Styles.Count > 0 || source.UseDefaultCharacterFormatting
+                        ? document.GetRunFormatting(paragraph, source) : source;
+                    if (run.Hidden && !options.IncludeHiddenText) continue;
+                    if (!string.IsNullOrEmpty(run.Text)) {
+                        if (run.FontId.HasValue) fontIds.Add(run.FontId.Value);
+                        text.Add(run.Text!);
+                    }
+                    if (run.Note != null) referencedNotes?.Add(run.Note);
+                    break;
+                case RtfField field:
+                    CollectReferencedFontIds(document, field.Result, options, fontIds, text, referencedNotes);
+                    break;
+                case RtfGeneratedText generated:
+                    text.Add(generated.ToPlainText());
+                    if (generated.Note != null) referencedNotes?.Add(generated.Note);
+                    break;
+                case RtfObject rtfObject:
+                    text.Add(rtfObject.ToPlainText());
+                    break;
+                case RtfShape shape:
+                    text.Add(shape.ToPlainText());
+                    break;
+            }
         }
 
         // Font admission follows the same inherited character formatting as
@@ -227,14 +293,6 @@ internal static partial class RtfPdfConverter {
             UseDefaultCharacterFormatting = paragraph.UseParsedParagraphDefaults
         }).FontId;
         if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
-        foreach (RtfField field in paragraph.Inlines.OfType<RtfField>()) {
-            CollectReferencedFontIds(document, field.Result, fontIds, referencedNotes);
-        }
-        // Supported authoring APIs attach notes directly to body references;
-        // their bodies need not also appear in the document's note collection.
-        foreach (RtfGeneratedText generated in paragraph.Inlines.OfType<RtfGeneratedText>()) {
-            if (generated.Note != null) referencedNotes?.Add(generated.Note);
-        }
     }
 
     private static bool TryRegisterDocumentFont(
