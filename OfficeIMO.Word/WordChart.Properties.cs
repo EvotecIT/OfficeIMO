@@ -77,7 +77,7 @@ namespace OfficeIMO.Word {
         private UInt32Value _currentIndexCategory = 0;
         private string? _xAxisTitle;
         private string? _yAxisTitle;
-        private string _axisTitleFontName = "Calibri";
+        private string _axisTitleFontName = OfficeTheme.Default.ChartStyle.AxisFont.Family;
         private int _axisTitleFontSize = 11;
         private OfficeIMO.OfficeColor _axisTitleColor = OfficeIMO.OfficeColor.Black;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);

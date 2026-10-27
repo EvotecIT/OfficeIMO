@@ -47,6 +47,7 @@ public partial class WordChart {
         if (source.GetFirstChild<Chart>() == null) {
             embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, part.GetIdOfPart(embedded), data, chartKind);
+            OfficeOpenXmlChartThemeWriter.Apply(part, OfficeTheme.Default);
             part.ChartSpace!.GetFirstChild<RoundedCorners>()!.Val = rounded;
             EnsureFramelessChartArea();
         } else {

@@ -1795,7 +1795,7 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Empty(options.Warnings);
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("40 36 240 172 re", raw, StringComparison.Ordinal);
-        Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.247 0.392 0.843 rg", raw, StringComparison.Ordinal);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));

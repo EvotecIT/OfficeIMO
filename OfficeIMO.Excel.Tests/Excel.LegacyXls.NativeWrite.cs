@@ -1959,10 +1959,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(cellFormat.ApplyFill);
                 Assert.Equal((byte)1, cellFormat.FillPattern);
                 Assert.True(workbook.TryResolveColor(cellFormat.FillForegroundColorIndex, out string? foregroundColor));
-                Assert.Equal("FF666666", foregroundColor);
+                Assert.Equal("FF5774A4", foregroundColor);
 
                 ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
-                Assert.Equal("FF666666", projectedStyle.FillColorArgb);
+                Assert.Equal("FF5774A4", projectedStyle.FillColorArgb);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

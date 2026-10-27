@@ -456,6 +456,9 @@ namespace OfficeIMO.PowerPoint {
                 style = style.WithDataLabelTextColor(labelColor);
             // Advanced groups use the flat cached-data projection. Their native
             // text and surfaces are outside the qualified 2-D style contract.
+            if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Bubble)
+                style = OfficeOpenXmlChartSeriesReader.ReadStyle(GetChartPart(), chart, OfficeChartKind.Bubble,
+                    colorScheme, style, data.Categories.Count);
             if (!forDataUpdate &&
                 (chart.PlotArea?.GetFirstChild<C.RadarChart>() != null ||
                  chart.PlotArea?.GetFirstChild<C.PieChart>() != null ||
@@ -649,7 +652,21 @@ namespace OfficeIMO.PowerPoint {
                     C.OrientationValues.MaxMin)
                 throw new NotSupportedException("Reversed radar categories cannot be projected.");
 
+            bool readBubbleText = !forDataUpdate && kind == PowerPointChartSnapshotKind.Bubble;
+            var bubbleLegendText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadNativeText(chart, legend, GetOwnerColorScheme(), allowMultiline: true) : default;
+            var bubbleAxisText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadUniformNativeText(chart,
+                    new[] { logicalCategoryAxis, logicalValueAxis }.Where(axis => axis != null).Cast<OpenXmlElement>(),
+                    GetOwnerColorScheme(), allowMultiline: true) : default;
+            var bubbleAxisTitleText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadUniformNativeText(chart,
+                    new[] { logicalCategoryAxis, logicalValueAxis }.Select(axis => axis?.GetFirstChild<C.Title>())
+                        .Where(title => title != null).Cast<OpenXmlElement>(), GetOwnerColorScheme(), allowMultiline: true) : default;
             return new OfficeChartLayout(overlayLegend: overlay,
+                legendFontSize: bubbleLegendText.Size, legendFontFamily: bubbleLegendText.Family, legendFontStyle: bubbleLegendText.Style,
+                axisLabelFontSize: bubbleAxisText.Size, axisTextFontFamily: bubbleAxisText.Family, axisTextFontStyle: bubbleAxisText.Style,
+                axisTitleFontSize: bubbleAxisTitleText.Size, axisTitleFontStyle: bubbleAxisTitleText.Style,
                 overlayTitle: overlayTitle,
                 showLegend: legend != null,
                 legendPosition: position,
@@ -697,7 +714,7 @@ namespace OfficeIMO.PowerPoint {
                     logicalCategoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null,
                 fillRadarSeries: plotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value ==
                     C.RadarStyleValues.Filled,
-                axisTitleFontFamily: axisTitleFont)
+                axisTitleFontFamily: bubbleAxisTitleText.Family ?? axisTitleFont)
                 .WithSecondaryValueAxis(forDataUpdate ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats

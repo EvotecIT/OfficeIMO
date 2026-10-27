@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -8,6 +9,7 @@ namespace OfficeIMO.Drawing;
 /// Dependency-free chart series values used by shared OfficeIMO visual renderers.
 /// </summary>
 public sealed class OfficeChartSeries {
+    private bool _markerVisibilitySpecified = true;
     /// <summary>Largest pie or doughnut point explosion that the shared renderer supports.</summary>
     public const int MaximumPointExplosionPercent = 400;
     /// <summary>
@@ -16,6 +18,7 @@ public sealed class OfficeChartSeries {
     /// <param name="name">Display name for the series.</param>
     /// <param name="values">Values aligned with the chart categories.</param>
     public OfficeChartSeries(string name, IEnumerable<double> values) : this(name, values, null, null, null, true, true) {
+        _markerVisibilitySpecified = false;
     }
 
     /// <summary>
@@ -25,6 +28,7 @@ public sealed class OfficeChartSeries {
     /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) : this(name, values, xValues, null, null, true, true) {
+        _markerVisibilitySpecified = false;
     }
 
     /// <summary>
@@ -35,6 +39,7 @@ public sealed class OfficeChartSeries {
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     /// <param name="color">Optional source-defined series color.</param>
     public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color) : this(name, values, xValues, color, null, true, true) {
+        _markerVisibilitySpecified = false;
     }
 
     /// <summary>
@@ -46,6 +51,7 @@ public sealed class OfficeChartSeries {
     /// <param name="color">Optional source-defined series color.</param>
     /// <param name="pointColors">Optional source-defined colors aligned with individual values.</param>
     public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors) : this(name, values, xValues, color, pointColors, true, true) {
+        _markerVisibilitySpecified = false;
     }
 
     /// <summary>
@@ -260,11 +266,47 @@ public sealed class OfficeChartSeries {
     /// <summary>Returns a copy with the requested legend visibility and unchanged data and appearance.</summary>
     public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, PointExplosions, showInLegend);
 
+    /// <summary>Applies the theme's line-marker policy only when the author did not choose marker visibility.</summary>
+    internal bool ResolveMarkerVisibility(OfficeChartKind kind, OfficeTheme theme) =>
+        !HasExplicitMarkerStyle && IsLineMarkerKind(kind)
+            ? theme.ChartStyle.Markers != OfficeChartMarkerShape.None || NeedsSparseLineMarkers()
+            : ShowMarkers;
+
+    internal OfficeChartMarkerShape? ResolveMarkerShape(OfficeChartKind kind, OfficeTheme theme) =>
+        !_markerVisibilitySpecified && IsLineMarkerKind(kind)
+            ? theme.ChartStyle.Markers == OfficeChartMarkerShape.None ? OfficeChartMarkerShape.Circle : theme.ChartStyle.Markers
+            : MarkerShape;
+
+    internal bool HasExplicitMarkerVisibility => _markerVisibilitySpecified;
+
+    // Missing values split a line into independent segments. An isolated valid value
+    // needs a marker even in an otherwise long series, or it would have no painted ink.
+    private bool NeedsSparseLineMarkers() {
+        int finiteCount = 0;
+        for (int index = 0; index < Values.Count; index++) {
+            if (!IsFiniteMarkerValue(Values[index])) continue;
+            finiteCount++;
+            bool before = index > 0 && IsFiniteMarkerValue(Values[index - 1]);
+            bool after = index + 1 < Values.Count && IsFiniteMarkerValue(Values[index + 1]);
+            if (!before && !after) return true;
+        }
+        return finiteCount < 3;
+    }
+
+    private static bool IsFiniteMarkerValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    internal bool HasExplicitMarkerStyle => _markerVisibilitySpecified ||
+        PointColors?.Any(color => color.HasValue) == true || PointStyles?.Any(style => style != null) == true;
+
+    private static bool IsLineMarkerKind(OfficeChartKind kind) =>
+        kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100;
+
     private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles,
         IReadOnlyList<int>? explosions, bool showInLegend) {
         return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
             ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
             SeriesStyle = SeriesStyle,
             PointStyles = styles,
             PointExplosions = explosions,
@@ -282,7 +324,8 @@ public sealed class OfficeChartSeries {
         return copy;
     }
 
-    /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
+    /// <summary>Gets the source marker preference. Constructors without a visibility argument use the theme's
+    /// line-marker defaults; explicit visibility and point styling take precedence.</summary>
     public bool ShowMarkers { get; }
 
     /// <summary>Optional source-defined marker diameter in drawing units.</summary>

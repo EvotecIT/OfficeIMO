@@ -9,15 +9,6 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public sealed class OfficeChartStyle {
     private IReadOnlyList<OfficeColor> _palette = Array.Empty<OfficeColor>();
-    private static readonly OfficeColor[] DefaultPaletteValues = new[] {
-        OfficeColor.FromRgb(31, 78, 121),
-        OfficeColor.FromRgb(47, 111, 62),
-        OfficeColor.FromRgb(184, 90, 35),
-        OfficeColor.FromRgb(112, 48, 160),
-        OfficeColor.FromRgb(37, 99, 235),
-        OfficeColor.FromRgb(120, 113, 108)
-    };
-
     private static readonly OfficeChartStyle DefaultStyle = new OfficeChartStyle();
 
     /// <summary>Preserves the original compiled constructor signature.</summary>
@@ -498,25 +489,29 @@ public sealed class OfficeChartStyle {
             throw new ArgumentOutOfRangeException(nameof(legendBorderWidth), "Legend border width must be finite and greater than zero.");
         }
 
+        OfficeTheme theme = OfficeTheme.Default;
+        OfficeThemeChartStyle chart = theme.ChartStyle;
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
         if (colors.Count == 0) {
-            colors.AddRange(DefaultPaletteValues);
+            foreach (OfficeColor color in chart.SeriesPalette) colors.Add(color.Resolve(theme));
         }
 
         _palette = new ReadOnlyCollection<OfficeColor>(colors);
-        FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Aptos" : fontFamily!;
+        FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? chart.AxisFont.Family : fontFamily!;
         // Unstated chart surfaces follow Office: a white chart area with a light grey frame.
         BackgroundColor = backgroundColor ?? OfficeColor.White;
-        BorderColor = borderColor ?? OfficeColor.FromRgb(217, 217, 217);
-        AxisColor = axisColor ?? OfficeColor.FromRgb(80, 90, 100);
-        GridLineColor = gridLineColor ?? OfficeColor.FromRgb(226, 232, 240);
-        TextColor = textColor ?? OfficeColor.FromRgb(51, 65, 85);
-        MutedTextColor = mutedTextColor ?? OfficeColor.FromRgb(100, 116, 139);
+        BorderColor = borderColor ?? theme.Surfaces.Rule.Resolve(theme);
+        AxisColor = axisColor ?? chart.AxisLineColor.Resolve(theme);
+        GridLineColor = gridLineColor ?? chart.GridlineColor.Resolve(theme);
+        TextColor = textColor ?? theme.Palette.Text;
+        MutedTextColor = mutedTextColor ?? chart.AxisTextColor.Resolve(theme);
         AxisTitleColor = axisTitleColor;
         // Chart titles use the text colour; colour belongs to the series.
         TitleColor = titleColor ?? TextColor;
-        TitleFontFamily = string.IsNullOrWhiteSpace(titleFontFamily) ? null : titleFontFamily!;
-        TitleFontSize = titleFontSize;
+        TitleFontFamily = string.IsNullOrWhiteSpace(titleFontFamily)
+            ? (string.IsNullOrWhiteSpace(fontFamily) ? chart.TitleFont.Family : null)
+            : titleFontFamily!;
+        TitleFontSize = titleFontSize ?? chart.TitleFontSize.ToPoints();
         TitleFontStyle = titleFontStyle;
         PlotAreaBackgroundColor = plotAreaBackgroundColor;
         PlotAreaBorderColor = plotAreaBorderColor;
@@ -532,7 +527,7 @@ public sealed class OfficeChartStyle {
         ValueAxisLineWidth = valueAxisLineWidth;
         CategoryAxisLineDashStyle = categoryAxisLineDashStyle;
         ValueAxisLineDashStyle = valueAxisLineDashStyle;
-        GridLineWidth = gridLineWidth;
+        GridLineWidth = gridLineWidth ?? chart.GridlineWidth.ToPoints();
         AxisLineDashStyle = axisLineDashStyle;
         GridLineDashStyle = gridLineDashStyle;
         CategoryGridLineColor = categoryGridLineColor;
@@ -759,6 +754,6 @@ public sealed class OfficeChartStyle {
     public OfficeColor GetSeriesColor(int index) {
         int count = Palette.Count;
         int normalized = count == 0 ? 0 : (int)(Math.Abs((long)index) % count);
-        return count == 0 ? DefaultPaletteValues[0] : Palette[normalized];
+        return count == 0 ? OfficeTheme.Default.Palette.Accent1 : Palette[normalized];
     }
 }

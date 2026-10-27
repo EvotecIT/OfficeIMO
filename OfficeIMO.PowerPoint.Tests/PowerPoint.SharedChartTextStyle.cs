@@ -268,6 +268,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
             latin.Remove();
         }
 
+        foreach (A.LatinFont font in presentation.Slides.Single().SlidePart.ChartParts.Single()
+                     .ChartSpace!.GetFirstChild<C.TextProperties>()!.Descendants<A.LatinFont>().ToArray()) font.Remove();
+
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal("Theme Body", snapshot.Style.FontFamily);
     }
@@ -358,6 +361,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
         foreach (A.LatinFont latin in title.Descendants<A.LatinFont>()) {
             latin.Remove();
         }
+
+        foreach (A.LatinFont font in presentation.Slides.Single().SlidePart.ChartParts.Single()
+                     .ChartSpace!.GetFirstChild<C.TextProperties>()!.Descendants<A.LatinFont>().ToArray()) font.Remove();
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal("Arial", snapshot.Style.FontFamily);

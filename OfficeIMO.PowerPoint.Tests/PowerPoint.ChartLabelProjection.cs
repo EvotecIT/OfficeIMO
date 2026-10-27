@@ -53,6 +53,8 @@ public sealed class PowerPointChartLabelProjectionTests {
             FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
         }, true);
 
+        foreach (C.TextProperties properties in presentation.Slides.Single().SlidePart.ChartParts.Single()
+                     .ChartSpace!.Descendants<C.TextProperties>().ToArray()) properties.Remove();
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeColor.White, snapshot.Style.DataLabelTextColor);
         part.ChartSpace.GetFirstChild<C.TextProperties>()?.Remove();
@@ -78,13 +80,16 @@ public sealed class PowerPointChartLabelProjectionTests {
     }
 
     [Fact]
-    public void PartialStyledLabelTextRemainsUnprojectable() {
+    public void PartialStyledLabelTextUsesAuthoredThemeDefaults() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
             .SetDataLabelTextStyle(color: "172033");
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints(), snapshot.Layout.DataLabelFontSize);
+        Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, snapshot.Layout.DataLabelFontFamily);
+        Assert.Equal(OfficeColor.Parse("#172033"), snapshot.Style.DataLabelTextColor);
     }
 
     [Theory]
@@ -141,6 +146,8 @@ public sealed class PowerPointChartLabelProjectionTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { series })).SetDataLabels(showValue: true);
         ChartPart chartPart = presentation.Slides.Single().SlidePart.ChartParts.Single();
+        foreach (C.TextProperties properties in presentation.Slides.Single().SlidePart.ChartParts.Single()
+                     .ChartSpace!.Descendants<C.TextProperties>().ToArray()) properties.Remove();
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot styled));
         Assert.Equal(11.97, styled.Layout.DataLabelFontSize);
         Assert.Equal(presentation.OpenXmlDocument.PresentationPart.ThemePart!.Theme.ThemeElements!

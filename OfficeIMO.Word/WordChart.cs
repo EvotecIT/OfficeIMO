@@ -16,6 +16,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
+        private bool _ownsChartDefaults;
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
             uint max = (uint)System.Threading.Volatile.Read(ref _axisIdSeed);
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
@@ -210,6 +211,7 @@ namespace OfficeIMO.Word {
         }
 
         private ChartPart CreateChartPart(OpenXmlPart owner, bool roundedCorners) {
+            _ownsChartDefaults = true;
             ChartPart part = owner.AddNewPart<ChartPart>();
 
             ChartSpace chartSpace1 = new ChartSpace();
@@ -226,7 +228,12 @@ namespace OfficeIMO.Word {
         private void EnsureFramelessChartArea() {
             ChartSpace? space = _chartPart?.ChartSpace;
             Chart? chart = space?.GetFirstChild<Chart>();
-            if (space == null || chart == null || space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>() != null) return;
+            if (space == null || chart == null) return;
+            if (_ownsChartDefaults) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(_chartPart!, OfficeTheme.Default);
+                _ownsChartDefaults = false;
+            }
+            if (space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>() != null) return;
             var properties = new DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties(
                 new DocumentFormat.OpenXml.Drawing.NoFill(),
                 new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.NoFill()));
@@ -336,6 +343,7 @@ namespace OfficeIMO.Word {
 
             title1.Append(chartText1);
             title1.Append(overlay1);
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(title1, OfficeTheme.Default);
             return title1;
 
         }

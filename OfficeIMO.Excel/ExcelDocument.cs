@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
-        private static readonly Lazy<byte[]> DefaultThemeBytes = new(() => LoadEmbeddedResource("OfficeIMO.Excel.Resources.theme1.xml"));
+        private static readonly Lazy<byte[]> DefaultThemeBytes = new(CreateDefaultThemeBytes);
         // Allocated only when an operation actually needs a serialized apply stage.
         // Publication must be atomic because the first operation may itself be concurrent.
         internal ReaderWriterLockSlim? _lock;
@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
         internal static Stylesheet CreateDefaultStylesheet() {
             var stylesheet = new Stylesheet();
 
-            stylesheet.Fonts = new Fonts(new Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
+            stylesheet.Fonts = new Fonts(CreateDefaultFont());
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 
             stylesheet.Fills = new Fills(

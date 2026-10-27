@@ -185,7 +185,7 @@ namespace OfficeIMO.Word {
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Clustered };
             DataLabels dataLabels1 = AddDataLabel();
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)150U };
+            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent };
             Overlap overlap1 = new Overlap() { Val = 0 };
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };

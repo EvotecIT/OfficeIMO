@@ -265,7 +265,7 @@ namespace OfficeIMO.Word {
                     // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
                     var gapWidth = chart3d.GetFirstChild<GapWidth>();
                     if (gapWidth == null) {
-                        gapWidth = new GapWidth() { Val = (UInt16Value)150U };
+                        gapWidth = new GapWidth() { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent };
                         chart3d.InsertBefore(gapWidth, axis);
                     }
                 } else {

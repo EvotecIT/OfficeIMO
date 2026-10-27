@@ -9,40 +9,41 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
+        private static bool TryReadImageExportTitle(C.Chart? chart, WorkbookPart workbook,
+            out OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader.NativeText text) {
+            text = default;
+            if (chart?.GetFirstChild<C.Title>() is not C.Title title) return false;
+            try {
+                text = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader.ReadNativeText(chart, title,
+                    workbook.GetPartsOfType<ThemePart>().FirstOrDefault()?.Theme?.ThemeElements?.ColorScheme);
+                return true;
+            } catch (NotSupportedException) {
+                return false;
+            }
+        }
+
         private static bool TryGetImageExportTitleColor(C.Chart? chart, WorkbookPart workbookPart, out OfficeColor color) {
-            color = default;
-            C.Title? title = chart?.GetFirstChild<C.Title>();
-            return title != null && TryGetFirstImageExportTextColor(new[] { title }, workbookPart, out color);
+            bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
+            color = text.Color.GetValueOrDefault();
+            return resolved && text.Color.HasValue;
         }
 
-        private static bool TryGetImageExportTitleFontFamily(C.Chart? chart, out string? fontFamily) {
-            C.Title? title = chart?.GetFirstChild<C.Title>();
-            if (title != null) {
-                return TryGetFirstImageExportTextFontFamily(new[] { title }, out fontFamily);
-            }
-
-            fontFamily = default;
-            return false;
+        private static bool TryGetImageExportTitleFontFamily(C.Chart? chart, WorkbookPart workbookPart, out string? fontFamily) {
+            bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
+            fontFamily = text.Family;
+            return resolved && fontFamily != null;
         }
 
-        private static bool TryGetImageExportTitleFontSize(C.Chart? chart, out double fontSize) {
-            C.Title? title = chart?.GetFirstChild<C.Title>();
-            if (title != null) {
-                return TryGetFirstImageExportTextFontSize(new[] { title }, out fontSize);
-            }
-
-            fontSize = default;
-            return false;
+        private static bool TryGetImageExportTitleFontSize(C.Chart? chart, WorkbookPart workbookPart, out double fontSize) {
+            bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
+            fontSize = text.Size.GetValueOrDefault();
+            return resolved && text.Size.HasValue;
         }
 
-        private static bool TryGetImageExportTitleFontStyle(C.Chart? chart, out OfficeFontStyle fontStyle) {
-            C.Title? title = chart?.GetFirstChild<C.Title>();
-            if (title != null) {
-                return TryGetFirstImageExportTextFontStyle(new[] { title }, out fontStyle);
-            }
-
-            fontStyle = default;
-            return false;
+        private static bool TryGetImageExportTitleFontStyle(C.Chart? chart, WorkbookPart workbookPart, out OfficeFontStyle fontStyle) {
+            bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
+            fontStyle = text.Style.GetValueOrDefault();
+            return resolved && text.Style.HasValue;
         }
 
         private static bool TryGetImageExportLegendTextColor(C.Chart? chart, WorkbookPart workbookPart, out OfficeColor color) =>
@@ -109,7 +110,7 @@ namespace OfficeIMO.Excel {
             C.Chart? chart = chartSpace.GetFirstChild<C.Chart>();
             C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
             C.Title? chartTitle = chart?.GetFirstChild<C.Title>();
-            if (chartTitle != null && HasUnsupportedImageExportTextStyle(chartTitle, allowSolidFill: true, allowFontFamily: true, allowFontSize: true, allowFontStyle: true, workbookPart)) {
+            if (chartTitle != null && !TryReadImageExportTitle(chart, workbookPart, out _)) {
                 return true;
             }
 
@@ -140,13 +141,10 @@ namespace OfficeIMO.Excel {
                 HasConflictingImageExportTextColors(dataLabelOwners, workbookPart) ||
                 HasConflictingImageExportAxisLabelTextColors(axisLabelOwners, workbookPart) ||
                 HasConflictingImageExportTextColors(axisTitleOwners, workbookPart) ||
-                HasConflictingImageExportTextFontFamilies(chartTitle == null ? Array.Empty<OpenXmlCompositeElement>() : new[] { chartTitle }) ||
                 HasConflictingImageExportTextFontFamilies(legendOwners) ||
                 HasConflictingImageExportTextFontFamilies(dataLabelOwners) ||
                 HasConflictingImageExportAxisLabelTextFontFamilies(axisLabelOwners) ||
                 HasConflictingImageExportTextFontFamilies(axisTitleOwners) ||
-                HasConflictingImageExportTextFontSizes(chartTitle == null ? Array.Empty<OpenXmlCompositeElement>() : new[] { chartTitle }) ||
-                HasConflictingImageExportTextFontStyles(chartTitle == null ? Array.Empty<OpenXmlCompositeElement>() : new[] { chartTitle }) ||
                 HasConflictingImageExportTextFontSizes(dataLabelOwners) ||
                 HasConflictingImageExportAxisLabelTextFontSizes(axisLabelOwners) ||
                 HasConflictingImageExportTextFontSizes(axisTitleOwners) ||

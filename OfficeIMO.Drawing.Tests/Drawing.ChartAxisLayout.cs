@@ -14,7 +14,7 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing Render(params OfficeChartSeries[] series) => OfficeChartDrawingRenderer.Render(
             new OfficeChartSnapshot("", null, kind,
                 new OfficeChartData(new[] { "A" }, series), 480, 260,
-                layout: new OfficeChartLayout(showLegend: false)));
+                layout: new OfficeChartLayout(showLegend: false).WithBarGeometry(gapWidthPercent: 150, overlapPercent: 0)));
         var single = Render(new OfficeChartSeries("First", new[] { 10d }, null, first));
         var paired = Render(new OfficeChartSeries("First", new[] { 10d }, null, first),
             new OfficeChartSeries("Second", new[] { 10d }, null, second));

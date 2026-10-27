@@ -691,15 +691,15 @@ namespace OfficeIMO.Tests {
 
             ExcelCellStyleInfo visualStyle = visualSnapshot.Cells[0].Style;
             ExcelCellInfo inspectedCell = inspectionSnapshot.Worksheets[0].Cells[0];
-            Assert.Equal("FF95B3D7", visualStyle.FillColorArgb);
-            Assert.Equal("FF632523", visualStyle.FontColorArgb);
-            Assert.Equal("FF9BBB59", visualStyle.Border!.Top!.ColorArgb);
+            Assert.Equal("FF8CA2E7", visualStyle.FillColorArgb);
+            Assert.Equal("FF753914", visualStyle.FontColorArgb);
+            Assert.Equal("FF058E80", visualStyle.Border!.Top!.ColorArgb);
             Assert.Equal(visualStyle.FillColorArgb, directStyle.FillColorArgb);
             Assert.Equal(visualStyle.FontColorArgb, directStyle.FontColorArgb);
             Assert.Equal(visualStyle.FillColorArgb, inspectedCell.Style!.FillColorArgb);
-            Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
-            Assert.Contains("#632523", svg, StringComparison.Ordinal);
-            Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
+            Assert.Contains("#8CA2E7", svg, StringComparison.Ordinal);
+            Assert.Contains("#753914", svg, StringComparison.Ordinal);
+            Assert.Contains("#058E80", svg, StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             ExcelVisualCell renderedCell = visualSnapshot.Cells[0];
@@ -707,7 +707,7 @@ namespace OfficeIMO.Tests {
                 rendered!,
                 (int)(renderedCell.X + renderedCell.Width - 8),
                 (int)(renderedCell.Y + renderedCell.Height - 8),
-                OfficeColor.FromRgb(149, 179, 215),
+                OfficeColor.FromRgb(140, 162, 231),
                 tolerance: 3);
         }
 

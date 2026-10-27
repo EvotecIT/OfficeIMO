@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel {
                         item.Color?.ToRgbHex());
                 mapped = mapped.WithImageExportStyle(
                     item.Color?.ToRgbHex(), item.StrokeWidth, item.StrokeDashStyle,
-                    item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ShowMarkers,
-                    item.ConnectLine, item.MarkerSize, item.MarkerShape, item.MarkerOutlineColor?.ToRgbHex(),
+                    item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
+                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), item.MarkerOutlineColor?.ToRgbHex(),
                     item.MarkerOutlineWidth).WithSeriesStyle(item.SeriesStyle)
                     .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);

@@ -337,7 +337,7 @@ namespace OfficeIMO.Excel {
                 PrepareDestinationStreamForWrite(stream);
             }
 
-            DirectDataSetWorkbookWriter.Write(stream, model, ct,
+            DirectDataSetWorkbookWriter.Write(stream, model, ct, System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value),
                 disableSharedStrings: !options.UseSharedStrings,
                 collectSharedStrings: options.UseSharedStrings && tableModel.TryGetObjectRows(out _));
             if (stream.CanSeek) {

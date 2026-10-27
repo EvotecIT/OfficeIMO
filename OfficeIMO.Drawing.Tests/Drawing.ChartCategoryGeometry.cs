@@ -36,7 +36,8 @@ public sealed class DrawingChartCategoryGeometryTests {
 
     [Fact]
     public void GapWidthAndOverlapPlaceClusteredColumns() {
-        OfficeDrawing standard = Render(OfficeChartKind.ColumnClustered, new OfficeChartLayout(showLegend: false));
+        OfficeDrawing standard = Render(OfficeChartKind.ColumnClustered,
+            new OfficeChartLayout(showLegend: false).WithBarGeometry(gapWidthPercent: 150, overlapPercent: 0));
         OfficeDrawing narrow = Render(OfficeChartKind.ColumnClustered,
             new OfficeChartLayout(showLegend: false).WithBarGeometry(gapWidthPercent: 50, overlapPercent: 50));
 

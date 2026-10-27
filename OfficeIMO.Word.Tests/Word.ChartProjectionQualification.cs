@@ -237,7 +237,7 @@ public sealed class WordChartProjectionQualificationTests {
             layer.InsertAfter(sibling, series);
         }
         else if (feature == "titleParagraphs") native.GetFirstChild<C.Title>()!.Descendants<C.RichText>().Single().Append(new A.Paragraph(new A.Run(new A.Text("2026"))));
-        else if (feature == "titleBreak") native.GetFirstChild<C.Title>()!.Descendants<A.Paragraph>().Single().Append(new A.Break(), new A.Run(new A.Text("2026")));
+        else if (feature == "titleBreak") native.GetFirstChild<C.Title>()!.GetFirstChild<C.ChartText>()!.GetFirstChild<C.RichText>()!.Descendants<A.Paragraph>().Single().Append(new A.Break(), new A.Run(new A.Text("2026")));
         else if (feature == "dataTable") plot.AddChild(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), true);
         else if (feature == "hierarchy") series.GetFirstChild<C.CategoryAxisData>()!.Append(new C.MultiLevelStringReference());
         else if (feature == "secondaryCategory") plot.Elements<C.CategoryAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Top).GetFirstChild<C.Delete>()!.Val = false;

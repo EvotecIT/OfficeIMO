@@ -304,6 +304,8 @@ namespace OfficeIMO.Excel {
 
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
                 ExcelChartUtils.PopulateChartFromSeriesRanges(chartPart, type, Name, ranges, title);
+                if (_excelDocument.DefaultChartStylePreset == null)
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart, OfficeTheme.Default);
                 if (_excelDocument.DefaultChartStylePreset != null) {
                     ExcelChartUtils.ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
                 }
@@ -395,6 +397,8 @@ namespace OfficeIMO.Excel {
 
                 stageWatch?.Restart();
                 ExcelChartUtils.PopulateChart(chartPart, type, range, data, title);
+                if (_excelDocument.DefaultChartStylePreset == null)
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart, OfficeTheme.Default);
                 ReportChartTiming(stageWatch, "AddChartInternal.PopulateChart");
 
                 if (_excelDocument.DefaultChartStylePreset != null) {

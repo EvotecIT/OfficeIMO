@@ -40,7 +40,8 @@ public static partial class OfficeChartDrawingRenderer {
             double[] positiveCumulative = currentStacked ? GetCumulative(positiveCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             double[] negativeCumulative = currentStacked ? GetCumulative(negativeCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
-            double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.75D);
+            bool showMarkers = layout.ShowMarkers && currentSeries.ResolveMarkerVisibility(kind, OfficeTheme.Default);
+            double strokeWidth = GetSeriesStrokeWidth(currentSeries, OfficeTheme.Default.ChartStyle.LineWidth.ToPoints());
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
             var points = new OfficePoint[categories.Count];
             var plotted = new bool[categories.Count];
@@ -96,7 +97,7 @@ public static partial class OfficeChartDrawingRenderer {
                     ? new OfficePoint(points[i].X, ToPlotY(points[i].Y, range.Min, range.Max, plotTop, plotHeight))
                     : points[i];
 
-                if (layout.ShowMarkers && currentSeries.ShowMarkers) {
+                if (showMarkers) {
                     OfficeColor pointColor = GetPointColor(currentSeries.PointColors, i, color);
                     AddMarker(geometry, currentSeries, renderPoint, 4D, pointColor, 1D, GetPointStyle(currentSeries.PointStyles, i));
                 }

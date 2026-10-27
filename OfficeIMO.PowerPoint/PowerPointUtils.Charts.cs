@@ -248,7 +248,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             barChart.Append(CreateDefaultDataLabels());
-            barChart.Append(new C.GapWidth { Val = (UInt16Value)150U });
+            barChart.Append(new C.GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent });
             barChart.Append(new C.Overlap { Val = (SByteValue)(sbyte)0 });
             barChart.Append(new C.AxisId { Val = categoryAxisId });
             barChart.Append(new C.AxisId { Val = valueAxisId });

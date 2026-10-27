@@ -68,23 +68,23 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsFont font = GetLegacyFont(workbook, cellFormat.FontIndex);
                 Assert.True(workbook.TryResolveColor(font.ColorIndex, out string? fontColor));
-                Assert.Equal("FF2C4D75", fontColor);
+                Assert.Equal("FF1D378A", fontColor);
 
                 Assert.True(cellFormat.ApplyFill);
                 Assert.Equal((byte)1, cellFormat.FillPattern);
                 Assert.True(workbook.TryResolveColor(cellFormat.FillForegroundColorIndex, out string? fillColor));
-                Assert.Equal("FF666666", fillColor);
+                Assert.Equal("FF5774A4", fillColor);
 
                 Assert.True(cellFormat.ApplyBorder);
                 Assert.NotNull(cellFormat.Border);
                 Assert.True(workbook.TryResolveColor(cellFormat.Border!.TopColorIndex, out string? topBorderColor));
-                Assert.Equal("FFCD7371", topBorderColor);
+                Assert.Equal("FFE3915E", topBorderColor);
 
                 ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
-                Assert.Equal("FF2C4D75", projectedStyle.FontColorArgb);
-                Assert.Equal("FF666666", projectedStyle.FillColorArgb);
+                Assert.Equal("FF1D378A", projectedStyle.FontColorArgb);
+                Assert.Equal("FF5774A4", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);
-                Assert.Equal("FFCD7371", projectedStyle.Border!.Top!.ColorArgb);
+                Assert.Equal("FFE3915E", projectedStyle.Border!.Top!.ColorArgb);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

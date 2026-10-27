@@ -429,7 +429,7 @@ namespace OfficeIMO.Excel {
             }
 
             barChart.Append(CreateDefaultDataLabels());
-            barChart.Append(new GapWidth { Val = (UInt16Value)219U });
+            barChart.Append(new GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent });
             barChart.Append(new Overlap { Val = (SByteValue)(sbyte)-27 });
             barChart.Append(new AxisId { Val = categoryAxisId });
             barChart.Append(new AxisId { Val = valueAxisId });
@@ -459,7 +459,7 @@ namespace OfficeIMO.Excel {
             }
 
             barChart.Append(CreateDefaultDataLabels());
-            barChart.Append(new GapWidth { Val = (UInt16Value)150U });
+            barChart.Append(new GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent });
             barChart.Append(new GapDepth { Val = (UInt16Value)150U });
             barChart.Append(new Shape { Val = ShapeValues.Box });
             barChart.Append(new AxisId { Val = categoryAxisId });

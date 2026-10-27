@@ -233,6 +233,7 @@ public sealed class WordChartOfficeSnapshotTests {
             new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
+        foreach (var font in native.Descendants<DocumentFormat.OpenXml.Drawing.LatinFont>().ToArray()) font.Remove();
         space.AddChild(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(), new DocumentFormat.OpenXml.Drawing.ListStyle(),
             new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.ParagraphProperties(
                 new DocumentFormat.OpenXml.Drawing.DefaultRunProperties(new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = "Arial" })))), true);

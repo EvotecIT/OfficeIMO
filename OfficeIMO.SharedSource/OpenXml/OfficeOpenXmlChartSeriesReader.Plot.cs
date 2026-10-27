@@ -25,6 +25,11 @@ namespace OfficeIMO.OpenXml.Internal {
             if (HasUnsupportedBubbleSourceVisibility(part, chart)) return null;
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
+            var barGeometry = layers.OfType<C.BarChart>().Select(bars => (
+                Gap: bars.GetFirstChild<C.GapWidth>()?.Val?.Value ?? 150,
+                Overlap: bars.BarGrouping?.Val?.Value == null || bars.BarGrouping.Val!.Value == C.BarGroupingValues.Clustered
+                    ? bars.GetFirstChild<C.Overlap>()?.Val?.Value ?? 0 : 0)).Distinct().Take(2).Count();
+            if (barGeometry > 1) return null;
             var projectionBudget = new ProjectionBudget();
             var series = new List<Series>();
             var stackedLayers = new HashSet<(OfficeChartKind Kind, OfficeChartAxisGroup AxisGroup)>();
@@ -197,10 +202,8 @@ namespace OfficeIMO.OpenXml.Internal {
             if (layer is C.BarChart bars) {
                 if (bars.Descendants().Any(element => element.LocalName == "shape" &&
                     element.GetAttributes().Any(attribute => attribute.LocalName == "val" && attribute.Value != "box"))) return true;
-                if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap != 150) return true;
-                var grouping = bars.BarGrouping?.Val?.Value;
-                int expectedOverlap = grouping == null || grouping == C.BarGroupingValues.Clustered ? 0 : 100;
-                if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && overlap != expectedOverlap) return true;
+                if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap > 500) return true;
+                if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && (overlap < -100 || overlap > 100)) return true;
             }
             return false;
         }

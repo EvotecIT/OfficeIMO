@@ -1144,10 +1144,10 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
             string svg = range.ToSvg(options);
 
-            Assert.Equal("C0504D", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
+            Assert.Equal("DC7536", visualChart.Snapshot.Data.Series[0].SeriesColorArgb);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
-            Assert.Contains("#C0504D", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#DC7536", svg, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             Assert.True(
@@ -1157,7 +1157,7 @@ namespace OfficeIMO.Tests {
                     visualChart.Y * options.Scale,
                     (visualChart.X + visualChart.Width) * options.Scale,
                     (visualChart.Y + visualChart.Height) * options.Scale,
-                    OfficeColor.FromRgb(192, 80, 77),
+                    OfficeColor.FromRgb(220, 117, 54),
                     tolerance: 8),
                 "Expected the exported chart to include the workbook theme accent2 series color.");
         }

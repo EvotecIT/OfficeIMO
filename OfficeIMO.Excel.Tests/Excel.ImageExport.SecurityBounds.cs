@@ -90,7 +90,10 @@ namespace OfficeIMO.Tests {
 
             ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart);
 
-            Assert.Equal(64, geometry.GetSimpleColumnWidthPixels(1));
+            using ExcelDocument baseline = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet baselineSheet = baseline.AddWorksheet("Default");
+            int defaultWidth = ExcelWorksheetGeometryIndex.Create(baselineSheet.WorksheetPart).GetSimpleColumnWidthPixels(1);
+            Assert.Equal(defaultWidth, geometry.GetSimpleColumnWidthPixels(1));
         }
 
         [Fact]

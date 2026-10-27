@@ -871,6 +871,15 @@ public sealed record ImmutableRow(string Name, string Status);
 
 ### Charts and dashboard recipes
 
+New workbooks use `OfficeTheme.Default` (Modern): Aptos text and the shared accent
+palette. New charts use its axis and title fonts, light gridlines, line widths
+and bar spacing. `ResetWorkbookTheme()` reapplies the default workbook theme;
+loading a workbook retains its existing theme and styles.
+
+Line series supplied through `OfficeChartData` use the theme's marker defaults
+unless visibility or point styling is explicit. Modern shows markers only for
+fewer than three points. Data-only updates preserve existing native marker styles.
+
 Combination-chart snapshots retain secondary value-axis bounds, tick units and number formats
 independently of the primary axis. Configure them with `SetValueAxisScale(...,
 axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,

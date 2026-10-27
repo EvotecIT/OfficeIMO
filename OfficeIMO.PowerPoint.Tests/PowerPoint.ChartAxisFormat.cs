@@ -252,10 +252,11 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Paragraph>()?
                         .GetFirstChild<A.ParagraphProperties>()?
                         .GetFirstChild<A.DefaultRunProperties>();
-                    Assert.Null(categoryRunProps?.FontSize?.Value);
+                    Assert.Equal((int)(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints() * 100D), categoryRunProps?.FontSize?.Value);
                     Assert.Null(categoryRunProps?.Bold?.Value);
-                    Assert.Null(categoryRunProps?.GetFirstChild<A.LatinFont>());
-                    Assert.Null(categoryRunProps?.GetFirstChild<A.SolidFill>());
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, categoryRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisTextColor.Resolve(OfficeTheme.Default).ToRgbHex(),
+                        categoryRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
 
                     A.DefaultRunProperties? valueRunProps = chart.PlotArea!
                         .GetFirstChild<C.ValueAxis>()?
@@ -263,10 +264,11 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Paragraph>()?
                         .GetFirstChild<A.ParagraphProperties>()?
                         .GetFirstChild<A.DefaultRunProperties>();
-                    Assert.Null(valueRunProps?.FontSize?.Value);
+                    Assert.Equal((int)(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints() * 100D), valueRunProps?.FontSize?.Value);
                     Assert.Null(valueRunProps?.Italic?.Value);
-                    Assert.Null(valueRunProps?.GetFirstChild<A.LatinFont>());
-                    Assert.Null(valueRunProps?.GetFirstChild<A.SolidFill>());
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, valueRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisTextColor.Resolve(OfficeTheme.Default).ToRgbHex(),
+                        valueRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -553,20 +555,22 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Paragraph>()?
                         .GetFirstChild<A.ParagraphProperties>()?
                         .GetFirstChild<A.DefaultRunProperties>();
-                    Assert.Null(xAxisLabelRunProps?.FontSize?.Value);
+                    Assert.Equal((int)(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints() * 100D), xAxisLabelRunProps?.FontSize?.Value);
                     Assert.Null(xAxisLabelRunProps?.Bold?.Value);
-                    Assert.Null(xAxisLabelRunProps?.GetFirstChild<A.LatinFont>());
-                    Assert.Null(xAxisLabelRunProps?.GetFirstChild<A.SolidFill>());
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, xAxisLabelRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisTextColor.Resolve(OfficeTheme.Default).ToRgbHex(),
+                        xAxisLabelRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
 
                     A.DefaultRunProperties? yAxisLabelRunProps = yAxis
                         .GetFirstChild<C.TextProperties>()?
                         .GetFirstChild<A.Paragraph>()?
                         .GetFirstChild<A.ParagraphProperties>()?
                         .GetFirstChild<A.DefaultRunProperties>();
-                    Assert.Null(yAxisLabelRunProps?.FontSize?.Value);
+                    Assert.Equal((int)(OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints() * 100D), yAxisLabelRunProps?.FontSize?.Value);
                     Assert.Null(yAxisLabelRunProps?.Italic?.Value);
-                    Assert.Null(yAxisLabelRunProps?.GetFirstChild<A.LatinFont>());
-                    Assert.Null(yAxisLabelRunProps?.GetFirstChild<A.SolidFill>());
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisFont.Family, yAxisLabelRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal(OfficeTheme.Default.ChartStyle.AxisTextColor.Resolve(OfficeTheme.Default).ToRgbHex(),
+                        yAxisLabelRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {

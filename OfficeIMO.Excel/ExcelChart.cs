@@ -292,14 +292,15 @@ namespace OfficeIMO.Excel {
 
             C.Title chartTitle = chart.GetFirstChild<C.Title>() ?? new C.Title();
             chartTitle.RemoveAllChildren<C.ChartText>();
-            chartTitle.Append(CreateChartText(title));
+            chartTitle.AddChild(CreateChartText(title), true);
             if (chartTitle.GetFirstChild<C.Layout>() == null) {
-                chartTitle.Append(new C.Layout());
+                chartTitle.AddChild(new C.Layout(), true);
             }
             chartTitle.RemoveAllChildren<C.Overlay>();
-            chartTitle.Append(new C.Overlay { Val = false });
+            chartTitle.AddChild(new C.Overlay { Val = false }, true);
 
             if (chart.GetFirstChild<C.Title>() == null) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle, OfficeTheme.Default);
                 chart.InsertAt(chartTitle, 0);
             }
 
@@ -350,13 +351,13 @@ namespace OfficeIMO.Excel {
             var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
             legendPosition.Val = position.ToOpenXml();
             if (legendPosition.Parent == null) {
-                legend.Append(legendPosition);
+                legend.AddChild(legendPosition, true);
             }
             if (legend.GetFirstChild<C.Layout>() == null) {
-                legend.Append(new C.Layout());
+                legend.AddChild(new C.Layout(), true);
             }
             legend.RemoveAllChildren<C.Overlay>();
-            legend.Append(new C.Overlay { Val = overlay });
+            legend.AddChild(new C.Overlay { Val = overlay }, true);
 
             if (chart.GetFirstChild<C.Legend>() == null) {
                 C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();

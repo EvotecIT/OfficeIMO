@@ -134,12 +134,13 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void ApplySharedSeriesMarker(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind, OfficeColor? fallbackColor) {
+            OfficeChartSeries series, OfficeChartKind kind, OfficeColor? fallbackColor, OfficeTheme theme,
+            bool preservePresentation) {
             if (!IsMarkerKind(kind)) return;
             C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-            if (!series.ShowMarkers) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
-            else if (series.MarkerShape.HasValue || marker.Symbol == null)
-                marker.Symbol = new C.Symbol { Val = MapMarker(series.MarkerShape) };
+            if (!preservePresentation && !series.ResolveMarkerVisibility(kind, theme)) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
+            else if (!preservePresentation && (series.ResolveMarkerShape(kind, theme).HasValue || marker.Symbol == null))
+                marker.Symbol = new C.Symbol { Val = MapMarker(series.ResolveMarkerShape(kind, theme)) };
             if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value) };
             OfficeColor? markerFill = series.Color ?? fallbackColor;
             if (markerFill.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {

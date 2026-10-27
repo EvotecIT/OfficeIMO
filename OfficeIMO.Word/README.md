@@ -760,6 +760,11 @@ document.SaveAsPdf("report.pdf");
 
 ## Editable charts from shared data
 
+New charts use the shared Modern fonts, gridlines, line widths and bar spacing.
+Line series without an explicit marker choice show markers only for fewer than
+three points; explicit visibility and point styling take precedence. Data-only
+updates retain existing marker formatting.
+
 Use `WordDocument.AddChart(OfficeChartKind, OfficeChartData, ...)` or the corresponding
 `WordParagraph.AddChart(...)` overload to create a native chart
 with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its caches and

@@ -350,6 +350,12 @@ Use `cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3)` to set sel
 
 ### Charts from data
 
+New charts take their typography, gridlines, spacing and automatic series colours
+from the presentation's theme. Modern line charts show markers only for fewer
+than three points; Classic uses circles. Explicit marker choices and point
+styling take precedence, and data-only updates preserve native marker formatting.
+Clearing axis-label text styling restores the theme defaults and retains rotation.
+
 ```csharp
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;

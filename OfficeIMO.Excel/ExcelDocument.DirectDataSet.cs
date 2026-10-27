@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                 PrepareDestinationStreamForWrite(stream);
             }
 
-            DirectDataSetWorkbookWriter.Write(stream, model, ct);
+            DirectDataSetWorkbookWriter.Write(stream, model, ct, System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value));
             if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
             }

@@ -1,3 +1,4 @@
+using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -155,7 +156,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis == null) throw new NotSupportedException("The secondary chart axes cannot be resolved.");
                 if (axis is C.CategoryAxis or C.DateAxis && !IsDeletedAxis(axis))
                     throw new NotSupportedException("Visible secondary category axes cannot be projected.");
-                if (axis.GetFirstChild<C.ChartShapeProperties>() != null ||
+                if (!HasUnpaintedSecondaryAxisShape(axis.GetFirstChild<C.ChartShapeProperties>()) ||
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
                 OfficeOpenXmlChartSecondaryAxis.QualifyTitle(axis.GetFirstChild<C.Title>());
@@ -173,6 +174,14 @@ namespace OfficeIMO.OpenXml.Internal {
                         throw new NotSupportedException("The secondary numeric axis presentation cannot be projected.");
                 }
             }
+        }
+
+        private static bool HasUnpaintedSecondaryAxisShape(C.ChartShapeProperties? properties) {
+            if (properties == null) return true;
+            A.Outline? outline = properties.GetFirstChild<A.Outline>();
+            return !properties.HasAttributes && properties.ChildElements.Count == 1 && outline != null &&
+                outline.GetAttributes().All(attribute => attribute.LocalName == "w") &&
+                outline.ChildElements.Count == 1 && outline.GetFirstChild<A.NoFill>() != null;
         }
 
         private static string? ReadLayoutTitle(OpenXmlCompositeElement? axis) {
@@ -225,5 +234,7 @@ namespace OfficeIMO.OpenXml.Internal {
         private static OfficeChartAxisTickMark ReadLayoutTick(C.TickMarkValues? value) =>
             value == C.TickMarkValues.Inside ? OfficeChartAxisTickMark.Inside : value == C.TickMarkValues.Outside ? OfficeChartAxisTickMark.Outside :
                 value == C.TickMarkValues.Cross ? OfficeChartAxisTickMark.Cross : OfficeChartAxisTickMark.None;
+        private static System.Collections.Generic.IEnumerable<OpenXmlElement> TextAxes(C.Chart chart) =>
+            chart.PlotArea?.ChildElements.Where(axis => axis is C.CategoryAxis or C.ValueAxis or C.DateAxis).Cast<OpenXmlElement>() ?? Enumerable.Empty<OpenXmlElement>();
     }
 }

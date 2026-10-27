@@ -52,9 +52,9 @@ namespace OfficeIMO.Excel {
             OfficeStrokeDashStyle? categoryMinorGridLineDashStyle = TryGetImageExportMinorGridLineDashStyle(categoryAxis, out OfficeStrokeDashStyle resolvedCategoryMinorGridLineDashStyle) ? resolvedCategoryMinorGridLineDashStyle : null;
             OfficeStrokeDashStyle? valueMinorGridLineDashStyle = TryGetImageExportMinorGridLineDashStyle(valueAxis, out OfficeStrokeDashStyle resolvedValueMinorGridLineDashStyle) ? resolvedValueMinorGridLineDashStyle : null;
             OfficeColor? titleColor = TryGetImageExportTitleColor(chart, workbookPart, out OfficeColor resolvedTitleColor) ? resolvedTitleColor : null;
-            string? titleFontFamily = TryGetImageExportTitleFontFamily(chart, out string? resolvedTitleFontFamily) ? resolvedTitleFontFamily : null;
-            double? titleFontSize = TryGetImageExportTitleFontSize(chart, out double resolvedTitleFontSize) ? resolvedTitleFontSize : null;
-            OfficeFontStyle? titleFontStyle = TryGetImageExportTitleFontStyle(chart, out OfficeFontStyle resolvedTitleFontStyle) ? resolvedTitleFontStyle : null;
+            string? titleFontFamily = TryGetImageExportTitleFontFamily(chart, workbookPart, out string? resolvedTitleFontFamily) ? resolvedTitleFontFamily : null;
+            double? titleFontSize = TryGetImageExportTitleFontSize(chart, workbookPart, out double resolvedTitleFontSize) ? resolvedTitleFontSize : null;
+            OfficeFontStyle? titleFontStyle = TryGetImageExportTitleFontStyle(chart, workbookPart, out OfficeFontStyle resolvedTitleFontStyle) ? resolvedTitleFontStyle : null;
             OfficeColor? legendTextColor = TryGetImageExportLegendTextColor(chart, workbookPart, out OfficeColor resolvedLegendTextColor) ? resolvedLegendTextColor : null;
             OfficeColor? dataLabelTextColor = TryGetImageExportDataLabelTextColor(plotArea, workbookPart, out OfficeColor resolvedDataLabelTextColor) ? resolvedDataLabelTextColor : null;
             OfficeColor? dataLabelFill = TryGetImageExportDataLabelFillColor(plotArea, workbookPart, out OfficeColor resolvedDataLabelFill) ? resolvedDataLabelFill : null;

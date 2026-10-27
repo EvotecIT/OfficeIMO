@@ -9,8 +9,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
 
-internal static partial class OfficeOpenXmlChartSeriesReader {
-    private readonly struct NativeText {
+internal sealed partial class OfficeOpenXmlChartTextReader {
+    internal readonly struct NativeText {
         internal NativeText(double? size, OfficeFontStyle? style, OfficeColor? color, string? family) { Size = size; Style = style; Color = color; Family = family; }
         internal double? Size { get; }
         internal OfficeFontStyle? Style { get; }
@@ -20,20 +20,20 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             string.Equals(Family, other.Family, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static NativeText ReadNativeText(C.Chart chart, OpenXmlElement? owner, A.ColorScheme? scheme) {
+    internal static NativeText ReadNativeText(C.Chart chart, OpenXmlElement? owner, A.ColorScheme? scheme, bool allowMultiline = false) {
         if (owner == null) return default;
         OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
             ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
         NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
-        return ReadNativeText(owner, scheme, colorMap, inherited);
+        return ReadNativeText(owner, scheme, colorMap, inherited, allowMultiline);
     }
 
     private static NativeText ReadNativeText(OpenXmlElement owner, A.ColorScheme? scheme,
-        OpenXmlElement? colorMap, NativeText inherited) {
+        OpenXmlElement? colorMap, NativeText inherited, bool allowMultiline = false) {
         inherited = ReadTextPropertyDefaults(inherited, owner.GetFirstChild<C.TextProperties>(), scheme, colorMap);
         var rich = owner.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
         if (rich == null) return inherited;
-        QualifyTextLayout(rich);
+        QualifyTextLayout(rich, allowMultiline);
         Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(rich);
         NativeText? selected = null;
         foreach (var paragraph in rich.Elements<A.Paragraph>()) {
@@ -52,7 +52,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return selected ?? inherited;
     }
 
-    private static NativeText ReadTextPropertyDefaults(NativeText inherited, C.TextProperties? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
+    internal static NativeText ReadTextPropertyDefaults(NativeText inherited, C.TextProperties? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
         if (properties == null) return inherited;
         QualifyTextLayout(properties);
         Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(properties);
@@ -87,13 +87,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return levels;
     }
 
-    private static NativeText ReadUniformNativeText(C.Chart chart, System.Collections.Generic.IEnumerable<OpenXmlElement> owners, A.ColorScheme? scheme) {
+    internal static NativeText ReadUniformNativeText(C.Chart chart, System.Collections.Generic.IEnumerable<OpenXmlElement> owners, A.ColorScheme? scheme, bool allowMultiline = false) {
         OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
             ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
         NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
         NativeText? selected = null;
         foreach (var owner in owners) {
-            NativeText current = ReadNativeText(owner, scheme, colorMap, inherited);
+            NativeText current = ReadNativeText(owner, scheme, colorMap, inherited, allowMultiline);
             if (selected.HasValue && !selected.Value.SameAs(current))
                 throw new NotSupportedException("Independent chart text formatting cannot be projected by the shared text role.");
             selected = current;
@@ -101,8 +101,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return selected ?? default;
     }
 
-    private static void QualifyTextLayout(OpenXmlCompositeElement text) {
-        if (text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
+    private static void QualifyTextLayout(OpenXmlCompositeElement text, bool allowMultiline = false) {
+        if (!allowMultiline && text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
             throw new NotSupportedException("Multiline native chart text cannot be projected.");
         var body = text.GetFirstChild<A.BodyProperties>();
         if (body != null && (body.GetAttributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute)) ||
@@ -199,6 +199,4 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             throw new NotSupportedException("The chart text typeface cannot be projected without a resolved font scheme.");
     }
 
-    private static System.Collections.Generic.IEnumerable<OpenXmlElement> TextAxes(C.Chart chart) =>
-        chart.PlotArea?.ChildElements.Where(axis => axis is C.CategoryAxis or C.ValueAxis or C.DateAxis).Cast<OpenXmlElement>() ?? Enumerable.Empty<OpenXmlElement>();
 }

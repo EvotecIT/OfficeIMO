@@ -29,7 +29,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartKind defaultKind, OfficeTheme? theme = null) {
             if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
             ValidateSharedChartData(data, defaultKind);
 
@@ -57,11 +57,11 @@ namespace OfficeIMO.OpenXml.Internal {
                 });
             }
             chartPart.ChartSpace = chartSpace;
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind, theme: theme);
         }
 
         internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartKind defaultKind, OfficeTheme? theme = null) {
             if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
             ValidateSharedChartData(data, defaultKind);
 
@@ -105,13 +105,14 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 
             UpdateSharedLegend(chart, data, defaultKind, previousLegendUsesCategories);
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind, preservedSeriesIndexes);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind, preservedSeriesIndexes, theme);
             chartSpace.Save();
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
             OfficeChartKind defaultKind,
-            ISet<uint>? preservedSeriesIndexes = null) {
+            ISet<uint>? preservedSeriesIndexes = null, OfficeTheme? theme = null) {
+            theme ??= OfficeTheme.Default;
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
             if (plotArea == null) return;
             foreach (OpenXmlCompositeElement seriesElement in EnumerateSharedSeriesElements(plotArea)) {
@@ -126,7 +127,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 OfficeColor? fallbackSeriesColor = newSeries &&
                     kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut &&
                     !series.Color.HasValue
-                        ? OfficeChartStyle.Default.GetSeriesColor(index)
+                        ? theme.ChartStyle.SeriesPalette[index % theme.ChartStyle.SeriesPalette.Count].Resolve(theme)
                         : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor ?? (!newSeries && !series.Color.HasValue &&
@@ -135,7 +136,8 @@ namespace OfficeIMO.OpenXml.Internal {
                         ? ReadDirectSeriesColor(seriesElement) : null));
                 if (fallbackSeriesColor.HasValue || series.Color.HasValue)
                     SetAutomaticSeriesColor(seriesElement, fallbackSeriesColor.HasValue);
-                ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
+                ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor, theme,
+                    preservePresentation: !newSeries && !series.HasExplicitMarkerVisibility);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
                 if (series.SeriesStyle?.FillColor.HasValue == true || series.SeriesStyle?.OutlineColor.HasValue == true)
@@ -240,7 +242,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     descriptor.Series, categories));
             }
             chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.GapWidth { Val = (UInt16Value)150U });
+            chart.Append(new C.GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent });
             chart.Append(new C.Overlap { Val = (SByteValue)(sbyte)(grouping == C.BarGroupingValues.Clustered ? 0 : 100) });
             chart.Append(new C.AxisId { Val = categoryAxisId });
             chart.Append(new C.AxisId { Val = valueAxisId });

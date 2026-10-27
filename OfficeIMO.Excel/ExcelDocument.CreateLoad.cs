@@ -153,6 +153,7 @@ namespace OfficeIMO.Excel {
             WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
             workbookpart.Workbook = new Workbook();
             document._workBookPart = workbookpart;
+            document.EnsureWorkbookThemeAndStyles();
 
             document._packageStream = keepPackageStream ? packageStream : null;
             document._sourceStream = sourceStream;

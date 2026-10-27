@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false);
+                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false, themeXml: System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value));
                 DirectDataSetSheetModel sheet = model.Sheets[0];
                 int rowCount = WriteDataReaderWorksheet(
                     archive,

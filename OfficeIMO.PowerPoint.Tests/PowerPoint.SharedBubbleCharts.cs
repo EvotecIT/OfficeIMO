@@ -523,7 +523,8 @@ namespace OfficeIMO.Tests {
                             new A.RgbColorModelHex {
                                 Val = "AABBCC"
                             }))), true);
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot paintedAxis));
+            Assert.Equal(OfficeColor.Parse("#AABBCC"), paintedAxis.Style.CategoryAxisColor);
         }
 
         [Fact]
@@ -580,7 +581,8 @@ namespace OfficeIMO.Tests {
             horizontalAxis.GetFirstChild<C.MajorGridlines>()!.Remove();
 
             gridlineOutline.Width = checked((int)PowerPointUnits.FromPoints(1D));
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot widerGrid));
+            Assert.Equal(1D, widerGrid.Style.ValueGridLineWidth);
             gridlineOutline.Width =
                 checked((int)PowerPointUnits.FromPoints(0.5D));
             Assert.True(chart.TryGetOfficeSnapshot(out _));
@@ -655,7 +657,11 @@ namespace OfficeIMO.Tests {
                 .SetTitleTextStyle(
                     fontSizePoints: 14D, bold: true,
                     color: "445566", fontName: "Arial");
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot styledTitle));
+            Assert.Equal(14D, styledTitle.Style.TitleFontSize);
+            Assert.Equal("Arial", styledTitle.Style.TitleFontFamily);
+            Assert.Equal(OfficeColor.Parse("#445566"), styledTitle.Style.TitleColor);
+            Assert.Equal(OfficeFontStyle.Bold, styledTitle.Style.TitleFontStyle);
             chart.ClearTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 

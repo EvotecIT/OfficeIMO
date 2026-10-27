@@ -233,27 +233,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ReplaceAxisChild<T>(OpenXmlCompositeElement axis, T child) where T : OpenXmlElement {
             axis.GetFirstChild<T>()?.Remove();
-
-            OpenXmlElement? insertBefore = axis.GetFirstChild<C.ShapeProperties>();
-            insertBefore ??= axis.GetFirstChild<C.TextProperties>();
-            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
-            insertBefore ??= axis.GetFirstChild<C.Crosses>();
-            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
-            insertBefore ??= axis.GetFirstChild<C.AutoLabeled>();
-            insertBefore ??= axis.GetFirstChild<C.LabelAlignment>();
-            insertBefore ??= axis.GetFirstChild<C.LabelOffset>();
-            insertBefore ??= axis.GetFirstChild<C.NoMultiLevelLabels>();
-            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
-            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
-            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
-            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
-
-            if (insertBefore != null) {
-                axis.InsertBefore(child, insertBefore);
-            } else {
-                axis.Append(child);
-            }
+            axis.AddChild(child, true);
         }
 
         private static void InsertAxisGridlines<TGridlines>(OpenXmlCompositeElement axis, TGridlines gridlines)

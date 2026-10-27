@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
                 var sharedStrings = useSharedStrings ? DirectSharedStringTable.CreateStreaming() : null;
-                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: sharedStrings != null);
+                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: sharedStrings != null, themeXml: System.Text.Encoding.UTF8.GetString(DefaultThemeBytes.Value));
 
                 int rowCount = await WriteAsyncWorksheetRows(
                     archive,

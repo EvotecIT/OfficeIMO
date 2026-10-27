@@ -1,5 +1,21 @@
 # Upgrading OfficeIMO
 
+## Chart and workbook defaults
+
+New workbooks use the default `OfficeTheme` font and palette: Aptos and the
+Modern accents. Chart typography, gridlines, line widths and bar spacing follow
+the shared theme. Regenerate worksheet and chart preview baselines; the default
+font can also change column widths in pixels. Loaded documents keep their styles.
+
+Line series created from `OfficeChartData` without a marker-visibility argument
+follow the theme: Modern shows markers only for fewer than three points, while
+Classic uses circles. Explicit visibility and point styling take precedence;
+data-only updates retain existing native marker formatting.
+
+Clearing PowerPoint axis-label text styling restores the theme's font, size and
+colour while retaining label rotation. It no longer leaves those text properties
+unset.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1

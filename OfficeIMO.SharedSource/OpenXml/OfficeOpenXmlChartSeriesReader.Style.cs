@@ -1,3 +1,4 @@
+using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -25,12 +26,13 @@ namespace OfficeIMO.OpenXml.Internal {
             var legendSurface = ReadSurface(legendShape, scheme, colorMap);
             if (legendSurface.Dash is OfficeStrokeDashStyle legendDash && legendDash != OfficeStrokeDashStyle.Solid)
                 throw new NotSupportedException("The legend border dash cannot be projected.");
-            var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
-            var defaultText = ReadNativeText(chart, chart, scheme);
-            var labelText = ReadLabels(chart, scheme);
-            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
-            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
-            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
+            bool allowMultiline = kind == OfficeChartKind.Bubble;
+            var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme, allowMultiline);
+            var defaultText = ReadNativeText(chart, chart, scheme, allowMultiline);
+            var labelText = kind == OfficeChartKind.Bubble ? new LabelLayout() : ReadLabels(chart, scheme);
+            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme, allowMultiline);
+            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme, allowMultiline);
+            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme, allowMultiline);
             var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);
             var plot = chart.PlotArea;
             var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);

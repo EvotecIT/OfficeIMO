@@ -163,20 +163,31 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
+    [InlineData(20, 0)]
+    [InlineData(60, 50)]
+    public void Snapshot_PreservesNativeBarSpacing(int gap, int overlap) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        C.BarChart bars = chart.ChartPart!.ChartSpace!.Descendants<C.BarChart>().Single();
+        bars.GetFirstChild<C.GapWidth>()!.Val = checked((ushort)gap);
+        bars.GetFirstChild<C.Overlap>()!.Val = checked((sbyte)overlap);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(gap, snapshot.Layout.BarGapWidthPercent);
+        Assert.Equal(overlap, snapshot.Layout.BarOverlapPercent);
+    }
+
+    [Theory]
     [InlineData("titleShape")]
     [InlineData("legendShape")]
     [InlineData("axisTitleLayout")]
-    [InlineData("gap")]
-    [InlineData("overlap")]
     [InlineData("vary")]
     public void Snapshot_RejectsUnrepresentedPresentation(string feature) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartKind.ColumnClustered);
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         var bars = native.PlotArea!.GetFirstChild<C.BarChart>()!;
-        if (feature == "gap") bars.GetFirstChild<C.GapWidth>()!.Val = 20;
-        else if (feature == "overlap") bars.GetFirstChild<C.Overlap>()!.Val = 50;
-        else if (feature == "vary") bars.GetFirstChild<C.VaryColors>()!.Val = true;
+        if (feature == "vary") bars.GetFirstChild<C.VaryColors>()!.Val = true;
         else if (feature == "axisTitleLayout") {
             var title = new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Axis"))))),
                 new C.Layout(new C.ManualLayout(new C.Left { Val = .3 })));
@@ -274,7 +285,7 @@ public sealed class WordChartPresentationQualificationTests {
     public void Snapshot_MapsUniformTitleTextAndRejectsMixedRuns() {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartKind.ColumnClustered);
-        var paragraph = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.Title!.Descendants<A.Paragraph>().Single();
+        var paragraph = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.Title!.GetFirstChild<C.ChartText>()!.GetFirstChild<C.RichText>()!.Descendants<A.Paragraph>().Single();
         var run = paragraph.GetFirstChild<A.Run>()!;
         run.PrependChild(new A.RunProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "224466" })) {
             FontSize = 2400, Bold = true, Italic = true, Underline = A.TextUnderlineValues.Single

@@ -8,7 +8,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Resolves chart typefaces through the native text inheritance and owner theme.</summary>
-internal sealed class OfficeOpenXmlChartTextReader {
+internal sealed partial class OfficeOpenXmlChartTextReader {
     private readonly A.FontScheme? _scheme;
     internal OfficeOpenXmlChartTextReader(A.FontScheme? scheme) => _scheme = scheme;
 
