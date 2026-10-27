@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.Core\Diagnostics\diagnostic-code-map.json" Link="TestAssets\diagnostic-code-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Build\Visual\themes.json" Link="TestAssets\themes.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\FontParserLimits\*.gz" />
     <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv;TestAssets\JpegXr\*.nchannel;TestAssets\JpegXr\nchannel-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
