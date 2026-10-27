@@ -69,3 +69,42 @@ public partial class HtmlOfficeAdapters {
         Assert.True(sheet.GetCellStyle(4, 1).WrapText);
     }
 }
+
+public partial class HtmlOfficeAdapters {
+    [Fact]
+    public void ExcelHtml_GenericTableHeaderAndBodyCellsShareTheInheritedFontAndRowHeight() {
+        const string html = "<html><head><style>body { font: 14px/1.45 Arial, sans-serif; }"
+            + " thead th { background: #16324f; color: #ffffff; font-weight: bold; }</style></head><body>"
+            + "<table><thead><tr><th>Workstream</th><th>Hours</th><th>Recorded</th></tr></thead><tbody>"
+            + "<tr><th scope='row'>Operations</th><td data-officeimo-value-kind='number' data-officeimo-value='12.5'>12.50</td>"
+            + "<td data-officeimo-value-kind='date-time' data-officeimo-value='2026-09-01T00:00:00'>1 Sep 2026</td></tr>"
+            + "<tr><th scope='row'>Projects</th><td>pending</td><td>later</td></tr></tbody></table></body></html>";
+
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
+        foreach (ExcelSheet autoFit in workbook.Sheets) {
+            autoFit.AutoFitColumns();
+            autoFit.AutoFitRows();
+        }
+        byte[] bytes = workbook.ToBytes();
+        using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(bytes), false);
+        WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
+        Stylesheet styles = package.WorkbookPart.WorkbookStylesPart!.Stylesheet;
+        Font FontOf(Cell cell) {
+            CellFormat format = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)(cell.StyleIndex?.Value ?? 0U));
+            return styles.Fonts!.Elements<Font>().ElementAt((int)(format.FontId?.Value ?? 0U));
+        }
+
+        Cell[] cells = worksheet.Worksheet.Descendants<Cell>().ToArray();
+        Assert.Equal(9, cells.Length);
+        Assert.All(cells, cell => {
+            Font font = FontOf(cell);
+            Assert.Equal("Arial", font.FontName?.Val?.Value);
+            Assert.Equal(10.5D, font.FontSize!.Val!.Value, 3);
+        });
+        Row[] rows = worksheet.Worksheet.Descendants<Row>().ToArray();
+        double header = rows.Single(row => row.RowIndex!.Value == 1U).Height?.Value ?? 15D;
+        double body = rows.Single(row => row.RowIndex!.Value == 2U).Height?.Value ?? 15D;
+        Assert.True(header <= body * 1.5D, $"header {header} vs body {body}");
+    }
+}
