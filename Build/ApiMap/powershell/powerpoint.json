@@ -255,22 +255,22 @@
           ]
         }
       ],
-      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PptList, tables/images flow, blockquotes become notes); nothing in this area maps to it. -Theme is the one user-facing design choice; -Style (renamed from -Direction) is optional designer-engine tuning layered on it. The Boardroom creative direction is selected by -Theme Boardroom, so PowerPointDeckStyle has no Boardroom value: Auto, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix.",
+      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PowerPointList, tables/images flow, blockquotes become notes); nothing in this area maps to it. -Theme is the one user-facing design choice; -Style (renamed from -Direction) is optional designer-engine tuning layered on it. The Boardroom creative direction is selected by -Theme Boardroom, so PowerPointDeckStyle has no Boardroom value: Auto, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix.",
       "examples": [
         {
           "title": "Create a one-slide deck",
           "description": "Creates a presentation with the default Modern theme, saves it and closes it when the block ends.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Kickoff.pptx {\n    PptSlide -Title 'Northwind migration kickoff' -Subtitle 'Scope, timeline and owners'\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Kickoff.pptx {\n    PowerPointSlide -Title 'Northwind migration kickoff' -Subtitle 'Scope, timeline and owners'\n}"
         },
         {
           "title": "Build a quarterly review without coordinates",
           "description": "Builds a themed deck whose layouts are chosen from the content: a cover, a KPI slide, a two-chart slide and a table slide, with a deck footer and speaker notes.",
-          "code": "$sales = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$priorities = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'Priorities'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Theme Boardroom -Show {\n    PptFooter {\n        PptText 'Contoso | Internal | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Q3 business review' -Subtitle 'Performance, decisions and priorities'\n    PptSlide -Title 'Quarter at a glance' {\n        PptKpi '$4.2M' 'Revenue' -Change '+12% vs Q2' -Trend Up\n        PptKpi '38%' 'Gross margin' -Change '+2 pt' -Trend Up\n        PptKpi '1,284' 'New customers' -Change '+9%' -Trend Up\n    }\n    PptSlide -Title 'Revenue and margin by region' {\n        PptChart -InputObject $sales -Category Region -Value Revenue -Type Column -Title 'Revenue (USD k)'\n        PptChart -InputObject $sales -Category Region -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Start with EMEA: margin grew faster than revenue.'\n    }\n    PptSlide -Title 'Next-quarter priorities' {\n        PptTable -InputObject $priorities -Property Priority, Owner, Due\n    }\n}"
+          "code": "$sales = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$priorities = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'Priorities'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Theme Boardroom -Show {\n    PowerPointFooter {\n        PowerPointText 'Contoso | Internal | Slide '\n        PowerPointSlideNumber\n    }\n    PowerPointSlide -Title 'Q3 business review' -Subtitle 'Performance, decisions and priorities'\n    PowerPointSlide -Title 'Quarter at a glance' {\n        PowerPointKpi '$4.2M' 'Revenue' -Change '+12% vs Q2' -Trend Up\n        PowerPointKpi '38%' 'Gross margin' -Change '+2 pt' -Trend Up\n        PowerPointKpi '1,284' 'New customers' -Change '+9%' -Trend Up\n    }\n    PowerPointSlide -Title 'Revenue and margin by region' {\n        PowerPointChart -InputObject $sales -Category Region -Value Revenue -Type Column -Title 'Revenue (USD k)'\n        PowerPointChart -InputObject $sales -Category Region -Value Margin -Type Line -Title 'Margin (%)'\n        PowerPointNotes 'Start with EMEA: margin grew faster than revenue.'\n    }\n    PowerPointSlide -Title 'Next-quarter priorities' {\n        PowerPointTable -InputObject $priorities -Property Priority, Owner, Due\n    }\n}"
         },
         {
           "title": "Build a deck step by step and save it later",
           "description": "Without a content block the command returns the live presentation, so a script can add slides in a loop and choose the file name when it saves.",
-          "code": "$teams = Import-OfficeExcel -Path .\\Planning\\Team-Goals.xlsx\n$deck = New-OfficePowerPoint -Theme Minimal\nPptSlide -Document $deck -Title 'Team goals' -Subtitle 'FY2026 planning'\nforeach ($team in $teams | Group-Object Team) {\n    PptSlide -Document $deck -Title $team.Name {\n        PptList ($team.Group | ForEach-Object Goal)\n    }\n}\nSave-OfficePowerPoint -Document $deck -Path .\\Planning\\Team-Goals.pptx\nClose-OfficePowerPoint -Document $deck"
+          "code": "$teams = Import-OfficeExcel -Path .\\Planning\\Team-Goals.xlsx\n$deck = New-OfficePowerPoint -Theme Minimal\nPowerPointSlide -Document $deck -Title 'Team goals' -Subtitle 'FY2026 planning'\nforeach ($team in $teams | Group-Object Team) {\n    PowerPointSlide -Document $deck -Title $team.Name {\n        PowerPointList ($team.Group | ForEach-Object Goal)\n    }\n}\nSave-OfficePowerPoint -Document $deck -Path .\\Planning\\Team-Goals.pptx\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -379,7 +379,7 @@
         {
           "title": "Append a slide to an existing deck",
           "description": "Opens a deck, adds a slide that uses the deck's own layouts, then saves and closes it.",
-          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSlide -Title 'Appendix' {\n        PptList 'Data as of 30 September', 'Source: finance warehouse'\n    }\n}"
+          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PowerPointSlide -Title 'Appendix' {\n        PowerPointList 'Data as of 30 September', 'Source: finance warehouse'\n    }\n}"
         },
         {
           "title": "Update the fiscal year in every deck in a folder",
@@ -659,7 +659,7 @@
     },
     {
       "name": "Add-OfficePowerPointSlide",
-      "alias": "PptSlide",
+      "alias": "PowerPointSlide",
       "status": "existing",
       "synopsis": "Adds a designed slide; the layout is chosen from its content unless -Layout is given.",
       "outputType": "PowerPointSlide (with -PassThru)",
@@ -705,14 +705,14 @@
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Caption on the map of a Coverage slide. A PptImage on a Coverage slide is used as the map."
+              "notes": "Caption on the map of a Coverage slide. A PowerPointImage on a Coverage slide is used as the map."
             },
             {
               "name": "Layout",
               "type": "PowerPointLayout",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Optional: Title, Section, TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, Quote, ImageFull, Closing, CaseStudy, Logos, Coverage. Omitted: first slide Title; title only Section; one block TitleAndContent; two blocks or two PptColumn TwoContent (Comparison when the columns have titles); PptKpi Kpi; PptCard Cards (Logos when every card has -Image and no items; CaseStudy with PptKpi); PptStep Process; PptLocation Coverage."
+              "notes": "Optional: Title, Section, TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, Quote, ImageFull, Closing, CaseStudy, Logos, Coverage. Omitted: first slide Title; title only Section; one block TitleAndContent; two blocks or two PowerPointColumn TwoContent (Comparison when the columns have titles); PowerPointKpi Kpi; PowerPointCard Cards (Logos when every card has -Image and no items; CaseStudy with PowerPointKpi); PowerPointStep Process; PowerPointLocation Coverage."
             },
             {
               "name": "TemplateLayout",
@@ -776,28 +776,28 @@
           ]
         }
       ],
-      "notes": "Merges the deck-plan commands: semantic slides are ordinary slides whose layout content commands (PptKpi, PptCard, PptStep, PptLocation, PptColumn) select designed layouts. Overflow is handled: lists shrink to the theme minimum then continue on a new slide; tables split with the header repeated. Content blocks run inside New-/Open-OfficePowerPoint or with -Document.",
+      "notes": "Merges the deck-plan commands: semantic slides are ordinary slides whose layout content commands (PowerPointKpi, PowerPointCard, PowerPointStep, PowerPointLocation, PowerPointColumn) select designed layouts. Overflow is handled: lists shrink to the theme minimum then continue on a new slide; tables split with the header repeated. Content blocks run inside New-/Open-OfficePowerPoint or with -Document.",
       "examples": [
         {
           "title": "Add a slide with a list",
           "description": "Adds a titled slide; one list gives the TitleAndContent layout without naming it.",
-          "code": "PptSlide -Title 'Agenda' {\n    PptList 'Results', 'Risks', 'Decisions', 'Next steps'\n}"
+          "code": "PowerPointSlide -Title 'Agenda' {\n    PowerPointList 'Results', 'Risks', 'Decisions', 'Next steps'\n}"
         },
         {
           "title": "Let the content choose each layout",
           "description": "Builds a service review where the first slide becomes the cover, a title-only slide becomes a section divider, metrics give a KPI slide, steps give a process slide and two blocks sit side by side.",
-          "code": "$incidents = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Incidents'\nNew-OfficePowerPoint -Path .\\Reports\\Service-Review-October.pptx -Theme Modern {\n    PptSlide -Title 'Service review' -Subtitle 'October 2026' -Eyebrow 'IT operations'\n    PptSlide -Title 'Health'\n    PptSlide -Title 'Service health' {\n        PptKpi '99.95%' 'Availability' -Change '+0.02 pt'\n        PptKpi '182 ms' 'Median latency' -Change '-14 ms'\n        PptKpi '7' 'Priority incidents' -Change '+2' -Color Warning\n    }\n    PptSlide -Title 'Incidents by service' {\n        PptChart -InputObject $incidents -Category Service -Value Count -Type Bar\n        PptTable -InputObject $incidents -Property Service, Count, MeanTimeToRestore\n    }\n    PptSlide -Title 'Change process' {\n        PptStep 'Request' 'Raised in the service desk'\n        PptStep 'Review' 'CAB approves risk and window'\n        PptStep 'Deploy' 'Automated with rollback'\n        PptStep 'Verify' 'Health checks close the change'\n    }\n}"
+          "code": "$incidents = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Incidents'\nNew-OfficePowerPoint -Path .\\Reports\\Service-Review-October.pptx -Theme Modern {\n    PowerPointSlide -Title 'Service review' -Subtitle 'October 2026' -Eyebrow 'IT operations'\n    PowerPointSlide -Title 'Health'\n    PowerPointSlide -Title 'Service health' {\n        PowerPointKpi '99.95%' 'Availability' -Change '+0.02 pt'\n        PowerPointKpi '182 ms' 'Median latency' -Change '-14 ms'\n        PowerPointKpi '7' 'Priority incidents' -Change '+2' -Color Warning\n    }\n    PowerPointSlide -Title 'Incidents by service' {\n        PowerPointChart -InputObject $incidents -Category Service -Value Count -Type Bar\n        PowerPointTable -InputObject $incidents -Property Service, Count, MeanTimeToRestore\n    }\n    PowerPointSlide -Title 'Change process' {\n        PowerPointStep 'Request' 'Raised in the service desk'\n        PowerPointStep 'Review' 'CAB approves risk and window'\n        PowerPointStep 'Deploy' 'Automated with rollback'\n        PowerPointStep 'Verify' 'Health checks close the change'\n    }\n}"
         },
         {
           "title": "Choose a layout explicitly",
           "description": "Names the layout when the content alone does not say what the slide is, such as a statement or a closing slide, and adds a transition.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\All-Hands.pptx -Theme Dark {\n    PptSlide -Title 'All-hands' -Subtitle 'Engineering, Q4'\n    PptSlide -Layout Quote -Transition Fade {\n        PptParagraph 'Reliability is a feature our customers notice only when it is missing.'\n    }\n    PptSlide -Title 'Thank you' -Subtitle 'Questions: #eng-all-hands' -Layout Closing\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\All-Hands.pptx -Theme Dark {\n    PowerPointSlide -Title 'All-hands' -Subtitle 'Engineering, Q4'\n    PowerPointSlide -Layout Quote -Transition Fade {\n        PowerPointParagraph 'Reliability is a feature our customers notice only when it is missing.'\n    }\n    PowerPointSlide -Title 'Thank you' -Subtitle 'Questions: #eng-all-hands' -Layout Closing\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointText",
-      "alias": "PptText",
+      "alias": "PowerPointText",
       "status": "new",
       "synopsis": "Adds a styled text run to the enclosing paragraph, list item, text box, cell or placeholder.",
       "outputType": "PowerPointTextRun (with -PassThru)",
@@ -873,7 +873,7 @@
               "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Paragraph alignment when the run starts its own paragraph directly inside PptSlide; inside PptParagraph the paragraph alignment applies."
+              "notes": "Paragraph alignment when the run starts its own paragraph directly inside PowerPointSlide; inside PowerPointParagraph the paragraph alignment applies."
             },
             {
               "name": "PassThru",
@@ -884,23 +884,23 @@
           ]
         }
       ],
-      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PptSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PptTextRun) should point here. -Size is an OfficeLength (a bare number means points) and -Alignment an OfficeAlignment, as on PptParagraph.",
+      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PowerPointSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PowerPointTextRun) should point here. -Size is an OfficeLength (a bare number means points) and -Alignment an OfficeAlignment, as on PowerPointParagraph.",
       "examples": [
         {
           "title": "Mix bold and colored text in a paragraph",
           "description": "Adds two runs to one paragraph so the status word stands out in the theme success color.",
-          "code": "PptParagraph {\n    PptText 'Overall status: '\n    PptText 'On track' -Bold -Color Success\n}"
+          "code": "PowerPointParagraph {\n    PowerPointText 'Overall status: '\n    PowerPointText 'On track' -Bold -Color Success\n}"
         },
         {
           "title": "Write a status slide with styled runs and a link",
           "description": "Builds list items from styled runs that color each service by its state and links to the live dashboard.",
-          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Weekly.pptx {\n    PptSlide -Title 'Weekly status' -Subtitle 'Customer-facing services'\n    PptSlide -Title 'Service status' {\n        PptList {\n            foreach ($service in $services) {\n                $color = if ($service.State -eq 'Healthy') { 'Success' } else { 'Warning' }\n                PptListItem {\n                    PptText \"$($service.Name): \" -Bold\n                    PptText $service.State -Color $color\n                }\n            }\n        }\n        PptParagraph {\n            PptText 'Live view: '\n            PptText 'status.contoso.com' -Link 'https://status.contoso.com'\n        }\n    }\n}"
+          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Weekly.pptx {\n    PowerPointSlide -Title 'Weekly status' -Subtitle 'Customer-facing services'\n    PowerPointSlide -Title 'Service status' {\n        PowerPointList {\n            foreach ($service in $services) {\n                $color = if ($service.State -eq 'Healthy') { 'Success' } else { 'Warning' }\n                PowerPointListItem {\n                    PowerPointText \"$($service.Name): \" -Bold\n                    PowerPointText $service.State -Color $color\n                }\n            }\n        }\n        PowerPointParagraph {\n            PowerPointText 'Live view: '\n            PowerPointText 'status.contoso.com' -Link 'https://status.contoso.com'\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointParagraph",
-      "alias": "PptParagraph",
+      "alias": "PowerPointParagraph",
       "status": "new",
       "synopsis": "Adds a paragraph of plain or styled text to the slide content area or an enclosing text box.",
       "outputType": "PowerPointParagraph (with -PassThru)",
@@ -1119,23 +1119,23 @@
           ]
         }
       ],
-      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block). Text parameters match PptText: -Size is an OfficeLength (a bare number means points), -Alignment an OfficeAlignment.",
+      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block). Text parameters match PowerPointText: -Size is an OfficeLength (a bare number means points), -Alignment an OfficeAlignment.",
       "examples": [
         {
           "title": "Add a paragraph to a slide",
           "description": "Adds a sentence to the slide content area in the theme body style.",
-          "code": "PptSlide -Title 'Why now' {\n    PptParagraph 'Support for the legacy CRM ends in March 2027.' -Size 24pt -Alignment Center\n}"
+          "code": "PowerPointSlide -Title 'Why now' {\n    PowerPointParagraph 'Support for the legacy CRM ends in March 2027.' -Size 24pt -Alignment Center\n}"
         },
         {
           "title": "Explain a decision in short paragraphs",
           "description": "Writes a decision slide from several paragraphs, one of them built from styled runs, inside a new deck.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\CRM-Decision.pptx {\n    PptSlide -Title 'CRM replacement' -Subtitle 'Decision paper'\n    PptSlide -Title 'Recommendation' {\n        PptParagraph 'Move to the hosted CRM in two waves, sales first and service second.'\n        PptParagraph 'The hosted option removes three on-premises servers and the yearly upgrade project.'\n        PptParagraph {\n            PptText 'Decision needed by: '\n            PptText '15 November' -Bold\n        }\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\CRM-Decision.pptx {\n    PowerPointSlide -Title 'CRM replacement' -Subtitle 'Decision paper'\n    PowerPointSlide -Title 'Recommendation' {\n        PowerPointParagraph 'Move to the hosted CRM in two waves, sales first and service second.'\n        PowerPointParagraph 'The hosted option removes three on-premises servers and the yearly upgrade project.'\n        PowerPointParagraph {\n            PowerPointText 'Decision needed by: '\n            PowerPointText '15 November' -Bold\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointList",
-      "alias": "PptList",
+      "alias": "PowerPointList",
       "status": "new",
       "synopsis": "Adds a bulleted or numbered list.",
       "outputType": "PowerPointTextBox (with -PassThru)",
@@ -1312,28 +1312,28 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PptListItem block.",
+      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PowerPointListItem block.",
       "examples": [
         {
           "title": "Add a bulleted list",
           "description": "Adds three bullets in the theme list style.",
-          "code": "PptList 'Migrate mailboxes', 'Retire file servers', 'Enable MFA for all staff'"
+          "code": "PowerPointList 'Migrate mailboxes', 'Retire file servers', 'Enable MFA for all staff'"
         },
         {
           "title": "List open risks from a workbook",
           "description": "Turns the titles of open risks into bullets; a long list shrinks to the theme minimum and then continues on a new slide.",
-          "code": "$risks = Import-OfficeExcel -Path .\\Projects\\Northwind-Risks.xlsx | Where-Object Status -eq 'Open'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Steering.pptx {\n    PptSlide -Title 'Northwind steering committee' -Subtitle 'Week 43'\n    PptSlide -Title 'Open risks' {\n        PptList ($risks | ForEach-Object Title)\n    }\n    PptSlide -Title 'Cut-over sequence' {\n        PptList 'Freeze changes', 'Final sync', 'Switch DNS', 'Smoke test' -Numbered\n    }\n}"
+          "code": "$risks = Import-OfficeExcel -Path .\\Projects\\Northwind-Risks.xlsx | Where-Object Status -eq 'Open'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Steering.pptx {\n    PowerPointSlide -Title 'Northwind steering committee' -Subtitle 'Week 43'\n    PowerPointSlide -Title 'Open risks' {\n        PowerPointList ($risks | ForEach-Object Title)\n    }\n    PowerPointSlide -Title 'Cut-over sequence' {\n        PowerPointList 'Freeze changes', 'Final sync', 'Switch DNS', 'Smoke test' -Numbered\n    }\n}"
         },
         {
           "title": "Build a list from items",
           "description": "Uses a content block of list items to mix levels and styled text.",
-          "code": "PptList {\n    PptListItem 'Identity'\n    PptListItem 'Single sign-on for 42 applications' -Level 2\n    PptListItem 'MFA for all staff' -Level 2\n    PptListItem 'Devices'\n    PptListItem 'Windows 11 rollout: 86% complete' -Level 2\n}"
+          "code": "PowerPointList {\n    PowerPointListItem 'Identity'\n    PowerPointListItem 'Single sign-on for 42 applications' -Level 2\n    PowerPointListItem 'MFA for all staff' -Level 2\n    PowerPointListItem 'Devices'\n    PowerPointListItem 'Windows 11 rollout: 86% complete' -Level 2\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointListItem",
-      "alias": "PptListItem",
+      "alias": "PowerPointListItem",
       "status": "new",
       "synopsis": "Adds one list item, with plain text or styled runs, to the enclosing list.",
       "outputType": "PowerPointParagraph (with -PassThru)",
@@ -1443,18 +1443,18 @@
         {
           "title": "Add items to a list",
           "description": "Adds list items one by one inside a list block.",
-          "code": "PptList {\n    PptListItem 'Collect health signals'\n    PptListItem 'Review with service owners'\n    PptListItem 'Publish decisions'\n}"
+          "code": "PowerPointList {\n    PowerPointListItem 'Collect health signals'\n    PowerPointListItem 'Review with service owners'\n    PowerPointListItem 'Publish decisions'\n}"
         },
         {
           "title": "Show sub-items and highlighted owners",
           "description": "Builds a two-level list of workstreams from data, with each owner in bold.",
-          "code": "$workstreams = Import-OfficeExcel -Path .\\Projects\\Northwind-Plan.xlsx -Sheet 'Workstreams'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx {\n    PptSlide -Title 'Northwind plan' -Subtitle 'Workstreams and owners'\n    PptSlide -Title 'Workstreams' {\n        PptList {\n            foreach ($workstream in $workstreams) {\n                PptListItem $workstream.Name\n                PptListItem -Level 2 {\n                    PptText 'Owner: '\n                    PptText $workstream.Owner -Bold\n                }\n            }\n        }\n    }\n}"
+          "code": "$workstreams = Import-OfficeExcel -Path .\\Projects\\Northwind-Plan.xlsx -Sheet 'Workstreams'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx {\n    PowerPointSlide -Title 'Northwind plan' -Subtitle 'Workstreams and owners'\n    PowerPointSlide -Title 'Workstreams' {\n        PowerPointList {\n            foreach ($workstream in $workstreams) {\n                PowerPointListItem $workstream.Name\n                PowerPointListItem -Level 2 {\n                    PowerPointText 'Owner: '\n                    PowerPointText $workstream.Owner -Bold\n                }\n            }\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointTable",
-      "alias": "PptTable",
+      "alias": "PowerPointTable",
       "status": "existing",
       "synopsis": "Adds a theme-styled table from objects or an empty grid.",
       "outputType": "PowerPointTable (with -PassThru)",
@@ -1677,23 +1677,23 @@
         {
           "title": "Add a table from objects",
           "description": "Adds a theme-styled table with a header row and right-aligned numbers.",
-          "code": "PptSlide -Title 'Server inventory' {\n    PptTable -InputObject $servers\n}"
+          "code": "PowerPointSlide -Title 'Server inventory' {\n    PowerPointTable -InputObject $servers\n}"
         },
         {
           "title": "Show patch compliance per server",
           "description": "Imports patch results and shows selected columns; a long table splits across slides with the header repeated.",
-          "code": "$patches = Import-Csv -Path .\\Data\\Patch-Compliance.csv\nNew-OfficePowerPoint -Path .\\Reports\\Patch-Compliance.pptx {\n    PptSlide -Title 'Patch compliance' -Subtitle 'October maintenance window'\n    PptSlide -Title 'Servers missing updates' {\n        PptTable -InputObject ($patches | Where-Object Missing -gt 0) -Property Server, Role, Missing, LastPatched\n        PptNotes 'Domain controllers are patched first in the next window.'\n    }\n}"
+          "code": "$patches = Import-Csv -Path .\\Data\\Patch-Compliance.csv\nNew-OfficePowerPoint -Path .\\Reports\\Patch-Compliance.pptx {\n    PowerPointSlide -Title 'Patch compliance' -Subtitle 'October maintenance window'\n    PowerPointSlide -Title 'Servers missing updates' {\n        PowerPointTable -InputObject ($patches | Where-Object Missing -gt 0) -Property Server, Role, Missing, LastPatched\n        PowerPointNotes 'Domain controllers are patched first in the next window.'\n    }\n}"
         },
         {
           "title": "Add an empty grid and fill it",
           "description": "Creates a table of a given size and sets its cells, for content that is not a list of objects.",
-          "code": "PptSlide -Title 'RACI' {\n    $raci = PptTable -Rows 3 -Columns 3 -PassThru\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 1 -Text 'Task'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 2 -Text 'Responsible'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 3 -Text 'Accountable'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 1 -Text 'Cut-over'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 2 -Text 'Infrastructure'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 3 -Text 'CIO'\n}"
+          "code": "PowerPointSlide -Title 'RACI' {\n    $raci = PowerPointTable -Rows 3 -Columns 3 -PassThru\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 1 -Text 'Task'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 2 -Text 'Responsible'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 3 -Text 'Accountable'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 1 -Text 'Cut-over'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 2 -Text 'Infrastructure'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 3 -Text 'CIO'\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointChart",
-      "alias": "PptChart",
+      "alias": "PowerPointChart",
       "status": "existing",
       "synopsis": "Adds a theme-styled chart from objects.",
       "outputType": "PowerPointChart (with -PassThru)",
@@ -1861,23 +1861,23 @@
         {
           "title": "Add a chart from objects",
           "description": "Charts revenue by region with the theme palette.",
-          "code": "PptSlide -Title 'Revenue by region' {\n    PptChart -InputObject $sales -Category Region -Value Revenue\n}"
+          "code": "PowerPointSlide -Title 'Revenue by region' {\n    PowerPointChart -InputObject $sales -Category Region -Value Revenue\n}"
         },
         {
           "title": "Compare monthly revenue and cost",
           "description": "Builds a slide with a two-series column chart next to a margin line chart; two blocks give the TwoContent layout.",
-          "code": "$months = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\FY2026-Monthly.pptx -Theme Boardroom {\n    PptSlide -Title 'FY2026 monthly results' -Subtitle 'Finance update'\n    PptSlide -Title 'Revenue, cost and margin' {\n        PptChart -InputObject $months -Category Month -Value Revenue, Cost -Type Column -Title 'USD k'\n        PptChart -InputObject $months -Category Month -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Cost rose in March because of the data-center move.'\n    }\n}"
+          "code": "$months = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\FY2026-Monthly.pptx -Theme Boardroom {\n    PowerPointSlide -Title 'FY2026 monthly results' -Subtitle 'Finance update'\n    PowerPointSlide -Title 'Revenue, cost and margin' {\n        PowerPointChart -InputObject $months -Category Month -Value Revenue, Cost -Type Column -Title 'USD k'\n        PowerPointChart -InputObject $months -Category Month -Value Margin -Type Line -Title 'Margin (%)'\n        PowerPointNotes 'Cost rose in March because of the data-center move.'\n    }\n}"
         },
         {
           "title": "Sketch a deck with a sample chart",
           "description": "Adds a chart with placeholder data while the real numbers are not ready yet.",
-          "code": "PptSlide -Title 'Pipeline by stage' {\n    PptChart -Type Pie -Title 'Draft: data pending'\n}"
+          "code": "PowerPointSlide -Title 'Pipeline by stage' {\n    PowerPointChart -Type Pie -Title 'Draft: data pending'\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointImage",
-      "alias": "PptImage",
+      "alias": "PowerPointImage",
       "status": "existing",
       "synopsis": "Adds a picture; fitted to the layout's image area unless placed explicitly.",
       "outputType": "PowerPointPicture (with -PassThru)",
@@ -2084,23 +2084,23 @@
         {
           "title": "Add a picture",
           "description": "Adds an image fitted to the layout's image area, with alternative text for screen readers.",
-          "code": "PptSlide -Title 'Network topology' {\n    PptImage .\\Diagrams\\Topology.png -AlternativeText 'Two data centers linked to three branch offices'\n}"
+          "code": "PowerPointSlide -Title 'Network topology' {\n    PowerPointImage .\\Diagrams\\Topology.png -AlternativeText 'Two data centers linked to three branch offices'\n}"
         },
         {
           "title": "Put a diagram next to its key points",
           "description": "Places a diagram and a list side by side without coordinates; the image and the list give the TwoContent layout.",
-          "code": "New-OfficePowerPoint -Path .\\Projects\\Target-Architecture.pptx {\n    PptSlide -Title 'Target architecture' -Subtitle 'Northwind migration'\n    PptSlide -Title 'Hub and spoke network' {\n        PptImage .\\Diagrams\\Hub-Spoke.png -AlternativeText 'Hub network with three spoke networks for production, test and shared services'\n        PptList 'One firewall in the hub', 'Private endpoints for data services', 'No public IPs in spokes'\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Projects\\Target-Architecture.pptx {\n    PowerPointSlide -Title 'Target architecture' -Subtitle 'Northwind migration'\n    PowerPointSlide -Title 'Hub and spoke network' {\n        PowerPointImage .\\Diagrams\\Hub-Spoke.png -AlternativeText 'Hub network with three spoke networks for production, test and shared services'\n        PowerPointList 'One firewall in the hub', 'Private endpoints for data services', 'No public IPs in spokes'\n    }\n}"
         },
         {
           "title": "Add an SVG chart as a visual",
           "description": "Converts an SVG chart into an Office visual and adds it to the slide.",
-          "code": "$visual = ConvertTo-OfficeVisual -InputObject .\\Charts\\Latency-P95.svg -Title 'P95 latency'\nPptSlide -Title 'Latency trend' {\n    PptImage -InputObject $visual -AlternativeText 'P95 latency fell from 240 ms to 180 ms over six weeks'\n}"
+          "code": "$visual = ConvertTo-OfficeVisual -InputObject .\\Charts\\Latency-P95.svg -Title 'P95 latency'\nPowerPointSlide -Title 'Latency trend' {\n    PowerPointImage -InputObject $visual -AlternativeText 'P95 latency fell from 240 ms to 180 ms over six weeks'\n}"
         }
       ]
     },
     {
       "name": "Set-OfficePowerPointNotes",
-      "alias": "PptNotes",
+      "alias": "PowerPointNotes",
       "status": "existing",
       "synopsis": "Sets the speaker notes of the current or given slide.",
       "outputType": "PowerPointSlide (with -PassThru)",
@@ -2136,12 +2136,12 @@
         {
           "title": "Add speaker notes to a slide",
           "description": "Sets the speaker notes of the current slide inside its block.",
-          "code": "PptSlide -Title 'Budget' {\n    PptChart -InputObject $budget -Category Department -Value Spend\n    PptNotes 'Pause here for questions about the budget.'\n}"
+          "code": "PowerPointSlide -Title 'Budget' {\n    PowerPointChart -InputObject $budget -Category Department -Value Spend\n    PowerPointNotes 'Pause here for questions about the budget.'\n}"
         },
         {
           "title": "Write talking points for each region",
           "description": "Creates one slide per region with its numbers on the slide and its talking point in the notes.",
-          "code": "$regions = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Regions.pptx {\n    PptSlide -Title 'Q3 regional results'\n    foreach ($region in $regions) {\n        PptSlide -Title $region.Region {\n            PptKpi $region.Revenue 'Revenue'\n            PptKpi $region.Deals 'Deals closed'\n            PptNotes $region.TalkingPoint\n        }\n    }\n}"
+          "code": "$regions = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Regions.pptx {\n    PowerPointSlide -Title 'Q3 regional results'\n    foreach ($region in $regions) {\n        PowerPointSlide -Title $region.Region {\n            PowerPointKpi $region.Revenue 'Revenue'\n            PowerPointKpi $region.Deals 'Deals closed'\n            PowerPointNotes $region.TalkingPoint\n        }\n    }\n}"
         },
         {
           "title": "Set notes on an existing slide",
@@ -2152,7 +2152,7 @@
     },
     {
       "name": "Add-OfficePowerPointKpi",
-      "alias": "PptKpi",
+      "alias": "PowerPointKpi",
       "status": "new",
       "synopsis": "Adds a metric to a Kpi or CaseStudy slide.",
       "outputType": "None",
@@ -2259,23 +2259,23 @@
         {
           "title": "Show two metrics",
           "description": "Adds metrics to a slide, which gives it the Kpi layout.",
-          "code": "PptSlide -Title 'Service health' {\n    PptKpi '99.95%' 'Availability'\n    PptKpi '182 ms' 'Median latency'\n}"
+          "code": "PowerPointSlide -Title 'Service health' {\n    PowerPointKpi '99.95%' 'Availability'\n    PowerPointKpi '182 ms' 'Median latency'\n}"
         },
         {
           "title": "Report support metrics with change indicators",
           "description": "Calculates this month's support metrics from ticket data and shows them with changes, marking the worsening one with the warning color.",
-          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PptSlide -Title 'Support review' -Subtitle 'October 2026'\n    PptSlide -Title 'October at a glance' {\n        PptKpi $tickets.Count 'Tickets opened' -Change '+6% vs September' -Trend Up -GoodDirection Down\n        PptKpi $closed.Count 'Tickets closed' -Change '+11%' -Trend Up\n        PptKpi '4.6 / 5' 'Satisfaction' -Change '+0.1' -Trend Up\n        PptKpi $breached.Count 'SLA breaches' -Change '+3' -Trend Up -GoodDirection Down\n    }\n}"
+          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PowerPointSlide -Title 'Support review' -Subtitle 'October 2026'\n    PowerPointSlide -Title 'October at a glance' {\n        PowerPointKpi $tickets.Count 'Tickets opened' -Change '+6% vs September' -Trend Up -GoodDirection Down\n        PowerPointKpi $closed.Count 'Tickets closed' -Change '+11%' -Trend Up\n        PowerPointKpi '4.6 / 5' 'Satisfaction' -Change '+0.1' -Trend Up\n        PowerPointKpi $breached.Count 'SLA breaches' -Change '+3' -Trend Up -GoodDirection Down\n    }\n}"
         },
         {
           "title": "Show a computed change",
           "description": "Passes the numeric change; the change text and the arrow follow from it, and -GoodDirection decides the colour.",
-          "code": "PptSlide -Title 'This week' {\n    PptKpi '99.95%' 'Availability' -Delta 0.02 -DeltaUnit pt\n    PptKpi '182 ms' 'Median response' -Delta -14 -DeltaUnit ms -GoodDirection Down\n}"
+          "code": "PowerPointSlide -Title 'This week' {\n    PowerPointKpi '99.95%' 'Availability' -Delta 0.02 -DeltaUnit pt\n    PowerPointKpi '182 ms' 'Median response' -Delta -14 -DeltaUnit ms -GoodDirection Down\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointCard",
-      "alias": "PptCard",
+      "alias": "PowerPointCard",
       "status": "new",
       "synopsis": "Adds a card to a Cards, Logos or CaseStudy slide.",
       "outputType": "None",
@@ -2326,23 +2326,23 @@
         {
           "title": "Show three cards",
           "description": "Adds cards to a slide, which gives it the Cards layout.",
-          "code": "PptSlide -Title 'Current signals' {\n    PptCard 'Availability' -Text 'All regions healthy'\n    PptCard 'Capacity' -Text 'Storage at 71%'\n    PptCard 'Risk' -Text 'One vendor dependency on watch'\n}"
+          "code": "PowerPointSlide -Title 'Current signals' {\n    PowerPointCard 'Availability' -Text 'All regions healthy'\n    PowerPointCard 'Capacity' -Text 'Storage at 71%'\n    PowerPointCard 'Risk' -Text 'One vendor dependency on watch'\n}"
         },
         {
           "title": "Describe service capabilities",
           "description": "Builds a capabilities slide whose cards carry a short description and a few points each.",
-          "code": "New-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx -Theme Modern {\n    PptSlide -Title 'Managed services' -Subtitle 'What we run for you'\n    PptSlide -Title 'Capabilities' {\n        PptCard 'Identity' -Text 'Directory and access management' -Items 'Single sign-on', 'MFA', 'Access reviews'\n        PptCard 'Endpoints' -Text 'Devices that stay compliant' -Items 'Windows and macOS', 'Patching', 'Encryption'\n        PptCard 'Monitoring' -Text 'Around-the-clock operations' -Items '24x7 desk', 'Alerting', 'Monthly reports'\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx -Theme Modern {\n    PowerPointSlide -Title 'Managed services' -Subtitle 'What we run for you'\n    PowerPointSlide -Title 'Capabilities' {\n        PowerPointCard 'Identity' -Text 'Directory and access management' -Items 'Single sign-on', 'MFA', 'Access reviews'\n        PowerPointCard 'Endpoints' -Text 'Devices that stay compliant' -Items 'Windows and macOS', 'Patching', 'Encryption'\n        PowerPointCard 'Monitoring' -Text 'Around-the-clock operations' -Items '24x7 desk', 'Alerting', 'Monthly reports'\n    }\n}"
         },
         {
           "title": "Show the systems covered as logos",
           "description": "Cards with only a title and an image render as a logo wall.",
-          "code": "PptSlide -Title 'Systems covered' {\n    PptCard 'Directory' -Image .\\Logos\\Directory.png\n    PptCard 'Mail' -Image .\\Logos\\Mail.png\n    PptCard 'Backup' -Image .\\Logos\\Backup.png\n    PptCard 'Monitoring' -Image .\\Logos\\Monitoring.png\n}"
+          "code": "PowerPointSlide -Title 'Systems covered' {\n    PowerPointCard 'Directory' -Image .\\Logos\\Directory.png\n    PowerPointCard 'Mail' -Image .\\Logos\\Mail.png\n    PowerPointCard 'Backup' -Image .\\Logos\\Backup.png\n    PowerPointCard 'Monitoring' -Image .\\Logos\\Monitoring.png\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointStep",
-      "alias": "PptStep",
+      "alias": "PowerPointStep",
       "status": "new",
       "synopsis": "Adds a step to a Process slide.",
       "outputType": "None",
@@ -2379,18 +2379,18 @@
         {
           "title": "Show a three-step process",
           "description": "Adds steps to a slide, which gives it the Process layout.",
-          "code": "PptSlide -Title 'Operating rhythm' {\n    PptStep 'Collect' 'Gather health signals'\n    PptStep 'Review' 'Confirm decisions with owners'\n    PptStep 'Act' 'Track actions to closure'\n}"
+          "code": "PowerPointSlide -Title 'Operating rhythm' {\n    PowerPointStep 'Collect' 'Gather health signals'\n    PowerPointStep 'Review' 'Confirm decisions with owners'\n    PowerPointStep 'Act' 'Track actions to closure'\n}"
         },
         {
           "title": "Lay out a migration timeline",
           "description": "Shows the migration as numbered weeks with what happens in each.",
-          "code": "New-OfficePowerPoint -Path .\\Projects\\Mail-Migration.pptx {\n    PptSlide -Title 'Mail migration' -Subtitle 'Plan for November'\n    PptSlide -Title 'Five-week plan' {\n        PptStep 'Pilot' 'IT and two volunteer teams' -Number 'Week 1'\n        PptStep 'Wave 1' 'Head office, 400 mailboxes' -Number 'Week 2'\n        PptStep 'Wave 2' 'Regional offices, 650 mailboxes' -Number 'Week 3'\n        PptStep 'Shared mailboxes' 'Rooms and team mailboxes' -Number 'Week 4'\n        PptStep 'Decommission' 'Retire the old mail servers' -Number 'Week 5'\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Projects\\Mail-Migration.pptx {\n    PowerPointSlide -Title 'Mail migration' -Subtitle 'Plan for November'\n    PowerPointSlide -Title 'Five-week plan' {\n        PowerPointStep 'Pilot' 'IT and two volunteer teams' -Number 'Week 1'\n        PowerPointStep 'Wave 1' 'Head office, 400 mailboxes' -Number 'Week 2'\n        PowerPointStep 'Wave 2' 'Regional offices, 650 mailboxes' -Number 'Week 3'\n        PowerPointStep 'Shared mailboxes' 'Rooms and team mailboxes' -Number 'Week 4'\n        PowerPointStep 'Decommission' 'Retire the old mail servers' -Number 'Week 5'\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointLocation",
-      "alias": "PptLocation",
+      "alias": "PowerPointLocation",
       "status": "new",
       "synopsis": "Adds a pinned location to a Coverage slide.",
       "outputType": "None",
@@ -2434,18 +2434,18 @@
         {
           "title": "Pin a location on a map",
           "description": "Adds a location, which gives the slide the Coverage layout; the map position is a fraction of the map area.",
-          "code": "PptSlide -Title 'Regional coverage' {\n    PptLocation 'Dublin' -MapLeft 0.45 -MapTop 0.3 -Detail 'Primary operations'\n}"
+          "code": "PowerPointSlide -Title 'Regional coverage' {\n    PowerPointLocation 'Dublin' -MapLeft 0.45 -MapTop 0.3 -Detail 'Primary operations'\n}"
         },
         {
           "title": "Show data centers from an inventory",
           "description": "Pins every data center from a worksheet with its role as the detail text.",
-          "code": "$sites = Import-OfficeExcel -Path .\\Inventory\\Sites.xlsx -Sheet 'Data centers'\nNew-OfficePowerPoint -Path .\\Inventory\\Coverage.pptx {\n    PptSlide -Title 'Where we run' -Subtitle 'Data centers and roles'\n    PptSlide -Title 'Data centers' {\n        foreach ($site in $sites) {\n            PptLocation $site.City -MapLeft $site.MapLeft -MapTop $site.MapTop -Detail $site.Role\n        }\n    }\n}"
+          "code": "$sites = Import-OfficeExcel -Path .\\Inventory\\Sites.xlsx -Sheet 'Data centers'\nNew-OfficePowerPoint -Path .\\Inventory\\Coverage.pptx {\n    PowerPointSlide -Title 'Where we run' -Subtitle 'Data centers and roles'\n    PowerPointSlide -Title 'Data centers' {\n        foreach ($site in $sites) {\n            PowerPointLocation $site.City -MapLeft $site.MapLeft -MapTop $site.MapTop -Detail $site.Role\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointQuote",
-      "alias": "PptQuote",
+      "alias": "PowerPointQuote",
       "status": "new",
       "synopsis": "Adds a quotation with its attribution; the slide gets the Quote layout.",
       "outputType": "None",
@@ -2477,18 +2477,18 @@
         {
           "title": "Add a customer quote",
           "description": "A slide with only a quote gets the Quote layout.",
-          "code": "PptSlide {\n    PptQuote 'The new intake form cut our wait time in half.' 'Anna Nowak, East depot'\n}"
+          "code": "PowerPointSlide {\n    PowerPointQuote 'The new intake form cut our wait time in half.' 'Anna Nowak, East depot'\n}"
         },
         {
           "title": "Close a review with feedback",
           "description": "Puts the top-rated survey comment on its own slide before the closing slide.",
-          "code": "$comments = Import-OfficeExcel -Path .\\Survey\\Results.xlsx -Sheet 'Comments'\n$best = $comments | Sort-Object -Property Rating -Descending | Select-Object -First 1\nNew-OfficePowerPoint -Path .\\Survey\\Review.pptx -Author 'Service desk' -Date (Get-Date) {\n    PptSlide -Title 'Service desk survey' -Subtitle 'October 2026'\n    PptSlide {\n        PptQuote $best.Comment \"$($best.Name), $($best.Site)\"\n    }\n    PptSlide -Title 'Thank you'\n}"
+          "code": "$comments = Import-OfficeExcel -Path .\\Survey\\Results.xlsx -Sheet 'Comments'\n$best = $comments | Sort-Object -Property Rating -Descending | Select-Object -First 1\nNew-OfficePowerPoint -Path .\\Survey\\Review.pptx -Author 'Service desk' -Date (Get-Date) {\n    PowerPointSlide -Title 'Service desk survey' -Subtitle 'October 2026'\n    PowerPointSlide {\n        PowerPointQuote $best.Comment \"$($best.Name), $($best.Site)\"\n    }\n    PowerPointSlide -Title 'Thank you'\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointColumn",
-      "alias": "PptColumn",
+      "alias": "PowerPointColumn",
       "status": "new",
       "synopsis": "Groups content into one side of a TwoContent or Comparison slide.",
       "outputType": "None",
@@ -2514,25 +2514,25 @@
           ]
         }
       ],
-      "notes": "Optional: two content blocks without PptColumn already give TwoContent.",
+      "notes": "Optional: two content blocks without PowerPointColumn already give TwoContent.",
       "examples": [
         {
           "title": "Compare two options side by side",
           "description": "Groups content into two titled columns, which gives the Comparison layout.",
-          "code": "PptSlide -Title 'Build or buy' {\n    PptColumn -Title 'Build' {\n        PptList 'Full control', 'Six months to first release'\n    }\n    PptColumn -Title 'Buy' {\n        PptList 'Live in six weeks', 'Yearly subscription'\n    }\n}"
+          "code": "PowerPointSlide -Title 'Build or buy' {\n    PowerPointColumn -Title 'Build' {\n        PowerPointList 'Full control', 'Six months to first release'\n    }\n    PowerPointColumn -Title 'Buy' {\n        PowerPointList 'Live in six weeks', 'Yearly subscription'\n    }\n}"
         },
         {
           "title": "Show before and after a migration",
           "description": "Puts the old and new environments next to each other, each with its own table and chart.",
-          "code": "$before = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'On-premises'\n$after = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'Hosted'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Costs.pptx {\n    PptSlide -Title 'Running costs' -Subtitle 'Before and after the migration'\n    PptSlide -Title 'Yearly cost by item' {\n        PptColumn -Title 'On-premises' {\n            PptChart -InputObject $before -Category Item -Value Cost -Type Pie\n            PptParagraph 'USD 412k per year'\n        }\n        PptColumn -Title 'Hosted' {\n            PptChart -InputObject $after -Category Item -Value Cost -Type Pie\n            PptParagraph 'USD 268k per year'\n        }\n    }\n}"
+          "code": "$before = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'On-premises'\n$after = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'Hosted'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Costs.pptx {\n    PowerPointSlide -Title 'Running costs' -Subtitle 'Before and after the migration'\n    PowerPointSlide -Title 'Yearly cost by item' {\n        PowerPointColumn -Title 'On-premises' {\n            PowerPointChart -InputObject $before -Category Item -Value Cost -Type Pie\n            PowerPointParagraph 'USD 412k per year'\n        }\n        PowerPointColumn -Title 'Hosted' {\n            PowerPointChart -InputObject $after -Category Item -Value Cost -Type Pie\n            PowerPointParagraph 'USD 268k per year'\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointFooter",
-      "alias": "PptFooter",
+      "alias": "PowerPointFooter",
       "status": "new",
-      "synopsis": "Sets footer text for the deck (in the New-/Open- block) or for one slide (inside PptSlide).",
+      "synopsis": "Sets footer text for the deck (in the New-/Open- block) or for one slide (inside PowerPointSlide).",
       "outputType": "None",
       "parameterSets": [
         {
@@ -2575,23 +2575,23 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PptText and PptSlideNumber.",
+      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PowerPointText and PowerPointSlideNumber.",
       "examples": [
         {
           "title": "Add a footer to every slide",
           "description": "Sets the deck footer text inside the New- block.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptFooter 'Contoso | Internal'\n    PptSlide -Title 'Q3 business review'\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PowerPointFooter 'Contoso | Internal'\n    PowerPointSlide -Title 'Q3 business review'\n}"
         },
         {
           "title": "Combine deck and slide footers",
           "description": "Puts the classification on the left and the slide number on the right of every slide, and gives one slide its own footer.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Security-Review.pptx -Theme Boardroom {\n    PptFooter 'Contoso | Confidential' -Alignment Left\n    PptFooter -Alignment Right {\n        PptSlideNumber\n    }\n    PptSlide -Title 'Security review' -Subtitle 'Q3 2026'\n    PptSlide -Title 'External audit findings' {\n        PptTable -InputObject $findings -Property Finding, Severity, Owner\n        PptFooter 'Source: external audit report, September 2026'\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Security-Review.pptx -Theme Boardroom {\n    PowerPointFooter 'Contoso | Confidential' -Alignment Left\n    PowerPointFooter -Alignment Right {\n        PowerPointSlideNumber\n    }\n    PowerPointSlide -Title 'Security review' -Subtitle 'Q3 2026'\n    PowerPointSlide -Title 'External audit findings' {\n        PowerPointTable -InputObject $findings -Property Finding, Severity, Owner\n        PowerPointFooter 'Source: external audit report, September 2026'\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointSlideNumber",
-      "alias": "PptSlideNumber",
+      "alias": "PowerPointSlideNumber",
       "status": "new",
       "synopsis": "Inserts the slide-number field into a footer.",
       "outputType": "None",
@@ -2614,19 +2614,19 @@
         {
           "title": "Number the slides",
           "description": "Adds the slide-number field to the deck footer.",
-          "code": "PptFooter {\n    PptSlideNumber\n}"
+          "code": "PowerPointFooter {\n    PowerPointSlideNumber\n}"
         },
         {
           "title": "Write \"Slide N\" in a branded footer",
           "description": "Combines footer text and the slide-number field for every slide of the deck.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PptFooter {\n        PptText 'Board pack, November 2026 | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PptSlide -Title 'Agenda' {\n        PptList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PowerPointFooter {\n        PowerPointText 'Board pack, November 2026 | Slide '\n        PowerPointSlideNumber\n    }\n    PowerPointSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PowerPointSlide -Title 'Agenda' {\n        PowerPointList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
         }
       ],
-      "notes": "Used inside PptFooter. Writes to the native slide-number placeholder."
+      "notes": "Used inside PowerPointFooter. Writes to the native slide-number placeholder."
     },
     {
       "name": "Add-OfficePowerPointTextBox",
-      "alias": "PptTextBox",
+      "alias": "PowerPointTextBox",
       "status": "existing",
       "synopsis": "Adds a free-placed text box (advanced; layouts place text without one).",
       "outputType": "PowerPointTextBox (with -PassThru)",
@@ -2772,23 +2772,23 @@
           ]
         }
       ],
-      "notes": "Kept for deliberate placement. Rich text uses a content block of PptParagraph/PptText instead of -Run.",
+      "notes": "Kept for deliberate placement. Rich text uses a content block of PowerPointParagraph/PowerPointText instead of -Run.",
       "examples": [
         {
           "title": "Place a text box at an exact position",
           "description": "Adds a free-placed label in the top-right corner of the slide.",
-          "code": "PptTextBox 'DRAFT' -X 28cm -Y 0.6cm -Width 4cm -Height 1cm"
+          "code": "PowerPointTextBox 'DRAFT' -X 28cm -Y 0.6cm -Width 4cm -Height 1cm"
         },
         {
           "title": "Add a named callout over a chart",
           "description": "Places a styled callout over the chart and names it, so a later script can find and update it.",
-          "code": "$trend = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx {\n    PptSlide -Title 'Revenue trend' {\n        PptChart -InputObject $trend -Category Month -Value Revenue -Type Line\n        PptTextBox -Name 'Callout' -X 18cm -Y 5cm -Width 8cm -Height 2.5cm {\n            PptParagraph {\n                PptText 'Record month: ' -Bold\n                PptText 'March, after the spring campaign'\n            }\n        }\n    }\n}"
+          "code": "$trend = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx {\n    PowerPointSlide -Title 'Revenue trend' {\n        PowerPointChart -InputObject $trend -Category Month -Value Revenue -Type Line\n        PowerPointTextBox -Name 'Callout' -X 18cm -Y 5cm -Width 8cm -Height 2.5cm {\n            PowerPointParagraph {\n                PowerPointText 'Record month: ' -Bold\n                PowerPointText 'March, after the spring campaign'\n            }\n        }\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointShape",
-      "alias": "PptShape",
+      "alias": "PowerPointShape",
       "status": "existing",
       "synopsis": "Adds a preset shape (advanced placement).",
       "outputType": "PowerPointAutoShape (with -PassThru)",
@@ -2885,18 +2885,18 @@
         {
           "title": "Draw a rectangle",
           "description": "Adds a preset shape at an exact position and size.",
-          "code": "PptShape -Type Rectangle -X 2cm -Y 4cm -Width 6cm -Height 3cm"
+          "code": "PowerPointShape -Type Rectangle -X 2cm -Y 4cm -Width 6cm -Height 3cm"
         },
         {
           "title": "Draw status lights for each service",
           "description": "Adds one named circle per service in its status color and spaces them evenly across the slide.",
-          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx {\n    PptSlide -Title 'Service status board' {\n        $lights = foreach ($service in $services) {\n            $color = switch ($service.State) { 'Healthy' { 'Success' } 'Degraded' { 'Warning' } default { 'Danger' } }\n            PptShape -Type Ellipse -Name \"Status-$($service.Name)\" -FillColor $color -X 2cm -Y 8cm -Width 2cm -Height 2cm -PassThru\n        }\n        $lights | PptShapeLayout -Distribute Horizontal -ToSlide -Margin 2cm\n    }\n}"
+          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx {\n    PowerPointSlide -Title 'Service status board' {\n        $lights = foreach ($service in $services) {\n            $color = switch ($service.State) { 'Healthy' { 'Success' } 'Degraded' { 'Warning' } default { 'Danger' } }\n            PowerPointShape -Type Ellipse -Name \"Status-$($service.Name)\" -FillColor $color -X 2cm -Y 8cm -Width 2cm -Height 2cm -PassThru\n        }\n        $lights | PowerPointShapeLayout -Distribute Horizontal -ToSlide -Margin 2cm\n    }\n}"
         }
       ]
     },
     {
       "name": "Set-OfficePowerPointPlaceholder",
-      "alias": "PptPlaceholder",
+      "alias": "PowerPointPlaceholder",
       "status": "new",
       "synopsis": "Fills a template placeholder on the current or given slide with text or styled runs.",
       "outputType": "PowerPointTextBox (with -PassThru)",
@@ -2996,18 +2996,18 @@
         {
           "title": "Fill a template placeholder",
           "description": "Writes text into the body placeholder of the current slide.",
-          "code": "PptPlaceholder -Type Body 'Results, risks and decisions'"
+          "code": "PowerPointPlaceholder -Type Body 'Results, risks and decisions'"
         },
         {
           "title": "Build a deck from a corporate template",
           "description": "Uses a company .potx as the theme and fills the placeholders of its own layouts by type.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Theme .\\Templates\\Contoso-2026.potx {\n    PptSlide -TemplateLayout 'Title Slide' {\n        PptPlaceholder -Type CenteredTitle 'Partner update'\n        PptPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PptSlide -TemplateLayout 'Title and Content' {\n        PptPlaceholder -Type Title 'Highlights'\n        PptPlaceholder -Type Body {\n            PptParagraph 'Three new regions live'\n            PptParagraph 'Partner portal adoption at 74%'\n        }\n        PptPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Theme .\\Templates\\Contoso-2026.potx {\n    PowerPointSlide -TemplateLayout 'Title Slide' {\n        PowerPointPlaceholder -Type CenteredTitle 'Partner update'\n        PowerPointPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PowerPointSlide -TemplateLayout 'Title and Content' {\n        PowerPointPlaceholder -Type Title 'Highlights'\n        PowerPointPlaceholder -Type Body {\n            PowerPointParagraph 'Three new regions live'\n            PowerPointParagraph 'Partner portal adoption at 74%'\n        }\n        PowerPointPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficePowerPointSection",
-      "alias": "PptSection",
+      "alias": "PowerPointSection",
       "status": "existing",
       "synopsis": "Starts a named section at the current or given slide.",
       "outputType": "PowerPointSectionInfo (with -PassThru)",
@@ -3049,12 +3049,12 @@
         {
           "title": "Start a section at a slide",
           "description": "Starts the Appendix section at slide 9 of an existing deck.",
-          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSection 'Appendix' -Slide 9\n}"
+          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PowerPointSection 'Appendix' -Slide 9\n}"
         },
         {
           "title": "Group new slides into sections",
-          "description": "Each PptSection covers the slides added after it, until the next PptSection.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSection 'Results'\n    PptSlide -Title 'Revenue'\n    PptSlide -Title 'Margin'\n    PptSection 'Plans'\n    PptSlide -Title 'Next-quarter priorities'\n}"
+          "description": "Each PowerPointSection covers the slides added after it, until the next PowerPointSection.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PowerPointSection 'Results'\n    PowerPointSlide -Title 'Revenue'\n    PowerPointSlide -Title 'Margin'\n    PowerPointSection 'Plans'\n    PowerPointSlide -Title 'Next-quarter priorities'\n}"
         },
         {
           "title": "Organize a long deck into sections",
@@ -3062,7 +3062,7 @@
           "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Annual-Review.pptx\nAdd-OfficePowerPointSection -Document $deck -Name 'Introduction' -Slide 1\nAdd-OfficePowerPointSection -Document $deck -Name 'Results' -Slide 3\nAdd-OfficePowerPointSection -Document $deck -Name 'Plans' -Slide 11\nAdd-OfficePowerPointSection -Document $deck -Name 'Appendix' -Slide 18\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ],
-      "notes": "A section starts at its first slide and covers every following slide until the next section starts. In a deck block, PptSection placed between PptSlide calls covers the slides added after it until the next PptSection; inside a PptSlide block it starts at that slide. Slides added before the first section belong to the default (unnamed) section. With -Slide it starts at an existing slide, which suits Open-OfficePowerPoint and -Document scripts."
+      "notes": "A section starts at its first slide and covers every following slide until the next section starts. In a deck block, PowerPointSection placed between PowerPointSlide calls covers the slides added after it until the next PowerPointSection; inside a PowerPointSlide block it starts at that slide. Slides added before the first section belong to the default (unnamed) section. With -Slide it starts at an existing slide, which suits Open-OfficePowerPoint and -Document scripts."
     },
     {
       "name": "Set-OfficePowerPointSlideSize",
@@ -3154,7 +3154,7 @@
     },
     {
       "name": "Set-OfficePowerPointShapeLayout",
-      "alias": "PptShapeLayout",
+      "alias": "PowerPointShapeLayout",
       "status": "existing",
       "synopsis": "Aligns, distributes or grids shapes.",
       "outputType": "PowerPointShape (with -PassThru)",
@@ -3543,7 +3543,7 @@
           ]
         }
       ],
-      "notes": "The same properties are PptSlide parameters when a slide is created. Title targets the title placeholder, else adds a title shape (today's Set-OfficePowerPointSlideTitle behavior).",
+      "notes": "The same properties are PowerPointSlide parameters when a slide is created. Title targets the title placeholder, else adds a title shape (today's Set-OfficePowerPointSlideTitle behavior).",
       "examples": [
         {
           "title": "Change a slide title",
@@ -3864,7 +3864,7 @@
         {
           "title": "Assemble a deck from team updates",
           "description": "Creates a cover slide, then imports the first two slides of every team's update deck in name order.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Engineering-Update.pptx {\n    PptSlide -Title 'Engineering update' -Subtitle 'Week 43'\n    Get-ChildItem -Path .\\Updates -Filter *.pptx | Sort-Object Name | ForEach-Object {\n        Import-OfficePowerPointSlide -LiteralPath $_.FullName -SourceSlide 1, 2\n    }\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Engineering-Update.pptx {\n    PowerPointSlide -Title 'Engineering update' -Subtitle 'Week 43'\n    Get-ChildItem -Path .\\Updates -Filter *.pptx | Sort-Object Name | ForEach-Object {\n        Import-OfficePowerPointSlide -LiteralPath $_.FullName -SourceSlide 1, 2\n    }\n}"
         },
         {
           "title": "Import from a presentation that is already open",
@@ -3874,7 +3874,7 @@
         {
           "title": "Append a whole deck",
           "description": "Imports every slide of the standard appendix at the end of the deck being built.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Customer-Proposal.pptx {\n    PptSlide -Title 'Managed services proposal' -Subtitle 'Northwind Traders'\n    Import-OfficePowerPointSlide -Path .\\Library\\Standard-Appendix.pptx\n}"
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Customer-Proposal.pptx {\n    PowerPointSlide -Title 'Managed services proposal' -Subtitle 'Northwind Traders'\n    Import-OfficePowerPointSlide -Path .\\Library\\Standard-Appendix.pptx\n}"
         }
       ]
     },
@@ -4315,7 +4315,7 @@
         {
           "title": "Write styled text into a shape",
           "description": "Replaces the callout text with styled runs that flag a risk in the danger color.",
-          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx\n$callout = Get-OfficePowerPointShape -Document $deck -Name 'Callout'\nSet-OfficePowerPointShapeText -InputObject $callout -Content {\n    PptParagraph {\n        PptText 'Risk: ' -Bold\n        PptText 'Q4 pipeline 18% below plan' -Color Danger\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx\n$callout = Get-OfficePowerPointShape -Document $deck -Name 'Callout'\nSet-OfficePowerPointShapeText -InputObject $callout -Content {\n    PowerPointParagraph {\n        PowerPointText 'Risk: ' -Bold\n        PowerPointText 'Q4 pipeline 18% below plan' -Color Danger\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -4473,7 +4473,7 @@
         {
           "title": "Mark a milestone as late",
           "description": "Finds the milestone table and replaces one status cell with styled text in the danger color.",
-          "code": "$deck = Open-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx\n$milestones = Get-OfficePowerPointShape -Document $deck -Text 'Milestone' -Kind Table | Select-Object -First 1\nSet-OfficePowerPointTableCell -InputObject $milestones -Row 4 -Column 3 -Content {\n    PptParagraph {\n        PptText 'Late: ' -Bold -Color Danger\n        PptText 'moved to 28 November'\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx\n$milestones = Get-OfficePowerPointShape -Document $deck -Text 'Milestone' -Kind Table | Select-Object -First 1\nSet-OfficePowerPointTableCell -InputObject $milestones -Row 4 -Column 3 -Content {\n    PowerPointParagraph {\n        PowerPointText 'Late: ' -Bold -Color Danger\n        PowerPointText 'moved to 28 November'\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -4837,7 +4837,7 @@
         },
         {
           "title": "Pick layout names from a corporate template",
-          "description": "Lists a template's layout names to use with PptSlide -TemplateLayout.",
+          "description": "Lists a template's layout names to use with PowerPointSlide -TemplateLayout.",
           "code": "$template = Open-OfficePowerPoint -Path .\\Templates\\Contoso-2026.potx\nGet-OfficePowerPointLayout -Document $template | Select-Object LayoutIndex, Name, Type\nClose-OfficePowerPoint -Document $template"
         }
       ],
@@ -4939,7 +4939,7 @@
         {
           "title": "Place shapes in equal columns",
           "description": "Computes three columns and places one labelled shape exactly in each.",
-          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPptSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PptShape -Type RoundRectangle -Name $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height $box.Height\n        PptTextBox $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPowerPointSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PowerPointShape -Type RoundRectangle -Name $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height $box.Height\n        PowerPointTextBox $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -5096,7 +5096,7 @@
           ]
         }
       ],
-      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly. -Underline takes the shared OfficeUnderline style, as on PptText; -Underline None removes it.",
+      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly. -Underline takes the shared OfficeUnderline style, as on PowerPointText; -Underline None removes it.",
       "examples": [
         {
           "title": "Change a layout title style",
@@ -5771,7 +5771,7 @@
         "Level": "Level",
         "Slide": "Slide"
       },
-      "hint": "PptList -Items 'Wins','Risks' (or PptList { PptListItem 'Wins' })",
+      "hint": "PowerPointList -Items 'Wins','Risks' (or PowerPointList { PowerPointListItem 'Wins' })",
       "reason": "Lists use the shared List/ListItem vocabulary; a list item can carry styled runs and its own level. Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement."
     },
     {
@@ -5786,7 +5786,7 @@
         "XProperty": "Category",
         "YProperty": "Value"
       },
-      "hint": "PptChart -InputObject $rows -Category Month -Value Sales,Profit",
+      "hint": "PowerPointChart -InputObject $rows -Category Month -Value Sales,Profit",
       "reason": "Shared chart parameters: -Category/-Value replace the property-name parameters, also for scatter charts; -Type takes OfficeChartType; the Data alias is removed. Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement."
     },
     {
@@ -5811,7 +5811,7 @@
         "NoApplyTheme": null,
         "Preview": null
       },
-      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' -Purpose 'monthly service brief' { PptSlide -Title 'Service Review' }",
+      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' -Purpose 'monthly service brief' { PowerPointSlide -Title 'Service Review' }",
       "reason": "Every slide is rendered by the designer engine as it is written, so there is no separate plan-render step. Brand and direction options moved to New-OfficePowerPoint so ordinary slides share the design. -Name comes from -Theme; -NoApplyTheme is the default behavior of Open-OfficePowerPoint (opening never restyles); -Preview is replaced by Get-OfficePowerPointSlide -Summary, which reports each slide's chosen layout; -AlternativeCount was an internal search-width knob whose result is fixed by -Seed."
     },
     {
@@ -5835,7 +5835,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Capabilities' -Layout Cards { PptCard 'Identity' -Text 'Directory and access' -Items 'SSO','MFA' }",
+      "hint": "PowerPointSlide -Title 'Capabilities' -Layout Cards { PowerPointCard 'Identity' -Text 'Directory and access' -Items 'SSO','MFA' }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Capability sections become PptCard items with -Text and -Items (Cards layout, capability composition)."
     },
     {
@@ -5851,7 +5851,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Current signals' { PptCard 'Availability' -Items 'Healthy'; PptCard 'Risk' -Items 'One dependency on watch' }",
+      "hint": "PowerPointSlide -Title 'Current signals' { PowerPointCard 'Availability' -Items 'Healthy'; PowerPointCard 'Risk' -Items 'One dependency on watch' }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Cards become PptCard items (Cards layout)."
     },
     {
@@ -5867,7 +5867,7 @@
         "Title": "Title",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Automation impact' -Layout CaseStudy { PptCard 'Challenge' -Text '...'; PptKpi '4h' 'saved each cycle' }",
+      "hint": "PowerPointSlide -Title 'Automation impact' -Layout CaseStudy { PowerPointCard 'Challenge' -Text '...'; PowerPointKpi '4h' 'saved each cycle' }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Sections become PptCard items and metrics PptKpi items (CaseStudy layout)."
     },
     {
@@ -5883,7 +5883,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Regional coverage' { PptLocation EMEA -MapLeft 0.45 -MapTop 0.35 -Detail 'Primary operations' }",
+      "hint": "PowerPointSlide -Title 'Regional coverage' { PowerPointLocation EMEA -MapLeft 0.45 -MapTop 0.35 -Detail 'Primary operations' }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Locations become PptLocation items (Coverage layout)."
     },
     {
@@ -5899,7 +5899,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Systems covered' -Layout Logos { PptCard 'Directory' -Text 'Identity platform' -Image .\\dir.png }",
+      "hint": "PowerPointSlide -Title 'Systems covered' -Layout Logos { PowerPointCard 'Directory' -Text 'Identity platform' -Image .\\dir.png }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Logos become PptCard items with -Image (Logos layout)."
     },
     {
@@ -5915,7 +5915,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Operating rhythm' { PptStep 'Collect' 'Gather health signals'; PptStep 'Review' 'Confirm decisions' }",
+      "hint": "PowerPointSlide -Title 'Operating rhythm' { PowerPointStep 'Collect' 'Gather health signals'; PowerPointStep 'Review' 'Confirm decisions' }",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. Steps become PptStep items (Process layout)."
     },
     {
@@ -5930,7 +5930,7 @@
         "Subtitle": "Subtitle",
         "Seed": "Seed"
       },
-      "hint": "PptSlide -Title 'Service Review' -Subtitle 'Monthly operating brief'",
+      "hint": "PowerPointSlide -Title 'Service Review' -Subtitle 'Monthly operating brief'",
       "reason": "Deck-plan slides are ordinary PptSlide slides; the layout content commands select the designed layout, so a separate plan object and hashtable inputs are no longer needed. -Seed stays on PptSlide. A slide with only a title is a Section slide; the first slide uses the Title layout."
     },
     {
@@ -5969,7 +5969,7 @@
         "LayoutType": "TemplateLayout",
         "CaseSensitive": null
       },
-      "hint": "PptSlide -Title 'Agenda' { PptList -Items 'Results','Risks' }",
+      "hint": "PowerPointSlide -Title 'Agenda' { PowerPointList -Items 'Results','Risks' }",
       "reason": "Gains -Title, -Subtitle and an optional designed -Layout chosen from content. Selecting a specific master layout by number, name or type collapses into -TemplateLayout (positions become 1-based; an exact-case name match wins, which replaces -CaseSensitive)."
     },
     {
@@ -5982,7 +5982,7 @@
         "Header": "Property",
         "StyleId": "Style"
       },
-      "hint": "PptTable -InputObject $rows -Property Name,Status",
+      "hint": "PowerPointTable -InputObject $rows -Property Name,Status",
       "reason": "Theme table style by default and automatic splitting across slides with a repeated header. -Property names the columns (was -Header/-Headers); -Style replaces -StyleId; the Data alias is removed. Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement."
     },
     {
@@ -6006,7 +6006,7 @@
       "parameters": {
         "Run": "Content"
       },
-      "hint": "PptTextBox -X 2cm -Y 4cm -Width 10cm { PptText 'Status: ' -Bold; PptText 'On track' -Color Success }",
+      "hint": "PowerPointTextBox -X 2cm -Y 4cm -Width 10cm { PowerPointText 'Status: ' -Bold; PowerPointText 'On track' -Color Success }",
       "reason": "Kept for deliberate placement. Styled text uses a content block of PptParagraph/PptText; -Run hashtables are removed. Integer points become OfficeLength."
     },
     {
@@ -6018,7 +6018,7 @@
       "parameters": {
         "MaximumSvgViewportPixels": "MaximumSvgViewportPixelCount"
       },
-      "hint": "PptImage -InputObject $artifact",
+      "hint": "PowerPointImage -InputObject $artifact",
       "reason": "A visual is placed as a picture; every format's image command takes visual objects in a Visual set. Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement. Pixel-count limits are named ...PixelCount so they are not read as lengths."
     },
     {
@@ -6281,7 +6281,7 @@
         "Open": "Show",
         "Password": "Password"
       },
-      "hint": "New-OfficePowerPoint -Path .\\Review.pptx -Theme Boardroom { PptSlide -Title 'Quarterly review' }",
+      "hint": "New-OfficePowerPoint -Path .\\Review.pptx -Theme Boardroom { PowerPointSlide -Title 'Quarterly review' }",
       "reason": "Applies a theme at creation and carries the designer options. -NoSave is removed (leave out the block to get the live deck; -Path is then optional); -AllowLoss accepts a lossy save; -Open becomes -Show; -Force is required to replace a file; -Password is SecureString."
     },
     {
@@ -6293,7 +6293,7 @@
       "parameters": {
         "Content": "Content"
       },
-      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx { PptSlide -Title 'Service Review'; PptSlide -Title 'Rhythm' { PptStep 'Collect' 'Gather signals' } }",
+      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx { PowerPointSlide -Title 'Service Review'; PowerPointSlide -Title 'Rhythm' { PowerPointStep 'Collect' 'Gather signals' } }",
       "reason": "The plan block becomes the presentation's own content block: slides written there are composed by the designer engine directly, so there is no plan object to build and render."
     },
     {
@@ -6469,7 +6469,7 @@
       "parameters": {
         "PlaceholderType": "Type"
       },
-      "hint": "PptPlaceholder -Type Body -Text 'Agenda'",
+      "hint": "PowerPointPlaceholder -Type Body -Text 'Agenda'",
       "reason": "Fills a placeholder with text or, through a content block, styled runs; -Type replaces -PlaceholderType."
     },
     {
@@ -6497,7 +6497,7 @@
       "parameters": {
         "Run": "Content"
       },
-      "hint": "Set-OfficePowerPointShapeText -InputObject $shape { PptText 'Ready' -Bold }",
+      "hint": "Set-OfficePowerPointShapeText -InputObject $shape { PowerPointText 'Ready' -Bold }",
       "reason": "-Run hashtables are replaced by a content block of PptText runs."
     },
     {
@@ -6664,37 +6664,39 @@
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "PptShapeLayout -Alignment Left",
+      "hint": "PowerPointShapeLayout -Alignment Left",
       "reason": "Twin of PptShapeLayout; one alias per command."
     },
     {
       "old": "PptBackground",
       "kind": "alias",
       "action": "parameter",
-      "new": "PptSlide",
-      "hint": "PptSlide -Background '#F3F4F6' { ... }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Background '#F3F4F6' { ... }",
       "reason": "Background is a slide parameter."
     },
     {
       "old": "PptBullets",
       "kind": "alias",
       "action": "rename",
-      "new": "PptList",
-      "hint": "PptList -Items 'Wins','Risks'",
+      "new": "PowerPointList",
+      "hint": "PowerPointList -Items 'Wins','Risks'",
       "reason": "Lists use the shared List/ListItem vocabulary."
     },
     {
       "old": "PptChart",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptChart"
+      "action": "rename",
+      "new": "PowerPointChart",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointChart replaces PptChart."
     },
     {
       "old": "PptDeckPlan",
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx { PptSlide -Title 'Service Review' }",
+      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx { PowerPointSlide -Title 'Service Review' }",
       "reason": "Deck plans are written directly in the New-OfficePowerPoint content block; New- commands have no alias."
     },
     {
@@ -6702,14 +6704,16 @@
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' { PptSlide ... }",
+      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' { PowerPointSlide ... }",
       "reason": "There is no separate render step; slides are designed as they are written."
     },
     {
       "old": "PptImage",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptImage"
+      "action": "rename",
+      "new": "PowerPointImage",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointImage replaces PptImage."
     },
     {
       "old": "PptLayoutBox",
@@ -6754,103 +6758,113 @@
     {
       "old": "PptNotes",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptNotes"
+      "action": "rename",
+      "new": "PowerPointNotes",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointNotes replaces PptNotes."
     },
     {
       "old": "PptPlaceholderText",
       "kind": "alias",
       "action": "rename",
-      "new": "PptPlaceholder",
-      "hint": "PptPlaceholder -Type Body -Text 'Agenda'",
+      "new": "PowerPointPlaceholder",
+      "hint": "PowerPointPlaceholder -Type Body -Text 'Agenda'",
       "reason": "Alias follows the renamed Set-OfficePowerPointPlaceholder."
     },
     {
       "old": "PptPlanCapability",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Layout Cards { PptCard 'Identity' -Text '...' -Items 'SSO' }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Layout Cards { PowerPointCard 'Identity' -Text '...' -Items 'SSO' }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanCardGrid",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Title 'Signals' { PptCard 'Availability' -Items 'Healthy' }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Title 'Signals' { PowerPointCard 'Availability' -Items 'Healthy' }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanCaseStudy",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Layout CaseStudy { PptCard 'Challenge' -Text '...'; PptKpi '4h' 'saved' }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Layout CaseStudy { PowerPointCard 'Challenge' -Text '...'; PowerPointKpi '4h' 'saved' }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanCoverage",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Title 'Coverage' { PptLocation EMEA -MapLeft 0.45 -MapTop 0.35 }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Title 'Coverage' { PowerPointLocation EMEA -MapLeft 0.45 -MapTop 0.35 }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanLogoWall",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Layout Logos { PptCard 'Directory' -Image .\\dir.png }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Layout Logos { PowerPointCard 'Directory' -Image .\\dir.png }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanProcess",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Title 'Rhythm' { PptStep 'Collect' 'Gather signals' }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Title 'Rhythm' { PowerPointStep 'Collect' 'Gather signals' }",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptPlanSection",
       "kind": "alias",
       "action": "merge",
-      "new": "PptSlide",
-      "hint": "PptSlide -Title 'Service Review' -Subtitle 'Monthly brief'",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Title 'Service Review' -Subtitle 'Monthly brief'",
       "reason": "Deck-plan slides are PptSlide slides with layout content commands."
     },
     {
       "old": "PptSection",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptSection"
+      "action": "rename",
+      "new": "PowerPointSection",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointSection replaces PptSection."
     },
     {
       "old": "PptShape",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptShape"
+      "action": "rename",
+      "new": "PowerPointShape",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointShape replaces PptShape."
     },
     {
       "old": "PptShapeLayout",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptShapeLayout"
+      "action": "rename",
+      "new": "PowerPointShapeLayout",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointShapeLayout replaces PptShapeLayout."
     },
     {
       "old": "PptSlide",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptSlide"
+      "action": "rename",
+      "new": "PowerPointSlide",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointSlide replaces PptSlide."
     },
     {
       "old": "PptSlideLayout",
       "kind": "alias",
       "action": "parameter",
-      "new": "PptSlide",
-      "hint": "PptSlide -TemplateLayout 'Title Only' { ... }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -TemplateLayout 'Title Only' { ... }",
       "reason": "Layout is a slide parameter: designed -Layout or master -TemplateLayout."
     },
     {
@@ -6864,14 +6878,18 @@
     {
       "old": "PptTable",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptTable"
+      "action": "rename",
+      "new": "PowerPointTable",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointTable replaces PptTable."
     },
     {
       "old": "PptTextBox",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptTextBox"
+      "action": "rename",
+      "new": "PowerPointTextBox",
+      "reason": "Aliases spell out the format name in every format; Ppt becomes PowerPoint.",
+      "hint": "PowerPointTextBox replaces PptTextBox."
     },
     {
       "old": "PptTheme",
@@ -6909,24 +6927,24 @@
       "old": "PptTitle",
       "kind": "alias",
       "action": "parameter",
-      "new": "PptSlide",
-      "hint": "PptSlide -Title 'Status Update' { ... }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Title 'Status Update' { ... }",
       "reason": "The title is a slide parameter."
     },
     {
       "old": "PptTransition",
       "kind": "alias",
       "action": "parameter",
-      "new": "PptSlide",
-      "hint": "PptSlide -Transition Fade { ... }",
+      "new": "PowerPointSlide",
+      "hint": "PowerPointSlide -Transition Fade { ... }",
       "reason": "The transition is a slide parameter."
     },
     {
       "old": "PptVisual",
       "kind": "alias",
       "action": "merge",
-      "new": "PptImage",
-      "hint": "PptImage -InputObject $artifact",
+      "new": "PowerPointImage",
+      "hint": "PowerPointImage -InputObject $artifact",
       "reason": "Visuals are added through the image command's Visual set."
     },
     {

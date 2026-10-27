@@ -83,15 +83,15 @@
 
   "blocks": {
     "$comment": "A block is one unit of slide content. Layout selection counts blocks, not commands.",
-    "list": "PptList with its PptListItem children (max 2 levels on a slide; deeper levels flatten to level 2 with diagnostic list-level-flattened).",
-    "text": "PptParagraph / PptText run that is not followed by another block. Consecutive paragraphs merge into one text block.",
-    "lede": "A PptParagraph immediately followed by a list, table, chart or image becomes that block's lede (lede style, max 2 lines above the block) and does not count as a block.",
-    "table": "PptTable.",
-    "chart": "PptChart.",
-    "image": "PptImage (Path or Visual set).",
-    "column": "PptColumn: its children form one block; a -Title becomes the column heading.",
-    "semantic": "PptKpi, PptCard, PptStep and PptLocation items; all items of one kind on a slide form one set.",
-    "ignored": "PptNotes and PptFooter/PptSlideNumber inside a slide do not count."
+    "list": "PowerPointList with its PowerPointListItem children (max 2 levels on a slide; deeper levels flatten to level 2 with diagnostic list-level-flattened).",
+    "text": "PowerPointParagraph / PowerPointText run that is not followed by another block. Consecutive paragraphs merge into one text block.",
+    "lede": "A PowerPointParagraph immediately followed by a list, table, chart or image becomes that block's lede (lede style, max 2 lines above the block) and does not count as a block.",
+    "table": "PowerPointTable.",
+    "chart": "PowerPointChart.",
+    "image": "PowerPointImage (Path or Visual set).",
+    "column": "PowerPointColumn: its children form one block; a -Title becomes the column heading.",
+    "semantic": "PowerPointKpi, PowerPointCard, PowerPointStep and PowerPointLocation items; all items of one kind on a slide form one set.",
+    "ignored": "PowerPointNotes and PowerPointFooter/PowerPointSlideNumber inside a slide do not count."
   },
 
   "chrome": {
@@ -99,10 +99,10 @@
       "$comment": "Shared by every content layout (TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, CaseStudy, Logos, Coverage).",
       "placeholders": [
         { "name": "eyebrow", "kind": "text", "grid": { "col": 1, "span": 8, "row": 1, "rows": 1 }, "abs": { "x": "60pt", "y": "44pt", "w": "552pt", "h": "26pt" }, "style": "eyebrow", "align": "left", "anchor": "top", "maxLines": 1, "minSize": "10pt",
-          "source": "PptSlide -Eyebrow; otherwise the title of the nearest preceding Section slide; otherwise empty (the accent mark remains)." },
-        { "name": "title", "kind": "text", "grid": { "col": 1, "span": 10, "row": 2, "rows": 2 }, "abs": { "x": "60pt", "y": "82pt", "w": "696pt", "h": "64pt" }, "style": "title", "align": "left", "anchor": "top", "maxLines": 2, "minSize": "26pt", "source": "PptSlide -Title" },
+          "source": "PowerPointSlide -Eyebrow; otherwise the title of the nearest preceding Section slide; otherwise empty (the accent mark remains)." },
+        { "name": "title", "kind": "text", "grid": { "col": 1, "span": 10, "row": 2, "rows": 2 }, "abs": { "x": "60pt", "y": "82pt", "w": "696pt", "h": "64pt" }, "style": "title", "align": "left", "anchor": "top", "maxLines": 2, "minSize": "26pt", "source": "PowerPointSlide -Title" },
         { "name": "subtitle", "kind": "text", "grid": { "col": 1, "span": 9, "row": 4, "rows": 1 }, "abs": { "x": "60pt", "y": "158pt", "w": "624pt", "h": "26pt" }, "style": "subtitle", "align": "left", "anchor": "top", "maxLines": 1, "minSize": "16pt", "optional": true,
-          "source": "PptSlide -Subtitle", "flow": "Placed 10pt below the title's last line rather than at a fixed row, so it always reads as part of the title. The grid box is its one-line-title position." }
+          "source": "PowerPointSlide -Subtitle", "flow": "Placed 10pt below the title's last line rather than at a fixed row, so it always reads as part of the title. The grid box is its one-line-title position." }
       ],
       "accentMark": { "grid": { "col": 1, "row": 1 }, "w": "28pt", "h": "3pt", "fill": "palette.accent1", "offsetY": "-12pt", "$comment": "Short rule 12pt above the eyebrow line; constant on every content slide so the deck has one visual signature." },
       "contentZone": {
@@ -118,15 +118,15 @@
     "footer": {
       "placeholders": [
         { "name": "footerText", "kind": "text", "box": { "col": 1, "span": 8 }, "y": "506pt", "h": "16pt", "style": "footer", "align": "left", "anchor": "bottom", "maxLines": 1,
-          "source": "PptFooter (deck or slide); default the deck title (first slide's -Title); Export-OfficePowerPoint uses -Title." },
+          "source": "PowerPointFooter (deck or slide); default the deck title (first slide's -Title); Export-OfficePowerPoint uses -Title." },
         { "name": "slideNumber", "kind": "text", "box": { "col": 9, "span": 4 }, "y": "506pt", "h": "16pt", "style": "footer", "align": "right", "anchor": "bottom", "maxLines": 1,
-          "source": "PptSlideNumber; on by default; format 'n' (no total)." }
+          "source": "PowerPointSlideNumber; on by default; format 'n' (no total)." }
       ],
       "visibility": {
         "Title": "none", "Section": "none", "Closing": "none", "ImageFull": "both (onImage colour)", "Quote": "slideNumber", "default": "both"
       },
       "rules": [
-        "Footer and slide number are on by default; PptFooter -Text '' in the New-OfficePowerPoint block turns the text off, and a deck-level PptFooter without PptSlideNumber still keeps the default number unless -NoSlideNumber is given (see gaps).",
+        "Footer and slide number are on by default; PowerPointFooter -Text '' in the New-OfficePowerPoint block turns the text off, and a deck-level PowerPointFooter without PowerPointSlideNumber still keeps the default number unless -NoSlideNumber is given (see gaps).",
         "Footer text is truncated with an ellipsis at one line; it never wraps.",
         "Footer content is written to the native footer and slide-number placeholders so PowerPoint's Header & Footer dialog can edit it."
       ]
@@ -137,9 +137,9 @@
     "Title": {
       "use": "Cover slide.",
       "background": "palette.accent1",
-      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PptImage": { "max": 1, "use": "brand mark, top-left, max 120 x 40pt" }, "PptParagraph": { "max": 1, "use": "meta line (date, author) in the meta panel" } } },
+      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PowerPointImage": { "max": 1, "use": "brand mark, top-left, max 120 x 40pt" }, "PowerPointParagraph": { "max": 1, "use": "meta line (date, author) in the meta panel" } } },
       "placeholders": [
-        { "name": "brand", "kind": "text", "grid": { "col": 1, "span": 8, "row": 1, "rows": 1 }, "abs": { "x": "60pt", "y": "44pt", "w": "552pt", "h": "26pt" }, "style": "eyebrow", "color": "onAccentMuted", "align": "left", "anchor": "top", "maxLines": 1, "source": "deck footer text, or a PptImage brand mark" },
+        { "name": "brand", "kind": "text", "grid": { "col": 1, "span": 8, "row": 1, "rows": 1 }, "abs": { "x": "60pt", "y": "44pt", "w": "552pt", "h": "26pt" }, "style": "eyebrow", "color": "onAccentMuted", "align": "left", "anchor": "top", "maxLines": 1, "source": "deck footer text, or a PowerPointImage brand mark" },
         { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 9, "row": 3, "rows": 8 }, "abs": { "x": "60pt", "y": "120pt", "w": "624pt", "h": "292pt" }, "anchor": "bottom",
           "items": [
             { "name": "eyebrow", "style": "eyebrow", "color": "onAccentMuted", "maxLines": 1, "gapAfter": "18pt", "source": "-Eyebrow" },
@@ -147,7 +147,7 @@
             { "name": "subtitle", "style": "subtitle", "color": "onAccentMuted", "maxLines": 2, "minSize": "16pt", "source": "-Subtitle" }
           ] },
         { "name": "meta", "kind": "text", "grid": { "col": 10, "span": 3, "row": 9, "rows": 2 }, "abs": { "x": "708pt", "y": "348pt", "w": "192pt", "h": "64pt" }, "style": "caption", "color": "onAccentMuted", "align": "left", "anchor": "bottom", "maxLines": 3,
-          "source": "PptParagraph in the slide, else the deck date (long date in -Culture)." }
+          "source": "PowerPointParagraph in the slide, else the deck date (long date in -Culture)." }
       ],
       "decoration": [
         { "kind": "rule", "orientation": "vertical", "x": "col 10 start - 12pt", "fromRow": 3, "toRow": 10, "weight": "1pt", "color": "onAccent @ 28%" }
@@ -173,7 +173,7 @@
       "use": "Title with one list, text, table, chart or image.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptList": { "max": 1 }, "PptParagraph": { "max": "any (one text block)" }, "PptTable": { "max": 1 }, "PptChart": { "max": 1 }, "PptImage": { "max": 1 } } },
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PowerPointList": { "max": 1 }, "PowerPointParagraph": { "max": "any (one text block)" }, "PowerPointTable": { "max": 1 }, "PowerPointChart": { "max": 1 }, "PowerPointImage": { "max": 1 } } },
       "placeholders": [
         { "name": "lede", "kind": "text", "grid": { "col": 1, "span": 8, "row": 4, "rows": 2 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true, "$comment": "When present the block starts 2 rows lower." },
         { "name": "content", "kind": "content", "grid": { "col": 1, "span": 12, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "840pt", "h": "330pt" }, "anchor": "top",
@@ -187,7 +187,7 @@
       "use": "Two side-by-side blocks.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptColumn": { "max": 2 }, "PptList": { "max": 2 }, "PptParagraph": { "max": "2 text blocks" }, "PptTable": { "max": 2 }, "PptChart": { "max": 2 }, "PptImage": { "max": 2 } } },
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PowerPointColumn": { "max": 2 }, "PowerPointList": { "max": 2 }, "PowerPointParagraph": { "max": "2 text blocks" }, "PowerPointTable": { "max": 2 }, "PowerPointChart": { "max": 2 }, "PowerPointImage": { "max": 2 } } },
       "variants": {
         "equal":       { "when": "both blocks are visuals (chart/table/image) or both are text/list", "left": { "col": 1, "span": 6 }, "right": { "col": 7, "span": 6 } },
         "textVisual":  { "when": "one text/list block and one visual, in either order; the text side keeps its source position", "text": { "span": 4 }, "visual": { "span": 7 }, "gap": "one empty column", "left": { "col": 1, "span": 4 }, "right": { "col": 6, "span": 7 } }
@@ -202,7 +202,7 @@
       "use": "Two titled columns: before/after, options, risks/mitigations.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptColumn": { "min": 2, "max": 2, "requires": "-Title on both" } } },
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PowerPointColumn": { "min": 2, "max": 2, "requires": "-Title on both" } } },
       "placeholders": [
         { "name": "leftHeading",  "kind": "text", "grid": { "col": 1, "span": 6, "row": 4, "rows": 1 }, "abs": { "x": "60pt", "y": "158pt", "w": "408pt", "h": "26pt" }, "style": "heading", "align": "left", "anchor": "bottom", "maxLines": 1, "minSize": "16pt" },
         { "name": "rightHeading", "kind": "text", "grid": { "col": 7, "span": 6, "row": 4, "rows": 1 }, "abs": { "x": "492pt", "y": "158pt", "w": "408pt", "h": "26pt" }, "style": "heading", "align": "left", "anchor": "bottom", "maxLines": 1, "minSize": "16pt" },
@@ -219,7 +219,7 @@
       "use": "Two to six metrics with labels and change indicators.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptKpi": { "min": 1, "max": 6, "perSlide": 6 }, "PptParagraph": { "max": 1, "use": "takeaway under the tiles" } } },
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PowerPointKpi": { "min": 1, "max": 6, "perSlide": 6 }, "PowerPointParagraph": { "max": 1, "use": "takeaway under the tiles" } } },
       "tiling": {
         "$comment": "Tiles are equal width. 5 tiles divide the live width into fifths (148.8pt) instead of snapping to columns.",
         "1": { "spans": [6], "valueStyleFactor": 1.5 },
@@ -233,10 +233,10 @@
         { "name": "tiles", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 5 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "178pt" }, "rowsWhenTwoTileRows": { "row": 4, "rows": 8 }, "anchor": "top", "tileGap": "24pt",
           "tile": [
             { "part": "rule", "h": "2pt", "color": "hairline; the first tile uses palette.accent1" },
-            { "part": "value", "style": "kpiValue", "offsetY": "18pt", "maxLines": 1, "minSize": "32pt", "source": "PptKpi -Value" },
-            { "part": "label", "style": "kpiLabel", "gapBefore": "10pt", "maxLines": 2, "source": "PptKpi -Label" },
-            { "part": "change", "style": "caption", "weight": 700, "gapBefore": "12pt", "maxLines": 1, "source": "PptKpi -Change",
-              "color": "PptKpi -Color, else palette.success for a leading '+', palette.danger for a leading '-' or U+2212, palette.textMuted otherwise", "glyph": "up/down triangle before the text" }
+            { "part": "value", "style": "kpiValue", "offsetY": "18pt", "maxLines": 1, "minSize": "32pt", "source": "PowerPointKpi -Value" },
+            { "part": "label", "style": "kpiLabel", "gapBefore": "10pt", "maxLines": 2, "source": "PowerPointKpi -Label" },
+            { "part": "change", "style": "caption", "weight": 700, "gapBefore": "12pt", "maxLines": 1, "source": "PowerPointKpi -Change",
+              "color": "PowerPointKpi -Color, else palette.success for a leading '+', palette.danger for a leading '-' or U+2212, palette.textMuted otherwise", "glyph": "up/down triangle before the text" }
           ] },
         { "name": "takeaway", "kind": "text", "grid": { "col": 1, "span": 8, "row": 11, "rows": 2 }, "abs": { "x": "60pt", "y": "424pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true }
       ],
@@ -246,7 +246,7 @@
       "use": "Three to six parallel ideas (capabilities, service areas, options).",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptCard": { "min": 2, "max": 6, "perSlide": 6 } } },
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PowerPointCard": { "min": 2, "max": 6, "perSlide": 6 } } },
       "tiling": {
         "2": { "spans": [6, 6] }, "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] },
         "5": { "rows": [[4, 4, 4], [6, 6]] }, "6": { "rows": [[4, 4, 4], [4, 4, 4]] }
@@ -256,11 +256,11 @@
           "height": "One row of cards fills the content zone. Two rows split it equally (153pt each).",
           "tile": [
             { "part": "panel", "fill": "surface", "radius": "0pt", "padding": "20pt" },
-            { "part": "rule", "h": "3pt", "color": "PptCard -Color, else palette.accent1", "position": "top edge" },
+            { "part": "rule", "h": "3pt", "color": "PowerPointCard -Color, else palette.accent1", "position": "top edge" },
             { "part": "index", "style": "eyebrow", "color": "palette.textMuted", "source": "two-digit card number", "position": "top" },
-            { "part": "title", "style": "heading", "maxLines": 2, "minSize": "16pt", "position": "bottom group", "source": "PptCard -Title" },
-            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 4, "position": "bottom group", "source": "PptCard -Text" },
-            { "part": "items", "style": "bodySmall", "bullet": "en dash in palette.accent1", "gapBefore": "8pt", "max": 4, "position": "bottom group", "source": "PptCard -Items" }
+            { "part": "title", "style": "heading", "maxLines": 2, "minSize": "16pt", "position": "bottom group", "source": "PowerPointCard -Title" },
+            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 4, "position": "bottom group", "source": "PowerPointCard -Text" },
+            { "part": "items", "style": "bodySmall", "bullet": "en dash in palette.accent1", "gapBefore": "8pt", "max": 4, "position": "bottom group", "source": "PowerPointCard -Items" }
           ],
           "$comment": "The index sits at the top of the card and the title/body group is anchored to the bottom, so tall cards read as deliberate rather than half-empty. Today's cards top-aligned short text in full-height boxes." }
       ],
@@ -270,15 +270,15 @@
       "use": "Three to six sequential steps.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptStep": { "min": 2, "max": 8, "perSlide": "5 on one row; 6-8 as two rows of up to 4" }, "PptParagraph": { "max": 1, "use": "takeaway" } } },
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PowerPointStep": { "min": 2, "max": 8, "perSlide": "5 on one row; 6-8 as two rows of up to 4" }, "PowerPointParagraph": { "max": 1, "use": "takeaway" } } },
       "tiling": { "2": { "spans": [6, 6] }, "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] }, "5": { "spans": "fifths" }, "6": { "rows": [[3, 3, 3], [3, 3, 3]] }, "7": { "rows": [[3, 3, 3, 3], [3, 3, 3]] }, "8": { "rows": [[3, 3, 3, 3], [3, 3, 3, 3]] } },
       "placeholders": [
         { "name": "steps", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 6 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "216pt" }, "tileGap": "24pt",
           "tile": [
-            { "part": "marker", "shape": "circle", "d": "40pt", "stroke": "palette.accent1 2pt", "fill": "palette.background (first step: palette.accent1)", "text": "PptStep -Number, else two-digit index", "textStyle": "heading 16pt, palette.accent1 (first: onAccent)" },
+            { "part": "marker", "shape": "circle", "d": "40pt", "stroke": "palette.accent1 2pt", "fill": "palette.background (first step: palette.accent1)", "text": "PowerPointStep -Number, else two-digit index", "textStyle": "heading 16pt, palette.accent1 (first: onAccent)" },
             { "part": "connector", "h": "2pt", "color": "hairline", "from": "marker right + 8pt", "to": "next marker left - 8pt", "y": "marker centre" },
-            { "part": "title", "style": "heading", "gapBefore": "22pt", "maxLines": 2, "minSize": "16pt", "source": "PptStep -Title" },
-            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 5, "source": "PptStep -Text" }
+            { "part": "title", "style": "heading", "gapBefore": "22pt", "maxLines": 2, "minSize": "16pt", "source": "PowerPointStep -Title" },
+            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 5, "source": "PowerPointStep -Text" }
           ] },
         { "name": "takeaway", "kind": "text", "grid": { "col": 1, "span": 8, "row": 11, "rows": 2 }, "abs": { "x": "60pt", "y": "424pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true }
       ],
@@ -287,10 +287,10 @@
     "Quote": {
       "use": "A statement or customer quote.",
       "background": "surface",
-      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptParagraph": { "max": 1, "use": "the quote" } } },
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PowerPointParagraph": { "max": 1, "use": "the quote" } } },
       "placeholders": [
         { "name": "mark", "kind": "text", "grid": { "col": 1, "span": 1, "row": 2, "rows": 3 }, "abs": { "x": "60pt", "y": "82pt", "w": "48pt", "h": "102pt" }, "style": "display", "sizeOverride": "120pt", "color": "palette.accent1", "text": "U+201C", "decorative": true },
-        { "name": "quote", "kind": "text", "grid": { "col": 2, "span": 9, "row": 4, "rows": 6 }, "abs": { "x": "132pt", "y": "158pt", "w": "624pt", "h": "216pt" }, "style": "quote", "align": "left", "anchor": "top", "maxLines": 5, "minSize": "24pt", "source": "the PptParagraph, quote marks stripped" },
+        { "name": "quote", "kind": "text", "grid": { "col": 2, "span": 9, "row": 4, "rows": 6 }, "abs": { "x": "132pt", "y": "158pt", "w": "624pt", "h": "216pt" }, "style": "quote", "align": "left", "anchor": "top", "maxLines": 5, "minSize": "24pt", "source": "the PowerPointParagraph, quote marks stripped" },
         { "name": "attribution", "kind": "text", "grid": { "col": 2, "span": 7, "row": 10, "rows": 2 }, "abs": { "x": "132pt", "y": "386pt", "w": "480pt", "h": "64pt" }, "style": "bodySmall", "align": "left", "anchor": "top", "maxLines": 2, "source": "-Subtitle, prefixed with an em dash" }
       ],
       "decoration": [ { "kind": "rule", "x": "col 2", "row": 10, "w": "48pt", "h": "2pt", "color": "palette.accent1", "offsetY": "-14pt" } ]
@@ -298,7 +298,7 @@
     "ImageFull": {
       "use": "Full-bleed photograph with a short title.",
       "background": "ink",
-      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptImage": { "min": 1, "max": 1 } } },
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PowerPointImage": { "min": 1, "max": 1 } } },
       "placeholders": [
         { "name": "image", "kind": "image", "box": "full slide 960 x 540pt", "fit": "cover", "focus": "centre (rule of thirds when the image carries a focal point)", "treatment": "natural" },
         { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 8, "row": 7, "rows": 5 }, "abs": { "x": "60pt", "y": "272pt", "w": "552pt", "h": "178pt" }, "anchor": "bottom",
@@ -313,7 +313,7 @@
     "Closing": {
       "use": "Final slide: next steps, decision or contact.",
       "background": "palette.accent1",
-      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PptList": { "max": 1, "use": "numbered next steps" }, "PptParagraph": { "max": 1, "use": "contact line" } } },
+      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PowerPointList": { "max": 1, "use": "numbered next steps" }, "PowerPointParagraph": { "max": 1, "use": "contact line" } } },
       "placeholders": [
         { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 6, "row": 3, "rows": 8 }, "abs": { "x": "60pt", "y": "120pt", "w": "408pt", "h": "292pt" }, "anchor": "bottom",
           "items": [
@@ -329,12 +329,12 @@
       "use": "A narrative (challenge, approach, outcome) with up to three result metrics.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptCard": { "min": 1, "max": 3, "use": "narrative sections" }, "PptKpi": { "min": 1, "max": 3, "use": "results" } } },
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PowerPointCard": { "min": 1, "max": 3, "use": "narrative sections" }, "PowerPointKpi": { "min": 1, "max": 3, "use": "results" } } },
       "placeholders": [
         { "name": "narrative", "kind": "stackList", "grid": { "col": 1, "span": 7, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "480pt", "h": "330pt" }, "anchor": "top",
           "item": [
-            { "part": "label", "style": "eyebrow", "source": "PptCard -Title" },
-            { "part": "text", "style": "body", "gapBefore": "6pt", "maxLines": 3, "source": "PptCard -Text or -Items joined" },
+            { "part": "label", "style": "eyebrow", "source": "PowerPointCard -Title" },
+            { "part": "text", "style": "body", "gapBefore": "6pt", "maxLines": 3, "source": "PowerPointCard -Text or -Items joined" },
             { "part": "rule", "h": "1pt", "color": "hairline", "gapBefore": "16pt", "gapAfter": "16pt", "between": true }
           ] },
         { "name": "results", "kind": "panel", "grid": { "col": 9, "span": 4, "row": 4, "rows": 9 }, "abs": { "x": "636pt", "y": "158pt", "w": "264pt", "h": "330pt" }, "fill": "surface", "padding": "24pt", "anchor": "top",
@@ -347,13 +347,13 @@
       "use": "Customer, partner or technology logos.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptCard": { "min": 3, "max": 12, "requires": "-Image and no -Text/-Items", "perSlide": 12 } } },
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PowerPointCard": { "min": 3, "max": 12, "requires": "-Image and no -Text/-Items", "perSlide": 12 } } },
       "tiling": { "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] }, "5-8": { "rows": "2 rows of 4 (span 3)" }, "9-12": { "rows": "2 rows of 6 (span 2)" } },
       "placeholders": [
         { "name": "logos", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 7 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "254pt" }, "tileGap": "24pt", "rowGap": "24pt", "tileHeight": "96pt",
           "tile": [
             { "part": "frame", "stroke": "hairline 1pt", "fill": "palette.background" },
-            { "part": "image", "fit": "contain", "maxW": "62%", "maxH": "44%", "treatment": "grayscale, 80% opacity; full colour with -Color", "alt": "PptCard -Title" }
+            { "part": "image", "fit": "contain", "maxW": "62%", "maxH": "44%", "treatment": "grayscale, 80% opacity; full colour with -Color", "alt": "PowerPointCard -Title" }
           ] }
       ],
       "decoration": [ "chrome.header.accentMark" ]
@@ -362,9 +362,9 @@
       "use": "Locations, sites or regions on a map surface.",
       "background": "palette.background",
       "header": "chrome.header",
-      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptLocation": { "min": 1, "max": 18, "perSlide": 18 }, "PptImage": { "max": 1, "use": "map picture replacing the drawn map surface" } } },
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PowerPointLocation": { "min": 1, "max": 18, "perSlide": 18 }, "PowerPointImage": { "max": 1, "use": "map picture replacing the drawn map surface" } } },
       "placeholders": [
-        { "name": "map", "kind": "panel", "grid": { "col": 1, "span": 8, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "330pt" }, "fill": "surface", "pattern": "dot grid, hairline, 12pt pitch", "image": "PptImage, cover",
+        { "name": "map", "kind": "panel", "grid": { "col": 1, "span": 8, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "330pt" }, "fill": "surface", "pattern": "dot grid, hairline, 12pt pitch", "image": "PowerPointImage, cover",
           "pin": { "shape": "circle", "d": "22pt", "fill": "palette.accent1", "stroke": "palette.background 2pt", "text": "index, caption 10pt bold onAccent", "position": "MapLeft/MapTop as fractions of the panel" } },
         { "name": "list", "kind": "stackList", "grid": { "col": 9, "span": 4, "row": 4, "rows": 9 }, "abs": { "x": "636pt", "y": "158pt", "w": "264pt", "h": "330pt" }, "anchor": "top", "max": 7,
           "item": [ { "part": "index", "style": "caption", "weight": 700, "color": "palette.accent1" }, { "part": "name", "style": "heading", "sizeOverride": "16pt" }, { "part": "detail", "style": "bodySmall", "maxLines": 2 } ],
@@ -379,18 +379,18 @@
     "rules": [
       { "id": "explicit",      "when": "-Layout given", "layout": "(given)", "note": "Content the layout does not accept raises diagnostic layout-content-mismatch and the slide falls back to automatic selection." },
       { "id": "first",         "when": "first slide of the deck and no blocks", "layout": "Title" },
-      { "id": "coverage",      "when": "any PptLocation", "layout": "Coverage" },
-      { "id": "caseStudy",     "when": "PptKpi and PptCard on the same slide", "layout": "CaseStudy" },
-      { "id": "kpi",           "when": "any PptKpi", "layout": "Kpi" },
-      { "id": "logos",         "when": "PptCard items that all have -Image and none has -Text or -Items", "layout": "Logos" },
-      { "id": "cards",         "when": "any PptCard", "layout": "Cards" },
-      { "id": "process",       "when": "any PptStep", "layout": "Process" },
-      { "id": "comparison",    "when": "two PptColumn, both with -Title", "layout": "Comparison" },
-      { "id": "imageFull",     "when": "exactly one block, a PptImage whose aspect ratio is within 15% of the slide's and whose width is >= 1600px", "layout": "ImageFull" },
+      { "id": "coverage",      "when": "any PowerPointLocation", "layout": "Coverage" },
+      { "id": "caseStudy",     "when": "PowerPointKpi and PowerPointCard on the same slide", "layout": "CaseStudy" },
+      { "id": "kpi",           "when": "any PowerPointKpi", "layout": "Kpi" },
+      { "id": "logos",         "when": "PowerPointCard items that all have -Image and none has -Text or -Items", "layout": "Logos" },
+      { "id": "cards",         "when": "any PowerPointCard", "layout": "Cards" },
+      { "id": "process",       "when": "any PowerPointStep", "layout": "Process" },
+      { "id": "comparison",    "when": "two PowerPointColumn, both with -Title", "layout": "Comparison" },
+      { "id": "imageFull",     "when": "exactly one block, a PowerPointImage whose aspect ratio is within 15% of the slide's and whose width is >= 1600px", "layout": "ImageFull" },
       { "id": "quote",         "when": "no -Title and exactly one text block of <= 240 characters", "layout": "Quote" },
       { "id": "closing",       "when": "last slide of a deck with >= 5 slides, with no blocks or only one list of <= 4 items", "layout": "Closing", "note": "Evaluated when the deck is saved, because 'last' is known only then." },
       { "id": "section",       "when": "no blocks (title only)", "layout": "Section" },
-      { "id": "two",           "when": "exactly two blocks (two PptColumn, or any two blocks)", "layout": "TwoContent" },
+      { "id": "two",           "when": "exactly two blocks (two PowerPointColumn, or any two blocks)", "layout": "TwoContent" },
       { "id": "one",           "when": "exactly one block", "layout": "TitleAndContent" },
       { "id": "many",          "when": "three or more blocks", "layout": "TwoContent + continuation", "note": "Blocks 1-2 stay; blocks 3+ move to a continuation slide with the same title and '(continued)'. Diagnostic slide-content-split." }
     ],
@@ -445,8 +445,8 @@
       "continuation": "Same title with the continued suffix; the caption row 'Rows 11-20 of 30' in caption style sits under the table, right-aligned."
     },
     "tiles": {
-      "perSlide": { "PptKpi": 6, "PptCard": 6, "PptStep": 8, "PptCard (Logos)": 12, "PptLocation": 18 },
-      "steps": ["Tile text shrinks to its minSize.", "Above perSlide the set splits into balanced slides (7 cards -> 4 + 3) with the continued suffix.", "PptStep numbering continues across the split."]
+      "perSlide": { "PowerPointKpi": 6, "PowerPointCard": 6, "PowerPointStep": 8, "PowerPointCard (Logos)": 12, "PowerPointLocation": 18 },
+      "steps": ["Tile text shrinks to its minSize.", "Above perSlide the set splits into balanced slides (7 cards -> 4 + 3) with the continued suffix.", "PowerPointStep numbering continues across the split."]
     },
     "chart": { "steps": ["Charts never split. More than 12 categories on a Column/Bar chart switch to Bar (horizontal) when -Type was not given; more than 24 raise chart-dense."] }
   },
@@ -473,7 +473,7 @@
 
   "notes": {
     "rules": [
-      "PptNotes sets the notes of its slide; it never changes the layout.",
+      "PowerPointNotes sets the notes of its slide; it never changes the layout.",
       "Continuation slides inherit no notes by default; the first slide's notes stay on the first slide.",
       "Outline conversion (Convert-OfficeDocument -To PowerPoint) maps blockquotes to notes.",
       "Notes pages use fonts.body at typeScale.body x 1.09 (12pt Modern) on the theme's notes master."

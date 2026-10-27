@@ -14014,7 +14014,7 @@
           ]
         }
       ],
-      "notes": "Renamed from Add-OfficeExcelReportKpiRow (one alias per noun, matching PptKpi).",
+      "notes": "Renamed from Add-OfficeExcelReportKpiRow (one alias per noun, matching PowerPointKpi).",
       "examples": [
         {
           "title": "Add a row of KPI cards",

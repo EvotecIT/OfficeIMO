@@ -74,17 +74,17 @@ Build a deck without coordinates or layout names. Each slide's layout follows it
 
 ```powershell
 New-OfficePowerPoint -Path .\Review.pptx -Theme Boardroom {
-    PptSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
-    PptSlide -Title 'Quarter at a glance' {
-        PptKpi '5.7m' 'Revenue (USD)' -Change '+12%' -Trend Up
-        PptKpi '36%' 'Operating margin' -Change '+1 pt' -Trend Up
-        PptKpi '3' 'Decisions needed'
+    PowerPointSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
+    PowerPointSlide -Title 'Quarter at a glance' {
+        PowerPointKpi '5.7m' 'Revenue (USD)' -Change '+12%' -Trend Up
+        PowerPointKpi '36%' 'Operating margin' -Change '+1 pt' -Trend Up
+        PowerPointKpi '3' 'Decisions needed'
     }
-    PptSlide -Title 'Next steps' {
-        PptStep 'Approve' 'Confirm owners for each priority.'
-        PptStep 'Deliver' 'Report progress monthly.'
-        PptStep 'Review' 'Assess results at quarter end.'
-        PptNotes 'Close by assigning each decision to a named owner.'
+    PowerPointSlide -Title 'Next steps' {
+        PowerPointStep 'Approve' 'Confirm owners for each priority.'
+        PowerPointStep 'Deliver' 'Report progress monthly.'
+        PowerPointStep 'Review' 'Assess results at quarter end.'
+        PowerPointNotes 'Close by assigning each decision to a named owner.'
     }
 }
 ```

@@ -6444,7 +6444,7 @@
         {
           "title": "Reuse one visual in Word and PowerPoint",
           "description": "Converts the logo once and places the same visual in a Word brief and on a slide.",
-          "code": "$logo = Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm -AlternativeText 'Northwind logo'\nNew-OfficeWord -Path .\\Reports\\Brand-Update.docx {\n    WordImage -InputObject $logo\n    WordHeading 'Brand update'\n    WordParagraph 'The refreshed logo is used in every template from 1 November.'\n}\nNew-OfficePowerPoint -Path .\\Decks\\Brand-Update.pptx {\n    PptSlide -Title 'Our new logo' {\n        PptImage -InputObject $logo\n    }\n}"
+          "code": "$logo = Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm -AlternativeText 'Northwind logo'\nNew-OfficeWord -Path .\\Reports\\Brand-Update.docx {\n    WordImage -InputObject $logo\n    WordHeading 'Brand update'\n    WordParagraph 'The refreshed logo is used in every template from 1 November.'\n}\nNew-OfficePowerPoint -Path .\\Decks\\Brand-Update.pptx {\n    PowerPointSlide -Title 'Our new logo' {\n        PowerPointImage -InputObject $logo\n    }\n}"
         }
       ]
     },

@@ -58,54 +58,54 @@ $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
 $path = Join-Path $OutputDirectory 'Showcase-PowerPoint-ServiceBrief.pptx'
 
 New-OfficePowerPoint -Path $path -Theme Boardroom -Accent '#008C95' -Purpose 'workplace support planning brief' -Seed 'workplace-support' -Force -Show:$Show {
-    PptFooter $dateText -Alignment Left
-    PptFooter $dataLabel -Alignment Right
+    PowerPointFooter $dateText -Alignment Left
+    PowerPointFooter $dataLabel -Alignment Right
 
-    PptSlide -Eyebrow 'Workplace support' -Title 'Workplace support plan' -Subtitle "Demand review and service pilot | $dateText" -Transition Fade {
-        PptSection 'Service planning'
+    PowerPointSlide -Eyebrow 'Workplace support' -Title 'Workplace support plan' -Subtitle "Demand review and service pilot | $dateText" -Transition Fade {
+        PowerPointSection 'Service planning'
     }
 
-    PptSlide -Title 'A controlled service transition' -Subtitle 'Agree the baseline, test the change and review the evidence.' {
-        PptStep 'Baseline' 'Agree request categories and reconcile the quarterly intake.'
-        PptStep 'Pilot' 'Test the proposed triage queue with a nominated service owner.'
-        PptStep 'Review' 'Check demand, repeat requests and user feedback before rollout.'
-        PptStep 'Roll out' 'Publish ownership, working hours and the escalation route.'
+    PowerPointSlide -Title 'A controlled service transition' -Subtitle 'Agree the baseline, test the change and review the evidence.' {
+        PowerPointStep 'Baseline' 'Agree request categories and reconcile the quarterly intake.'
+        PowerPointStep 'Pilot' 'Test the proposed triage queue with a nominated service owner.'
+        PowerPointStep 'Review' 'Check demand, repeat requests and user feedback before rollout.'
+        PowerPointStep 'Roll out' 'Publish ownership, working hours and the escalation route.'
     }
 
-    PptSlide -Title 'Service scope' -Subtitle 'Four service areas with explicit ownership and a common intake.' {
-        PptCard 'User incidents' -Items 'triage', 'ownership', 'escalation'
-        PptCard 'Device lifecycle' -Items 'onboarding', 'replacement', 'returns'
-        PptCard 'Access requests' -Items 'approval', 'least privilege', 'evidence'
-        PptCard 'Service changes' -Items 'notice', 'handover', 'review'
+    PowerPointSlide -Title 'Service scope' -Subtitle 'Four service areas with explicit ownership and a common intake.' {
+        PowerPointCard 'User incidents' -Items 'triage', 'ownership', 'escalation'
+        PowerPointCard 'Device lifecycle' -Items 'onboarding', 'replacement', 'returns'
+        PowerPointCard 'Access requests' -Items 'approval', 'least privilege', 'evidence'
+        PowerPointCard 'Service changes' -Items 'notice', 'handover', 'review'
     }
 
-    PptSlide -Title 'Supported locations' -Subtitle "$people people across $($sites.Count) service locations." {
+    PowerPointSlide -Title 'Supported locations' -Subtitle "$people people across $($sites.Count) service locations." {
         foreach ($site in $sites) {
-            PptCard $site.Site -Items "$($site.SupportedPeople) people", "$($site.CurrentQuarterTickets) current tickets", $site.Owner
+            PowerPointCard $site.Site -Items "$($site.SupportedPeople) people", "$($site.CurrentQuarterTickets) current tickets", $site.Owner
         }
     }
 
-    PptSlide -Title 'What the operating model must provide' -Subtitle 'Practical acceptance criteria for the pilot.' {
-        PptCard 'A clear front door' -Items 'published request categories', 'named service owner', 'agreed escalation route'
-        PptCard 'A reliable handover' -Items 'agreed service hours', 'useful operating notes', 'acceptance by support owner'
-        PptCard 'An evidence-based review' -Items 'quarterly ticket counts', 'repeat request analysis', 'feedback from service users'
+    PowerPointSlide -Title 'What the operating model must provide' -Subtitle 'Practical acceptance criteria for the pilot.' {
+        PowerPointCard 'A clear front door' -Items 'published request categories', 'named service owner', 'agreed escalation route'
+        PowerPointCard 'A reliable handover' -Items 'agreed service hours', 'useful operating notes', 'acceptance by support owner'
+        PowerPointCard 'An evidence-based review' -Items 'quarterly ticket counts', 'repeat request analysis', 'feedback from service users'
     }
 
-    PptSlide -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' {
-        PptCard 'Demand baseline' -Items "$current quarterly tickets", "$changeText from $previous", "$people people supported"
-        PptCard 'Priority review' -Items $priorityText, 'Check request mix before changing capacity.'
-        PptCard 'Decision requested' -Items 'Nominate the pilot owner.', 'Agree the review date.', 'Assess the pilot before changing service commitments.'
+    PowerPointSlide -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' {
+        PowerPointCard 'Demand baseline' -Items "$current quarterly tickets", "$changeText from $previous", "$people people supported"
+        PowerPointCard 'Priority review' -Items $priorityText, 'Check request mix before changing capacity.'
+        PowerPointCard 'Decision requested' -Items 'Nominate the pilot owner.', 'Agree the review date.', 'Assess the pilot before changing service commitments.'
     }
 
-    PptSlide -Title 'Quarterly ticket demand' -Transition PushLeft {
-        PptSection 'Demand and actions'
-        PptChart -InputObject $chartData -Category Site -Value 'Previous quarter', 'Current quarter' -Type Column -Title "Tickets: $previous previous / $current current ($changeText)"
-        PptNotes 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
+    PowerPointSlide -Title 'Quarterly ticket demand' -Transition PushLeft {
+        PowerPointSection 'Demand and actions'
+        PowerPointChart -InputObject $chartData -Category Site -Value 'Previous quarter', 'Current quarter' -Type Column -Title "Tickets: $previous previous / $current current ($changeText)"
+        PowerPointNotes 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
     }
 
-    PptSlide -Title 'Owners and review dates' {
-        PptTable $actions
-        PptNotes 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
+    PowerPointSlide -Title 'Owners and review dates' {
+        PowerPointTable $actions
+        PowerPointNotes 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
     }
 }
 

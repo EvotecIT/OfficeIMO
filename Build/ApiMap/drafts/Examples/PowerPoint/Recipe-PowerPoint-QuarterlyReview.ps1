@@ -15,19 +15,19 @@ $marginChange = $trend[-1].Margin - $trend[0].Margin
 
 # Layouts come from the content: a cover first, two charts side by side, a table slide.
 New-OfficePowerPoint -Path $path -Theme Boardroom -Force {
-    PptSlide -Eyebrow 'Northwind | Year-end review' -Title 'Quarterly business review' -Subtitle 'Performance, decisions and next-quarter priorities' {
-        PptNotes 'Open with the outcome: growth continued and the team needs three decisions.'
+    PowerPointSlide -Eyebrow 'Northwind | Year-end review' -Title 'Quarterly business review' -Subtitle 'Performance, decisions and next-quarter priorities' {
+        PowerPointNotes 'Open with the outcome: growth continued and the team needs three decisions.'
     }
 
-    PptSlide -Title 'Performance trend' -Subtitle "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points." {
-        PptChart -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD millions)'
-        PptChart -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Operating margin (%)'
-        PptNotes 'Explain the margin improvement before discussing revenue.'
+    PowerPointSlide -Title 'Performance trend' -Subtitle "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points." {
+        PowerPointChart -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD millions)'
+        PowerPointChart -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Operating margin (%)'
+        PowerPointNotes 'Explain the margin improvement before discussing revenue.'
     }
 
-    PptSlide -Title 'Next-quarter priorities' {
-        PptTable $priorities
-        PptList 'Approve owners', 'Confirm targets', 'Review progress monthly'
-        PptNotes 'Close by assigning each decision to a named owner.'
+    PowerPointSlide -Title 'Next-quarter priorities' {
+        PowerPointTable $priorities
+        PowerPointList 'Approve owners', 'Confirm targets', 'Review progress monthly'
+        PowerPointNotes 'Close by assigning each decision to a named owner.'
     }
 }

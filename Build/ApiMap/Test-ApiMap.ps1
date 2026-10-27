@@ -39,7 +39,7 @@ if ($MetadataPath) {
 
 $approvedVerbs = @(Get-Verb | ForEach-Object Verb)
 $builtInCommands = @(pwsh -NoProfile -NonInteractive -Command 'Get-Command -CommandType Cmdlet, Function, Alias | ForEach-Object Name')
-$aliasPrefixes = 'Word', 'Excel', 'Ppt', 'Pdf', 'Markdown', 'Visio', 'Html', 'Rtf', 'OpenDocument', 'Csv', 'Email', 'Project', 'Access', 'Epub', 'OneNote', 'AsciiDoc', 'Latex', 'Confluence'
+$aliasPrefixes = 'Word', 'Excel', 'PowerPoint', 'Pdf', 'Markdown', 'Visio', 'Html', 'Rtf', 'OpenDocument', 'Csv', 'Email', 'Project', 'Access', 'Epub', 'OneNote', 'AsciiDoc', 'Latex', 'Confluence'
 $bannedParameters = @{
     'InputPath'  = 'Use -Path for the input file.'
     'SourcePath' = 'Use -Path for the input file.'

@@ -4304,7 +4304,7 @@
           ]
         }
       ],
-      "notes": "Gains the WordBackground alias because it is used inside New-OfficeWord blocks (as PdfBackground/PptBackground are). Pixel sizes become lengths.",
+      "notes": "Gains the WordBackground alias because it is used inside New-OfficeWord blocks (as PdfBackground/PowerPointBackground are). Pixel sizes become lengths.",
       "examples": [
         {
           "title": "Set a page color",
