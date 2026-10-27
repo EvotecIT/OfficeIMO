@@ -157,7 +157,7 @@ public class Markdown_Html_Encoding_Tests {
 
     private static string Render(string markdown, bool inlineHtml = true) =>
         MarkdownReader.Parse(markdown, new MarkdownLoadOptions { InlineHtml = inlineHtml })
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, Kind = MarkdownHtmlKind.Fragment });
 
     private static int Count(string value, string part) => (value.Length - value.Replace(part, string.Empty).Length) / part.Length;
 }

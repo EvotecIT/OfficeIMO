@@ -127,12 +127,12 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitCodeBlock(Omd.CodeBlock block) {
                 var codeParagraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
+                ApplyCodeBlockParagraphFormatting(codeParagraph);
                 AddCodeText(codeParagraph, block.Content, block.Language);
                 ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    ApplyCodeBlockParagraphFormatting(captionParagraph);
                     captionParagraph.AddText(block.Caption!);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
@@ -148,15 +148,21 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 var paragraph = _host.CreateParagraph();
-                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                ApplyCodeBlockParagraphFormatting(paragraph);
                 AddCodeText(paragraph, block.Content, block.Language);
                 ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
-                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    ApplyCodeBlockParagraphFormatting(captionParagraph);
                     captionParagraph.AddText(block.Caption!);
                     ApplyBodyTextTheme(captionParagraph, _options);
                 }
+            }
+
+            private void ApplyCodeBlockParagraphFormatting(WordParagraph paragraph) {
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                if (_listLevel > 0)
+                    paragraph.IndentationBefore = (paragraph.IndentationBefore ?? 0) + _listLevel * IndentTwipsPerLevel;
             }
 
             protected override void VisitTableBlock(Omd.TableBlock block) =>

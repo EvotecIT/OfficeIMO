@@ -31,6 +31,23 @@ namespace OfficeIMO.Tests {
             Assert.True(document.StyleExists("CodeLang_bash"));
         }
 
+        [Theory]
+        [InlineData("- Setup\n\n  ```csharp\n  run();\n  ```\n", 720)]
+        [InlineData("- Outer\n  - Inner\n\n    ```csharp\n    run();\n    ```\n", 1440)]
+        [InlineData("> - Setup\n>\n>   ```csharp\n>   run();\n>   ```\n", 1440)]
+        public void MarkdownToWord_CodeBlocksRetainListAndQuoteIndentation(string markdown, int expectedTwips) {
+            using WordDocument source = Omd.MarkdownDocument.Parse(markdown).ToWord();
+            using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+            Paragraph code = Assert.Single(document.Paragraphs
+                .Where(paragraph => paragraph.StyleId == "CodeLang_csharp")
+                .Select(paragraph => paragraph._paragraph).Distinct());
+
+            Assert.Equal(expectedTwips.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                code.ParagraphProperties!.Indentation!.Left!.Value);
+            Assert.Equal("run();", string.Concat(code.Descendants<Text>().Select(text => text.Text)));
+            Assert.Empty(document.ValidateDocument());
+        }
+
         [Fact]
         public void MarkdownToWordToMarkdown_KeepsFencedCode() {
             var markdown = Omd.MarkdownDocument.Parse("Intro\n\n```json\n{\n  \"a\": 1\n}\n```\n");
