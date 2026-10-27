@@ -11,7 +11,7 @@ ROLES = {'Accent1', 'Accent2', 'Accent3', 'Accent4', 'Accent5', 'Accent6', 'Text
 DOCS = {
     'Modern': 'a clean sans-serif theme with a cobalt accent and airy, tinted-header tables (the default)',
     'Classic': 'a traditional serif document theme with navy headings and an ochre title rule',
-    'Minimal': 'a restrained theme without fills that lays out identically in Microsoft Office and LibreOffice',
+    'Minimal': 'a restrained theme without fills whose fonts have metric-compatible open substitutes, so layout matches across office suites',
     'Boardroom': 'a formal theme with regular-weight serif headings, a gold rule and generous margins',
     'Dark': 'a screen theme with light text on a dark background; Word and Excel keep a light page',
 }

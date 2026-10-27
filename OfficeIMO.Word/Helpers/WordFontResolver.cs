@@ -7,7 +7,7 @@ namespace OfficeIMO.Word;
 /// </summary>
 public static class WordFontResolver {
     // Generic families become document fonts that exist in Microsoft Office on every platform and have
-    // metric-compatible or classified substitutes in LibreOffice, so the written name never depends on the
+    // metric-compatible or classified open substitutes, so the written name never depends on the
     // machine that generated the document.
     private static readonly Dictionary<string, string> _genericFonts = new(StringComparer.OrdinalIgnoreCase) {
         { "serif", "Times New Roman" },

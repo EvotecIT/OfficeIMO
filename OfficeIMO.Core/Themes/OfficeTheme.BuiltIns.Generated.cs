@@ -8,7 +8,7 @@ public sealed partial class OfficeTheme {
     public static OfficeTheme Modern { get; } = CreateModern();
     /// <summary>Gets a traditional serif document theme with navy headings and an ochre title rule.</summary>
     public static OfficeTheme Classic { get; } = CreateClassic();
-    /// <summary>Gets a restrained theme without fills that lays out identically in Microsoft Office and LibreOffice.</summary>
+    /// <summary>Gets a restrained theme without fills whose fonts have metric-compatible open substitutes, so layout matches across office suites.</summary>
     public static OfficeTheme Minimal { get; } = CreateMinimal();
     /// <summary>Gets a formal theme with regular-weight serif headings, a gold rule and generous margins.</summary>
     public static OfficeTheme Boardroom { get; } = CreateBoardroom();
