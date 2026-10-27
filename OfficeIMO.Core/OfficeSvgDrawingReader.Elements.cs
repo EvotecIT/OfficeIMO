@@ -282,6 +282,12 @@ public static partial class OfficeSvgDrawingReader {
             _ => null
         };
         if (shape == null) {
+            // Space glyphs can legitimately export an empty path. It has no paint;
+            // an authored filter may still generate paint and keeps the ordinary fallback.
+            if (name == "path" && string.IsNullOrWhiteSpace(element.Attribute("d")?.Value)) {
+                string? filter = ReadPresentationProperty(element, "filter");
+                if (string.IsNullOrWhiteSpace(filter) || filter.Equals("none", StringComparison.OrdinalIgnoreCase)) return;
+            }
             unsupported++;
             return;
         }
