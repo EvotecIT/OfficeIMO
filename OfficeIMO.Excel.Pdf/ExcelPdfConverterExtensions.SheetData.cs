@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<string> areas = options.UseWorksheetPrintAreas && workbookSheet != null
                 ? workbookSheet.GetPrintAreas()
                 : Array.Empty<string>();
-            if (areas.Count == 0) return new[] { sheet.GetUsedRangeA1() };
+            if (areas.Count == 0) return new[] { ExtendUsedRangeToMergedCells(sheet.GetUsedRangeA1(), workbookSheet, options) };
 
             ExcelA1.TryParseRange(NormalizeA1Range(sheet.GetUsedRangeA1()), out _, out _, out int usedLastRow, out int usedLastColumn);
             var ranges = new List<string>(areas.Count);
@@ -42,6 +42,34 @@ namespace OfficeIMO.Excel.Pdf {
                 ranges.Add(ToA1Range(firstRow, firstColumn, lastRow, lastColumn));
             }
             return ranges;
+        }
+
+        /// <summary>
+        /// Excel prints a merged cell whole when its anchor is inside the used range, even
+        /// if the other cells of the merge hold no value. Grow the automatic range to the
+        /// merge extents so a title merged across A1:F1 is not cut at the last value column.
+        /// </summary>
+        private static string ExtendUsedRangeToMergedCells(string usedRange, ExcelSheet? workbookSheet, ExcelPdfExportOptions options) {
+            if (workbookSheet == null || !options.UseWorksheetMergedCells || IsBoundedWorksheetRead(options) ||
+                !ExcelA1.TryParseRange(NormalizeA1Range(usedRange), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return usedRange;
+            }
+
+            int extendedLastRow = lastRow;
+            int extendedLastColumn = lastColumn;
+            foreach (ExcelMergedRangeInfo merged in workbookSheet.GetMergedRanges()) {
+                if (merged.StartRow < firstRow || merged.StartRow > lastRow ||
+                    merged.StartColumn < firstColumn || merged.StartColumn > lastColumn) {
+                    continue;
+                }
+
+                extendedLastRow = Math.Max(extendedLastRow, merged.EndRow);
+                extendedLastColumn = Math.Max(extendedLastColumn, merged.EndColumn);
+            }
+
+            return extendedLastRow == lastRow && extendedLastColumn == lastColumn
+                ? usedRange
+                : ToA1Range(firstRow, firstColumn, extendedLastRow, extendedLastColumn);
         }
 
         private static bool IsBoundedWorksheetRead(ExcelPdfExportOptions options) =>
@@ -130,8 +158,39 @@ namespace OfficeIMO.Excel.Pdf {
             return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills, titleColumns, titleRows);
         }
 
+        /// <summary>
+        /// The reader returns a formula's text when the workbook stores no cached result.
+        /// Excel shows the calculated value instead, so evaluate supported formulas here
+        /// without changing the workbook, and report the ones that cannot be calculated.
+        /// </summary>
+        private static void ApplyUncachedFormulaValues(ExcelSheet? metadataSheet, string normalizedRange, object?[,] values, ExcelPdfExportOptions options) {
+            if (metadataSheet == null || values.Length == 0 ||
+                !ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            var (calculated, unsupported) = metadataSheet.EvaluateUncachedFormulaDisplayValues(firstRow, firstColumn, lastRow, lastColumn);
+            foreach (KeyValuePair<(int Row, int Column), object?> entry in calculated) {
+                int row = entry.Key.Row - firstRow;
+                int column = entry.Key.Column - firstColumn;
+                if (row >= 0 && column >= 0 && row < values.GetLength(0) && column < values.GetLength(1)) {
+                    values[row, column] = entry.Value;
+                }
+            }
+
+            if (unsupported.Count > 0) {
+                AddWarning(
+                    options,
+                    metadataSheet.Name,
+                    "formula-not-calculated",
+                    $"{unsupported.Count.ToString(CultureInfo.InvariantCulture)} formula cell(s) have no cached result and use functions the built-in calculator does not support; they were exported blank. Recalculate and save the workbook in a spreadsheet application to include their values. First cell: {unsupported[0]}.",
+                    OfficeConversionLossKind.Omission);
+            }
+        }
+
         private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {
             object?[,] rawValues = sheet.ReadRange(normalizedRange);
+            ApplyUncachedFormulaValues(metadataSheet, normalizedRange, rawValues, options);
             VisibilityLayoutData? visibility = ReadVisibilityLayoutData(
                 metadataSheet,
                 normalizedRange,

@@ -96,15 +96,20 @@ namespace OfficeIMO.Excel.Pdf {
 
             var layout = new MergeLayoutData(rowCount, columnCount);
             foreach (ExcelMergedRangeInfo mergedRange in workbookSheet.GetMergedRanges()) {
+                // A merge whose anchor is inside the range keeps its visible part. Dropping
+                // it entirely clips the anchor text at its first column (a print area can end
+                // inside a merged title).
                 if (mergedRange.StartRow < firstRow ||
                     mergedRange.StartColumn < firstColumn ||
-                    mergedRange.EndRow > lastRow ||
-                    mergedRange.EndColumn > lastColumn) {
+                    mergedRange.StartRow > lastRow ||
+                    mergedRange.StartColumn > lastColumn) {
                     continue;
                 }
 
-                List<int> visibleRows = MapVisibleOffsets(mergedRange.StartRow - firstRow, mergedRange.EndRow - firstRow, visibility?.RowOffsets);
-                List<int> visibleColumns = MapVisibleOffsets(mergedRange.StartColumn - firstColumn, mergedRange.EndColumn - firstColumn, visibility?.ColumnOffsets);
+                int mergeLastRow = Math.Min(mergedRange.EndRow, lastRow);
+                int mergeLastColumn = Math.Min(mergedRange.EndColumn, lastColumn);
+                List<int> visibleRows = MapVisibleOffsets(mergedRange.StartRow - firstRow, mergeLastRow - firstRow, visibility?.RowOffsets);
+                List<int> visibleColumns = MapVisibleOffsets(mergedRange.StartColumn - firstColumn, mergeLastColumn - firstColumn, visibility?.ColumnOffsets);
                 if (visibleRows.Count == 0 || visibleColumns.Count == 0) {
                     continue;
                 }

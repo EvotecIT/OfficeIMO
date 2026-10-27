@@ -68,9 +68,10 @@ namespace OfficeIMO.Tests {
                     summary.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 3, "#112233");
                     summary.SetColumnWidth(1, 20);
-                    summary.CellValue(3, 1, "First line\nSecond line");
-                    summary.WrapCells(3, 3, 1, 20);
-                    summary.AutoFitRow(3);
+                    // Row 3 stays free for the totals row that SetTableTotals adds below the table.
+                    summary.CellValue(4, 1, "First line\nSecond line");
+                    summary.WrapCells(4, 4, 1, 20);
+                    summary.AutoFitRow(4);
                     summary.CellValue(1, 4, "Status");
                     summary.CellValue(1, 5, "Region");
                     summary.CellValue(1, 6, "Score");
@@ -138,7 +139,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Open" }, worksheetFilterColumn.Values);
                 var table = Assert.Single(summarySheet.Tables);
                 Assert.Equal("SummaryTable", table.Name);
-                Assert.Equal("A1:B2", table.A1Range);
+                Assert.Equal("A1:B3", table.A1Range);
                 Assert.Equal("TableStyleMedium2", table.StyleName);
                 Assert.True(table.HasHeaderRow);
                 Assert.True(table.TotalsRowShown);
@@ -193,7 +194,7 @@ namespace OfficeIMO.Tests {
                 var column = Assert.Single(summarySheet.Columns, c => c.StartIndex == 1 && c.EndIndex == 1);
                 Assert.Equal(20, column.Width);
 
-                var row = Assert.Single(summarySheet.Rows, r => r.Index == 3);
+                var row = Assert.Single(summarySheet.Rows, r => r.Index == 4);
                 Assert.True(row.Height > 15);
 
                 var hiddenSheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Hidden");
@@ -297,6 +298,8 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 2, "Wrapped\nRow");
                     summary.WrapCells(3, 3, 2, 20);
                     summary.AutoFitRow(3);
+                    // Row 3 is written as the table's totals row before SetTableTotals marks it.
+                    summary.CellValue(3, 1, "Total");
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
                     summary.CellValue(1, 9, "Score");
@@ -444,7 +447,8 @@ namespace OfficeIMO.Tests {
 
                 var filterView = Assert.Single(batch.Requests.OfType<GoogleSheetsAddFilterViewRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("SummaryTable Filter", filterView.Title);
-                Assert.Equal("A1:B3", filterView.A1Range);
+                // The table filter covers the header and data rows, not the totals row.
+                Assert.Equal("A1:B2", filterView.A1Range);
 
                 var protectedRange = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>(), r => r.SheetName == "Summary");
                 Assert.False(protectedRange.WarningOnly);
@@ -1259,6 +1263,8 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(3, 2, "Wrapped\nRow");
                     summary.WrapCells(3, 3, 2, 20);
                     summary.AutoFitRow(3);
+                    // Row 3 is written as the table's totals row before SetTableTotals marks it.
+                    summary.CellValue(3, 1, "Total");
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
                     summary.CellValue(1, 9, "Score");

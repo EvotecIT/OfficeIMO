@@ -65,6 +65,8 @@ public partial class Excel {
         sheet.CellAt(2, 1).SetNumberFormat("# ?/4;-# ?/4;0");
         sheet.CellAt(3, 1).SetValue(1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
         sheet.CellAt(4, 1).SetValue(-1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
+        // Wide enough that Excel would show the 21-digit values rather than "####".
+        sheet.SetColumnWidth(1, 30);
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(new[] { "2/4", "-2/4", "100000000000000000000", "-100000000000000000000" },

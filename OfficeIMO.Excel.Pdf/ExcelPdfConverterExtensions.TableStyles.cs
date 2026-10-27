@@ -82,13 +82,6 @@ namespace OfficeIMO.Excel.Pdf {
             };
         }
 
-        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelPdfExportOptions options) {
-            PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
-            tableStyle.HeaderRowCount = 0;
-            tableStyle.RepeatHeaderRowCount = null;
-            return tableStyle;
-        }
-
         private static double CalculateChunkApproximateWidth(ColumnLayoutData columnWidths, int columnOffset, int exportedColumns) {
             if (exportedColumns <= 0 || columnOffset <= 0 && exportedColumns >= columnWidths.WidthWeights.Count) {
                 return columnWidths.ApproximateWidthPoints;
@@ -451,7 +444,11 @@ namespace OfficeIMO.Excel.Pdf {
                             borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
                             borders[(localRow, column - columnOffset)] = new PdfCore.PdfCellBorder {
                                 Color = color.Value,
-                                Width = 0.35D
+                                Width = 0.35D,
+                                Top = tableVisual!.BorderTop,
+                                Right = tableVisual.BorderRight,
+                                Bottom = tableVisual.BorderBottom,
+                                Left = tableVisual.BorderLeft
                             };
                         }
                     }

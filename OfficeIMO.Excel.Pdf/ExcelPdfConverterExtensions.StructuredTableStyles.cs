@@ -139,22 +139,54 @@ namespace OfficeIMO.Excel.Pdf {
                 bool emphasizedColumn =
                     _showFirstColumn && column == _firstColumn ||
                     _showLastColumn && column == _lastColumn;
+                bool top = true, bottom = true, left = true, right = true;
+                switch (_palette.BorderLayout) {
+                    case ExcelTableStyleBorderLayout.Horizontal:
+                        left = right = false;
+                        break;
+                    case ExcelTableStyleBorderLayout.OutlineHorizontal:
+                        left = right = false;
+                        top = row == _firstRow || totals;
+                        bottom = row == _lastRow || header;
+                        break;
+                    case ExcelTableStyleBorderLayout.Box:
+                        top = row == _firstRow || totals;
+                        bottom = row == _lastRow || header;
+                        left = column == _firstColumn;
+                        right = column == _lastColumn;
+                        break;
+                    case ExcelTableStyleBorderLayout.None:
+                        top = bottom = left = right = false;
+                        break;
+                }
+
                 visual = new StructuredTableCellVisual(
                     fill,
                     header ? _palette.HeaderText : _palette.BodyText,
-                    header ? _palette.HeaderBold : emphasizedColumn,
-                    _palette.Border);
+                    header ? _palette.HeaderBold : emphasizedColumn || totals,
+                    top || bottom || left || right ? _palette.Border : null,
+                    top, right, bottom, left);
                 return true;
             }
         }
 
         private sealed class StructuredTableCellVisual {
-            internal StructuredTableCellVisual(string? fill, string? text, bool bold, string? border) {
+            internal StructuredTableCellVisual(string? fill, string? text, bool bold, string? border,
+                bool borderTop = true, bool borderRight = true, bool borderBottom = true, bool borderLeft = true) {
                 Fill = fill;
                 Text = text;
                 Bold = bold;
                 Border = border;
+                BorderTop = borderTop;
+                BorderRight = borderRight;
+                BorderBottom = borderBottom;
+                BorderLeft = borderLeft;
             }
+
+            internal bool BorderTop { get; }
+            internal bool BorderRight { get; }
+            internal bool BorderBottom { get; }
+            internal bool BorderLeft { get; }
 
             internal string? Fill { get; }
             internal string? Text { get; }

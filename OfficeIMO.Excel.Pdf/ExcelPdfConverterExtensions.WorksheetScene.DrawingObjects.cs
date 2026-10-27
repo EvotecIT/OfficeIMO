@@ -39,10 +39,13 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWorksheetSceneDrawingObjects(
             PdfCore.PdfPageCanvas canvas, WorksheetPdfExportPlan plan, TableChunk chunk,
             IReadOnlyList<double> columnWidths, IReadOnlyList<double> rowHeights,
-            double sceneX, double sceneY, double scale) {
+            double sceneX, double sceneY, double scale, Func<double, double, double, double, bool>? visible = null) {
             foreach (var drawing in plan.DrawingObjects.OrderBy(drawing => drawing.Order)) {
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y)) continue;
                 (double width, double height) = GetWorksheetDrawingSize(plan, drawing);
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y,
+                        PixelsToPoints(drawing.OffsetXPixels) + width, PixelsToPoints(drawing.OffsetYPixels) + height)) continue;
+                if (visible != null && !visible(sceneX + (x + PixelsToPoints(drawing.OffsetXPixels)) * scale,
+                        sceneY + (y + PixelsToPoints(drawing.OffsetYPixels)) * scale, width * scale, height * scale)) continue;
                 ExcelVisualDrawingObject visual = drawing.ToVisual(0D, 0D, width / 0.75D, height / 0.75D, plan.SheetName);
                 // DrawingML's shared visual model uses logical 96-DPI pixels. PDF uses points.
                 var scene = ExcelRangeImageRenderer.CreateOfficeDrawing(visual, 0.75D * scale);

@@ -712,6 +712,20 @@ provider-owned object/mutable fields, uses the sequential mapping contract.
 Parsing and decompression are not claimed to run in parallel, and small or cheap
 rows can still be faster sequentially.
 
+### Table totals, headers and print settings
+
+`SetTableTotals` and `SetTableTotalsByName` add the totals row below the data, extending the table by one row, and write a `SUBTOTAL` formula with its calculated value for each column you name; the first column is labelled `Total` when it has no function. A blank last row inside the table is used instead of growing it. When the row below the table holds a value the call throws `InvalidOperationException` rather than overwrite it. `ClearTableTotals` removes the row again. Typed reads with `RowsAs<T>()` skip the totals row of a table that ends the read range.
+
+```csharp
+sheet.AddTable("A1:C501", hasHeader: true, name: "Orders", style: ExcelTableStyle.TableStyleMedium2);
+sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
+    ["Amount"] = ExcelTableTotalsFunction.Sum
+});
+// The table is now A1:C502 and C502 holds SUBTOTAL(109,Orders[Amount]).
+```
+
+`AddTable` right-aligns a header whose column holds only numbers, so the label sits over the values. It also gives the sheet print settings when you have not chosen any: the header row repeats on every printed page, a table wider than a portrait page prints in landscape, and one wider than a landscape page is fitted to the page width. `AutoFitColumns` re-evaluates the orientation after it changes the widths. Calling `SetOrientation` or `SetPageSetup` takes over, and the defaults stop changing.
+
 ### Append to an existing table
 
 Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.

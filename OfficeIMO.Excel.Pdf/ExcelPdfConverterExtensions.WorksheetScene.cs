@@ -12,7 +12,8 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelPdfExportOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
-            PdfCore.PdfStandardFont defaultFontFamily) {
+            PdfCore.PdfStandardFont defaultFontFamily,
+            string? workbookPath) {
             WorksheetPdfExportPlan firstPlan = plans[0];
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
@@ -21,7 +22,7 @@ namespace OfficeIMO.Excel.Pdf {
             double availableHeight = Math.Max(1D, pageSize.Height - margins.Top - margins.Bottom - headingHeight);
             pdf.Section(page => {
                 ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
-                ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
+                ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, workbookPath, options, firstPlan.PageSetup);
                 for (int areaIndex = 0; areaIndex < plans.Count; areaIndex++) {
                     WorksheetPdfExportPlan plan = plans[areaIndex];
                     int columns = plan.ExportData.Values.GetLength(1);
@@ -39,22 +40,35 @@ namespace OfficeIMO.Excel.Pdf {
                         }
 
                         TableChunk chunk = chunks[chunkIndex];
-                        bool firstPageForSheet = areaIndex == 0 && chunkIndex == 0;
-                        page.Canvas(canvas => RenderWorksheetScene(
-                            canvas,
-                            plan,
-                            chunk,
-                            options,
-                            sheetDestinations,
-                            cellDestinations,
-                            defaultFontFamily,
-                            margins,
-                            availableWidth,
-                            availableHeight,
-                            worksheetScale,
-                            headingHeight,
-                            firstPageForSheet,
-                            document.DateSystem));
+                        IReadOnlyList<(double OffsetX, double OffsetY)> tiles = GetWorksheetSceneTiles(plan, chunk, availableWidth, availableHeight, worksheetScale);
+                        for (int tileIndex = 0; tileIndex < tiles.Count; tileIndex++) {
+                            {
+                                if (tileIndex > 0) {
+                                    page.Content(content => content.Item(item => item.PageBreak()));
+                                }
+
+                                bool firstPageForSheet = areaIndex == 0 && chunkIndex == 0 && tileIndex == 0;
+                                double tileOffsetX = tiles[tileIndex].OffsetX;
+                                double tileOffsetY = tiles[tileIndex].OffsetY;
+                                page.Canvas(canvas => RenderWorksheetScene(
+                                    canvas,
+                                    plan,
+                                    chunk,
+                                    options,
+                                    sheetDestinations,
+                                    cellDestinations,
+                                    defaultFontFamily,
+                                    margins,
+                                    availableWidth,
+                                    availableHeight,
+                                    worksheetScale,
+                                    headingHeight,
+                                    firstPageForSheet,
+                                    document.DateSystem,
+                                    tileOffsetX,
+                                    tileOffsetY));
+                            }
+                        }
                     }
                 }
             });
@@ -74,7 +88,9 @@ namespace OfficeIMO.Excel.Pdf {
             double worksheetScale,
             double headingHeight,
             bool firstPageForSheet,
-            ExcelDateSystem dateSystem) {
+            ExcelDateSystem dateSystem,
+            double tileOffsetX = 0D,
+            double tileOffsetY = 0D) {
             double sceneX = margins.Left;
             double sceneY = margins.Top + headingHeight;
             if (firstPageForSheet) {
@@ -106,14 +122,38 @@ namespace OfficeIMO.Excel.Pdf {
             double scale = ResolveWorksheetSceneScale(plan.PageSetup, unscaledSceneWidth, unscaledSceneHeight, availableWidth, availableHeight, worksheetScale);
             sceneX += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.HorizontalCentered, availableWidth, unscaledSceneWidth * scale);
             sceneY += ExcelPageSetupGeometry.CenteredOffset(plan.PrintOptions?.VerticalCentered, availableHeight, unscaledSceneHeight * scale);
-            double clipWidth = Math.Min(availableWidth, unscaledSceneWidth * scale);
-            double clipHeight = Math.Min(availableHeight, unscaledSceneHeight * scale);
+            double clipWidth = Math.Min(availableWidth, unscaledSceneWidth * scale - tileOffsetX);
+            double clipHeight = Math.Min(availableHeight, unscaledSceneHeight * scale - tileOffsetY);
 
-            double tableX = sceneX - objectBounds.Left * scale;
-            double tableY = sceneY - objectBounds.Top * scale;
+            // Continuation pages of an oversized scene show the next page-sized window of it.
+            double tableX = sceneX - objectBounds.Left * scale - tileOffsetX;
+            double tableY = sceneY - objectBounds.Top * scale - tileOffsetY;
+            bool hasCells = plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0;
+            SheetExportData? pageData = hasCells ? SelectPageCells(plan, chunk, options) : null;
+            WorksheetSceneTextPlan? textPlan = null;
+            if (pageData != null) {
+                // Without a print area Excel lets text on the last printed column run on to
+                // the page edge; an explicit area or a later column page clips it.
+                bool lastColumnPage = chunk.StartColumn + chunk.ColumnCount >= plan.ExportData.Values.GetLength(1);
+                double pageRight = margins.Left + availableWidth;
+                double virtualRoom = lastColumnPage && !plan.ClipToExportRange
+                    ? Math.Max(0D, (pageRight - (tableX + tableWidth * scale)) / Math.Max(0.0001D, scale))
+                    : 0D;
+                textPlan = CreateWorksheetSceneTextPlan(plan, chunk, pageData, columnWidths, virtualRoom, dateSystem, options.EmptyCellText);
+                if (textPlan.OverflowRight > tableWidth) {
+                    clipWidth = Math.Min(pageRight - sceneX, Math.Max(clipWidth, tableX - sceneX + textPlan.OverflowRight * scale));
+                }
+            }
+
+            // A continuation page of an oversized drawing does not repeat cells that lie
+            // wholly outside its window.
+            bool cellsVisible = tableX + Math.Max(tableWidth, textPlan?.OverflowRight ?? 0D) * scale > sceneX + 0.5D &&
+                tableX < sceneX + clipWidth - 0.5D &&
+                tableY + tableHeight * scale > sceneY + 0.5D &&
+                tableY < sceneY + clipHeight - 0.5D;
             canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
-                if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
-                    SheetExportData data = SelectPageCells(plan, chunk, options);
+                if (pageData != null && cellsVisible) {
+                    SheetExportData data = pageData;
                     int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
                     PdfCore.PdfTableStyle tableStyle = CreateWorksheetSceneTableStyle(plan, data, chunk, options, columnWidths, rowHeights, scale);
                     clipped.Table(
@@ -135,19 +175,111 @@ namespace OfficeIMO.Excel.Pdf {
                             defaultFontFamily,
                             scale,
                             preserveWorksheetNoWrap: true,
-                            dateSystem: dateSystem),
+                            dateSystem: dateSystem,
+                            textOverrides: textPlan?.TextOverrides),
                         tableX,
                         tableY,
                         tableWidth * scale,
                         tableHeight * scale,
                         tableStyle);
+                    if (textPlan != null) {
+                        AddWorksheetSceneTextOverflows(clipped, plan, data, textPlan, tableStyle, rowHeights, options,
+                            sheetDestinations, cellDestinations, defaultFontFamily, tableX, tableY, scale, dateSystem);
+                    }
                     AddWorksheetSceneConditionalIcons(clipped, data, columnWidths, rowHeights, tableX, tableY, scale);
                 }
 
-                AddWorksheetSceneImages(clipped, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale);
-                AddWorksheetSceneCharts(clipped, plan, chunk, options, columnWidths, rowHeights, tableX, tableY, scale);
-                AddWorksheetSceneDrawingObjects(clipped, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale);
+                // Objects continued from an earlier page stay below repeated title rows
+                // and right of repeated title columns.
+                double objectClipX = chunk.StartColumn > 0 ? Math.Max(sceneX, tableX + GetChunkTitleColumnWidth(chunk, columnWidths) * scale) : sceneX;
+                double objectClipY = !IsInitialWorksheetRowChunk(plan, chunk) ? Math.Max(sceneY, tableY + GetChunkHeaderRowHeight(chunk, rowHeights) * scale) : sceneY;
+                clipped.Clip(objectClipX, objectClipY,
+                    Math.Max(1D, sceneX + clipWidth - objectClipX), Math.Max(1D, sceneY + clipHeight - objectClipY), objects => {
+                        double windowRight = sceneX + clipWidth;
+                        double windowBottom = sceneY + clipHeight;
+                        // Objects wholly outside this page's window are left to the page that shows them.
+                        bool Visible(double x, double y, double width, double height) =>
+                            x < windowRight && x + width > objectClipX && y < windowBottom && y + height > objectClipY;
+                        AddWorksheetSceneImages(objects, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale, Visible);
+                        AddWorksheetSceneCharts(objects, plan, chunk, options, columnWidths, rowHeights, tableX, tableY, scale, Visible);
+                        AddWorksheetSceneDrawingObjects(objects, plan, chunk, columnWidths, rowHeights, tableX, tableY, scale, Visible);
+                    });
             });
+        }
+
+        /// <summary>
+        /// The page-sized windows of one chunk's scene that hold content, in print order.
+        /// Like Excel, a page that would show nothing (a gap between distant objects and
+        /// cells) is not printed.
+        /// </summary>
+        private static IReadOnlyList<(double OffsetX, double OffsetY)> GetWorksheetSceneTiles(
+            WorksheetPdfExportPlan plan,
+            TableChunk chunk,
+            double availableWidth,
+            double availableHeight,
+            double worksheetScale) {
+            List<double> columnWidths = CreateWorksheetSceneColumnWidths(plan, chunk);
+            List<double> rowHeights = CreateWorksheetSceneRowHeights(plan, chunk);
+            WorksheetSceneBounds bounds = MeasureWorksheetObjects(plan, chunk, columnWidths, rowHeights);
+            double tableWidth = Math.Max(1D, columnWidths.Sum());
+            double tableHeight = Math.Max(1D, rowHeights.Sum());
+            double width = Math.Max(tableWidth, bounds.Right) - bounds.Left;
+            double height = Math.Max(tableHeight, bounds.Bottom) - bounds.Top;
+            double scale = ResolveWorksheetSceneScale(plan.PageSetup, width, height, availableWidth, availableHeight, worksheetScale);
+            // A sliver below one point is rounding, not content.
+            int across = Math.Max(1, (int)Math.Ceiling((width * scale - 1D) / availableWidth));
+            int down = Math.Max(1, (int)Math.Ceiling((height * scale - 1D) / availableHeight));
+            if (across == 1 && down == 1) return new[] { (0D, 0D) };
+
+            var rects = new List<(double X, double Y, double Width, double Height)>();
+            if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) rects.Add((0D, 0D, tableWidth, tableHeight));
+            foreach (WorksheetImageExportData image in plan.Images) {
+                if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y,
+                        image.OffsetXPoints + image.WidthPoints, image.OffsetYPoints + image.HeightPoints)) {
+                    rects.Add((x + image.OffsetXPoints, y + image.OffsetYPoints, image.WidthPoints, image.HeightPoints));
+                }
+            }
+
+            foreach (WorksheetChartExportData chart in plan.Charts) {
+                ExcelChartInfo snapshot = chart.Snapshot;
+                if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y,
+                        PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels), PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels))) {
+                    rects.Add((x + PixelsToPoints(snapshot.OffsetXPixels), y + PixelsToPoints(snapshot.OffsetYPixels),
+                        PixelsToPoints(snapshot.WidthPixels), PixelsToPoints(snapshot.HeightPixels)));
+                }
+            }
+
+            foreach (var drawing in plan.DrawingObjects) {
+                (double drawingWidth, double drawingHeight) = GetWorksheetDrawingSize(plan, drawing);
+                if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y,
+                        PixelsToPoints(drawing.OffsetXPixels) + drawingWidth, PixelsToPoints(drawing.OffsetYPixels) + drawingHeight)) {
+                    rects.Add((x + PixelsToPoints(drawing.OffsetXPixels), y + PixelsToPoints(drawing.OffsetYPixels), drawingWidth, drawingHeight));
+                }
+            }
+
+            // Page windows are aligned to the chunk's first cell, so the cells (which the row
+            // and column breaks already fit on one page) are never cut by a window edge.
+            double tileWidth = availableWidth / scale;
+            double tileHeight = availableHeight / scale;
+            double right = Math.Max(tableWidth, bounds.Right);
+            double bottom = Math.Max(tableHeight, bounds.Bottom);
+            int firstColumnTile = (int)Math.Floor(bounds.Left / tileWidth + 1E-9);
+            int lastColumnTile = Math.Max(firstColumnTile, (int)Math.Ceiling((right - 1D / scale) / tileWidth) - 1);
+            int firstRowTile = (int)Math.Floor(bounds.Top / tileHeight + 1E-9);
+            int lastRowTile = Math.Max(firstRowTile, (int)Math.Ceiling((bottom - 1D / scale) / tileHeight) - 1);
+            var tiles = new List<(double OffsetX, double OffsetY)>();
+            for (int tileX = firstColumnTile; tileX <= lastColumnTile; tileX++) {
+                for (int tileY = firstRowTile; tileY <= lastRowTile; tileY++) {
+                    double left = tileX * tileWidth;
+                    double top = tileY * tileHeight;
+                    bool hasContent = rects.Any(rect => rect.X < left + tileWidth && rect.X + rect.Width > left &&
+                                                        rect.Y < top + tileHeight && rect.Y + rect.Height > top);
+                    if (hasContent) tiles.Add(((left - bounds.Left) * scale, (top - bounds.Top) * scale));
+                }
+            }
+
+            if (tiles.Count == 0) tiles.Add((0D, 0D));
+            return tiles;
         }
 
         private static PdfCore.PdfTableStyle CreateWorksheetSceneTableStyle(
@@ -182,7 +314,7 @@ namespace OfficeIMO.Excel.Pdf {
             style.ColumnWidthPoints = columnWidths.Select(width => (double?)width).ToList();
             style.FixedRowHeights = rowHeights.Select(height => (double?)height).ToList();
             style.RowMinHeights = null;
-            style.CellPaddingX = 1.5D * scale;
+            style.CellPaddingX = WorksheetCellPaddingX * scale;
             style.CellPaddingY = 0D;
             style.CellPaddingLeft = null;
             style.CellPaddingRight = null;
@@ -294,15 +426,20 @@ namespace OfficeIMO.Excel.Pdf {
                     return 0D;
                 }
 
-                return geometry.UseWorksheetRowHeights &&
-                       definition.CustomHeight &&
-                       definition.Height is double customHeight &&
-                       customHeight > 0D
-                    ? customHeight
-                    : geometry.DefaultRowHeight;
+                // Excel lays rows out at their stored height whether or not the user set
+                // it; customHeight only stops Excel from refitting the row after edits.
+                if (geometry.UseWorksheetRowHeights &&
+                    definition.Height is double storedHeight &&
+                    storedHeight > 0D) {
+                    return storedHeight;
+                }
+
+                break;
             }
 
-            return geometry.DefaultRowHeight;
+            return geometry.AutoRowHeights != null && geometry.AutoRowHeights.TryGetValue(sourceRow, out double automaticHeight)
+                ? automaticHeight
+                : geometry.DefaultRowHeight;
         }
 
         private static double ResolveWorksheetSceneScale(
@@ -312,12 +449,15 @@ namespace OfficeIMO.Excel.Pdf {
             double availableWidth,
             double availableHeight,
             double worksheetScale) {
+            // Excel prints at the page setup's scale (100 % by default) and shrinks only when
+            // the page setup asks to fit. Content larger than a page continues on further
+            // pages instead of being shrunk silently.
             double scale = worksheetScale;
-            if (IsFitToWidth(pageSetup) || sceneWidth * scale > availableWidth) {
+            if (IsFitToWidth(pageSetup) && sceneWidth * scale > availableWidth) {
                 scale = Math.Min(scale, availableWidth / Math.Max(1D, sceneWidth));
             }
 
-            if (IsFitToHeight(pageSetup) || sceneHeight * scale > availableHeight) {
+            if (IsFitToHeight(pageSetup) && sceneHeight * scale > availableHeight) {
                 scale = Math.Min(scale, availableHeight / Math.Max(1D, sceneHeight));
             }
 
@@ -351,7 +491,8 @@ namespace OfficeIMO.Excel.Pdf {
             double right = 0D;
             double bottom = 0D;
             foreach (WorksheetImageExportData image in plan.Images) {
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y)) {
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y,
+                        image.OffsetXPoints + image.WidthPoints, image.OffsetYPoints + image.HeightPoints)) {
                     continue;
                 }
 
@@ -363,7 +504,8 @@ namespace OfficeIMO.Excel.Pdf {
 
             foreach (WorksheetChartExportData chart in plan.Charts) {
                 ExcelChartInfo snapshot = chart.Snapshot;
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y)) {
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y,
+                        PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels), PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels))) {
                     continue;
                 }
 
@@ -374,13 +516,22 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             foreach (var drawing in plan.DrawingObjects) {
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y)) continue;
                 (double width, double height) = GetWorksheetDrawingSize(plan, drawing);
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, drawing.Row, drawing.Column, out double x, out double y,
+                        PixelsToPoints(drawing.OffsetXPixels) + width, PixelsToPoints(drawing.OffsetYPixels) + height)) continue;
                 left = Math.Min(left, x + PixelsToPoints(drawing.OffsetXPixels));
                 top = Math.Min(top, y + PixelsToPoints(drawing.OffsetYPixels));
                 right = Math.Max(right, x + PixelsToPoints(drawing.OffsetXPixels) + width);
                 bottom = Math.Max(bottom, y + PixelsToPoints(drawing.OffsetYPixels) + height);
             }
+            // Only the last page of each axis grows for objects; on earlier pages the rest
+            // of an object continues on the page that holds the following rows or columns.
+            double tableRight = columnWidths.Sum();
+            double tableBottom = rowHeights.Sum();
+            if (plan.HasTable && !IsLastWorksheetColumnChunk(plan, chunk)) right = Math.Min(right, tableRight);
+            if (plan.HasTable && !IsLastWorksheetRowChunk(plan, chunk)) bottom = Math.Min(bottom, tableBottom);
+            if (chunk.StartColumn > 0) left = 0D;
+            if (!IsInitialWorksheetRowChunk(plan, chunk)) top = 0D;
             return new WorksheetSceneBounds(left, top, right, bottom);
         }
 
@@ -392,9 +543,16 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<double> rowHeights,
             double sceneX,
             double sceneY,
-            double scale) {
+            double scale,
+            Func<double, double, double, double, bool>? visible = null) {
             foreach (WorksheetImageExportData image in plan.Images) {
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y)) {
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, image.RowIndex, image.ColumnIndex, out double x, out double y,
+                        image.OffsetXPoints + image.WidthPoints, image.OffsetYPoints + image.HeightPoints)) {
+                    continue;
+                }
+
+                if (visible != null && !visible(sceneX + (x + image.OffsetXPoints) * scale, sceneY + (y + image.OffsetYPoints) * scale,
+                        image.WidthPoints * scale, image.HeightPoints * scale)) {
                     continue;
                 }
 
@@ -421,15 +579,27 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<double> rowHeights,
             double sceneX,
             double sceneY,
-            double scale) {
+            double scale,
+            Func<double, double, double, double, bool>? visible = null) {
             foreach (WorksheetChartExportData chart in plan.Charts) {
                 ExcelChartInfo snapshot = chart.Snapshot;
-                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y)) {
+                if (!TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y,
+                        PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels), PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels))) {
                     continue;
                 }
 
-                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: true));
-                AddChartQualityWarning(options, plan.SheetName, snapshot, rendering.QualityReport);
+                if (visible != null && !visible(sceneX + (x + PixelsToPoints(snapshot.OffsetXPixels)) * scale, sceneY + (y + PixelsToPoints(snapshot.OffsetYPixels)) * scale,
+                        PixelsToPoints(snapshot.WidthPixels) * scale, PixelsToPoints(snapshot.HeightPixels) * scale)) {
+                    continue;
+                }
+
+                // A chart that continues across pages is rendered and reported once.
+                if (!plan.ChartRenderings.TryGetValue(chart, out OfficeChartRenderingResult? rendering)) {
+                    rendering = OfficeChartDrawingRenderer.RenderWithQuality(CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: true));
+                    AddChartQualityWarning(options, plan.SheetName, snapshot, rendering.QualityReport);
+                    plan.ChartRenderings[chart] = rendering;
+                }
+
                 string chartName = string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
                 canvas.Drawing(
                     rendering.Drawing,
@@ -451,7 +621,9 @@ namespace OfficeIMO.Excel.Pdf {
             int sourceRow,
             int sourceColumn,
             out double x,
-            out double y) {
+            out double y,
+            double objectRight = 0D,
+            double objectBottom = 0D) {
             x = 0D;
             y = 0D;
             string?[,]? references = plan.ExportData.CellReferences;
@@ -485,7 +657,10 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            if (localRow < 0) {
+            if (localRow < 0 && TryGetEarlierRowBandOffset(plan, chunk, references, rowHeights, sourceRow, objectBottom, out double bandY)) {
+                // An object anchored on an earlier page continues into this page's rows.
+                y = bandY;
+            } else if (localRow < 0) {
                 if (plan.ClipToExportRange) {
                     return false;
                 }
@@ -523,6 +698,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return true;
             }
 
+            if (TryGetEarlierColumnBandOffset(plan, chunk, references, columnWidths, sourceColumn, objectRight, out double bandX)) {
+                x = bandX;
+                return true;
+            }
+
             if (!plan.ClipToExportRange && sourceColumn < plan.Geometry.FirstColumn && chunk.StartColumn == 0) {
                 for (int column = sourceColumn; column < plan.Geometry.FirstColumn; column++)
                     x -= GetWorksheetColumnWidthPoints(plan.Geometry, column);
@@ -551,6 +731,71 @@ namespace OfficeIMO.Excel.Pdf {
 
             return true;
         }
+
+        /// <summary>
+        /// Excel prints the sheet at its own scale and splits a drawing that crosses a page
+        /// break; the part below the break appears at the top of the next page's rows.
+        /// </summary>
+        private static bool TryGetEarlierRowBandOffset(
+            WorksheetPdfExportPlan plan,
+            TableChunk chunk,
+            string?[,] references,
+            IReadOnlyList<double> rowHeights,
+            int sourceRow,
+            double objectBottom,
+            out double y) {
+            y = 0D;
+            if (IsInitialWorksheetRowChunk(plan, chunk) || chunk.HeaderRowCount >= chunk.RowIndexes.Count) return false;
+            int firstBodySourceRow = GetOriginalRowNumber(references, chunk.RowIndexes[chunk.HeaderRowCount]);
+            if (firstBodySourceRow <= 0 || sourceRow >= firstBodySourceRow || sourceRow < plan.Geometry.FirstRow) return false;
+            double headerHeight = 0D;
+            for (int index = 0; index < chunk.HeaderRowCount; index++) headerHeight += rowHeights[index];
+            double distance = 0D;
+            for (int row = sourceRow; row < firstBodySourceRow; row++) distance += GetWorksheetRowHeightPoints(plan.Geometry, row);
+            y = headerHeight - distance;
+            return y + objectBottom > headerHeight + 0.01D;
+        }
+
+        private static bool TryGetEarlierColumnBandOffset(
+            WorksheetPdfExportPlan plan,
+            TableChunk chunk,
+            string?[,] references,
+            IReadOnlyList<double> columnWidths,
+            int sourceColumn,
+            double objectRight,
+            out double x) {
+            x = 0D;
+            if (chunk.StartColumn <= 0 || chunk.ColumnCount <= 0) return false;
+            int rows = Math.Min(plan.ExportedRows, references.GetLength(0));
+            int firstBodySourceColumn = GetOriginalColumnNumber(references, chunk.StartColumn, rows);
+            if (firstBodySourceColumn <= 0 || sourceColumn >= firstBodySourceColumn || sourceColumn < plan.Geometry.FirstColumn) return false;
+            double titleWidth = GetChunkTitleColumnWidth(chunk, columnWidths);
+            double distance = 0D;
+            for (int column = sourceColumn; column < firstBodySourceColumn; column++) distance += GetWorksheetColumnWidthPoints(plan.Geometry, column);
+            x = titleWidth - distance;
+            return x + objectRight > titleWidth + 0.01D;
+        }
+
+        private static double GetChunkTitleColumnWidth(TableChunk chunk, IReadOnlyList<double> columnWidths) {
+            double width = 0D;
+            for (int index = 0; index < chunk.ColumnIndexes.Count && index < columnWidths.Count; index++) {
+                if (chunk.ColumnIndexes[index] < chunk.StartColumn) width += columnWidths[index];
+            }
+
+            return width;
+        }
+
+        private static double GetChunkHeaderRowHeight(TableChunk chunk, IReadOnlyList<double> rowHeights) {
+            double height = 0D;
+            for (int index = 0; index < chunk.HeaderRowCount && index < rowHeights.Count; index++) height += rowHeights[index];
+            return height;
+        }
+
+        private static bool IsLastWorksheetRowChunk(WorksheetPdfExportPlan plan, TableChunk chunk) =>
+            !plan.HasTable || chunk.RowIndexes.Count == 0 || chunk.RowIndexes.Contains(plan.ExportedRows - 1);
+
+        private static bool IsLastWorksheetColumnChunk(WorksheetPdfExportPlan plan, TableChunk chunk) =>
+            !plan.HasTable || chunk.ColumnCount == 0 || chunk.StartColumn + chunk.ColumnCount >= plan.ExportData.Values.GetLength(1);
 
         private static bool IsInitialWorksheetRowChunk(WorksheetPdfExportPlan plan, TableChunk chunk) {
             int headerRows = Math.Min(plan.ExportData.HeaderRowCount, plan.ExportedRows);

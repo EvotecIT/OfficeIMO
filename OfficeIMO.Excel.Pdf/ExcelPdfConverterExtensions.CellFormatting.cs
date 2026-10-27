@@ -14,6 +14,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
+            if (value is double or float or decimal && TryGetDouble(value, out double generalNumber) &&
+                FormatGeneralNumber(generalNumber, 11) is string general) {
+                // Excel's General format shows at most eleven characters.
+                return general;
+            }
+
             if (value is IFormattable formattable) {
                 return formattable.ToString(null, CultureInfo.InvariantCulture) ?? emptyCellText;
             }

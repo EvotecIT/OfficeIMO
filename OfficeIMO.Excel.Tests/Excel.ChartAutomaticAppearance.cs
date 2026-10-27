@@ -57,7 +57,10 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         // wider than its anchor used to paint over the legend labels.
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "Excel", "exploded-slices.xlsx");
         using ExcelDocument document = ExcelDocument.Load(path);
-        byte[] pdf = document.ConvertToPdfWithEvidence().ToBytes();
+        // The sheet prints at 100 %; a wide page keeps both charts on the first page.
+        byte[] pdf = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(1600, 1000)
+        }).ToBytes();
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
