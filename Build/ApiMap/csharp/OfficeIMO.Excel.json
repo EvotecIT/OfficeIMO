@@ -2084,272 +2084,272 @@
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2 = null, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2, bool stopIfTrue, int? priority = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2, string fillColor, bool stopIfTrue = False, int? priority = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string range, string startColor, string endColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string range, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string range, string color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[] percentThresholds, double[] numberThresholds)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(string pivotTableName, ExcelConditionalFormattingOperator operator, string formula1, string formula2 = null, ExcelPivotRangeTarget target = DataBody)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(string pivotTableName, string startColor, string endColor, ExcelPivotRangeTarget target = DataBody)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(string pivotTableName, string color, ExcelPivotRangeTarget target = DataBody)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(string pivotTableName, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[] percentThresholds = null, double[] numberThresholds = null, ExcelPivotRangeTarget target = DataBody)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -2388,357 +2388,357 @@
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName, IReadOnlyDictionary<string, string[]> groups)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(..., IReadOnlyCollection<string> hiddenGroupItems = null) : ExcelPivotGroupingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ManualGrouping.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "One overload with an optional hidden-group collection returns the created grouping metadata. Manual groups are also included in GetPivotTables readback.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName, IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string> hiddenGroupItems)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(..., IReadOnlyCollection<string> hiddenGroupItems = null) : ExcelPivotGroupingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ManualGrouping.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "One overload with an optional hidden-group collection returns the created grouping metadata. Manual groups are also included in GetPivotTables readback.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue, int? priority)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = False, string fillColor = null, int? priority = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string range)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string range, string fillColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string range)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string range, string fillColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(string range, bool aboveAverage = True, bool equalAverage = False, uint? standardDeviation = null, bool stopIfTrue = False, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(string range, string text, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(string range, string text, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(string range, string text, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(string range, string text, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string range, uint rank, bool bottom = False, bool percent = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, string fillColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(string range, ExcelConditionalFormatType type, string text, bool stopIfTrue = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(string range, bool containsBlanks = True, bool stopIfTrue = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(string range, bool containsErrors = True, bool stopIfTrue = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, bool stopIfTrue = False, string fillColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(...) : the created object",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(...) : ExcelConditionalFormattingInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(...) : ExcelConditionalFormat",
+      "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -2786,8 +2786,9 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "notes": "Returns a lightweight ExcelAutoFilter attached to the requested range. Inspect reads its current criteria and table ownership on demand, preserving deferred export creation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.AddTableOfContents(string sheetName = TOC, bool placeFirst = True, bool withHyperlinks = True, bool includeNamedRanges = False, bool includeHiddenNamedRanges = False, Predicate<string> rangeNameFilter = null, bool styled = True)",
@@ -2802,8 +2803,9 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "notes": "Returns the created table-of-contents sheet after its final placement and defined-name repair."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels(string range)",
@@ -5351,6 +5353,36 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Encrypted-package routing errors point to Load with ExcelLoadOptions.Password and OpenReader with ExcelReaderOptions.Password, replacing guidance for the removed encrypted factories."
+    },
+    {
+      "change": "All conditional-format convenience overloads, including pivot-targeted variants, return ExcelConditionalFormattingInfo from their canonical native insertion paths.",
+      "reason": "The existing lifecycle model already retains rule identity and supports updates/removal. Returning it avoids a duplicate rule wrapper and keeps metadata-only authoring deferred.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+        "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+        "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs"
+      ]
+    },
+    {
+      "change": "ExcelAutoFilter is a lightweight range handle; AddAutoFilter returns it without forcing deferred rows. AddPivotManualGrouping returns its existing grouping model and uses one optional-argument overload.",
+      "reason": "Add returns the created object. Pivot grouping readback previously omitted discrete manual groups because it only considered range-based groups; it now includes both. Removed the old four-argument CLR-signature-only test; native grouped-table and lookup tests remain.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelAutoFilter.cs",
+        "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+        "OfficeIMO.Excel/ExcelSheet.PivotTables.ManualGrouping.cs",
+        "OfficeIMO.Excel/ExcelSheet.PivotTables.Read.cs"
+      ]
+    },
+    {
+      "change": "Conditional color-scale and data-bar string overloads normalize RGB input to SpreadsheetML ARGB before inserting the rule.",
+      "reason": "The documented six-digit RGB strings were previously written directly into the eight-digit rgb attribute, producing schema-invalid packages. The returned-rule save/update witness now validates those public inputs through native package serialization.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+        "OfficeIMO.Excel.Tests/Excel.AddedRuleObjects.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

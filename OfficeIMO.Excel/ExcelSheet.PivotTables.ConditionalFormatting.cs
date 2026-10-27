@@ -31,29 +31,33 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a cell-is conditional formatting rule to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalRule(string pivotTableName, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
-            AddConditionalRule(GetPivotTableRange(pivotTableName, target), @operator, formula1, formula2);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddPivotConditionalRule(string pivotTableName, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+            return AddConditionalRule(GetPivotTableRange(pivotTableName, target), @operator, formula1, formula2);
         }
 
         /// <summary>
         /// Adds a color scale conditional format to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalColorScale(string pivotTableName, string startColor, string endColor, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
-            AddConditionalColorScale(GetPivotTableRange(pivotTableName, target), startColor, endColor);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddPivotConditionalColorScale(string pivotTableName, string startColor, string endColor, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+            return AddConditionalColorScale(GetPivotTableRange(pivotTableName, target), startColor, endColor);
         }
 
         /// <summary>
         /// Adds a data bar conditional format to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalDataBar(string pivotTableName, string color, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
-            AddConditionalDataBar(GetPivotTableRange(pivotTableName, target), color);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddPivotConditionalDataBar(string pivotTableName, string color, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+            return AddConditionalDataBar(GetPivotTableRange(pivotTableName, target), color);
         }
 
         /// <summary>
         /// Adds an icon set conditional format to a pivot table output range.
         /// </summary>
-        public void AddPivotConditionalIconSet(string pivotTableName, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
-            AddConditionalIconSet(GetPivotTableRange(pivotTableName, target), iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddPivotConditionalIconSet(string pivotTableName, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, ExcelPivotRangeTarget target = ExcelPivotRangeTarget.DataBody) {
+            return AddConditionalIconSet(GetPivotTableRange(pivotTableName, target), iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
         }
 
         private static string ResolvePivotDataBodyRange(string location) {

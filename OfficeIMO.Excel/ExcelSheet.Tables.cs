@@ -164,7 +164,7 @@ namespace OfficeIMO.Excel {
         /// Order doesn't matter - whether you add Table then AutoFilter or AutoFilter then Table, 
         /// the final result will be a table with AutoFilter enabled.
         /// </remarks>
-        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
+        public ExcelAutoFilter AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (filterCriteria == null && _excelDocument.TryApplyDirectWorksheetAutoFilterMetadata(this, range)) {
-                return;
+                return new ExcelAutoFilter(this, range);
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
@@ -272,7 +272,7 @@ namespace OfficeIMO.Excel {
 
             if (!worksheetOnly) {
                 WriteLock(applyAutoFilter);
-                return;
+                return new ExcelAutoFilter(this, range);
             }
 
             WriteLockWorksheetPreparationOnly(() => {
@@ -338,6 +338,7 @@ namespace OfficeIMO.Excel {
 
                 return true;
             });
+            return new ExcelAutoFilter(this, range);
         }
 
         /// <summary>

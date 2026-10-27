@@ -101,7 +101,12 @@ namespace OfficeIMO.Tests
                     sheet.AddPivotTable("A1:B6", "E4", pivotOptions1);
                 }
 
-                sheet.AddPivotManualGrouping("PivotManualGrouped", "Product", "Product2", new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } });
+                var grouping = sheet.AddPivotManualGrouping("PivotManualGrouped", "Product", "Product2", new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } });
+                Assert.Equal("Product2", grouping.FieldName);
+                Assert.Equal(new[] { "Fruit", "Broccoli", "Carrot" }, grouping.GroupItems);
+                var projectedGroup = sheet.GetPivotTables().Single(pivot => pivot.Name == "PivotManualGrouped").Groupings.Single();
+                Assert.Equal(grouping.GroupItems, projectedGroup.GroupItems);
+                Assert.Equal(grouping.BaseFieldIndex, projectedGroup.BaseFieldIndex);
                 Assert.True(sheet.MaterializePivotTable("PivotManualGrouped").Mutation.PackageIsValid);
                 Assert.Equal(35d, sheet.GetPivotData("PivotManualGrouped", "Metric", new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
                 document.Save(output);

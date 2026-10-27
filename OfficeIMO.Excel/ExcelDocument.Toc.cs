@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHiddenNamedRanges">When listing defined names, include ones marked Hidden.</param>
         /// <param name="rangeNameFilter">Optional filter to include only matching defined names.</param>
         /// <param name="styled">When true, renders a banner and a formatted table with AutoFilter.</param>
-        public void AddTableOfContents(string sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, Predicate<string>? rangeNameFilter = null, bool styled = true) {
+        public ExcelSheet AddTableOfContents(string sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, Predicate<string>? rangeNameFilter = null, bool styled = true) {
             // Remove existing TOC sheet if present (recreate clean to avoid leftover elements)
             var existing = SheetNameLookup.FindByRequestedName(this.Sheets, sheetName);
             if (existing != null) {
@@ -100,6 +100,7 @@ namespace OfficeIMO.Excel {
 
             // As a safety net, clean up any broken/duplicate defined names after sheet changes.
             RepairDefinedNames(save: true);
+            return toc;
         }
 
         /// <summary>

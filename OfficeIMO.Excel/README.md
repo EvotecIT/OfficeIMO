@@ -25,6 +25,19 @@ relationship without reading binary module content, with
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+## Returned authoring objects
+
+Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
+editable model used by `AddConditionalFormattingRule`. Edit the returned model
+and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
+formats follow the same contract.
+
+`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
+reads current criteria and table ownership. Creating the handle preserves deferred
+workbook exports. `AddTableOfContents` returns the sheet it creates, and
+`AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
+
 ## Install
 
 ```powershell

@@ -250,11 +250,5 @@ namespace OfficeIMO.Tests
                     AssertPivotLookupOracleValue(expectedView[row, column], actualView[row, column]);
         }
 
-        [Fact]
-        public void Test_PivotGroupedItemFilter_ManualGroupingRetainsFourArgumentClrContract() {
-            Assert.NotNull(typeof(ExcelSheet).GetMethod(nameof(ExcelSheet.AddPivotManualGrouping), new[] {
-                typeof(string), typeof(string), typeof(string), typeof(IReadOnlyDictionary<string, string[]>)
-            }));
-        }
     }
 }
