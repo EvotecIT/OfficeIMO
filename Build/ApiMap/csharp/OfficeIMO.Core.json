@@ -1,0 +1,29 @@
+{
+  "package": "OfficeIMO.Core",
+  "status": "Phase A shared-owner changes",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "The shared raster owner honors its existing whole-pixel baseline convention for upright text lines as well as positioned text. PowerPoint uses the existing Core raster convention flag to preserve the former page-image route without a PDF dependency."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical conversion selection retains literal text and native Visio diagram defaults when the semantic Reader routes are also registered. The same private selection rule is used by the front door and Workflows. Shared bounded-output markers remain identifiable through conversion exception chains."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Conversion sidecars are privately staged until report acceptance. Final-output failures retain completed source diagnostics through one internal shared helper; cancellation remains cancellation. Adapter plumbing uses InternalsVisibleTo rather than new public members."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "The diagnostic catalog contract test checks the real legacy chart-projected entry mapping to ChartFlattened. It no longer assumes that the new catalog spelling was itself a legacy producer code."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

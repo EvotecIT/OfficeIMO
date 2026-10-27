@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Markdown.Pdf",
+  "status": "Phase A adapter migration",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical PDF exports use shared reports and preserve completed evidence on output failure. Destination arguments are validated before conversion, while later serialization and publication failures retain the report. Existing rendering kernels remain internal."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}
