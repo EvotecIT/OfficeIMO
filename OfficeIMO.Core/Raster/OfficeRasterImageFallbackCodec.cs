@@ -25,6 +25,13 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
 
     internal IOfficeRasterImageCodec? SourceCodec => _innerCodec;
 
+    internal void AddCodecUnavailableDiagnostic(OfficeRasterDecodeInfo info) {
+        if (info.CodecUnavailableReason == OfficeRasterCodecUnavailableReason.None) return;
+        _diagnostics?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Error,
+            OfficeImageExportDiagnosticCodes.ImageCodecUnavailable,
+            info.CodecUnavailableReason + ": " + info.Diagnostic, _source));
+    }
+
     internal OfficeRasterImage CreateFallbackImage(string? contentType, int width, int height, string? detail) {
         AddDiagnostic(contentType, detail);
         return CreatePlaceholder(width, height);

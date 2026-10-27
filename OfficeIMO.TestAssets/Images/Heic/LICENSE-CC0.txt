@@ -1,0 +1,17 @@
+heic.fyi sample files
+=====================
+
+To the extent possible under law, the heic.fyi team has waived all copyright
+and related or neighbouring rights to these sample files (the images and the
+Display P3 ICC profile embedded in display-p3-10bit.heic). This work is
+published from the United Kingdom under CC0 1.0 Universal:
+
+  https://creativecommons.org/publicdomain/zero/1.0/
+
+You may copy, modify, distribute and use them, including commercially, without
+asking permission and without attribution. A link back to
+https://heic.fyi/heic-sample-files is appreciated but not required.
+
+The images are procedural test charts rendered by scripts/samples/generate.py;
+no photographs or third-party images are included. The GPS position in
+exif-gps-date.heic is fake.

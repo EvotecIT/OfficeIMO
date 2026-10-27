@@ -5,6 +5,7 @@ public static partial class OfficeRasterImageDecoder {
     internal static bool CanUseUninspectedCallerCodec(byte[] bytes, OfficeRasterDecodeOptions options, OfficeRasterDecodeInfo info) =>
         bytes.Length <= options.MaximumEncodedBytes && info.Container == null &&
         info.Format != OfficeImageFormat.Webp && !OfficeImageReader.HasWebpSignature(bytes) &&
+        info.Format != OfficeImageFormat.Heic && !OfficeImageReader.MayContainHeic(bytes, options.CancellationToken) &&
         info.Format != OfficeImageFormat.Avif && !OfficeImageReader.HasAvifSignature(bytes, options.CancellationToken);
 
     private static bool TryDecodeWithOptionalCodec(
@@ -14,8 +15,7 @@ public static partial class OfficeRasterImageDecoder {
         out OfficeRasterImage? image) {
         image = null;
         options.CancellationToken.ThrowIfCancellationRequested();
-        IOfficeRasterImageCodec? codec = options.ImageCodec;
-        while (codec is OfficeRasterImageFallbackCodec fallback) codec = fallback.SourceCodec;
+        IOfficeRasterImageCodec? codec = OfficeRasterImageCodecs.Resolve(options.ImageCodec);
         if (codec == null || options.FrameIndex != 0 ||
             !IsWithinPixelLimit(container.CanvasWidth, container.CanvasHeight, options.MaximumDecodedPixels)) return false;
 

@@ -205,6 +205,8 @@ public static partial class OfficeImageReader {
                 return OfficeTgaCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.JpegXr:
                 return OfficeJpegXrDecoder.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
+            case OfficeImageFormat.Heic:
+                return OfficeRasterImageDecoder.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _, out _);
             case OfficeImageFormat.Avif:
                 return OfficeAvifCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Jpeg2000:
@@ -250,6 +252,7 @@ public static partial class OfficeImageReader {
             TryReadBmp(data, out info) ||
             TryReadWebp(data, out info, cancellationToken: cancellationToken) ||
             TryReadAvif(data, cancellationToken, out info) ||
+            TryReadHeic(data, cancellationToken, out info) ||
             OfficeJpegXrDecoder.TryIdentify(data, cancellationToken, out info) ||
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
@@ -303,6 +306,7 @@ public static partial class OfficeImageReader {
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
             ".avif" => OfficeImageFormat.Avif,
+            ".heic" or ".heif" or ".hif" => OfficeImageFormat.Heic,
             ".jxr" or ".wdp" or ".hdp" => OfficeImageFormat.JpegXr,
             ".jp2" => OfficeImageFormat.Jpeg2000,
             ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,

@@ -39,5 +39,7 @@ public enum OfficeImageFormat {
     /// <summary>Portable bitmap, graymap, or pixmap.</summary>
     PortableMap,
     /// <summary>Truevision TGA raster image.</summary>
-    Tga
+    Tga,
+    /// <summary>HEVC-coded HEIF still image; pixels require a licensed operating-system codec.</summary>
+    Heic
 }

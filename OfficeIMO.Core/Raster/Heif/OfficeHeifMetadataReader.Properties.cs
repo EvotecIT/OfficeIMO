@@ -36,6 +36,7 @@ public static partial class OfficeHeifMetadataReader {
             }
 
             Dictionary<int, HeifImageProperty> imageProperties = ReadImageProperties(data, itemPropertyContainerBox.Value);
+            var propertyBoxes = EnumerateBoxes(data, itemPropertyContainerBox.Value.DataOffset, itemPropertyContainerBox.Value.EndOffset).ToArray();
 
             Dictionary<uint, HeifItemInfoBuilder> buildersById = itemBuilders.ToDictionary(item => item.ItemId);
             foreach (KeyValuePair<uint, List<HeifItemPropertyAssociation>> association in associations) {
@@ -48,10 +49,12 @@ public static partial class OfficeHeifMetadataReader {
                 foreach (HeifItemPropertyAssociation propertyAssociation in association.Value) {
                     CheckWork();
                     if (!imageProperties.TryGetValue(propertyAssociation.PropertyIndex, out HeifImageProperty imageProperty)) {
+                        publicAssociations.Add(new OfficeHeifItemPropertyAssociationInfo(propertyAssociation.PropertyIndex, string.Empty, propertyAssociation.IsEssential));
                         continue;
                     }
 
-                    publicAssociations.Add(new OfficeHeifItemPropertyAssociationInfo(propertyAssociation.PropertyIndex, imageProperty.PropertyType, propertyAssociation.IsEssential));
+                    Box propertyBox = propertyBoxes[propertyAssociation.PropertyIndex - 1];
+                    publicAssociations.Add(new OfficeHeifItemPropertyAssociationInfo(propertyAssociation.PropertyIndex, imageProperty.PropertyType, propertyAssociation.IsEssential, propertyBox.DataOffset, propertyBox.EndOffset - propertyBox.DataOffset));
                     if (imageProperty.Width.HasValue) {
                         itemBuilder.Width = imageProperty.Width;
                     }

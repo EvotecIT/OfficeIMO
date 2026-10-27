@@ -26,7 +26,9 @@ public enum OfficeRasterDecodeFailure {
     /// <summary>The frame-loss policy rejects the source.</summary>
     FramePolicyRejected,
     /// <summary>The complete sequence exceeds the requested frame count.</summary>
-    FrameCountLimit
+    FrameCountLimit,
+    /// <summary>A required licensed operating-system codec is unavailable.</summary>
+    CodecUnavailable
 }
 
 /// <summary>Shared options for deterministic raster decoding.</summary>
@@ -134,6 +136,12 @@ public sealed class OfficeRasterDecodeOptions {
 /// <summary>Typed evidence describing one shared raster decode decision.</summary>
 public sealed class OfficeRasterDecodeInfo {
     internal bool UsedCallerCodec { get; set; }
+
+    /// <summary>The missing platform component when decoding requires a licensed system codec.</summary>
+    public OfficeRasterCodecUnavailableReason CodecUnavailableReason { get; internal set; }
+
+    /// <summary>Stable diagnostic code for an unavailable system codec, otherwise null.</summary>
+    public string? DiagnosticCode => CodecUnavailableReason == OfficeRasterCodecUnavailableReason.None ? null : OfficeImageExportDiagnosticCodes.ImageCodecUnavailable;
 
     // These container inventories bound every frame before selecting one. Owned
     // consumers account their frame pixels separately from decode/filter work.

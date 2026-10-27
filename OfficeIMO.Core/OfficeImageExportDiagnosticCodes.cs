@@ -2,6 +2,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Stable diagnostic codes shared by OfficeIMO image exporters.</summary>
 public static class OfficeImageExportDiagnosticCodes {
+    /// <summary>A required licensed operating-system image codec is unavailable.</summary>
+    public const string ImageCodecUnavailable = "image-codec-unavailable";
+
     /// <summary>The requested raster scale was reduced to satisfy allocation or encoder limits.</summary>
     public const string RasterScaleReduced = "IMAGE_RASTER_SCALE_REDUCED";
 
