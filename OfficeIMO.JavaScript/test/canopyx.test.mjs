@@ -73,9 +73,9 @@ test("Canopy relative link labels include null and non-string text-column inputs
 
 test("Canopy grouped relative links preserve raw identities and reject mismatched captured ranges", async () => {
   const make = (values) => capture([
-    { id: "r1", cells: { Name: cell(values[0], "Shared label", { diagnostics: ["relative-link"] }), "Name#raw": cell("Unrelated") } },
-    { id: "r2", cells: { Name: cell(values[1], "Shared label", { diagnostics: ["relative-link"] }), "Name#raw": cell("Unrelated") } }
-  ], [column("Name"), column("Name#raw")], { grouping: { levels: [{ column: "Name", direction: "asc" }], aggregates: [], totals: {}, groups: [
+    { id: "r1", cells: { Name: cell(values[0], "Shared label", { diagnostics: ["relative-link"] }), Detail: cell("First detail"), "Name#raw": cell("Unrelated") } },
+    { id: "r2", cells: { Name: cell(values[1], "Shared label", { diagnostics: ["relative-link"] }), Detail: cell("Second detail"), "Name#raw": cell("Unrelated") } }
+  ], [column("Name"), column("Detail"), column("Name#raw")], { grouping: { levels: [{ column: "Name", direction: "asc" }], aggregates: [], totals: {}, groups: [
     { key: "first", value: values[0], text: "First record", offset: 0, count: 1, aggregates: {} },
     { key: "second", value: values[1], text: "Second record", offset: 1, count: 1, aggregates: {} }
   ] } });
@@ -84,6 +84,11 @@ test("Canopy grouped relative links preserve raw identities and reject mismatche
     const text = format === "xlsx" ? (await readZip(blob)).get("xl/worksheets/sheet1.xml").content : (await inspectPdf(blob)).text;
     assert.ok(text.includes("First record") && text.includes("Second record"));
     assert.equal((text.match(/Shared label/g) ?? []).length, 2);
+    if (format === "xlsx") {
+      const order = [...text.matchAll(/<t(?: [^>]*)?>(First record|First detail|Second record|Second detail)<\/t>/g)]
+        .map(match => match[1]);
+      assert.deepEqual(order, ["First record", "First detail", "Second record", "Second detail"]);
+    }
     assert.ok(!text.includes("#record/42") && !text.includes("#record/43"));
     const bad = make(values); bad.request.grouping.groups[0].value = "#record/wrong";
     await assert.rejects(exportCanopy(bad, format), /disagrees with its captured group/);
