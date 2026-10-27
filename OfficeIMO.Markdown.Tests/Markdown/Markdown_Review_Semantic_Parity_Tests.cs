@@ -24,7 +24,7 @@ public sealed class Markdown_Review_Semantic_Parity_Tests {
         };
         markdown = markdown.Replace("\n", lineEnding);
         var source = MarkdownReader.ParseWithSyntaxTree(markdown, CommonMark());
-        var expected = source.Document.ToHtmlFragment(PlainHtml());
+        var expected = source.Document.ToHtml(PlainHtml());
         Assert.Contains("<code>" + payload + "</code>", expected);
         AssertReaderModesMatch(markdown, expected);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(source);
@@ -47,23 +47,23 @@ public sealed class Markdown_Review_Semantic_Parity_Tests {
             _ => ("> bar  \nbaz\n", "bar<br/>baz")
         };
         var source = MarkdownReader.ParseWithSyntaxTree(markdown, CommonMark());
-        var expected = source.Document.ToHtmlFragment(PlainHtml());
+        var expected = source.Document.ToHtml(PlainHtml());
         Assert.Contains(paragraph, expected);
         AssertReaderModesMatch(markdown, expected);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(source);
     }
 
     private static void AssertReaderModesMatch(string markdown, string expected) {
-        Assert.Equal(expected, MarkdownReader.Parse(markdown, CommonMark()).ToHtmlFragment(PlainHtml()));
-        Assert.Equal(expected, MarkdownReader.ParseSemantic(markdown, CommonMark()).ToHtmlFragment(PlainHtml()));
-        Assert.Equal(expected, MarkdownReader.ParseSemanticProjection(markdown, CommonMark()).ToHtmlFragment(PlainHtml()));
+        Assert.Equal(expected, MarkdownDocument.Parse(markdown, CommonMark()).ToHtml(PlainHtml()));
+        Assert.Equal(expected, MarkdownReader.ParseSemantic(markdown, CommonMark()).ToHtml(PlainHtml()));
+        Assert.Equal(expected, MarkdownReader.ParseSemanticProjection(markdown, CommonMark()).ToHtml(PlainHtml()));
     }
 
-    private static MarkdownReaderOptions CommonMark() => MarkdownReaderOptions.CreateCommonMarkProfile();
+    private static MarkdownLoadOptions CommonMark() => MarkdownLoadOptions.CreateCommonMarkProfile();
 
-    private static HtmlOptions PlainHtml() => new() {
-        Style = HtmlStyle.Plain,
-        CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions PlainHtml() => new() {
+        Style = MarkdownHtmlStyle.Plain,
+        CssDelivery = MarkdownCssDelivery.None,
         BodyClass = null,
         AutoHeadingIdentifiers = false,
         EscapeNonAsciiText = false,

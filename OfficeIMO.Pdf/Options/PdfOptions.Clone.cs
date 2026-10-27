@@ -1,10 +1,10 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Creates a deep copy of the options.</summary>
-    public PdfOptions Clone() {
+    public PdfCreateOptions Clone() {
         ValidateEmbeddedFileLimits();
-        var clone = new PdfOptions {
+        var clone = new PdfCreateOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
             BackgroundColor = BackgroundColor,
@@ -156,12 +156,12 @@ public sealed partial class PdfOptions {
                 ShowTableRowBoxes = Debug.ShowTableRowBoxes,
                 ShowTableColumnGuides = Debug.ShowTableColumnGuides
             },
-            _headerSegments = _headerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_headerSegments),
-            _firstPageHeaderSegments = _firstPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageHeaderSegments),
-            _evenPageHeaderSegments = _evenPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageHeaderSegments),
-            FooterSegments = _footerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_footerSegments),
-            FirstPageFooterSegments = _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageFooterSegments),
-            EvenPageFooterSegments = _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageFooterSegments),
+            _headerSegments = _headerSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_headerSegments),
+            _firstPageHeaderSegments = _firstPageHeaderSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_firstPageHeaderSegments),
+            _evenPageHeaderSegments = _evenPageHeaderSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_evenPageHeaderSegments),
+            FooterSegments = _footerSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_footerSegments),
+            FirstPageFooterSegments = _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_firstPageFooterSegments),
+            EvenPageFooterSegments = _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_evenPageFooterSegments),
             _headerLeftFormat = _headerLeftFormat,
             _headerCenterFormat = _headerCenterFormat,
             _headerRightFormat = _headerRightFormat,

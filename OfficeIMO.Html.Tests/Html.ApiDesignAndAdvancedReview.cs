@@ -25,7 +25,7 @@ public partial class Html {
         Assert.Equal(PowerPointHtmlExportProfile.VisualReview,
             PowerPointHtmlSaveOptions.CreateVisualReviewProfile().ExportProfile);
         Assert.Equal(WordHtmlExportProfile.PrintReview,
-            WordToHtmlOptions.CreatePrintReviewProfile().ExportProfile);
+            WordHtmlExportOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(RtfHtmlExportProfile.PrintReview,
             RtfToHtmlOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(HtmlConversionProfile.Semantic,
@@ -33,7 +33,7 @@ public partial class Html {
         Assert.Equal(HtmlConversionProfile.PositionedReview,
             PowerPointHtmlSaveOptions.CreateVisualReviewProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.Document,
-            WordToHtmlOptions.CreateDocumentRoundTripProfile().SharedProfile);
+            WordHtmlExportOptions.CreateDocumentRoundTripProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.HighFidelityPrint,
             RtfToHtmlOptions.CreatePrintReviewProfile().SharedProfile);
 
@@ -42,7 +42,7 @@ public partial class Html {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new PowerPointHtmlSaveOptions().Profile = OfficeHtmlConversionProfile.ExcelVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new WordToHtmlOptions().Profile = OfficeHtmlConversionProfile.PowerPointVisualReview);
+            new WordHtmlExportOptions().Profile = OfficeHtmlConversionProfile.PowerPointVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
@@ -161,18 +161,18 @@ public partial class Html {
     public void DocumentOutputSettings_DriveRealWordAndExcelDocumentAndFragmentOutput() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Fragment body");
-        WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateSemanticDocumentProfile();
+        WordHtmlExportOptions wordOptions = WordHtmlExportOptions.CreateSemanticDocumentProfile();
         wordOptions.EmitDocumentShell = false;
         wordOptions.AdditionalMetaTags.Add(("review-id", "discarded-in-fragment"));
 
-        HtmlTextConversionResult wordResult = word.ToHtmlResult(wordOptions);
+        HtmlTextConversionResult wordResult = word.ConvertToHtmlWithEvidence(wordOptions);
 
         Assert.StartsWith("<style", wordResult.RequireValue(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Fragment body", wordResult.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("<html", wordResult.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("review-id", wordResult.Value, StringComparison.Ordinal);
         Assert.Contains(wordResult.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "DocumentHeadMetadataOmittedForFragment");
+            diagnostic.Code == "document-head-metadata-omitted-for-fragment");
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         workbook.AddWorksheet("Data").CellValue(1, 1, "Value");
@@ -196,7 +196,7 @@ public partial class Html {
     public void DocumentOutputSettings_PreserveRequiredAndCallerBodyClassesAcrossAdapters() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Word");
-        WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateSemanticDocumentProfile();
+        WordHtmlExportOptions wordOptions = WordHtmlExportOptions.CreateSemanticDocumentProfile();
         wordOptions.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";
         Assert.Contains("class=\"officeimo-html officeimo-word-html customer-shell\"", word.ToHtml(wordOptions), StringComparison.Ordinal);
 
@@ -231,10 +231,10 @@ public partial class Html {
         document.BuiltinDocumentProperties.Creator = "Stored Author";
         document.AddParagraph("Author: ").AddField(WordFieldType.Author);
 
-        HtmlTextConversionResult visible = document.ToHtmlResult(new WordToHtmlOptions {
+        HtmlTextConversionResult visible = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
             FieldPolicy = WordFieldExportPolicy.VisibleResult
         });
-        HtmlTextConversionResult review = document.ToHtmlResult(new WordToHtmlOptions {
+        HtmlTextConversionResult review = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
             FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
         });
 
@@ -261,7 +261,7 @@ public partial class Html {
         image.Rotation = 15;
         image.LuminanceBrightness = 20;
 
-        HtmlTextConversionResult result = document.ToHtmlResult(WordToHtmlOptions.CreatePrintReviewProfile());
+        HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(WordHtmlExportOptions.CreatePrintReviewProfile());
 
         Assert.Contains("data-officeimo-anchor=\"floating\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-wrap=\"Square\"", result.Value, StringComparison.Ordinal);
@@ -270,7 +270,7 @@ public partial class Html {
         Assert.Contains("data-officeimo-rotation=\"15\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-brightness=\"20\"", result.Value, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "FloatingImageProjectedForReview" &&
+            diagnostic.Code == "floating-image-projected-for-review" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -283,15 +283,15 @@ public partial class Html {
         string bodyXml = document._document.OuterXml;
         string headerXml = document.Sections[0].Header.Default!._header!.OuterXml;
 
-        string finalHtml = document.ToHtml(new WordToHtmlOptions {
+        string finalHtml = document.ToHtml(new WordHtmlExportOptions {
             ExportHeadersAndFooters = true,
             TrackedChangePolicy = WordTrackedChangeExportPolicy.Final
         });
-        string originalHtml = document.ToHtml(new WordToHtmlOptions {
+        string originalHtml = document.ToHtml(new WordHtmlExportOptions {
             ExportHeadersAndFooters = true,
             TrackedChangePolicy = WordTrackedChangeExportPolicy.Original
         });
-        string markupHtml = document.ToHtml(WordToHtmlOptions.CreateDocumentRoundTripProfile());
+        string markupHtml = document.ToHtml(WordHtmlExportOptions.CreateDocumentRoundTripProfile());
 
         Assert.Contains("Body new", finalHtml, StringComparison.Ordinal);
         Assert.Contains("Header new", finalHtml, StringComparison.Ordinal);
@@ -333,12 +333,12 @@ public partial class Html {
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         body._paragraph.Append(deletedField);
 
-        HtmlTextConversionResult result = document.ToHtmlResult(new WordToHtmlOptions {
+        HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
             ExportHeadersAndFooters = false,
             TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
             FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
         });
-        HtmlTextConversionResult finalResult = document.ToHtmlResult(new WordToHtmlOptions {
+        HtmlTextConversionResult finalResult = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
             ExportHeadersAndFooters = false,
             TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
             FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
@@ -361,7 +361,7 @@ public partial class Html {
         document.FootNotes[0].Paragraphs!.Last().AddField(WordFieldType.Page);
         document.EndNotes[0].Paragraphs!.Last().AddField(WordFieldType.NumPages);
 
-        HtmlTextConversionResult result = document.ToHtmlResult(new WordToHtmlOptions {
+        HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
             ExportFootnotes = true,
             ExportEndnotes = true,
             FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
@@ -369,7 +369,7 @@ public partial class Html {
 
         Assert.Contains("data-officeimo-field-location=\"Footnote\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-field-location=\"Endnote\"", result.Value, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "field-instructions-flattened");
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public partial class Html {
             Instruction = new string('F', 12_000)
         });
         HtmlConversionLimitException fieldException = Assert.Throws<HtmlConversionLimitException>(() =>
-            fieldDocument.ToHtmlResult(new WordToHtmlOptions {
+            fieldDocument.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata,
                 MaxOutputCharacters = 8_000
             }));
@@ -389,7 +389,7 @@ public partial class Html {
         revisionDocument.AddParagraph().AddInsertedText(new string('R', 6_000), "Reviewer");
         string sourceXml = revisionDocument._document.OuterXml;
         HtmlConversionLimitException revisionException = Assert.Throws<HtmlConversionLimitException>(() =>
-            revisionDocument.ToHtmlResult(new WordToHtmlOptions {
+            revisionDocument.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 MaxOutputCharacters = 9_000
             }));

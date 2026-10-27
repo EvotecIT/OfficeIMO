@@ -6,7 +6,7 @@
         <AssemblyTitle>OfficeIMO.Markdown.Html</AssemblyTitle>
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -49,10 +49,6 @@
         <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup>
         <Using Include="System" />
         <Using Include="System.IO" />
@@ -61,4 +57,9 @@
         <Using Include="System.Collections.Generic" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Chm.Markdown" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" /></ItemGroup>
 </Project>

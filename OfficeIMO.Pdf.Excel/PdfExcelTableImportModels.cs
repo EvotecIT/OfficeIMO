@@ -1,0 +1,197 @@
+namespace OfficeIMO.Pdf.Excel {
+    /// <summary>Typed value kind selected for an imported Excel table column.</summary>
+    public enum ExcelPdfTableColumnKind {
+        /// <summary>Text cells.</summary>
+        Text,
+        /// <summary>Numeric cells.</summary>
+        Number,
+        /// <summary>Fractional numeric cells parsed from percentage text.</summary>
+        Percentage,
+        /// <summary>Boolean cells.</summary>
+        Boolean,
+        /// <summary>Date or date-time cells.</summary>
+        DateTime,
+        /// <summary>Time-of-day cells without an invented calendar date.</summary>
+        Time,
+        /// <summary>Decimal cells parsed from values with one consistent currency affix.</summary>
+        Currency
+    }
+
+    /// <summary>
+    /// Describes one logical PDF table imported into an Excel worksheet.
+    /// </summary>
+public sealed class PdfExcelTableImportEntry {
+        internal PdfExcelTableImportEntry(
+            int pageIndex,
+            int pageNumber,
+            int tableIndex,
+            string detectionKind,
+            string sheetName,
+            string tableName,
+            string range,
+            int columnCount,
+            int rowCount,
+            int totalRowCount,
+            bool truncated,
+            IReadOnlyList<int> sourcePageNumbers,
+            int sourceTableCount,
+            int suppressedRepeatedHeaderRows,
+            int additionalHeaderRowCount,
+            IReadOnlyList<ExcelPdfTableColumnKind> columnKinds,
+            IReadOnlyList<string?> currencyTokens,
+            IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
+            IReadOnlyList<bool?> currencyAffixUsesSpacing,
+            bool firstRowUsedAsHeader = false,
+            bool columnProportionsApplied = false) {
+            PageIndex = pageIndex;
+            PageNumber = pageNumber;
+            TableIndex = tableIndex;
+            DetectionKind = detectionKind ?? string.Empty;
+            SheetName = sheetName ?? string.Empty;
+            TableName = tableName ?? string.Empty;
+            Range = range ?? string.Empty;
+            ColumnCount = columnCount;
+            RowCount = rowCount;
+            TotalRowCount = totalRowCount;
+            Truncated = truncated;
+            SourcePageNumbers = Array.AsReadOnly(sourcePageNumbers.ToArray());
+            SourceTableCount = sourceTableCount;
+            SuppressedRepeatedHeaderRows = suppressedRepeatedHeaderRows;
+            AdditionalHeaderRowCount = additionalHeaderRowCount;
+            ColumnKinds = Array.AsReadOnly(columnKinds.ToArray());
+            CurrencyTokens = Array.AsReadOnly(currencyTokens.ToArray());
+            CurrencyAffixPositions = Array.AsReadOnly(currencyAffixPositions.ToArray());
+            CurrencyAffixUsesSpacing = Array.AsReadOnly(currencyAffixUsesSpacing.ToArray());
+            FirstRowUsedAsHeader = firstRowUsedAsHeader;
+            ColumnProportionsApplied = columnProportionsApplied;
+        }
+
+        /// <summary>True when the caller confirmed the first source row as headers for a table with unknown schema.</summary>
+        public bool FirstRowUsedAsHeader { get; }
+
+        /// <summary>
+        /// True when the requested detected column proportions determined the worksheet widths.
+        /// False when not requested or when unavailable or invalid geometry retained auto-fit or default widths.
+        /// </summary>
+        /// <remarks>Preservation applies to detected proportions, not exact physical PDF or authored grid dimensions.</remarks>
+        public bool ColumnProportionsApplied { get; }
+
+        /// <summary>Zero-based page index within the selected logical page collection.</summary>
+        public int PageIndex { get; }
+
+        /// <summary>One-based source page number from the PDF document.</summary>
+        public int PageNumber { get; }
+
+        /// <summary>Zero-based table index within the source logical PDF page.</summary>
+        public int TableIndex { get; }
+
+        /// <summary>Detection heuristic that produced the imported table.</summary>
+        public string DetectionKind { get; }
+
+        /// <summary>Worksheet that received the imported table.</summary>
+        public string SheetName { get; }
+
+        /// <summary>Excel table name requested for the imported range.</summary>
+        public string TableName { get; }
+
+        /// <summary>A1 range occupied by the imported Excel table.</summary>
+        public string Range { get; }
+
+        /// <summary>Number of imported columns.</summary>
+        public int ColumnCount { get; }
+
+        /// <summary>Number of body rows written to Excel.</summary>
+        public int RowCount { get; }
+
+        /// <summary>Total body rows detected before any row cap was applied.</summary>
+        public int TotalRowCount { get; }
+
+        /// <summary>True when imported rows were truncated by the configured row cap.</summary>
+        public bool Truncated { get; }
+
+        /// <summary>One-based PDF page numbers contributing rows to this imported table.</summary>
+        public IReadOnlyList<int> SourcePageNumbers { get; }
+
+        /// <summary>Number of detected page-level table segments combined into this imported table.</summary>
+        public int SourceTableCount { get; }
+
+        /// <summary>Number of repeated continuation header rows omitted from body data.</summary>
+        public int SuppressedRepeatedHeaderRows { get; }
+
+        /// <summary>Number of repeated header rows appended to the primary header labels.</summary>
+        public int AdditionalHeaderRowCount { get; }
+
+        /// <summary>Typed value kinds selected for the imported columns.</summary>
+        public IReadOnlyList<ExcelPdfTableColumnKind> ColumnKinds { get; }
+
+        /// <summary>Detected currency affix for each column, or null when the column is not currency-typed.</summary>
+        public IReadOnlyList<string?> CurrencyTokens { get; }
+
+        /// <summary>Detected currency-affix position for each column, or null when the column is not currency-typed.</summary>
+        public IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> CurrencyAffixPositions { get; }
+
+        /// <summary>Whether each currency column used whitespace between its affix and number, or null for non-currency columns.</summary>
+        public IReadOnlyList<bool?> CurrencyAffixUsesSpacing { get; }
+    }
+
+    /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
+    public sealed class PdfExcelTableImportReport : IOfficeConversionReport {
+        internal PdfExcelTableImportReport(
+            IReadOnlyList<PdfExcelTableImportEntry> entries,
+            OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
+            Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
+            SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
+        }
+
+        /// <summary>Gets a snapshot of imported table metadata.</summary>
+        public IReadOnlyList<PdfExcelTableImportEntry> Entries { get; }
+
+        /// <summary>Gets source-page content that was outside this table-only import.</summary>
+        public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
+
+        /// <summary>Gets category-preserving table-projection diagnostics.</summary>
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+            get {
+                var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+                if (HasOmittedPageContent) {
+                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                        "pdf-excel-page-content-omitted",
+                        "PDF page or document content outside detected tables was omitted.",
+                        OfficeConversionLossKind.Omission,
+                        "OfficeIMO.Pdf.Excel"));
+                }
+                if (Entries.Any(static entry => entry.Truncated)) {
+                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                        "pdf-excel-tables-truncated",
+                        "One or more detected PDF tables were truncated by configured projection limits.",
+                        OfficeConversionLossKind.Omission,
+                        "OfficeIMO.Pdf.Excel"));
+                }
+                return diagnostics.AsReadOnly();
+            }
+        }
+
+        /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>
+        public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
+
+        /// <summary>Gets whether page or document content was omitted or any detected source table was truncated.</summary>
+        public bool HasLoss => HasOmittedPageContent || Entries.Any(static entry => entry.Truncated);
+
+        /// <summary>Throws when page or document content was omitted or at least one detected source table was truncated.</summary>
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidOperationException(
+                HasOmittedPageContent
+                    ? "PDF table import to Excel omitted source page or document content outside the imported tables."
+                    : "PDF table import to Excel truncated one or more detected source tables.");
+        }
+    }
+
+    /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
+    public sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
+        internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) : base(value, report) { }
+
+        /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>
+        public bool HasOmittedPageContent => Report.HasOmittedPageContent;
+
+    }
+}

@@ -35,7 +35,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
             cell.MarginTopWidth = cell.MarginBottomWidth = 0;
@@ -50,10 +50,10 @@ public partial class Word {
         table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Single;
         table.Rows[0].Cells[0].Borders.BottomSize = previousBottomSize;
         table.Rows[1].AllowRowToBreakAcrossPages = splitRow;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(300, 90),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 90),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         var words = pdf.GetPage(2).GetWords().ToArray();
         return Assert.Single(words, w => w.Text == "BorderNext1").BoundingBox.Bottom;
@@ -63,7 +63,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(border, size, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(border, size, OfficeIMO.OfficeColor.Black);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.MarginTopWidth = cell.MarginBottomWidth = 0;
         WordParagraph first = cell.Paragraphs[0];
@@ -76,7 +76,7 @@ public partial class Word {
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         return (Assert.Single(words, w => w.Text == "BorderFlowFirst").BoundingBox.Bottom,
             Assert.Single(words, w => w.Text == "BorderFlowAfter").BoundingBox.Bottom);

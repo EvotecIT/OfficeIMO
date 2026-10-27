@@ -22,24 +22,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (presentation.LegacyPptPackage != null) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.UnknownRecordsAndStreams,
-                    "PPT-WRITE-IMPORT-LOSS",
+                    "ppt-write-import-loss",
                     "The imported binary presentation contains edits that cannot be encoded without losing preserved content."));
             }
             if (presentation.GetSections().Count > 0) {
-                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "PPT-WRITE-SECTIONS",
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "ppt-write-sections",
                     "Presentation sections are not encoded by the native binary writer."));
             }
             bool canWriteVba = LegacyPptWriter.TryReadVbaProject(presentation,
                 out byte[]? vbaProjectBytes, out string? vbaReason);
             if (!canWriteVba) {
-                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "ppt-write-vba",
                     vbaReason ?? "The VBA project cannot be encoded by the native binary writer."));
             }
             if (!LegacyPptPropertySetCodec.TryCreateFreshStreams(presentation,
                     out _, out string? propertyReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.CustomProperties,
-                    "PPT-WRITE-DOCUMENT-PROPERTY",
+                    "ppt-write-document-property",
                     propertyReason
                     ?? "A document property cannot be encoded by the native binary writer."));
             }
@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? pictureBulletReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.BulletsAndNumbering,
-                    "PPT-WRITE-PICTURE-BULLET",
+                    "ppt-write-picture-bullet",
                     pictureBulletReason
                     ?? "A picture bullet cannot be encoded by the native binary writer."));
                 pictureBullets = LegacyPptWriter
@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (masterCount == 0 || masterCount > LegacyPptWriter.MaxNativeMasterCount) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
-                    "PPT-WRITE-MASTER-COUNT",
+                    "ppt-write-master-count",
                     masterCount == 0
                         ? "The presentation has no slide master to encode."
                         : $"The native binary writer currently supports at most {LegacyPptWriter.MaxNativeMasterCount} slide masters; the presentation contains {masterCount}."));
@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? masterTextStyleReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.ParagraphFormatting,
-                    "PPT-WRITE-MASTER-TEXT-STYLE",
+                    "ppt-write-master-text-style",
                     masterTextStyleReason
                     ?? "A slide-master text style cannot be encoded by the native binary writer."));
             }
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (!LegacyPptWriter.TryReadBackground(masterPart, out _,
                         out string? masterBackgroundReason)) {
                     findings.Add(new LegacyPptWriteFinding(
-                        LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                        LegacyPptFeature.Backgrounds, "ppt-write-background",
                         masterBackgroundReason
                         ?? "A slide-master background cannot be encoded by the native binary writer."));
                 }
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         out string? masterShapeReason);
                 if (masterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
-                        "PPT-WRITE-MASTER-SHAPE",
+                        "ppt-write-master-shape",
                         $"Slide master {masterIndex}: {masterShapeReason}"));
                 }
                 AddMasterShapeFindings(findings, masterShapes,
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         == true) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Animations,
-                        "PPT-WRITE-MASTER-TIMING",
+                        "ppt-write-master-timing",
                         $"Slide master {masterIndex} contains transition or timing data that is not encoded by the native binary writer."));
                 }
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && !LegacyPptWriter.TryReadBackground(notesMasterPart, out _,
                     out string? notesBackgroundReason)) {
                 findings.Add(new LegacyPptWriteFinding(
-                    LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                    LegacyPptFeature.Backgrounds, "ppt-write-background",
                     notesBackgroundReason
                     ?? "The notes-master background cannot be encoded by the native binary writer."));
             }
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (notesMasterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Masters,
-                        "PPT-WRITE-NOTES-MASTER-SHAPE",
+                        "ppt-write-notes-master-shape",
                         notesMasterShapeReason));
                 }
                 AddMasterShapeFindings(findings, notesMasterShapes,
@@ -140,7 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && !LegacyPptWriter.TryReadBackground(handoutMasterPart, out _,
                     out string? handoutBackgroundReason)) {
                 findings.Add(new LegacyPptWriteFinding(
-                    LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                    LegacyPptFeature.Backgrounds, "ppt-write-background",
                     handoutBackgroundReason
                     ?? "The handout-master background cannot be encoded by the native binary writer."));
             }
@@ -151,7 +151,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (handoutMasterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Masters,
-                        "PPT-WRITE-HANDOUT-MASTER-SHAPE",
+                        "ppt-write-handout-master-shape",
                         handoutMasterShapeReason));
                 }
                 AddMasterShapeFindings(findings, handoutMasterShapes,
@@ -171,24 +171,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } catch (NotSupportedException exception) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.UnknownRecordsAndStreams,
-                        "PPT-WRITE-PERSIST-CAPACITY", exception.Message));
+                        "ppt-write-persist-capacity", exception.Message));
                 }
             }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
-                    "PPT-WRITE-MODERN-COMMENTS",
+                    "ppt-write-modern-comments",
                     "Modern threaded comments, replies, status, and shape anchors have no native PowerPoint 97-2003 representation."));
             }
             if (!LegacyPptWriter.TryReadAllClassicComments(presentation, out _,
                     out string? commentReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Comments,
-                    "PPT-WRITE-COMMENTS",
+                    "ppt-write-comments",
                     commentReason ?? "Classic comments cannot be encoded by the native binary writer."));
             }
             if (!LegacyPptWriter.TryReadCustomShows(presentation, out _,
                     out string? customShowReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.CustomShows,
-                    "PPT-WRITE-CUSTOM-SHOW",
+                    "ppt-write-custom-show",
                     customShowReason
                     ?? "A custom show cannot be encoded by the native binary writer."));
             }
@@ -201,7 +201,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         interactionCatalog,
                     out string? interactionReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Hyperlinks,
-                    "PPT-WRITE-INTERACTION",
+                    "ppt-write-interaction",
                     interactionReason ?? "A hyperlink or action cannot be encoded by the native binary writer."));
             } else {
                 firstMediaObjectId = checked((uint)
@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         .Any(media => media.Kind == PowerPointMediaKind.Video)
                         ? LegacyPptFeature.EmbeddedVideo
                         : LegacyPptFeature.Media,
-                    "PPT-WRITE-MEDIA",
+                    "ppt-write-media",
                     mediaReason
                     ?? "Embedded media cannot be encoded by the native binary writer."));
             } else {
@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         oleCatalog,
                     out string? oleReason)) {
                 findings.Add(new LegacyPptWriteFinding(
-                    LegacyPptFeature.EmbeddedOle, "PPT-WRITE-OLE",
+                    LegacyPptFeature.EmbeddedOle, "ppt-write-ole",
                     oleReason
                     ?? "An embedded OLE object cannot be encoded by the native binary writer."));
             } else if (topology != null) {
@@ -241,7 +241,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } catch (NotSupportedException exception) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.UnknownRecordsAndStreams,
-                        "PPT-WRITE-PERSIST-CAPACITY", exception.Message));
+                        "ppt-write-persist-capacity", exception.Message));
                 }
             }
             if (!LegacyPptWriter.TryReadPictureCatalog(presentation,
@@ -252,16 +252,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(
                     pictureFailureFeature,
                     pictureFailureFeature == LegacyPptFeature.Charts
-                        ? "PPT-WRITE-CHART"
+                        ? "ppt-write-chart"
                         : pictureFailureFeature == LegacyPptFeature.Tables
-                            ? "PPT-WRITE-TABLE"
+                            ? "ppt-write-table"
                         : pictureFailureFeature == LegacyPptFeature.SmartArt
-                            ? "PPT-WRITE-SMARTART"
+                            ? "ppt-write-smartart"
                         : pictureFailureFeature == LegacyPptFeature.Backgrounds
-                            ? "PPT-WRITE-BACKGROUND"
+                            ? "ppt-write-background"
                         : pictureFailureFeature == LegacyPptFeature.Layouts
-                            ? "PPT-WRITE-LAYOUT-PICTURE"
-                        : "PPT-WRITE-PICTURE",
+                            ? "ppt-write-layout-picture"
+                        : "ppt-write-picture",
                     pictureReason
                     ?? "A visual cannot be encoded by the native binary writer."));
             }
@@ -271,26 +271,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
                 if (layoutShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Layouts,
-                        "PPT-WRITE-LAYOUT-SHAPE", layoutShapeReason, slideIndex));
+                        "ppt-write-layout-shape", layoutShapeReason, slideIndex));
                 }
                 shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
                     out string? groupShapeReason);
                 if (groupShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Groups,
-                        "PPT-WRITE-GROUP-SHAPE", groupShapeReason,
+                        "ppt-write-group-shape", groupShapeReason,
                         slideIndex));
                 }
                 if (HasUnsupportedRichNotes(slide)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichNotes,
-                        "PPT-WRITE-RICH-NOTES",
+                        "ppt-write-rich-notes",
                         "Notes-page drawings beyond the speaker-notes body are not encoded by the native binary writer.",
                         slideIndex));
                 }
                 P.Slide? slideRoot = slide.SlidePart.Slide;
                 if (!LegacyPptWriter.TryReadTransition(slide, out _,
                         out string? transitionReason)) {
-                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Transitions, "PPT-WRITE-TRANSITION",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Transitions, "ppt-write-transition",
                         transitionReason ?? "The slide transition cannot be encoded by the native binary writer.",
                         slideIndex));
                 }
@@ -299,14 +299,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (!LegacyPptWriter.TryReadClassicAnimations(new[] { slide },
                             animationSounds, out _, out string? animationReason)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations,
-                            "PPT-WRITE-TIMING",
+                            "ppt-write-timing",
                             animationReason ?? "The timing tree cannot be encoded as classic binary PowerPoint animations.",
                             slideIndex));
                     }
                 }
                 if (!LegacyPptWriter.TryReadBackground(slide, out _,
                         out string? backgroundReason)) {
-                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Backgrounds, "ppt-write-background",
                         backgroundReason
                         ?? "The slide background cannot be encoded by the native binary writer.",
                         slideIndex));
@@ -318,7 +318,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             out _, out string? placeholderReason)) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Placeholders,
-                            "PPT-WRITE-PLACEHOLDER",
+                            "ppt-write-placeholder",
                             placeholderReason
                             ?? "A placeholder cannot be encoded by the native binary writer.",
                             slideIndex, shapeIndex));
@@ -329,7 +329,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             includePictures: true,
                             includeCharts: true,
                             includeSmartArt: true)) {
-                        findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
+                        findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "ppt-write-shape",
                             $"{shape.ShapeContentType} content is outside the native writer's supported shape subset.",
                             slideIndex, shapeIndex));
                         continue;
@@ -340,25 +340,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             out string? tableReason)) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Tables,
-                            "PPT-WRITE-TABLE",
+                            "ppt-write-table",
                             tableReason
                             ?? "The DrawingML table cannot be encoded as a native binary PowerPoint table.",
                             slideIndex, shapeIndex));
                     } else if (shape is PowerPointChart) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Charts,
-                            "PPT-WRITE-CHART-CONVERTED",
+                            "ppt-write-chart-converted",
                             "The editable DrawingML chart will be converted to a static PNG picture in binary PowerPoint. Chart data and editability will not survive the conversion.",
                             slideIndex, shapeIndex));
                     } else if (shape is PowerPointSmartArt) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.SmartArt,
-                            "PPT-WRITE-SMARTART-CONVERTED",
+                            "ppt-write-smartart-converted",
                             "The editable SmartArt diagram will be converted to a static PNG picture in binary PowerPoint. Diagram structure and editability will not survive the conversion.",
                             slideIndex, shapeIndex));
                     }
                     if (HasUnsupportedVisualStyle(shape)) {
-                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ShapeStyles, "PPT-WRITE-SHAPE-STYLE",
+                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ShapeStyles, "ppt-write-shape-style",
                             "Fill, outline, transform, effects, hyperlink, or visibility styling is not encoded.",
                             slideIndex, shapeIndex));
                     }
@@ -366,7 +366,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             out _, out string? metadataReason)) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.AccessibilityMetadata,
-                            "PPT-WRITE-ACCESSIBILITY-METADATA",
+                            "ppt-write-accessibility-metadata",
                             metadataReason
                             ?? "The shape accessibility metadata has no classic binary representation.",
                             slideIndex, shapeIndex));
@@ -375,7 +375,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         && HasUnsupportedMasterInteraction(shape)) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Layouts,
-                            "PPT-WRITE-LAYOUT-INTERACTION",
+                            "ppt-write-layout-interaction",
                             "Interactions on a materialized ordinary-layout shape are not encoded by the native binary writer.",
                             slideIndex, shapeIndex));
                     }
@@ -383,7 +383,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
                             shapeTextFonts, pictureBullets,
                             out string? textReason)) {
-                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichText, "PPT-WRITE-RICH-TEXT",
+                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichText, "ppt-write-rich-text",
                             textReason
                             ?? "The text formatting cannot be encoded by the native binary writer.",
                             slideIndex, shapeIndex));
@@ -395,7 +395,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Warning
                     || diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Error) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.UnknownRecordsAndStreams,
-                        "PPT-WRITE-IMPORT-LOSS",
+                        "ppt-write-import-loss",
                         $"Imported legacy content was not fully projected: {diagnostic.Code}."));
                 }
             }
@@ -408,43 +408,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation.LegacyPptWillPreserveVbaContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.VbaProjects,
-                    "PPT-WRITE-PRESERVED-VBA",
+                    "ppt-write-preserved-vba",
                     "The edited binary presentation will preserve an imported VBA project. Set LossPolicy to Allow only when retaining that active content is intentional."));
             }
             if (presentation.LegacyPptHasEmbeddedOleContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.EmbeddedOle,
-                    "PPT-WRITE-PRESERVED-OLE",
+                    "ppt-write-preserved-ole",
                     "The edited binary presentation will preserve imported embedded OLE content. Set LossPolicy to Allow only when retaining that active content is intentional."));
             }
             if (presentation.LegacyPptHasLinkedOleContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.LinkedOle,
-                    "PPT-WRITE-PRESERVED-LINKED-OLE",
+                    "ppt-write-preserved-linked-ole",
                     "The edited binary presentation will preserve imported linked OLE content. Set LossPolicy to Allow only when retaining that external content is intentional."));
             }
             if (presentation.LegacyPptHasActiveXContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.ActiveX,
-                    "PPT-WRITE-PRESERVED-ACTIVEX",
+                    "ppt-write-preserved-activex",
                     "The edited binary presentation will preserve imported ActiveX content. Set LossPolicy to Allow only when retaining that active content is intentional."));
             }
             if (presentation.LegacyPptWillPreserveRunProgramContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.Actions,
-                    "PPT-WRITE-PRESERVED-RUN-PROGRAM",
+                    "ppt-write-preserved-run-program",
                     "The edited binary presentation will preserve a run-program action. Set LossPolicy to Allow only when retaining that active action is intentional."));
             }
             if (presentation.LegacyPptWillPreserveExternalHyperlinkContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.Hyperlinks,
-                    "PPT-WRITE-PRESERVED-EXTERNAL-LINK",
+                    "ppt-write-preserved-external-link",
                     "The edited binary presentation will preserve an external hyperlink. Set LossPolicy to Allow only when retaining that external target is intentional."));
             }
             if (presentation.LegacyPptHasExternalMediaContent) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.LinkedMedia,
-                    "PPT-WRITE-PRESERVED-EXTERNAL-MEDIA",
+                    "ppt-write-preserved-external-media",
                     "The edited binary presentation will preserve externally linked media. Set LossPolicy to Allow only when retaining that external target is intentional."));
             }
         }
@@ -548,7 +548,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (groupReason != null) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.Groups,
-                    "PPT-WRITE-MASTER-GROUP", $"{ownerName}: {groupReason}"));
+                    "ppt-write-master-group", $"{ownerName}: {groupReason}"));
             }
             for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                 PowerPointShape shape = shapes[shapeIndex];
@@ -557,12 +557,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         shapeContext, out _, out string? placeholderReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Placeholders,
-                        "PPT-WRITE-MASTER-PLACEHOLDER",
+                        "ppt-write-master-placeholder",
                         $"{location}: {placeholderReason}"));
                 }
                 if (!LegacyPptWriter.IsSupportedMasterShape(shape)) {
                     findings.Add(new LegacyPptWriteFinding(
-                        MapShapeFeature(shape), "PPT-WRITE-MASTER-SHAPE",
+                        MapShapeFeature(shape), "ppt-write-master-shape",
                         $"{location}: {shape.ShapeContentType} content is outside the native writer's supported master-shape subset."));
                     continue;
                 }
@@ -570,14 +570,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     || HasUnsupportedMasterInteraction(shape)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.ShapeStyles,
-                        "PPT-WRITE-MASTER-SHAPE-STYLE",
+                        "ppt-write-master-shape-style",
                         $"{location}: visual styling or interactive content is not encoded on binary masters."));
                 }
                 if (!LegacyPptWriter.TryReadShapeMetadataForWrite(shape,
                         out _, out string? metadataReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.AccessibilityMetadata,
-                        "PPT-WRITE-MASTER-ACCESSIBILITY-METADATA",
+                        "ppt-write-master-accessibility-metadata",
                         $"{location}: {metadataReason}"));
                 }
                 if (shape is PowerPointTextBox textBox
@@ -586,14 +586,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         out string? textReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.RichText,
-                        "PPT-WRITE-MASTER-RICH-TEXT",
+                        "ppt-write-master-rich-text",
                         $"{location}: {textReason}"));
                 } else if (shape is PowerPointTable table
                     && !LegacyPptWriter.TryReadTableForWrite(table, fonts,
                         pictureBullets, out string? tableReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Tables,
-                        "PPT-WRITE-MASTER-TABLE",
+                        "ppt-write-master-table",
                         $"{location}: {tableReason ?? "The DrawingML table cannot be encoded as a native binary PowerPoint table."}"));
                 }
             }

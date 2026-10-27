@@ -3,7 +3,7 @@ using Xunit;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Charts;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {

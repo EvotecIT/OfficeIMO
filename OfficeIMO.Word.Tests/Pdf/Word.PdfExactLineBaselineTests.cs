@@ -19,7 +19,7 @@ public partial class Word {
         WordTable table = source.AddTable(1, 1);
         // Borderless cells isolate exact-line baselines and clipping from the
         // additional space reserved for table border paint.
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = columns ? 2040 : 4800;
@@ -34,12 +34,12 @@ public partial class Word {
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
         paragraph.IndentationBeforePoints = -30;
-        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(300, 300), Margins = PageMargins.Uniform(30),
-            PdfOptions = new PdfOptions { CompressContentStreams = false }
-        });
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30),
+            PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         // Word retains the authored negative glyph positions in the PDF but
         // clips their painting to the cell, even with exact-height overlap.
         string content = System.Text.Encoding.ASCII.GetString(bytes);
@@ -68,7 +68,7 @@ public partial class Word {
         WordParagraph paragraph;
         if (frame == "table") {
             WordTable table = source.AddTable(1, 1);
-            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
             paragraph = cell.Paragraphs[0];
@@ -79,11 +79,11 @@ public partial class Word {
         paragraph.LineSpacingPoints = height;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(300, 300), Margins = PageMargins.Uniform(30)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");
         var second = Assert.Single(letters, letter => letter.Value == "B");

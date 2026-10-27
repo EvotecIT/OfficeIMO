@@ -95,9 +95,9 @@ internal static partial class PdfWriter {
                             RequireMeasured(bounds.IsMeasured);
                             if (!bounds.HasInk) continue;
                             if (_diagnosticCanvasClips.Count > 0 || !_canvasEffectToPage.Equals(OfficeTransform.Identity))
-                                currentOpts.AddUnassessedLayoutWarning("TableCellPaintBoundsUnmeasured", source,
+                                currentOpts.AddUnassessedLayoutWarning("table-cell-paint-bounds-unmeasured", source,
                                     "An omitted raster line has nonzero intrinsic paint; its interaction with the enclosing effect or clip cannot be measured after admission.");
-                            else ReportAuthoredLayoutDiagnostic("TableCellInlinePaintOmitted", source,
+                            else ReportAuthoredLayoutDiagnostic("table-cell-inline-paint-omitted", source,
                                 "A raster inline with nonzero visible alpha was omitted with its line when it exceeded the authored cell height.",
                                 PdfLayoutDiagnosticKind.ClippedContent, x, top, width, height);
                             return;
@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                     }
                 }
             } catch (NotSupportedException exception) {
-                currentOpts.AddUnassessedLayoutWarning("TableCellPaintBoundsUnmeasured", source, exception.Message);
+                currentOpts.AddUnassessedLayoutWarning("table-cell-paint-bounds-unmeasured", source, exception.Message);
             }
         }
 

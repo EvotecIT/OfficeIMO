@@ -6,8 +6,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Encloses selected glyph paint in PDF coordinates; whitespace has no painted bounds.</summary>
     private static (double Left, double Bottom, double Right, double Top)? GetGlyphPaintBounds(
-        RichSeg segment, string text, double x, double baseline, PdfOptions options,
-        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
+        RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
+        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null, CancellationToken cancellationToken = default) {
         double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
         double right = double.NegativeInfinity, top = double.NegativeInfinity;
@@ -24,8 +24,8 @@ internal static partial class PdfWriter {
     /// <summary>Uses selected PDF glyphs and PDF-unit positioning, never a separately shaped approximation.</summary>
     /// <remarks>A supplied outline resolver must return private contours for placement. Font-cache eviction also releases its dependent outlines.</remarks>
     private static IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> EnumerateGlyphPaintContours(
-        RichSeg segment, string text, double x, double baseline, PdfOptions options,
-        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
+        RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
+        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null,
         Func<IOfficeBoundedFontProgram, int, double, List<List<OfficePoint>>>? glyphOutline = null,
         Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
         return value;
     }
 
-    private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfOptions options,
+    private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfCreateOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, Action? fontCacheCleared = null) {
         byte[]? data = null;
         if (segment.NamedFont.HasValue) {

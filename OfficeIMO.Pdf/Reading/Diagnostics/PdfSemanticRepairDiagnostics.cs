@@ -12,7 +12,7 @@ internal static class PdfSemanticRepairDiagnostics {
         if (catalog is null) return diagnostics;
         PdfDictionary? pagesRoot = ResolveDictionary(objects, catalog.Items.TryGetValue("Pages", out PdfObject? pagesObject) ? pagesObject : null);
         if (pagesRoot is null) {
-            AddDefect(options, diagnostics, "BrokenPageTreeRoot", "The catalog /Pages reference does not resolve to a page-tree dictionary; lenient loading used bounded page-object discovery.", null, recovered: pages.Count > 0);
+            AddDefect(options, diagnostics, "broken-page-tree-root", "The catalog /Pages reference does not resolve to a page-tree dictionary; lenient loading used bounded page-object discovery.", null, recovered: pages.Count > 0);
         } else {
             RepairPageTree(objects, pagesRoot, pages, options, diagnostics, cancellationToken);
         }
@@ -25,12 +25,12 @@ internal static class PdfSemanticRepairDiagnostics {
     private static void RepairPageTree(Dictionary<int, PdfIndirectObject> objects, PdfDictionary root, IReadOnlyList<PdfReadPage> pages, PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics, System.Threading.CancellationToken cancellationToken) {
         int declared = (int)(root.Get<PdfNumber>("Count")?.Value ?? -1);
         if (declared != pages.Count) {
-            AddDefect(options, diagnostics, "IncorrectPageTreeCount", "The page-tree root declares /Count " + declared + " but traversal found " + pages.Count + " page(s); lenient loading rebuilt /Count from reachable leaves.", FindObjectNumber(objects, root, cancellationToken), recovered: true);
+            AddDefect(options, diagnostics, "incorrect-page-tree-count", "The page-tree root declares /Count " + declared + " but traversal found " + pages.Count + " page(s); lenient loading rebuilt /Count from reachable leaves.", FindObjectNumber(objects, root, cancellationToken), recovered: true);
             root.Items["Count"] = new PdfNumber(pages.Count);
         }
 
         if (ResolveArray(objects, root.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? kidsObject : null) is not PdfArray kids) {
-            AddDefect(options, diagnostics, "MissingPageTreeKids", "The page-tree root has no readable /Kids array; lenient loading retained pages recovered through parent-chain discovery.", FindObjectNumber(objects, root, cancellationToken), recovered: pages.Count > 0);
+            AddDefect(options, diagnostics, "missing-page-tree-kids", "The page-tree root has no readable /Kids array; lenient loading retained pages recovered through parent-chain discovery.", FindObjectNumber(objects, root, cancellationToken), recovered: pages.Count > 0);
             return;
         }
 
@@ -47,7 +47,7 @@ internal static class PdfSemanticRepairDiagnostics {
             PdfDictionary? kid = ResolveDictionary(objects, kidObject);
             if (kid is null) {
                 int? objectNumber = kidObject is PdfReference reference ? reference.ObjectNumber : null;
-                AddDefect(options, diagnostics, "InvalidPageTreeKid", "A page-tree /Kids entry does not resolve to a dictionary; lenient loading removed the unusable entry.", objectNumber, recovered: true);
+                AddDefect(options, diagnostics, "invalid-page-tree-kid", "A page-tree /Kids entry does not resolve to a dictionary; lenient loading removed the unusable entry.", objectNumber, recovered: true);
                 kids.Items.RemoveAt(index);
                 continue;
             }
@@ -56,7 +56,7 @@ internal static class PdfSemanticRepairDiagnostics {
                 int parentObjectNumber = FindObjectNumber(objects, parent, cancellationToken);
                 if (parentObjectNumber > 0) {
                     kid.Items["Parent"] = new PdfReference(parentObjectNumber, objects[parentObjectNumber].Generation);
-                    AddDefect(options, diagnostics, "BrokenPageParent", "A page-tree child had a missing or incorrect /Parent reference; lenient loading restored the containing page-tree node.", FindObjectNumber(objects, kid, cancellationToken), recovered: true);
+                    AddDefect(options, diagnostics, "broken-page-parent", "A page-tree child had a missing or incorrect /Parent reference; lenient loading restored the containing page-tree node.", FindObjectNumber(objects, kid, cancellationToken), recovered: true);
                 }
             }
 
@@ -112,13 +112,13 @@ internal static class PdfSemanticRepairDiagnostics {
         }
 
         PdfDictionary? node = ResolveDictionary(objects, nodeObject);
-        if (node is null) { AddDefect(options, diagnostics, "InvalidNameTreeNode", "The " + treeName + " name tree contains a node that does not resolve to a dictionary.", nodeObject is PdfReference missing ? missing.ObjectNumber : null, recovered: false); return; }
+        if (node is null) { AddDefect(options, diagnostics, "invalid-name-tree-node", "The " + treeName + " name tree contains a node that does not resolve to a dictionary.", nodeObject is PdfReference missing ? missing.ObjectNumber : null, recovered: false); return; }
         PdfArray? pairs = ResolveArray(objects, node.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         PdfArray? kids = ResolveArray(objects, node.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? kidsObject : null);
         bool hasNames = pairs is not null;
         bool hasKids = kids is not null;
-        if (hasNames && hasKids) AddDefect(options, diagnostics, "MixedNameTreeNode", "The " + treeName + " name-tree node contains both /Names and /Kids and was left unchanged to avoid changing lookup semantics.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
-        if (hasNames && pairs!.Items.Count % 2 != 0) AddDefect(options, diagnostics, "OddNameTreePairs", "The " + treeName + " name-tree /Names array has an unmatched key or value and was left unchanged.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
+        if (hasNames && hasKids) AddDefect(options, diagnostics, "mixed-name-tree-node", "The " + treeName + " name-tree node contains both /Names and /Kids and was left unchanged to avoid changing lookup semantics.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
+        if (hasNames && pairs!.Items.Count % 2 != 0) AddDefect(options, diagnostics, "odd-name-tree-pairs", "The " + treeName + " name-tree /Names array has an unmatched key or value and was left unchanged.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
         if (hasKids) foreach (PdfObject kid in kids!.Items) ValidateNameTreeNode(objects, kid, treeName, visited, options, diagnostics, depth + 1, ref traversedNodes, cancellationToken);
     }
 
@@ -143,7 +143,7 @@ internal static class PdfSemanticRepairDiagnostics {
         if (ResolveArray(objects, node.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null) is PdfArray pairs) {
             for (int i = 1; i < pairs.Items.Count; i += 2) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!IsValidDestination(objects, pairs.Items[i], pageObjectNumbers)) AddDefect(options, diagnostics, "BrokenNamedDestination", "A named destination does not resolve to a reachable page and was left unchanged for caller review.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
+                if (!IsValidDestination(objects, pairs.Items[i], pageObjectNumbers)) AddDefect(options, diagnostics, "broken-named-destination", "A named destination does not resolve to a reachable page and was left unchanged for caller review.", FindObjectNumber(objects, node, cancellationToken), recovered: false);
             }
         }
         if (ResolveArray(objects, node.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? kidsObject : null) is PdfArray kids) foreach (PdfObject kid in kids.Items) ValidateDestinationTree(objects, kid, visited, pageObjectNumbers, options, diagnostics, depth + 1, ref traversedNodes, cancellationToken);
@@ -179,7 +179,7 @@ internal static class PdfSemanticRepairDiagnostics {
         }
 
         if (orphanCount == 0) return;
-        diagnostics.Add(new PdfRepairDiagnostic("OrphanedSemanticObjects", "Detected " + orphanCount + " unreachable semantic object(s), beginning with object " + firstOrphan + "; they remain available for forensic inspection and are not silently deleted during read.", firstOrphan, PdfRepairDisposition.DetectedOnly));
+        diagnostics.Add(new PdfRepairDiagnostic("orphaned-semantic-objects", "Detected " + orphanCount + " unreachable semantic object(s), beginning with object " + firstOrphan + "; they remain available for forensic inspection and are not silently deleted during read.", firstOrphan, PdfRepairDisposition.DetectedOnly));
     }
 
     private static bool IsSemanticObject(PdfObject value) {

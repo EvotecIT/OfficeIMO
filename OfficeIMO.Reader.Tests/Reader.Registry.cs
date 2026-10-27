@@ -78,7 +78,7 @@ public sealed partial class ReaderRegistryTests {
             sourceName: null);
 
         Assert.Equal(PowerPointReaderAdapter.DefaultModernMaxInputBytes, options.PackageSecurity!.MaxPackageBytes);
-        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes, options.LegacyPptImportOptions!.MaxInputBytes);
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes, options.MaxLegacyInputBytes);
     }
 
     [Fact]

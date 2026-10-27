@@ -134,7 +134,7 @@ public class ExcelCsvExtensionsTests {
         sheet.CellValue(2, 1, "Alpha");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var readOptions = new ExcelReadOptions { CancellationToken = cancellation.Token };
+        var readOptions = new ExcelReaderOptions { CancellationToken = cancellation.Token };
         using var destination = new MemoryStream();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>

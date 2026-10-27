@@ -13,21 +13,37 @@ public sealed class XpsWorkflowTests {
         using var scope = new Scope();
         string input = scope.File("source" + extension), output = scope.File("result.pdf");
         Create(format).Save(input);
-        var request = OfficeWorkflow.Convert(input).To(output).Build();
-        Assert.Equal("xps-pdf", request.ConversionRouteId);
+        var request = ((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+        }));
+        Assert.Equal("xps-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
         var result = await new OfficeWorkflowRunner().RunAsync(request);
         Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
         var pdf = PdfDocument.Load(output); Assert.Equal(1, pdf.Inspect().PageCount);
         Assert.Contains("Native workflow text", pdf.Read().Text);
-        Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
     }
 
     [Fact]
     public async Task OutputBudgetRejectsSerializationWithoutReplacingAnExistingFile() {
         using var scope = new Scope(); string input = scope.File("source.oxps"), output = scope.File("result.pdf");
         Create(XpsFormat.OpenXps).Save(input); File.WriteAllText(output, "Existing output");
-        var result = await new OfficeWorkflowRunner().RunAsync(OfficeWorkflow.Convert(input).To(output)
-            .OnConflict(OfficeWorkflowConflictPolicy.Replace).WithLimits(1024 * 1024, 64).Build());
+        var result = await new OfficeWorkflowRunner().RunAsync(((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
+            Limits = new OfficeOperationLimits {
+                MaximumInputBytes = 1024 * 1024,
+                MaximumOutputBytes = 64
+            }
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+        })));
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal("Existing output", File.ReadAllText(output));
         Assert.Contains(result.Diagnostics, d => d.Message.Contains("while it was being serialized", StringComparison.Ordinal));
@@ -41,11 +57,30 @@ public sealed class XpsWorkflowTests {
             new XAttribute("FragmentType", "Content"), new XElement(XName.Get("Semantic", "urn:extension")))));
         string input = scope.File("source.xps"), output = scope.File("result.pdf"); document.Save(input);
         var runner = new OfficeWorkflowRunner();
-        Assert.Equal(OfficeWorkflowStatus.Failed, (await runner.RunAsync(OfficeWorkflow.Convert(input).To(output).Build())).Status);
+        Assert.Equal(OfficeWorkflowStatus.Failed, (await runner.RunAsync(((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+        })))).Status);
         Assert.False(File.Exists(output));
-        var result = await runner.RunAsync(OfficeWorkflow.Convert(input).To(output).WithConversionOptions(new() {
-            Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
-        }).Build());
+        var result = await runner.RunAsync(((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output,
+            ConversionOptions = (new OfficeConversionOptions() {
+                RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
+                    Xps = new XpsToPdfOptions {
+                        PreserveLogicalStructure = false
+                    }
+                }
+            }
+
+    ).Clone()
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+        })));
         Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
         Assert.Contains("Native workflow text", PdfDocument.Load(output).Read().Text);
     }
@@ -56,14 +91,27 @@ public sealed class XpsWorkflowTests {
     public async Task NativeSecurityAndCompressionReachTheFinalArtifact(bool compression) {
         using var scope = new Scope(); string input = scope.File("source.oxps"), output = scope.File("result.pdf");
         Create(XpsFormat.OpenXps).Save(input);
-        var result = await new OfficeWorkflowRunner().RunAsync(OfficeWorkflow.Convert(input).To(output).WithConversionOptions(new() {
-            CompressPdfOutput = compression,
-            Xps = new XpsToPdfOptions { PdfOptions = new PdfOptions().SetEncryption("open") }
-        }).Build());
+        var result = await new OfficeWorkflowRunner().RunAsync(((new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output,
+            ConversionOptions = (new OfficeConversionOptions() {
+                CompressPdfOutput = compression,
+                RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
+                    Xps = new XpsToPdfOptions {
+                        PdfOptions = new PdfCreateOptions().SetEncryption("open")
+                    }
+                }
+            }
+
+    ).Clone()
+,
+            ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+        })));
         Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
         var pdf = PdfDocument.Load(output, new PdfLoadOptions { Password = "open" });
         Assert.Contains("Native workflow text", pdf.Read().Text);
-        if (compression) Assert.Contains(result.Diagnostics, d => d.Code == "PdfOutputCompression");
+        if (compression) Assert.Contains(result.Diagnostics, d => d.Code == "pdf-output-compressed");
     }
 
     [Fact]
@@ -76,14 +124,17 @@ public sealed class XpsWorkflowTests {
     }
 
     [Theory]
-    [InlineData(OfficeWorkflowOutputProfile.Lightweight)]
-    [InlineData(OfficeWorkflowOutputProfile.PrintReady)]
-    [InlineData(OfficeWorkflowOutputProfile.TextOnly)]
-    public async Task NativeAssemblyRejectsUnsupportedOutputProfiles(OfficeWorkflowOutputProfile profile) {
+    [InlineData(OfficeConversionProfile.Lightweight)]
+    [InlineData(OfficeConversionProfile.PrintReady)]
+    [InlineData(OfficeConversionProfile.TextOnly)]
+    public async Task NativeAssemblyRejectsUnsupportedOutputProfiles(OfficeConversionProfile profile) {
         using var scope = new Scope(); string source = scope.File("source.oxps"), output = scope.File("result.pdf");
         Create(XpsFormat.OpenXps).Save(source); File.WriteAllText(output, "Existing output");
         var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
-            Sources = [source], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace, OutputProfile = profile
+            Sources = [source],
+            OutputPath = output,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
+            OutputProfile = profile
         });
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal("Existing output", File.ReadAllText(output));
@@ -103,7 +154,9 @@ public sealed class XpsWorkflowTests {
         string source = scope.File("tagged.oxps"), output = scope.File("combined.pdf");
         document.Save(source); File.WriteAllText(output, "Existing output");
         var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
-            Sources = [source, source], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            Sources = [source, source],
+            OutputPath = output,
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
         Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
         var pdf = PdfDocument.Load(output);
@@ -117,11 +170,15 @@ public sealed class XpsWorkflowTests {
     public async Task CheckpointsReuseTheArtifactAndRejectChangedNativeSettings() {
         using var scope = new Scope(); string input = scope.File("inputs"); Directory.CreateDirectory(input);
         Create(XpsFormat.OpenXps).Save(Path.Combine(input, "source.oxps"));
-        var request = new OfficeConversionBatchRequest { InputDirectory = input, OutputDirectory = scope.File("outputs"), CheckpointDirectory = scope.File("state") };
+        var request = new OfficeBatchOptions { InputDirectory = input, OutputDirectory = scope.File("outputs"), ResumeFrom = Path.Combine(scope.File("state"), "plan.json") };
         var runner = new OfficeWorkflowRunner();
-        var first = await runner.RunBatchAsync(request); Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
-        Assert.Equal(1, (await runner.RunBatchAsync(request)).Reused);
-        var changed = await runner.RunBatchAsync(request with { ConversionOptions = new() { Xps = new() { PreserveLogicalStructure = false } } });
+        var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request); Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
+        var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with {
+            ConversionOptions = new() {
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Xps = new() { PreserveLogicalStructure = false } }
+            }
+        });
         Assert.Equal(1, changed.Failed);
     }
 
@@ -130,30 +187,41 @@ public sealed class XpsWorkflowTests {
         using var scope = new Scope(); string input = scope.File("inputs"); Directory.CreateDirectory(input);
         Create(XpsFormat.Xps).Save(Path.Combine(input, "source.xps"));
         const string password = "Native checkpoint secret";
-        var request = new OfficeConversionBatchRequest {
-            InputDirectory = input, OutputDirectory = scope.File("outputs"), CheckpointDirectory = scope.File("state"),
-            ConversionOptions = new() { Xps = new() { PdfOptions = new PdfOptions().SetEncryption(password) } }
+        var request = new OfficeBatchOptions {
+            InputDirectory = input,
+            OutputDirectory = scope.File("outputs"),
+            ResumeFrom = Path.Combine(scope.File("state"), "plan.json"),
+            ConversionOptions = new() {
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Xps = new() { PdfOptions = new PdfCreateOptions().SetEncryption(password) } }
+            }
         };
         var runner = new OfficeWorkflowRunner();
-        Assert.Equal(1, (await runner.RunBatchAsync(request)).Completed);
-        Assert.Equal(1, (await runner.RunBatchAsync(request)).Reused);
-        foreach (string file in Directory.EnumerateFiles(request.CheckpointDirectory, "*", SearchOption.AllDirectories))
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Completed);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
+        foreach (string file in Directory.EnumerateFiles(request.CheckpointDirectory!, "*", SearchOption.AllDirectories))
             Assert.DoesNotContain(password, File.ReadAllText(file));
-        var changed = await runner.RunBatchAsync(request with {
-            ConversionOptions = new() { Xps = new() { PdfOptions = new PdfOptions().SetEncryption("Changed native secret") } }
+        var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with {
+            ConversionOptions = new() {
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Xps = new() { PdfOptions = new PdfCreateOptions().SetEncryption("Changed native secret") } }
+            }
         });
         Assert.Equal(1, changed.Failed);
     }
 
     [Fact]
     public void RouteSettingsAreSnapshottedAndRemainSpecificToXps() {
-        var options = new OfficeWorkflowConversionOptions { Xps = new() { PreserveLogicalStructure = false, PdfOptions = new PdfOptions().SetEncryption("original") } };
-        var builder = OfficeWorkflow.Convert("input.xps").To("result.pdf").WithConversionOptions(options);
-        options.Xps.PreserveLogicalStructure = true; options.Xps.PdfOptions.SetEncryption("changed");
-        var snapshot = builder.Build().ConversionOptions!.Xps!;
-        Assert.False(snapshot.PreserveLogicalStructure); Assert.Equal("original", snapshot.PdfOptions!.Encryption!.UserPassword);
-        Assert.Null(options.ForRoute("txt-pdf").Xps);
-        Assert.Throws<ArgumentException>(() => options.Snapshot(OfficeWorkflowCatalog.FindExecutable("txt-pdf")!));
+        var options = new OfficeConversionOptions {
+            RegisteredSettings = new OfficeWorkflowRouteSettings {
+                Xps = new() { PreserveLogicalStructure = false, PdfOptions = new PdfCreateOptions().SetEncryption("original") }
+            }
+        };
+        OfficeConversionOptions snapshot = options.Clone();
+        var native = Assert.IsType<OfficeWorkflowRouteSettings>(options.RegisteredSettings).Xps!;
+        native.PreserveLogicalStructure = true; native.PdfOptions!.SetEncryption("changed");
+        var copied = Assert.IsType<OfficeWorkflowRouteSettings>(snapshot.RegisteredSettings).Xps!;
+        Assert.False(copied.PreserveLogicalStructure); Assert.Equal("original", copied.PdfOptions!.Encryption!.UserPassword);
+        Assert.Null(options.ForRoute("txt-pdf").RegisteredSettings);
+        Assert.Throws<ArgumentException>(() => OfficeWorkflowRenderingOptions.Capture(options).Snapshot(OfficeWorkflowCatalog.FindExecutable("txt-pdf")!));
     }
 
     private static XpsDocument Create(XpsFormat format) {

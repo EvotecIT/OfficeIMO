@@ -39,7 +39,7 @@ public partial class PdfDocumentReadResultTests {
     }
 
     private static byte[] BuildThreePageLogicalPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 180,
                 MarginLeft = 30,

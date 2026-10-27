@@ -14,11 +14,11 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// Export-OfficeDocumentPdf -InputPath .\Report.xlsx -Path .\Report.pdf -ExcelOptions $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeExcelPdfOptions")]
-[OutputType(typeof(ExcelToPdfOptions))]
+[OutputType(typeof(ExcelPdfExportOptions))]
 public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the workbook does not specify one.</summary>
     [Parameter]
@@ -26,7 +26,7 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
 
     /// <summary>PDF page size.</summary>
     [Parameter]
-    public PageSize? PageSize { get; set; }
+    public PdfPageSize? PageSize { get; set; }
 
     /// <summary>Left page margin in PDF points.</summary>
     [Parameter]
@@ -157,13 +157,13 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new ExcelToPdfOptions();
+        var options = new ExcelPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
         if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
         if (PageSize.HasValue) options.PageSize = PageSize.Value;
         if (HasMargins()) {
-            PageMargins defaults = PageMargins.Normal;
-            options.Margins = new PageMargins(
+            PdfPageMargins defaults = PdfPageMargins.Normal;
+            options.Margins = new PdfPageMargins(
                 MarginLeft ?? defaults.Left,
                 MarginTop ?? defaults.Top,
                 MarginRight ?? defaults.Right,

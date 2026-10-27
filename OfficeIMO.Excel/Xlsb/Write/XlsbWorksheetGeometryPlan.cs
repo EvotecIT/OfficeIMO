@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int topRow;
             int leftColumn;
             if (!string.IsNullOrWhiteSpace(pane.TopLeftCell?.Value)) {
-                if (!A1.TryParseCellReferenceFast(pane.TopLeftCell!.Value!, out topRow, out leftColumn)) {
+                if (!ExcelA1.TryParseCellReferenceFast(pane.TopLeftCell!.Value!, out topRow, out leftColumn)) {
                     throw new NotSupportedException($"Native XLSB generation cannot encode pane top-left cell '{pane.TopLeftCell.Value}' on worksheet '{sheetName}'.");
                 }
             } else {
@@ -274,7 +274,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     ? 2U
                     : selection?.Pane?.Value == PaneValues.BottomRight ? 0U : 3U;
             string activeCellReference = selection?.ActiveCell?.Value ?? "A1";
-            if (!A1.TryParseCellReferenceFast(activeCellReference, out int activeRow, out int activeColumn)) {
+            if (!ExcelA1.TryParseCellReferenceFast(activeCellReference, out int activeRow, out int activeColumn)) {
                 throw new NotSupportedException($"Native XLSB generation cannot encode active selection cell '{activeCellReference}' on worksheet '{sheetName}'.");
             }
 
@@ -317,7 +317,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (column.HasChildren) ThrowUnsupportedContent(column, sheetName);
                 uint first = column.Min?.Value ?? 0U;
                 uint last = column.Max?.Value ?? 0U;
-                if (first < 1U || first > last || last > A1.MaxColumns || (hasPrevious && first <= previousLast)) {
+                if (first < 1U || first > last || last > ExcelA1.MaxColumns || (hasPrevious && first <= previousLast)) {
                     throw new NotSupportedException($"Native XLSB generation requires ordered, non-overlapping column ranges on worksheet '{sheetName}'.");
                 }
                 previousLast = last;
@@ -359,8 +359,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     "r", "spans", "s", "customFormat", "ht", "hidden", "customHeight", "outlineLevel", "collapsed");
                 if (row.ChildElements.Any(child => child is not Cell)) ThrowUnsupportedContent(row, sheetName);
                 uint index = row.RowIndex?.Value ?? 0U;
-                if (index < 1U || index > A1.MaxRows || result.ContainsKey(checked((int)index))) {
-                    throw new NotSupportedException($"Native XLSB generation requires unique row indexes from 1 through {A1.MaxRows} on worksheet '{sheetName}'.");
+                if (index < 1U || index > ExcelA1.MaxRows || result.ContainsKey(checked((int)index))) {
+                    throw new NotSupportedException($"Native XLSB generation requires unique row indexes from 1 through {ExcelA1.MaxRows} on worksheet '{sheetName}'.");
                 }
 
                 bool customFormat = row.CustomFormat?.Value == true;
@@ -438,8 +438,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             out int lastColumn) {
             firstRow = firstColumn = lastRow = lastColumn = 0;
             if (string.IsNullOrWhiteSpace(reference)) return false;
-            if (A1.TryParseRange(reference!, out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
-            if (!A1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
+            if (ExcelA1.TryParseRange(reference!, out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
+            if (!ExcelA1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
             lastRow = firstRow;
             lastColumn = firstColumn;
             return true;

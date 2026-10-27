@@ -4,11 +4,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
-    internal static Func<string?, double, string?, OfficeFontStyle, double> CreateDrawingTextMeasure(PdfOptions options) {
+    internal static Func<string?, double, string?, OfficeFontStyle, double> CreateDrawingTextMeasure(PdfCreateOptions options) {
         return CreateDrawingTextMetrics(options).MeasureText;
     }
 
-    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options, System.Threading.CancellationToken cancellationToken = default) {
+    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
         var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint);
 

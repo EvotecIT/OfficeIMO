@@ -64,7 +64,7 @@ public sealed class PdfFormOcrReview {
         Guard.NotNull(currentDocument, nameof(currentDocument));
         Guard.NotNull(acceptedValues, nameof(acceptedValues));
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_sourceBytes.SequenceEqual(currentDocument.ToBytes(cancellationToken)))
+        if (!_sourceBytes.SequenceEqual(currentDocument.SerializeBytes(cancellationToken)))
             throw new InvalidOperationException("The document changed after recognition. Recognize the current document again.");
         var values = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal);
         var charactersByPage = new Dictionary<int, long>();

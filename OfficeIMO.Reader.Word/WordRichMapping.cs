@@ -8,8 +8,8 @@ namespace OfficeIMO.Reader.Word;
 
 internal static class WordRichMapping {
     internal static OfficeDocumentReadResult Apply(
-        WordDocumentSnapshot snapshot,
-        IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots,
+        WordDocumentInfo snapshot,
+        IReadOnlyList<WordDocumentVisualInfo> pageSnapshots,
         ReaderOptions readerOptions,
         ReaderWordOptions options,
         OfficeDocumentReadResult result) {
@@ -25,7 +25,7 @@ internal static class WordRichMapping {
         int tableIndex = 0;
         int linkIndex = 0;
         for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
-            WordSectionSnapshot section = snapshot.Sections[sectionIndex];
+            WordSectionInfo section = snapshot.Sections[sectionIndex];
             ProjectWordElements(
                 section.Elements,
                 result.Source.Path,
@@ -81,14 +81,14 @@ internal static class WordRichMapping {
     }
 
     private static IReadOnlyList<OfficeDocumentPage> BuildWordPages(
-        IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots,
+        IReadOnlyList<WordDocumentVisualInfo> pageSnapshots,
         string? sourcePath) {
         if (pageSnapshots.Count == 0) {
             return Array.Empty<OfficeDocumentPage>();
         }
 
         var pages = new List<OfficeDocumentPage>(pageSnapshots.Count);
-        foreach (WordDocumentVisualSnapshot snapshot in pageSnapshots) {
+        foreach (WordDocumentVisualInfo snapshot in pageSnapshots) {
             int pageNumber = snapshot.PageIndex + 1;
             var pageBlocks = new List<OfficeDocumentBlock>();
             // Reuse the PDF text compositor so formatting boundaries cannot split
@@ -139,7 +139,7 @@ internal static class WordRichMapping {
     }
 
     private static void ProjectWordNotes(
-        WordDocumentSnapshot snapshot,
+        WordDocumentInfo snapshot,
         string? sourcePath,
         List<OfficeDocumentBlock> blocks,
         List<OfficeDocumentLink> links,
@@ -147,9 +147,9 @@ internal static class WordRichMapping {
         ref int linkIndex) {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         int noteIndex = 0;
-        foreach (WordSectionSnapshot section in snapshot.Sections) {
-            foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(section)) {
-                foreach (WordRunSnapshot run in paragraph.Runs) {
+        foreach (WordSectionInfo section in snapshot.Sections) {
+            foreach (WordParagraphInfo paragraph in EnumerateWordParagraphs(section)) {
+                foreach (WordRunInfo run in paragraph.Runs) {
                     if (run.Footnote != null) {
                         ProjectWordNote("footnote", run.Footnote.ReferenceId, run.Footnote.Paragraphs, sourcePath, blocks, links, emitted, ref sourceBlockIndex, ref noteIndex, ref linkIndex);
                     }
@@ -161,25 +161,25 @@ internal static class WordRichMapping {
         }
     }
 
-    private static IEnumerable<WordParagraphSnapshot> EnumerateWordParagraphs(WordSectionSnapshot section) {
-        foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(section.Elements)) yield return paragraph;
-        foreach (WordHeaderFooterSnapshot? headerFooter in new[] {
+    private static IEnumerable<WordParagraphInfo> EnumerateWordParagraphs(WordSectionInfo section) {
+        foreach (WordParagraphInfo paragraph in EnumerateWordParagraphs(section.Elements)) yield return paragraph;
+        foreach (WordHeaderFooterInfo? headerFooter in new[] {
             section.DefaultHeader, section.FirstHeader, section.EvenHeader,
             section.DefaultFooter, section.FirstFooter, section.EvenFooter
         }) {
             if (headerFooter == null) continue;
-            foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(headerFooter.Elements)) yield return paragraph;
+            foreach (WordParagraphInfo paragraph in EnumerateWordParagraphs(headerFooter.Elements)) yield return paragraph;
         }
     }
 
-    private static IEnumerable<WordParagraphSnapshot> EnumerateWordParagraphs(IReadOnlyList<WordBlockSnapshot> elements) {
-        foreach (WordBlockSnapshot element in elements) {
-            if (element is WordParagraphSnapshot paragraph) {
+    private static IEnumerable<WordParagraphInfo> EnumerateWordParagraphs(IReadOnlyList<WordBlockInfo> elements) {
+        foreach (WordBlockInfo element in elements) {
+            if (element is WordParagraphInfo paragraph) {
                 yield return paragraph;
-            } else if (element is WordTableSnapshot table) {
-                foreach (WordTableRowSnapshot row in table.Rows) {
-                    foreach (WordTableCellSnapshot cell in row.Cells) {
-                        foreach (WordParagraphSnapshot cellParagraph in cell.Paragraphs) yield return cellParagraph;
+            } else if (element is WordTableInfo table) {
+                foreach (WordTableRowInfo row in table.Rows) {
+                    foreach (WordTableCellInfo cell in row.Cells) {
+                        foreach (WordParagraphInfo cellParagraph in cell.Paragraphs) yield return cellParagraph;
                     }
                 }
             }
@@ -189,7 +189,7 @@ internal static class WordRichMapping {
     private static void ProjectWordNote(
         string kind,
         long? referenceId,
-        IReadOnlyList<WordParagraphSnapshot> noteParagraphs,
+        IReadOnlyList<WordParagraphInfo> noteParagraphs,
         string? sourcePath,
         List<OfficeDocumentBlock> blocks,
         List<OfficeDocumentLink> links,
@@ -223,7 +223,7 @@ internal static class WordRichMapping {
             Text = text,
             Location = location
         });
-        foreach (WordParagraphSnapshot paragraph in noteParagraphs) {
+        foreach (WordParagraphInfo paragraph in noteParagraphs) {
             AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
         }
         sourceBlockIndex++;
@@ -231,7 +231,7 @@ internal static class WordRichMapping {
     }
 
     private static void ProjectWordHeaderFooter(
-        WordHeaderFooterSnapshot? headerFooter,
+        WordHeaderFooterInfo? headerFooter,
         int sectionIndex,
         string? sourcePath,
         ReaderOptions options,
@@ -248,7 +248,7 @@ internal static class WordRichMapping {
     }
 
     private static void ProjectWordElements(
-        IReadOnlyList<WordBlockSnapshot> elements,
+        IReadOnlyList<WordBlockInfo> elements,
         string? sourcePath,
         string owner,
         ReaderOptions options,
@@ -260,7 +260,7 @@ internal static class WordRichMapping {
         ref int linkIndex) {
         var headingStack = new List<(int Level, string Text)>();
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-            WordBlockSnapshot element = elements[elementIndex];
+            WordBlockInfo element = elements[elementIndex];
             string anchor = "word-" + owner + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture);
             ReaderLocation location = new ReaderLocation {
                 Path = sourcePath,
@@ -269,7 +269,7 @@ internal static class WordRichMapping {
                 BlockAnchor = anchor
             };
 
-            if (element is WordParagraphSnapshot paragraph) {
+            if (element is WordParagraphInfo paragraph) {
                 int? headingLevel = ResolveWordHeadingLevel(paragraph);
                 if (headingLevel.HasValue) {
                     for (int headingIndex = headingStack.Count - 1; headingIndex >= 0; headingIndex--) {
@@ -290,7 +290,7 @@ internal static class WordRichMapping {
                     Location = location
                 });
                 AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
-            } else if (element is WordTableSnapshot table) {
+            } else if (element is WordTableInfo table) {
                 location.HeadingPath = BuildWordHeadingPath(headingStack);
                 ReaderTable mapped = MapWordTable(table, location, tableIndex++, options.MaxTableRows);
                 blocks.Add(new OfficeDocumentBlock {
@@ -300,9 +300,9 @@ internal static class WordRichMapping {
                     Location = location
                 });
                 tables.Add(mapped);
-                foreach (WordTableRowSnapshot row in table.Rows) {
-                    foreach (WordTableCellSnapshot cell in row.Cells) {
-                        foreach (WordParagraphSnapshot cellParagraph in cell.Paragraphs) {
+                foreach (WordTableRowInfo row in table.Rows) {
+                    foreach (WordTableCellInfo cell in row.Cells) {
+                        foreach (WordParagraphInfo cellParagraph in cell.Paragraphs) {
                             AddWordParagraphLinks(cellParagraph, location, links, ref linkIndex);
                         }
                     }
@@ -313,12 +313,12 @@ internal static class WordRichMapping {
     }
 
     private static void AddWordParagraphLinks(
-        WordParagraphSnapshot paragraph,
+        WordParagraphInfo paragraph,
         ReaderLocation ownerLocation,
         List<OfficeDocumentLink> links,
         ref int linkIndex) {
         for (int runIndex = 0; runIndex < paragraph.Runs.Count; runIndex++) {
-            WordRunSnapshot run = paragraph.Runs[runIndex];
+            WordRunInfo run = paragraph.Runs[runIndex];
             if (!run.IsHyperlink || (string.IsNullOrWhiteSpace(run.HyperlinkUri) && string.IsNullOrWhiteSpace(run.HyperlinkAnchor))) continue;
             links.Add(new OfficeDocumentLink {
                 Id = "word-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
@@ -332,13 +332,13 @@ internal static class WordRichMapping {
         }
     }
 
-    private static ReaderTable MapWordTable(WordTableSnapshot table, ReaderLocation location, int tableIndex, int maxRows) {
+    private static ReaderTable MapWordTable(WordTableInfo table, ReaderLocation location, int tableIndex, int maxRows) {
         ReaderLocation tableLocation = CloneWordLocation(location, "table", location.BlockAnchor);
         tableLocation.TableIndex = tableIndex;
         return WordTableProjection.Map(table, tableLocation, tableIndex, maxRows);
     }
 
-    private static int? ResolveWordHeadingLevel(WordParagraphSnapshot paragraph) {
+    private static int? ResolveWordHeadingLevel(WordParagraphInfo paragraph) {
         string style = paragraph.StyleName ?? paragraph.StyleId ?? string.Empty;
         if (style.IndexOf("heading", StringComparison.OrdinalIgnoreCase) < 0) return null;
         for (int i = style.Length - 1; i >= 0; i--) {

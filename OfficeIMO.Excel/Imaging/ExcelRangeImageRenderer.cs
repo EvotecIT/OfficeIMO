@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
 
     internal static partial class ExcelRangeImageRenderer {
         internal static OfficeImageExportResult Render(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             CancellationToken cancellationToken = default) =>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken);
 
         internal static OfficeImageExportResult Render(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static OfficeImageExportResult RenderCore(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static OfficeRasterImage RenderRaster(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics = null,
             CancellationToken cancellationToken = default) {
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string RenderSvg(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics = null,
             CancellationToken cancellationToken = default,
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string RenderSvgCore(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
             CancellationToken cancellationToken,
@@ -381,7 +381,7 @@ namespace OfficeIMO.Excel {
 
         private static void RenderRasterChart(
             OfficeRasterCanvas canvas,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualChart chart,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgChart(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualChart chart,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
@@ -454,7 +454,7 @@ namespace OfficeIMO.Excel {
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 
-        internal static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
+        internal static bool TryCreateOfficeChartSnapshot(ExcelChartInfo snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -468,7 +468,7 @@ namespace OfficeIMO.Excel {
             if (approximation != null) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartKindApproximated,
+                    IsFlatChartProjection(snapshot.ChartType) ? OfficeDiagnosticCodes.ChartFlattened : ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     approximation,
                     sheetName + "!" + snapshot.Name));
             }
@@ -492,13 +492,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
-                series.ChartType.Value != snapshot.ChartType &&
-                (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
+            foreach (ExcelChartSeries series in snapshot.Data.Series.Where(series => series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                if (!TryMapSeriesRenderKind(series.ChartType!.Value, out _, out string? seriesApproximation) || seriesApproximation == null) continue;
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartKindApproximated,
-                    "Excel combo chart includes a series type that is rendered through a fallback chart kind.",
+                    IsFlatChartProjection(series.ChartType.Value) ? OfficeDiagnosticCodes.ChartFlattened : ExcelImageExportDiagnosticCodes.ChartKindApproximated,
+                    "Excel combo series '" + series.Name + "': " + seriesApproximation,
                     sheetName + "!" + snapshot.Name));
             }
 
@@ -599,6 +598,20 @@ namespace OfficeIMO.Excel {
             kind == OfficeChartKind.BarStacked ||
             kind == OfficeChartKind.BarStacked100;
 
+        /// <summary>Whether the supported projection discards native three-dimensional geometry.</summary>
+        internal static bool IsFlatChartProjection(ExcelChartType type) => type is
+            ExcelChartType.Column3DClustered or
+            ExcelChartType.Column3DStacked or
+            ExcelChartType.Column3DStacked100 or
+            ExcelChartType.Bar3DClustered or
+            ExcelChartType.Bar3DStacked or
+            ExcelChartType.Bar3DStacked100 or
+            ExcelChartType.Line3D or
+            ExcelChartType.Area3D or
+            ExcelChartType.Area3DStacked or
+            ExcelChartType.Area3DStacked100 or
+            ExcelChartType.Pie3D;
+
         internal static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
             approximation = null;
             switch (type) {
@@ -697,7 +710,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void DrawBorders(OfficeRasterCanvas canvas, ExcelVisualCell cell, double scale) {
-            ExcelCellBorderSnapshot? border = cell.Style.Border;
+            ExcelCellBorderInfo? border = cell.Style.Border;
             if (border == null) {
                 return;
             }
@@ -724,7 +737,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void DrawBorder(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, ExcelBorderSideSnapshot? border, double scale) {
+        private static void DrawBorder(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, ExcelBorderSideInfo? border, double scale) {
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return;
             }
@@ -739,7 +752,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AppendSvgBorders(StringBuilder builder, ExcelVisualCell cell, double scale) {
-            ExcelCellBorderSnapshot? border = cell.Style.Border;
+            ExcelCellBorderInfo? border = cell.Style.Border;
             if (border == null) {
                 return;
             }
@@ -766,7 +779,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, ExcelBorderSideSnapshot? border, double scale) {
+        private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, ExcelBorderSideInfo? border, double scale) {
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return;
             }
@@ -793,7 +806,7 @@ namespace OfficeIMO.Excel {
                 dashArray != null && dashStyle == OfficeStrokeDashStyle.Dot ? OfficeStrokeLineCap.Round : null);
         }
 
-        private static bool TryCreateBorderBox(ExcelCellBorderSnapshot border, double scale, out OfficeBorderBox borderBox) {
+        private static bool TryCreateBorderBox(ExcelCellBorderInfo border, double scale, out OfficeBorderBox borderBox) {
             borderBox = default;
             if (!TryCreateBorderSide(border.Left, scale, out OfficeBorderSide? left) ||
                 !TryCreateBorderSide(border.Top, scale, out OfficeBorderSide? top) ||
@@ -817,7 +830,7 @@ namespace OfficeIMO.Excel {
             return borderBox.HasVisibleSide;
         }
 
-        private static bool TryCreateBorderSide(ExcelBorderSideSnapshot? border, double scale, out OfficeBorderSide? side) {
+        private static bool TryCreateBorderSide(ExcelBorderSideInfo? border, double scale, out OfficeBorderSide? side) {
             side = null;
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return true;
@@ -904,7 +917,7 @@ namespace OfficeIMO.Excel {
             return OfficeTextVerticalAlignment.Bottom;
         }
 
-        private static OfficeFontStyle ResolveFontStyle(ExcelCellStyleSnapshot style) {
+        private static OfficeFontStyle ResolveFontStyle(ExcelCellStyleInfo style) {
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
             if (style.Bold) {
                 fontStyle |= OfficeFontStyle.Bold;
@@ -950,9 +963,9 @@ namespace OfficeIMO.Excel {
             return any ? resolved : null;
         }
 
-        private static int ScaledWidth(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
+        private static int ScaledWidth(ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
 
-        private static int ScaledHeight(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
+        private static int ScaledHeight(ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
 
         private static string Number(double value) => OfficeSvgFormatting.FormatNumber(value);
 

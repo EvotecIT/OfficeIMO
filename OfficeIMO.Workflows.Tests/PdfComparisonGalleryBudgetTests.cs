@@ -31,8 +31,8 @@ namespace OfficeIMO.Workflows.Tests {
                 ComparisonExpectedPages = fixture.ExpectedPages,
                 ComparisonActualPages = fixture.ActualPages,
                 OutputPath = gallery,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = long.MaxValue }
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = long.MaxValue }
             };
             OfficeWorkflowResult generous = await new OfficeWorkflowRunner().RunAsync(request);
             Assert.True(generous.Succeeded, generous.Summary);
@@ -79,7 +79,7 @@ namespace OfficeIMO.Workflows.Tests {
                 ComparisonPath = actual,
                 ComparisonExpectedPages = fixture.ExpectedPages,
                 ComparisonActualPages = fixture.ActualPages,
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = retainedPngBytes }
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = retainedPngBytes }
             };
 
             OfficeWorkflowResult exact = await new OfficeWorkflowRunner().RunAsync(request);

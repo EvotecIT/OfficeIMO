@@ -37,7 +37,7 @@ internal static partial class LatexToMarkdownConverter {
             cursor = candidate.Span.End.Offset;
         }
         AddContentParagraphs(context, cursor, span.End.Offset, candidates);
-        var target = MarkdownDoc.Create();
+        var target = MarkdownDocument.Create();
         foreach (BlockCandidate candidate in WithCommandFallbacks(context, candidates.ToArray(), span)) {
             context.CheckCancellation();
             AddCandidate(context, target, candidate, options, diagnostics);

@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 3, " suffix");
             sheet.CellFormula(2, 1, "(A1=B1)&C1");
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal("(A1=B1)&C1", reloaded.Sheets[0].CellAt(2, 1).GetValue().Formula);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, "Merged");
             sheet.MergeRange("B2:D4");
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             ExcelSheet result = Assert.Single(reloaded.Sheets);

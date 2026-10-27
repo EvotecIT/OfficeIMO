@@ -61,19 +61,19 @@ internal static class PdfSignatureValidator {
         if (!objectGraphParsed) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Error,
-                "SignatureObjectGraphParseFailed",
+                "signature-object-graph-parse-failed",
                 "PDF objects could not be parsed for signature validation: " + objectGraphError));
         }
 
         if (!security.HasSignatures) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "NoSignatures",
+                "no-signatures",
                 "No PDF signature fields, signature values, or /ByteRange markers were detected."));
         } else if (security.Signatures.Count == 0) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Error,
-                "UnreadableSignature",
+                "unreadable-signature",
                 "PDF signature markers were detected, but no complete signature dictionary could be validated."));
         }
 
@@ -156,9 +156,9 @@ internal static class PdfSignatureValidator {
         double? byteRangeCoverageRatio = null;
 
         if (!signature.HasByteRange) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureMissingByteRange", "Signature value does not contain a readable /ByteRange array.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-missing-byte-range", "Signature value does not contain a readable /ByteRange array.");
         } else if (!completeShape) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureUnsupportedByteRangeShape", "Signature /ByteRange contains " + values.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " numeric values; OfficeIMO.Pdf validates the common four-value detached signature shape.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-unsupported-byte-range-shape", "Signature /ByteRange contains " + values.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " numeric values; OfficeIMO.Pdf validates the common four-value detached signature shape.");
         } else {
             long firstStart = values[0];
             long firstLength = values[1];
@@ -177,54 +177,54 @@ internal static class PdfSignatureValidator {
             byteRangeCoverageRatio = coveredBytes.HasValue && fileLength > 0 ? coveredBytes.Value / (double)fileLength : null;
 
             if (!nonNegative || !inBounds) {
-                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeOutOfBounds", "Signature /ByteRange contains negative values, overflowing ranges, or ranges beyond the input file length.");
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-byte-range-out-of-bounds", "Signature /ByteRange contains negative values, overflowing ranges, or ranges beyond the input file length.");
             } else if (!ordered) {
-                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeNotOrdered", "Signature /ByteRange segments are not ordered from the start of the file without overlap.");
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-byte-range-not-ordered", "Signature /ByteRange segments are not ordered from the start of the file without overlap.");
             }
 
             if (gapLength.HasValue && gapLength.Value <= 0) {
-                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeMissingContentsGap", "Signature /ByteRange does not leave an unsigned gap for the signature /Contents value.");
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-byte-range-missing-contents-gap", "Signature /ByteRange does not leave an unsigned gap for the signature /Contents value.");
             }
 
             if (inBounds && !coversEndOfFile) {
-                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureByteRangeDoesNotCoverEof", "Signature /ByteRange does not end at the input file length; bytes after the signed ranges may be unsigned.");
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-byte-range-does-not-cover-eof", "Signature /ByteRange does not end at the input file length; bytes after the signed ranges may be unsigned.");
             }
 
             if (byteRangeCoverageRatio.HasValue) {
-                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureByteRangeCoverage", "Signature /ByteRange covers " + byteRangeCoverageRatio.Value.ToString("P2", System.Globalization.CultureInfo.InvariantCulture) + " of the input bytes.");
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "signature-byte-range-coverage", "Signature /ByteRange covers " + byteRangeCoverageRatio.Value.ToString("P2", System.Globalization.CultureInfo.InvariantCulture) + " of the input bytes.");
             }
         }
 
         if (!signature.HasContents) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureMissingContents", "Signature value does not contain a /Contents value.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-missing-contents", "Signature value does not contain a /Contents value.");
         } else if (signature.ContentsSizeBytes.GetValueOrDefault() == 0) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureEmptyContents", "Signature /Contents is present but empty.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-empty-contents", "Signature /Contents is present but empty.");
         }
 
         if (gapLength.HasValue &&
             signature.ContentsEncodedSizeBytes.HasValue &&
             gapLength.Value != signature.ContentsEncodedSizeBytes.Value) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeContentsGapMismatch", "Signature /ByteRange gap does not match the full /Contents token span.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "signature-byte-range-contents-gap-mismatch", "Signature /ByteRange gap does not match the full /Contents token span.");
         }
 
         if (string.IsNullOrEmpty(signature.Filter)) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingFilter", "Signature value does not identify a signature /Filter handler.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-missing-filter", "Signature value does not identify a signature /Filter handler.");
         }
 
         if (string.IsNullOrEmpty(signature.SubFilter)) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingSubFilter", "Signature value does not identify a signature /SubFilter.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-missing-sub-filter", "Signature value does not identify a signature /SubFilter.");
         } else if (!signature.HasRecognizedSubFilter) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureUnknownSubFilter", "Signature /SubFilter /" + signature.SubFilter + " is not one of the common CMS, CAdES, or RFC 3161 subfilters recognized by OfficeIMO.Pdf.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-unknown-sub-filter", "Signature /SubFilter /" + signature.SubFilter + " is not one of the common CMS, CAdES, or RFC 3161 subfilters recognized by OfficeIMO.Pdf.");
         } else if (signature.IsDocumentTimestamp) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureDocumentTimestampSubFilter", "Signature declares the ETSI.RFC3161 document timestamp subfilter.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "signature-document-timestamp-sub-filter", "Signature declares the ETSI.RFC3161 document timestamp subfilter.");
         } else if (signature.UsesCadesSubFilter) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureCadesSubFilter", "Signature declares the ETSI.CAdES.detached subfilter.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "signature-cades-sub-filter", "Signature declares the ETSI.CAdES.detached subfilter.");
         } else if (signature.UsesDetachedCmsSubFilter) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureDetachedCmsSubFilter", "Signature declares a detached CMS/PKCS#7 subfilter.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "signature-detached-cms-sub-filter", "Signature declares a detached CMS/PKCS#7 subfilter.");
         }
 
         if (!signature.FieldObjectNumber.HasValue) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingOwningField", "Signature value is not linked from a readable AcroForm signature field.");
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "signature-missing-owning-field", "Signature value is not linked from a readable AcroForm signature field.");
         }
 
         PdfSignatureCryptographicResult? cryptographicResult = null;
@@ -271,7 +271,7 @@ internal static class PdfSignatureValidator {
                 findings,
                 signature,
                 PdfDiagnosticSeverity.Error,
-                "CryptographicValidationInputUnavailable",
+                "cryptographic-validation-input-unavailable",
                 "Cryptographic validation requires a valid four-value /ByteRange and non-empty decoded /Contents bytes.",
                 isCryptographic: true);
             return null;
@@ -299,7 +299,7 @@ internal static class PdfSignatureValidator {
                 findings,
                 signature,
                 PdfDiagnosticSeverity.Error,
-                "CryptographicProviderFailed",
+                "cryptographic-provider-failed",
                 provider.Name + " could not validate the signature: " + ex.Message,
                 isCryptographic: true);
             return new PdfSignatureCryptographicResult(
@@ -348,14 +348,14 @@ internal static class PdfSignatureValidator {
         if (security.HasSignatures && !cryptographicValidationRequested) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "CryptographicTrustNotVerified",
+                "cryptographic-trust-not-verified",
                 "Signature structure was inspected without an optional cryptography provider; CMS math, trust, revocation, digest, and timestamp policy were not evaluated."));
         }
 
         if (security.AcroFormAppendOnly) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "AcroFormAppendOnly",
+                "acro-form-append-only",
                 "AcroForm /SigFlags indicates append-only updates are expected."));
         }
 
@@ -365,7 +365,7 @@ internal static class PdfSignatureValidator {
                 : string.Empty;
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "DocMDPDetected",
+                "doc-mdp-detected",
                 "Catalog /Perms contains DocMDP certification permissions." + suffix,
                 security.DocMDPSignatureObjectNumber));
         }
@@ -373,21 +373,21 @@ internal static class PdfSignatureValidator {
         if (security.HasUsageRights) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Warning,
-                "UsageRightsDetected",
+                "usage-rights-detected",
                 "Catalog /Perms contains usage-rights entries that must be preserved by append-only mutation."));
         }
 
         if (security.HasLongTermValidationEvidence) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "LongTermValidationEvidenceDetected",
+                "long-term-validation-evidence-detected",
                 "Document Security Store (/DSS) validation evidence was detected."));
         }
 
         if (security.HasIncrementalUpdates) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
-                "IncrementalUpdatesDetected",
+                "incremental-updates-detected",
                 "Incremental update markers were detected; signature-preserving changes should append a new revision."));
         }
     }

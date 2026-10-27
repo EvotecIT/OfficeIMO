@@ -24,7 +24,7 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
             string saved = Path.Combine(services.Paths.Root, "annotation-only-edited.pdf");
             var options = new PdfLoadOptions { Password = "open" };
             var ownerOptions = new PdfLoadOptions { Password = "owner" }; // Independent artifact oracle; Studio receives only the user password.
-            byte[] encrypted = PdfDocument.Load(CreateSource()).Security.Encrypt(new PdfStandardEncryptionOptions("open") {
+            byte[] encrypted = PdfDocument.Load(new System.IO.MemoryStream(CreateSource())).Security.Encrypt(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
             }).Pdf;
             File.WriteAllBytes(source, encrypted);
@@ -33,8 +33,8 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
             await model.OpenDocumentAsync(source);
             model.ShowAnnotateModeCommand.Execute(null);
             Assert.True(model.CanEditAnnotations);
-            var snapshot = PdfDocument.Load(encrypted, options);
-            var inspected = PdfDocument.Load(encrypted, ownerOptions).Inspect();
+            var snapshot = PdfDocument.Load(new System.IO.MemoryStream(encrypted), options);
+            var inspected = PdfDocument.Load(new System.IO.MemoryStream(encrypted), ownerOptions).Inspect();
             var layouts = snapshot.GetPageLayouts();
             model.SelectedReaderLayoutChoice = model.ReaderLayoutChoices.Single(choice => choice.Mode == ReaderLayoutMode.Grid);
             model.SetTouchZoom(0.5);
@@ -73,7 +73,7 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 model.Pages[1].TransformObject(new(selected, new(bounds.Left + 11, bounds.Top + 7, bounds.Right + 11, bounds.Bottom + 7), model.SelectedAnnotations));
                 await WaitForMutation(model);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var moved = PdfDocument.Load(File.ReadAllBytes(saved), ownerOptions).Inspect();
+                var moved = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)), ownerOptions).Inspect();
                 foreach (var original in inspected.Annotations.Where(item => item.Name!.StartsWith("selected-", StringComparison.Ordinal))) {
                     var changed = moved.Annotations.Single(item => item.Name == original.Name);
                     var page = layouts[original.PageNumber!.Value - 1];
@@ -81,7 +81,7 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                     var b = page.MapUserSpaceRectangleToVisual(changed.X1, changed.Y1, changed.X2, changed.Y2);
                     Assert.Equal(a.Left + 11, b.Left, 7); Assert.Equal(a.Top + 7, b.Top, 7);
                 }
-                Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(File.ReadAllBytes(saved), options).Read());
+                Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)), options).Read());
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
                 Assert.Equal(encrypted, File.ReadAllBytes(saved));
@@ -90,8 +90,8 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 await model.CopyAnnotationsCommand.ExecuteAsync(null);
                 Assert.Null(model.ErrorMessage);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.Equal(6, PdfDocument.Load(File.ReadAllBytes(saved), ownerOptions).Inspect().Annotations.Count);
-                Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(File.ReadAllBytes(saved), options).Read());
+                Assert.Equal(6, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)), ownerOptions).Inspect().Annotations.Count);
+                Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)), options).Read());
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
                 Assert.Equal(encrypted, File.ReadAllBytes(saved));
@@ -214,10 +214,10 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 Assert.Equal(2, model.SelectedAnnotations.Count);
                 await model.CopyAnnotationsCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var copies = PdfDocument.Load(File.ReadAllBytes(saved));
+                var copies = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)));
                 Assert.Equal(6, copies.Inspect().Annotations.Count);
                 Assert.All(copies.Inspect().Annotations.GroupBy(item => item.PageNumber), group => Assert.Equal(3, group.Count()));
-                var pages = copies.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages;
+                var pages = copies.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages;
                 foreach (int page in new[] { 1, 2 }) {
                     var original = copies.Inspect().Annotations.Single(item => item.Name == $"selected-{page}");
                     var copy = copies.Inspect().Annotations.Single(item => item.PageNumber == page && item.Name != $"selected-{page}" && item.Name != $"other-{page}");
@@ -230,17 +230,17 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 Marquee();
                 await model.RaiseAnnotationsCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.All(PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations.GroupBy(item => item.PageNumber),
+                Assert.All(PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.GroupBy(item => item.PageNumber),
                     group => Assert.StartsWith("selected-", group.Last().Name));
                 await Render();
                 Marquee();
                 await model.LowerAnnotationsCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.All(PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations.GroupBy(item => item.PageNumber),
+                Assert.All(PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.GroupBy(item => item.PageNumber),
                     group => Assert.StartsWith("selected-", group.First().Name));
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.All(PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations.GroupBy(item => item.PageNumber),
+                Assert.All(PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.GroupBy(item => item.PageNumber),
                     group => Assert.StartsWith("selected-", group.Last().Name));
                 await model.UndoCommand.ExecuteAsync(null);
                 await Render();
@@ -248,10 +248,10 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 Canvas(2).Focus(); window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.None, null);
                 await WaitForMutation(model);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.All(PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations, item => Assert.StartsWith("other-", item.Name));
+                Assert.All(PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations, item => Assert.StartsWith("other-", item.Name));
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                Assert.Equal(4, PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations.Count);
+                Assert.Equal(4, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.Count);
                 await Render();
                 Marquee();
                 Capture(window, $"cross-page-final-{layout}-{width}.png");
@@ -282,9 +282,9 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
     }
 
     private static void AssertVisualMovement(string source, string saved, double deltaX, double deltaY, double tolerance) {
-        var original = PdfDocument.Load(File.ReadAllBytes(source));
-        var changed = PdfDocument.Load(File.ReadAllBytes(saved));
-        var pages = original.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages;
+        var original = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source)));
+        var changed = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)));
+        var pages = original.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages;
         foreach (var annotation in original.Inspect().Annotations) {
             var moved = changed.Inspect().Annotations.Single(item => item.Name == annotation.Name);
             var page = pages[annotation.PageNumber!.Value - 1];
@@ -303,7 +303,7 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
                 content.Item(item => item.Paragraph(paragraph => paragraph.Text("Cross-page annotation workspace")))));
         });
         document = document.Pages.SetCropBox(20, 30, 380, 390, 1).Pages.SetCropBox(30, 40, 390, 400, 2).Pages.Rotate(90, 2);
-        var pages = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages;
+        var pages = document.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages;
         foreach (int page in new[] { 1, 2 }) {
             var selected = page == 1 ? new PdfEditorVisualBounds(40, 60, 100, 120) : new PdfEditorVisualBounds(230, 40, 290, 100);
             foreach (var (name, bounds, subtype) in new[] { ($"selected-{page}", selected, "Square"), ($"other-{page}", new PdfEditorVisualBounds(320, 250, 340, 270), "Circle") }) {

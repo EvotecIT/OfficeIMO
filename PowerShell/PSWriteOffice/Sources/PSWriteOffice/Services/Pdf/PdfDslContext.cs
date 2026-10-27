@@ -13,16 +13,16 @@ internal sealed class PdfDslContext : IDisposable
     private readonly List<Action<PdfPageBuilder>> _pageActions = new();
     private readonly List<Func<PdfDocument, PdfDocument>> _documentActions = new();
 
-    private PdfDslContext(PdfOptions options)
+    private PdfDslContext(PdfCreateOptions options)
     {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _previous = Current.Value;
         Current.Value = this;
     }
 
-    public PdfOptions Options { get; }
+    public PdfCreateOptions Options { get; }
 
-    public static PdfDslContext Enter(PdfOptions options) => new(options);
+    public static PdfDslContext Enter(PdfCreateOptions options) => new(options);
 
     public static PdfDslContext Require(PSCmdlet cmdlet)
     {

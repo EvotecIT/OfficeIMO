@@ -12,7 +12,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void FormulasHaveTheirOwnRecoverableSupplementAndVersionFloor(PdfObjectSerializationMode serialization) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = serialization
@@ -50,7 +50,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [Fact]
     public void IdenticalSupplementsReusePayloadWithoutMergingFormulas() {
         var source = Supplement("same.xml", FirstMath, "First");
-        byte[] bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("first", 20, 20, 80, 20), source)
                 .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("second", 20, 60, 80, 20), source))
@@ -71,7 +71,7 @@ public sealed class PdfStructureAssociatedFileTests {
         data[0] = 0;
         file.FileName = "changed.xml";
         structure.AssociatedFiles[0].MimeType = "text/plain";
-        var document = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));
         structure.AddAssociatedFile(new PdfEmbeddedFile("later.xml", Encoding.UTF8.GetBytes(SecondMath), "application/mathml+xml"));
         PdfExtractedAttachment recovered = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(document.ToBytes()));
@@ -82,12 +82,12 @@ public sealed class PdfStructureAssociatedFileTests {
 
     [Fact]
     public void ConflictingNamesFailInsteadOfRecoveringTheWrongFormula() {
-        var document = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("same.xml", FirstMath, "First"))
                 .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 60, 40, 20), Supplement("same.xml", SecondMath, "Second")));
         Assert.Throws<InvalidOperationException>(() => document.ToBytes());
-        var catalogConflict = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        var catalogConflict = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .AttachFile("same.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml")
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 20, 40, 20), Supplement("same.xml", SecondMath, "Second")));
         Assert.Throws<InvalidOperationException>(() => catalogConflict.ToBytes());
@@ -97,7 +97,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ConflictingNamesDoNotWriteToForwardOnlyDestination(bool catalogCollision) {
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             FileVersion = PdfFileVersion.Pdf17
@@ -117,7 +117,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [InlineData(PdfComplianceProfile.PdfUa2)]
     public void FormulaAccessibilityEvidenceRequiresAnAlternateDescription(PdfComplianceProfile profile) {
         foreach (string? description in new string?[] { null, "x squared" }) {
-            var options = new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
+            var options = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
             var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
                 PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
                 new PdfCanvasStructureOptions { AlternativeText = description }));
@@ -130,7 +130,7 @@ public sealed class PdfStructureAssociatedFileTests {
 
     [Fact]
     public void UndatedSupplementOmitsOptionalParametersRatherThanInventingDate() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")))
             .ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
@@ -138,7 +138,7 @@ public sealed class PdfStructureAssociatedFileTests {
         Assert.False(stream.Value.Entries.ContainsKey("Params"));
         Assert.Equal(FirstMath, Encoding.UTF8.GetString(Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes)).Bytes));
         var metadata = new PdfCanvasStructureOptions().AddAssociatedFile(new PdfEmbeddedFile("dated.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml", PdfAssociatedFileRelationship.Supplement, modificationDate: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)));
-        bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), metadata)).ToBytes();
         raw = PdfReadDocument.Open(bytes).RawStructure();
         stream = Assert.Single(raw.Objects, item => item.Value.Entries.TryGetValue("Type", out var type) && type.Text == "EmbeddedFile");
@@ -160,7 +160,7 @@ public sealed class PdfStructureAssociatedFileTests {
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), supplement))
             .PageBreak()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), supplement))),
-            new PdfOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
+            new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView[] formulas = raw.Objects.Where(IsFormula).ToArray();
         Assert.Equal(2, PdfInspector.Inspect(bytes).PageCount);
@@ -174,7 +174,7 @@ public sealed class PdfStructureAssociatedFileTests {
     public void DisabledTaggingDoesNotEmitOrphanedStructureAttachments() {
         byte[] bytes = PdfDocument.Create(document => document.Content(content => content
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")))),
-            new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.None }).ToBytes();
+            new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.None }).ToBytes();
         Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(bytes));
         Assert.DoesNotContain(PdfReadDocument.Open(bytes).RawStructure().Objects, IsFormula);
         Assert.StartsWith("%PDF-1.4", Encoding.ASCII.GetString(bytes, 0, 8));
@@ -182,7 +182,7 @@ public sealed class PdfStructureAssociatedFileTests {
 
     [Fact]
     public void MixedCatalogAndStructureFilesUseValidPdf20Metadata() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
             .AttachFile("catalog.xml", Encoding.UTF8.GetBytes("<source/>"), "application/xml")
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First"))).ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
@@ -199,7 +199,7 @@ public sealed class PdfStructureAssociatedFileTests {
     public void Pdf20CatalogAssociationsRequireMimeWithoutChangingLegacyOutput() {
         var legacy = PdfDocument.Create().AttachFile("catalog.xml", Encoding.UTF8.GetBytes("<source/>"));
         Assert.Single(PdfAttachmentExtractor.ExtractAttachments(legacy.ToBytes()));
-        var mixed = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
+        var mixed = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
             .AttachFile("catalog.xml", Encoding.UTF8.GetBytes("<source/>"))
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")));
         Assert.Throws<InvalidOperationException>(() => mixed.ToBytes());
@@ -264,7 +264,7 @@ public sealed class PdfStructureAssociatedFileTests {
         PdfObjectSerializationMode serialization = PdfObjectSerializationMode.Buffered, bool tagged = true) {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             IncludeStandardFontToUnicodeMaps = true,
             ObjectSerializationMode = serialization,
             TaggedStructureMode = tagged ? PdfTaggedStructureMode.CatalogMarkers : PdfTaggedStructureMode.None

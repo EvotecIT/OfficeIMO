@@ -120,8 +120,8 @@ namespace OfficeIMO.Excel {
             int columns = c2 - c1 + 1;
             int destinationRows = transpose ? columns : rows;
             int destinationColumns = transpose ? rows : columns;
-            if ((long)destination.Start.Row + destinationRows - 1L > A1.MaxRows
-                || (long)destination.Start.Column + destinationColumns - 1L > A1.MaxColumns) {
+            if ((long)destination.Start.Row + destinationRows - 1L > ExcelA1.MaxRows
+                || (long)destination.Start.Column + destinationColumns - 1L > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(destinationTopLeft), "Destination range exceeds worksheet limits.");
             }
             long area = (long)rows * columns;
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
                     .Select(marker => TryGetDrawingMarkerCoordinates(marker, out _, out int column) ? column : 0)
                     .DefaultIfEmpty().Max();
                 int max = Math.Max(maxCell, maxDrawing);
-                if ((long)max + c2 - c1 + 1L > A1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
+                if ((long)max + c2 - c1 + 1L > ExcelA1.MaxColumns) throw new InvalidOperationException("Cell insertion would exceed the worksheet column limit.");
             } else {
                 int maxCell = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
                     .Where(item => item.Column >= c1 && item.Column <= c2)
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
                     .Select(marker => TryGetDrawingMarkerCoordinates(marker, out int row, out _) ? row : 0)
                     .DefaultIfEmpty().Max();
                 int max = Math.Max(maxCell, maxDrawing);
-                if ((long)max + r2 - r1 + 1L > A1.MaxRows) throw new InvalidOperationException("Cell insertion would exceed the worksheet row limit.");
+                if ((long)max + r2 - r1 + 1L > ExcelA1.MaxRows) throw new InvalidOperationException("Cell insertion would exceed the worksheet row limit.");
             }
         }
 
@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel {
             bool transpose,
             MutationPlanScanBudget? budget = null) {
             ValidateWorkbookSharedFormulasForStructuralEdit();
-            ExcelReference destination = ExcelReference.Parse(A1.CellReference(destinationRow, destinationColumn) + ":" + A1.CellReference(destinationRow + rows - 1, destinationColumn + columns - 1));
+            ExcelReference destination = ExcelReference.Parse(ExcelA1.CellReference(destinationRow, destinationColumn) + ":" + ExcelA1.CellReference(destinationRow + rows - 1, destinationColumn + columns - 1));
             if (move || transpose) {
                 EnsureNoIntersectingOwnedStructures(source, "Move and transpose cannot split owned table, merge, array, data-table, or PivotTable structures.", budget);
             }
@@ -263,8 +263,8 @@ namespace OfficeIMO.Excel {
             ExcelCellShiftDirection direction) {
             affected.GetBounds(out int r1, out int c1, out int r2, out int c2);
             string reference = direction == ExcelCellShiftDirection.Right || direction == ExcelCellShiftDirection.Left
-                ? A1.CellReference(r1, c1) + ":" + A1.CellReference(r2, A1.MaxColumns)
-                : A1.CellReference(r1, c1) + ":" + A1.CellReference(A1.MaxRows, c2);
+                ? ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(r2, ExcelA1.MaxColumns)
+                : ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(ExcelA1.MaxRows, c2);
             return ExcelReference.Parse(reference);
         }
 
@@ -288,7 +288,7 @@ namespace OfficeIMO.Excel {
                 bool inRowBand = row >= r1 && row <= r2;
                 bool inColumnBand = column >= c1 && column <= c2;
                 if (direction == ExcelCellShiftDirection.Right && inRowBand && column >= c1) {
-                    cell.CellReference = A1.CellReference(row, column + columns);
+                    cell.CellReference = ExcelA1.CellReference(row, column + columns);
                     changed = true;
                 } else if (direction == ExcelCellShiftDirection.Down && inColumnBand && row >= r1) {
                     MoveCellTo(cell, row + rows, column);
@@ -299,7 +299,7 @@ namespace OfficeIMO.Excel {
                         RemoveCellWithValueMetadataCleanup(cell);
                         changed = true;
                     } else if (column > c2) {
-                        cell.CellReference = A1.CellReference(row, column - columns);
+                        cell.CellReference = ExcelA1.CellReference(row, column - columns);
                         changed = true;
                     }
                 } else if (direction == ExcelCellShiftDirection.Up && inColumnBand) {
@@ -326,7 +326,7 @@ namespace OfficeIMO.Excel {
 
         private void MoveCellTo(Cell cell, int row, int column) {
             cell.Remove();
-            cell.CellReference = A1.CellReference(row, column);
+            cell.CellReference = ExcelA1.CellReference(row, column);
             Cell target = GetCell(row, column);
             target.InsertBeforeSelf(cell);
             target.Remove();
@@ -394,7 +394,7 @@ namespace OfficeIMO.Excel {
                 int targetRow = destinationRow + (transpose ? columnOffset : rowOffset);
                 int targetColumn = destinationColumn + (transpose ? rowOffset : columnOffset);
                 Cell clone = snapshot.Cell;
-                clone.CellReference = A1.CellReference(targetRow, targetColumn);
+                clone.CellReference = ExcelA1.CellReference(targetRow, targetColumn);
                 if (clone.CellFormula != null) {
                     clone.CellFormula.Text = move
                         ? TranslateMovedFormula(clone.CellFormula.Text, source, destinationRow, destinationColumn, transpose)
@@ -424,11 +424,11 @@ namespace OfficeIMO.Excel {
                     int toColumn = transpose
                         ? targetColumn + image.ToRowIndex.Value - image.RowIndex
                         : targetColumn + image.ToColumnIndex.Value - image.ColumnIndex;
-                    if (toRow > A1.MaxRows || toColumn > A1.MaxColumns) {
+                    if (toRow > ExcelA1.MaxRows || toColumn > ExcelA1.MaxColumns) {
                         throw new InvalidOperationException("Copied image anchor exceeds worksheet limits.");
                     }
                     copy = AddImageToRange(
-                        A1.CellReference(targetRow, targetColumn) + ":" + A1.CellReference(targetRow, targetColumn),
+                        ExcelA1.CellReference(targetRow, targetColumn) + ":" + ExcelA1.CellReference(targetRow, targetColumn),
                         image.Bytes!,
                         image.ContentType,
                         transpose ? image.OffsetYPixels : image.OffsetXPixels,
@@ -524,9 +524,9 @@ namespace OfficeIMO.Excel {
             int endRow,
             int endColumn) {
             bool rowsFit = kind == ExcelReferenceKind.WholeColumn
-                || (startRow >= 1 && startRow <= A1.MaxRows && endRow >= 1 && endRow <= A1.MaxRows);
+                || (startRow >= 1 && startRow <= ExcelA1.MaxRows && endRow >= 1 && endRow <= ExcelA1.MaxRows);
             bool columnsFit = kind == ExcelReferenceKind.WholeRow
-                || (startColumn >= 1 && startColumn <= A1.MaxColumns && endColumn >= 1 && endColumn <= A1.MaxColumns);
+                || (startColumn >= 1 && startColumn <= ExcelA1.MaxColumns && endColumn >= 1 && endColumn <= ExcelA1.MaxColumns);
             return rowsFit && columnsFit;
         }
 
@@ -752,7 +752,7 @@ namespace OfficeIMO.Excel {
         private static bool TryGetCellCoordinates(Cell cell, out int row, out int column) {
             row = column = 0;
             if (cell.CellReference?.Value is not string reference) return false;
-            (row, column) = A1.ParseCellRef(reference);
+            (row, column) = ExcelA1.ParseCellRef(reference);
             return row > 0 && column > 0;
         }
 

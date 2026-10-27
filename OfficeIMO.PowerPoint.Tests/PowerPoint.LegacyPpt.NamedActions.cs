@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite,
                     string.Join(Environment.NewLine, report.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -82,11 +82,10 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(projectedPreflight.CanWrite);
             Assert.Contains(projectedPreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-PRESERVED-RUN-PROGRAM");
+                finding.Code == "ppt-write-preserved-run-program");
             Assert.Throws<NotSupportedException>(() =>
-                projected.ToBytes(PowerPointFileFormat.Ppt));
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions {
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
@@ -97,7 +96,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -113,7 +112,7 @@ namespace OfficeIMO.Tests {
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite,
                     string.Join(Environment.NewLine, report.Findings));
-                addedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                addedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation added = LegacyPptPresentation.Load(addedBytes);
             LegacyPptInteraction addedAction = Assert.Single(added.Slides[0].Shapes
@@ -141,7 +140,7 @@ namespace OfficeIMO.Tests {
                     EndSound = true
                 });
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
             LegacyPptInteraction editedAction = Assert.Single(edited.Slides[0].Shapes
@@ -160,7 +159,7 @@ namespace OfficeIMO.Tests {
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
                     .RemoveAllChildren<A.HyperlinkOnClick>();
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
             Assert.Empty(removed.Slides[0].Shapes
@@ -183,7 +182,7 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWriteFinding finding = Assert.Single(
                 source.AnalyzeLegacyPptWrite().Findings,
-                item => item.Code == "PPT-WRITE-INTERACTION");
+                item => item.Code == "ppt-write-interaction");
             Assert.Contains("history", finding.Description,
                 StringComparison.OrdinalIgnoreCase);
         }

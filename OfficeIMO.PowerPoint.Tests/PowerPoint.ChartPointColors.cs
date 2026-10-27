@@ -106,14 +106,14 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = presentation.AddSlide().AddChartPoints(OfficeChartKind.ColumnClustered, data, 20, 20, 600, 320);
             chart.SetChartAreaStyle(fillColor: "ABCDEF");
             Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
-            OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native, 600, 320, new PowerPointToPdfOptions());
+            OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native, 600, 320, new PowerPointPdfExportOptions());
             Assert.Equal(Colors, projected.Data.Series[0].PointColors);
             Assert.Equal(data.Series[1].PointColors, projected.Data.Series[1].PointColors);
             Assert.Equal(OfficeChartAxisGroup.Secondary, projected.Data.Series[1].AxisGroup);
             Assert.Same(native.Style, projected.Style);
             var style = new OfficeChartStyle(backgroundColor: OfficeColor.FromRgb(250, 240, 230));
             OfficeChartSnapshot overridden = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native, 400, 200,
-                new PowerPointToPdfOptions { ChartStyle = style });
+                new PowerPointPdfExportOptions { ChartStyle = style });
             Assert.Same(style, overridden.Style);
             Assert.Equal(Colors, overridden.Data.Series[0].PointColors);
             Assert.All(overridden.Data.Series, series => Assert.Null(series.Color));
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
             Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
             OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
-                persisted, 400, 200, new PowerPointToPdfOptions { ChartStyle = style });
+                persisted, 400, 200, new PowerPointPdfExportOptions { ChartStyle = style });
             Assert.All(persistedOverride.Data.Series, series => Assert.Null(series.Color));
         }
 
@@ -136,13 +136,13 @@ namespace OfficeIMO.Tests {
             Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
             var customStyle = new OfficeChartStyle(palette: new[] { OfficeColor.Parse("#123456") });
             OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native,
-                600, 320, new PowerPointToPdfOptions { ChartStyle = customStyle });
+                600, 320, new PowerPointPdfExportOptions { ChartStyle = customStyle });
             Assert.Equal(explicitColor, projected.Data.Series[0].Color);
             using var bytes = new MemoryStream(presentation.ToBytes());
             using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
             Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
             OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
-                persisted, 600, 320, new PowerPointToPdfOptions { ChartStyle = customStyle });
+                persisted, 600, 320, new PowerPointPdfExportOptions { ChartStyle = customStyle });
             Assert.Equal(explicitColor, persistedOverride.Data.Series[0].Color);
         }
 
@@ -322,8 +322,8 @@ namespace OfficeIMO.Tests {
             using var bytes = new MemoryStream(authored.ToBytes());
             using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
             AssertColorPixels(reopened.Slides.Single().ToPng(), Colors[0]!.Value, Colors[2]!.Value);
-            var options = new PowerPointToPdfOptions();
-            byte[] pdf = reopened.ToPdfBytes(options);
+            var options = new PowerPointPdfExportOptions();
+            byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.DoesNotContain(options.Warnings, warning => warning.Code == "unsupported-chart");
             PdfCore.PdfPageRenderResult page = Assert.Single(PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions { Dpi = 72, Format = PdfCore.PdfPageRenderFormat.Png, MaxPages = 1, ContinueOnError = false }));

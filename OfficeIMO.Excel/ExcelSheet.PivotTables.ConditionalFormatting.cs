@@ -57,13 +57,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ResolvePivotDataBodyRange(string location) {
-            if (!A1.TryParseRange(location, out int r1, out int c1, out int r2, out int c2)) {
+            if (!ExcelA1.TryParseRange(location, out int r1, out int c1, out int r2, out int c2)) {
                 return location;
             }
 
             int firstRow = r1 < r2 ? r1 + 1 : r1;
             int firstColumn = c1 < c2 ? c1 + 1 : c1;
-            return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(r2, c2);
+            return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(r2, c2);
         }
     }
 }

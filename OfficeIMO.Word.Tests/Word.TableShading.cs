@@ -1,7 +1,7 @@
 using OfficeIMO.Word;
 using Xunit;
 using W = DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests;
 
@@ -140,7 +140,7 @@ public partial class Word {
         Assert.Equal("AUTO", loaded.Tables[0].StyleDetails!.ShadingFillColorHex);
         Assert.Null(loaded.Tables[0].StyleDetails!.ShadingFillColor);
         Assert.Null(loaded.Tables[0].StyleDetails!.ShadingColor);
-        Assert.NotEmpty(loaded.ToBytes(WordFileFormat.Doc, new WordSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
+        Assert.NotEmpty(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc,  LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
     }
 
     [Theory]
@@ -164,8 +164,7 @@ public partial class Word {
         WordTableStyleDetails style = document.AddTable(1, 1).StyleDetails!;
         style.CellSpacing = 120;
         style.ShadingFillColorHex = "80C0FF";
-        var error = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc,
-            new WordSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc,  LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
         Assert.Contains("table gap shading", error.Message);
     }
 }

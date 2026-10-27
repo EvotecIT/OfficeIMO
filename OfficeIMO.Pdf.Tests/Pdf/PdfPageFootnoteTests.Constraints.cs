@@ -12,7 +12,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true, "Continuation")]
     [InlineData(false, "Notice")]
     public void DefinitionRejectsEffectiveAnchoredParagraphContentWithoutAppendingCapturedBlocks(bool inherited, string location) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (inherited) options.DefaultParagraphStyle = AnchoredNoteParagraphStyle();
         var document = PdfDocument.Create(options);
         document.Content.Text("ExistingBody", style: Style());
@@ -46,7 +46,7 @@ public partial class PdfPageFootnoteTests {
 
     [Fact]
     public void ExplicitNoteStylesPreserveTheirOwnConstraintsWhenDefaultsKeepWithNext() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { KeepWithNext = true };
         options.DefaultImageStyle = new PdfImageStyle { KeepWithNext = true };
         options.DefaultHorizontalRuleStyle = new PdfHorizontalRuleStyle { KeepWithNext = true };

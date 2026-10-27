@@ -39,7 +39,7 @@ public partial class Word {
             AddAutomaticControlSpan(table, preferences, spanStarts[row],
                 shortSpanFirst && row == 0 ? 12 : 24, automaticLeft);
         table.GridColumnWidth = preferences.Select(value => value * 20).ToList();
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var words = page.GetWords().ToList();
         var firstRow = words.Where(word => word.Text.StartsWith("Span", StringComparison.Ordinal))
@@ -67,7 +67,7 @@ public partial class Word {
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
         for (int column = 0; column < 2; column++) table.Rows[0].Cells[column].Paragraphs[0].Text = "Span" + column;
         AddAutomaticControlSpan(table, preferences, 0, 12);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = Assert.Single(pdf.GetPages()).GetWords().ToArray();
         var left = Assert.Single(words, word => word.Text == "Span0");
         var right = Assert.Single(words, word => word.Text == "Span1");
@@ -92,7 +92,7 @@ public partial class Word {
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
         for (int column = 0; column < 3; column++) table.Rows[0].Cells[column].Paragraphs[0].Text = "Span" + column;
         AddAutomaticControlSpan(table, preferences, 0, 18, columnSpan: 3);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         var starts = letters.Where(letter => letter.Value == "S").OrderBy(letter => letter.StartBaseLine.X).ToArray();
         Assert.Equal(3, starts.Length);
@@ -163,10 +163,10 @@ public partial class Word {
             paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
         }
         table.GridColumnWidth = new List<int> { cachedGridTwips / 2, cachedGridTwips / 2 };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Courier }
-        }));
+            PdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("ABCDEFGHIJZ", string.Concat(page.Letters.Select(letter => letter.Value)));
         var first = Assert.Single(page.Letters, letter => letter.Value == "A");

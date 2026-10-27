@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (ppt9Tags.Length == 0) return null;
             if (ppt9Tags.Length != 1) {
                 malformed = true;
-                AddDiagnostic("PPT-TEXT-STYLE9-DUPLICATE",
+                AddDiagnostic("ppt-text-style9-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A shape has multiple PPT9 extended-text tags; they remain preserve-only.",
                     ppt9Tags[1].Offset);
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (dataBlobs.Length != 1 || dataBlobs[0].Version != 0
                 || dataBlobs[0].Instance != 0) {
                 malformed = true;
-                AddDiagnostic("PPT-TEXT-STYLE9-DATA",
+                AddDiagnostic("ppt-text-style9-data",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A PPT9 extended-text tag has no unique valid data blob; it remains preserve-only.",
                     tag.Offset);
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (records.Count != 1
                     || records[0].Type != RecordStyleTextProp9Atom) {
                     malformed = true;
-                    AddDiagnostic("PPT-TEXT-STYLE9-CONTENT",
+                    AddDiagnostic("ppt-text-style9-content",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A PPT9 extended-text data blob does not contain exactly one StyleTextProp9Atom; it remains preserve-only.",
                         blob.Offset);
@@ -58,7 +58,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 is InvalidDataException or OverflowException
                     or ArgumentOutOfRangeException) {
                 malformed = true;
-                AddDiagnostic("PPT-TEXT-STYLE9-TRUNCATED",
+                AddDiagnostic("ppt-text-style9-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A PPT9 extended-text tag is malformed or truncated; it remains preserve-only.",
                     dataBlobs[0].Offset);

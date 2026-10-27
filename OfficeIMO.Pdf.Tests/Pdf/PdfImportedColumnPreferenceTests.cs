@@ -13,7 +13,7 @@ public class PdfImportedColumnPreferenceTests {
     public void ImportedContentMinimumCompressionPreservesPaddingAndAllClippedCellText(int automaticColumn, bool explicitMaximum) {
         const string leftText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const string rightText = "ABCDEFGHIJKLM";
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = explicitMaximum ? 240D : 119D, PageHeight = 300D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
             DefaultFont = PdfStandardFont.Courier
@@ -40,7 +40,7 @@ public class PdfImportedColumnPreferenceTests {
     [InlineData(100D, 31.428571D)]
     [InlineData(400D, 90D)]
     public void ImportedPreferredFrameRetainsAnExplicitMaximumBeyondTheTextFrame(double maximum, double expectedFirstWidth) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 120D, PageHeight = 200D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
         };
@@ -71,7 +71,7 @@ public class PdfImportedColumnPreferenceTests {
     [InlineData(300D, 300D, 0D, 2, 60D)]
     public void ImportedPreferencesShrinkAfterMinimumsAndGrowProportionally(
         double preferredWidth, double frameWidth, double firstMaximum, int automaticColumn, double expectedFirstWidth) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = frameWidth + 40D, PageHeight = 200D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
         };
@@ -219,7 +219,7 @@ public class PdfImportedColumnPreferenceTests {
         CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = PdfColor.Black, BorderWidth = .5D
     };
 
-    private static PdfOptions ConstrainedImportedPreferenceOptions() => new() {
+    private static PdfCreateOptions ConstrainedImportedPreferenceOptions() => new() {
         PageWidth = 340D, PageHeight = 300D,
         MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
         DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D

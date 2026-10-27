@@ -32,7 +32,7 @@ internal sealed partial class PdfWorkspace {
         PdfImagePlacement placement = RequireImagePlacement(selection);
         return MutateBytesAsync(PdfWorkspaceOperationKind.ImageEdit, "Moved or resized image", [selection.PageNumber], bytes => {
             PdfDocument document = Current(bytes);
-            PdfLogicalPage page = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages[selection.PageNumber - 1];
+            PdfLogicalPage page = document.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages[selection.PageNumber - 1];
             PdfEditorVisualBounds original = selection.Bounds, target = gesture.Target;
             PdfPagePoint originalCenter = page.MapVisualPointToUserSpace((original.Left + original.Right) / 2, (original.Top + original.Bottom) / 2);
             PdfPagePoint targetCenter = page.MapVisualPointToUserSpace((target.Left + target.Right) / 2, (target.Top + target.Bottom) / 2);

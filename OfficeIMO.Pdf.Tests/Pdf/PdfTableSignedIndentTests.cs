@@ -9,7 +9,7 @@ public class PdfTableSignedIndentTests {
     [InlineData("columns")]
     [InlineData("row")]
     public void SignedIndent_PreservesTableOriginAndColumnWidthsAcrossPageContinuation(string frame) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30, DefaultFontSize = 9
         };

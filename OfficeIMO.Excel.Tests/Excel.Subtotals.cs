@@ -76,12 +76,12 @@ namespace OfficeIMO.Tests {
                     DataEndRow = 2,
                     GroupColumn = 1,
                     ValueColumns = new[] { 2 },
-                    SummaryStartRow = A1.MaxRows
+                    SummaryStartRow = ExcelA1.MaxRows
                 }));
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddSubtotalSummary(new ExcelSubtotalOptions {
                     DataEndRow = 2,
-                    GroupColumn = A1.MaxColumns + 1,
+                    GroupColumn = ExcelA1.MaxColumns + 1,
                     ValueColumns = new[] { 2 },
                     SummaryStartRow = 5
                 }));

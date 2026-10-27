@@ -23,7 +23,7 @@ public partial class Word {
         const string headerOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>h=2</m:t></m:r></m:oMath></m:oMathPara>";
         const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
         const string tableOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>c=4</m:t></m:r></m:oMath></m:oMathPara>";
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -102,11 +102,11 @@ public partial class Word {
             });
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterEquationUnsupported");
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-equation-unsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-equation-unsupported");
 
         string text = PdfCore.PdfReadDocument.Open(pdfPath,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
@@ -149,7 +149,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -163,10 +163,10 @@ public partial class Word {
             complex.AddText(" complex-suffix");
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-equation-unsupported");
         string text = NormalizePdfText(PdfCore.PdfTextExtractor.ExtractAllText(pdfPath));
         Assert.Contains("Simple field: (a)/(b) simple-suffix", text, StringComparison.Ordinal);
         Assert.Contains("Complex field: sqrt(x) complex-suffix", text, StringComparison.Ordinal);
@@ -176,7 +176,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_Body_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -190,17 +190,17 @@ public partial class Word {
 
             document.AddEmbeddedFragment("<html><body><p>Embedded body fragment</p></body></html>", WordAlternativeFormatImportPartType.Html);
             document.Save();
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
             result.Save(pdfPath);
 
             Assert.DoesNotContain(result.Warnings, warning =>
-                warning.Code == "NativeBodyContentControlUnsupported" &&
+                warning.Code == "native-body-content-control-unsupported" &&
                 warning.Source == "body paragraph");
             Assert.DoesNotContain(result.Warnings, warning =>
-                warning.Code == "NativeBodyEquationUnsupported" &&
+                warning.Code == "native-body-equation-unsupported" &&
                 warning.Source == "body table");
             Assert.Contains(result.Warnings, warning =>
-                warning.Code == "NativeBodyEmbeddedDocumentUnsupported" &&
+                warning.Code == "native-body-embedded-document-unsupported" &&
                 warning.Source == "body");
         }
 
@@ -216,7 +216,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleTextContentControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleTextContentControls.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -234,11 +234,11 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag("Cell control", "CellAlias", "CellTag");
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-content-control-unsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-content-control-unsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -264,7 +264,7 @@ public partial class Word {
         document._document.Body!.Append(nested);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }));
+            document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }));
         Assert.Contains("nesting exceeds", exception.Message, StringComparison.Ordinal);
     }
 
@@ -273,7 +273,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyContentControlFormFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyContentControlFormFields.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -282,11 +282,11 @@ public partial class Word {
             document.AddParagraph("Native combo: ").AddComboBox(new[] { "Red", "Blue" }, "Color", "ColorTag", defaultValue: "Blue");
             document.AddParagraph("Native date: ").AddDatePicker(new DateTime(2026, 5, 29), "Due Date", "DueDateTag");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body paragraph");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
@@ -320,7 +320,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellContentControlFormFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellContentControlFormFields.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -336,11 +336,11 @@ public partial class Word {
             paragraph.AddComboBox(new[] { "Red", "Blue" }, "Cell Color", "CellColor", defaultValue: "Blue");
             paragraph.AddDatePicker(new DateTime(2026, 5, 31), "Cell Due Date", "CellDueDate");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body table");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
@@ -360,7 +360,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyRepeatingSection.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyRepeatingSection.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -370,11 +370,11 @@ public partial class Word {
                 .AddRepeatingSection("Tasks", "Tasks", "TasksTag");
             repeatingSection.SetTextItems(new[] { "Plan roadmap slice", "Validate native PDF output" });
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body paragraph");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -389,7 +389,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellRepeatingSection.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellRepeatingSection.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -404,11 +404,11 @@ public partial class Word {
                 .AddRepeatingSection("Tasks", "Tasks", "TasksTag");
             repeatingSection.SetTextItems(new[] { "Render cell item", "Keep table warnings clean" });
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body table");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -423,17 +423,17 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyCheckBox.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyCheckBox.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Accept native checkbox").AddCheckBox(true, "Accept Native", "AcceptNative");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-content-control-unsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -452,7 +452,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCheckBox.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCheckBox.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -461,11 +461,11 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Table cell approval";
             table.Rows[0].Cells[0].Paragraphs[0].AddCheckBox(true, "Table Cell Approval", "TableCellApproval");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body table");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);

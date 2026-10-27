@@ -9,7 +9,7 @@ public sealed partial class OfficeWorkflowRunner {
 
     // Resolves the complete set without writes, then publishes and verifies each child with shared recovery.
     private static async Task<ProviderFileBatch> PublishProviderFilesAsync(IReadOnlyList<string> stagedPaths,
-        OfficeWorkflowDirectoryOutput directory, long maximumOutputBytes, IOfficeWorkflowPublicationGuard? publicationGuard,
+        OfficeWorkflowDirectoryOutput directory, long maximumOutputBytes, IOfficePublicationGuard? publicationGuard,
         List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         var files = new List<PublishedProviderFile>();
         var recoveries = new List<OfficeWorkflowOutputRecovery>();

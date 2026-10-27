@@ -71,20 +71,20 @@ internal static class RichWordPdfCorpusGenerator {
             }
 
             document.Save();
-            var pdfOptions = new PdfOptions();
+            var pdfOptions = new PdfCreateOptions();
             pdfOptions.RegisterFontFamily(
                 PdfStandardFont.Helvetica,
                 new PdfEmbeddedFontFamily("Carlito", PdfBenchmarkAssets.CarlitoRegular));
-            PdfSaveResult saveResult = document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            PdfSaveResult saveResult = document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 FontFamily = "Carlito",
                 PdfOptions = pdfOptions,
                 DefaultTableBorders = true
             });
             saveResult.RequireSuccess();
             string[] allowedDiagnosticCodes = {
-                "NativeFontFamilySubstituted",
-                "NativeBodyChartQuality",
-                "NativeBodySmartArtUnsupported",
+                global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution,
+                global::OfficeIMO.OfficeDiagnosticCodes.ChartQuality,
+                global::OfficeIMO.OfficeDiagnosticCodes.NativeBodySmartArtUnsupported,
                 "unsupported-font-ligature-substitution"
             };
             PdfConversionWarning[] unexpectedWarnings = saveResult.Warnings

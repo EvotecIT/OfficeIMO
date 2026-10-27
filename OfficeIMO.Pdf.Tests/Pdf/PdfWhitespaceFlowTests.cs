@@ -59,7 +59,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PreservedFlowKeepsLeadingAndRepeatedSpaceAdvances(bool table) {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         PdfDocument document = PdfDocument.Create(options);
         var runs = new[] { PdfTextRun.Normal("  ALPHA "), PdfTextRun.Normal("  BETA") };
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
@@ -90,7 +90,7 @@ public sealed class PdfWhitespaceFlowTests {
 
     [Fact]
     public void PreformattedBooleanRetainsItsLiteralOverflowBehavior() {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Collapse);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Collapse);
         options.PreserveTextWhitespace = true;
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.Text("ALPHA" + new string(' ', 60) + "BETA")).ToBytes());
@@ -101,7 +101,7 @@ public sealed class PdfWhitespaceFlowTests {
 
     [Fact]
     public void JustificationWeightsEachPreservedSpaceAndOmitsWrappedTrailingSpaces() {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.PageWidth = 220D;
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
             p.Text("ALPHA BETA   GAMMA DELTA EPSILON ZETA"), align: PdfAlign.Justify).ToBytes());
@@ -116,7 +116,7 @@ public sealed class PdfWhitespaceFlowTests {
 
     [Fact]
     public void PageContinuationRetainsRepeatedSpaceAdvances() {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.PageHeight = 82D;
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
             p.Text(string.Join(" ", Enumerable.Repeat("ALPHA   BETA", 12)))).ToBytes());
@@ -148,7 +148,7 @@ public sealed class PdfWhitespaceFlowTests {
         Assert.InRange(Math.Abs(bareBaseline - beta.StartBaseLine.Y - (overflow ? 14.4D : 0D)), 0, .02D);
     }
 
-    private static PdfOptions Options(PdfTextWhitespaceMode mode) => new PdfOptions {
+    private static PdfCreateOptions Options(PdfTextWhitespaceMode mode) => new PdfCreateOptions {
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D,
         PageWidth = 136D, PageHeight = 240D,
         MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
@@ -160,7 +160,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SplitCellRetainsTheFontsAndAdvancesOfEachSourceSpace(bool columns) {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.PageHeight = 82D;
         if (columns) options.PageWidth = 284D;
         var runs = Enumerable.Range(0, 12).SelectMany(_ => new[] {
@@ -183,7 +183,7 @@ public sealed class PdfWhitespaceFlowTests {
 
     [Fact]
     public void AFontOnAnEmptySpaceFragmentDoesNotMoveTheVisibleTextBaseline() {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.DefaultParagraphStyle = new PdfParagraphStyle();
         using var plain = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Text("ALPHA BETA")).ToBytes());
         using var mixed = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
@@ -200,7 +200,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SplitLiteralCellRetainsOnlyTheAdvanceOfEachPartialSpacer(bool columns) {
-        PdfOptions options = Options(PdfTextWhitespaceMode.Preformatted);
+        PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preformatted);
         options.PageHeight = 82D;
         if (columns) options.PageWidth = 376D;
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Repeat("ALPHA" + new string(' ', 60) + "BETA", columns ? 1 : 3))) };
@@ -269,7 +269,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(PdfTextWhitespaceMode.Preformatted, false, true)]
     [InlineData(PdfTextWhitespaceMode.Preformatted, true, true)]
     public void ATabFollowedBySpaceRetainsItsStopAndLeader(PdfTextWhitespaceMode mode, bool explicitStop, bool inline) {
-        PdfOptions options = Options(mode);
+        PdfCreateOptions options = Options(mode);
         PdfParagraphStyle style = options.DefaultParagraphStyle!;
         if (explicitStop) style.AddTabStop(60D, leader: PdfTabLeaderStyle.Dots);
         byte[] Render(bool space) {
@@ -296,7 +296,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(PdfTextWhitespaceMode.Preserve)]
     [InlineData(PdfTextWhitespaceMode.Preformatted)]
     public void TabThenSpaceSurvivesChangedWidthColumnContinuation(PdfTextWhitespaceMode mode) {
-        PdfOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
+        PdfCreateOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
         byte[] Render(bool space) => RenderCell(options, new[] {
             PdfTextRun.Normal(string.Join("\n", Enumerable.Repeat("A\t" + (space ? " " : "") + "B", 12)))
         }, true);
@@ -324,7 +324,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(PdfTextWhitespaceMode.Preformatted, PdfTabAlignment.Center, true, 1.668D)]
     public void BufferedTabUsesTheFollowingSpaceAndContentForAlignment(
         PdfTextWhitespaceMode mode, PdfTabAlignment align, bool inline, double delta) {
-        PdfOptions options = Options(mode);
+        PdfCreateOptions options = Options(mode);
         PdfParagraphStyle style = options.DefaultParagraphStyle!; style.AddTabStop(60D, align);
         byte[] Render(bool space) {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
@@ -349,7 +349,7 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(PdfTextWhitespaceMode.Preformatted, -6.672D)]
     [InlineData(PdfTextWhitespaceMode.Preformatted, -5D)]
     public void MixedSignedSpacesSurviveChangedWidthColumnContinuation(PdfTextWhitespaceMode mode, double tracking) {
-        PdfOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
+        PdfCreateOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
         var runs = Enumerable.Range(0, 12).SelectMany(_ => new[] {
             PdfTextRun.Normal("A "), PdfTextRun.Normal(" ").WithCharacterSpacing(tracking), PdfTextRun.Normal("B\n")
         }).ToArray();
@@ -364,7 +364,7 @@ public sealed class PdfWhitespaceFlowTests {
         }
     }
 
-    private static byte[] RenderCell(PdfOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
+    private static byte[] RenderCell(PdfCreateOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
         var cells = new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: 12D, lineSpacing: PdfLineSpacing.Exactly(14.4D), widowControl: false) }) } };
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,

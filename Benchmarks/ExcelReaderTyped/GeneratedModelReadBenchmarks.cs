@@ -64,7 +64,7 @@ public class GeneratedModelReadBenchmarks {
     }
 
     private ExcelWorkbookDataReader OpenReader() =>
-        ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+        ExcelDocument.OpenReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
 
     private void ValidateClass(Action<RowMapper<TypedRecord>>? configure) {
         using var reader = OpenReader();

@@ -4,10 +4,10 @@ internal sealed class PageBlock : IPdfBlock {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private readonly System.Collections.ObjectModel.ReadOnlyCollection<IPdfBlock> _blocksView;
 
-    public PdfOptions Options { get; }
+    public PdfCreateOptions Options { get; }
     public System.Collections.Generic.IReadOnlyList<IPdfBlock> Blocks => _blocksView;
 
-    public PageBlock(PdfOptions options) {
+    public PageBlock(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         Options = options;
         _blocksView = new System.Collections.ObjectModel.ReadOnlyCollection<IPdfBlock>(_blocks);

@@ -55,7 +55,7 @@ internal static class NativeNumbersBorderSmoke {
         Console.WriteLine("PASS | native Numbers table borders | 64 independently decoded edges, hidden edge, later edit, saved/native indexed-palette XLSX and explicit native padding loss");
     }
 
-    private static ExcelBorderSideSnapshot? Side(ExcelCellBorderSnapshot border, string name) => name switch {
+    private static ExcelBorderSideInfo? Side(ExcelCellBorderInfo border, string name) => name switch {
         "left" => border.Left, "right" => border.Right, "top" => border.Top, "bottom" => border.Bottom, _ => null
     };
 

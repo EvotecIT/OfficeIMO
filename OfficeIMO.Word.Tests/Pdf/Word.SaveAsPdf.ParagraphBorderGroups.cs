@@ -37,9 +37,9 @@ public partial class Word {
             paragraph.IndentationBeforePoints = 0;
             paragraph.IndentationHangingPoints = 0;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         double baseline = Assert.Single(page.GetWords(), word => word.Text == "Ordinary").Letters[0].StartBaseLine.Y;
         var horizontal = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -68,10 +68,10 @@ public partial class Word {
             ConfigureMatchingParagraphBorders(paragraph, shape);
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PageSize(360, 300), Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
         double[] y = new[] { "Before", "First", "Second", "Third", "After" }
@@ -97,9 +97,9 @@ public partial class Word {
                 Val = W.BorderValues.Single, Color = "000000", Space = space, Size = size
             };
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double[] y = new[] { "First", "Second", "Third" }
             .Select(text => Assert.Single(words, word => word.Text == text).Letters[0].StartBaseLine.Y).ToArray();
@@ -127,9 +127,9 @@ public partial class Word {
             }
             paragraphs[1]._paragraph.ParagraphProperties!.ParagraphBorders!.BetweenBorder!.Space = middleSpace;
             using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
                 IncludePageNumbers = false, FontFamily = "Helvetica"
-            }));
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var page = pdf.GetPage(1);
             double baseline = Assert.Single(page.GetWords(), word => word.Text == "First").Letters[0].StartBaseLine.Y;
             double[] strokes = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -166,9 +166,9 @@ public partial class Word {
             paragraphs[0]._paragraph.ParagraphProperties!.ParagraphBorders!.BetweenBorder!.Remove();
             paragraphs[2]._paragraph.ParagraphProperties!.ParagraphBorders!.BetweenBorder!.Remove();
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double[] y = new[] { "First", "Second", "Third" }
             .Select(text => Assert.Single(words, word => word.Text == text).Letters[0].StartBaseLine.Y).ToArray();
@@ -200,10 +200,10 @@ public partial class Word {
                 new W.BetweenBorder { Val = W.BorderValues.Single, Size = 8, Space = 3, Color = "000000" };
         }
         ConfigureAsymmetricBorderParagraph(document.AddParagraph("After"));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 300), Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(4, pdf.NumberOfPages);
         foreach (var item in new[] { ("First", 1), ("Second", 2), ("Third", 3) }) {
             for (int line = 1; line <= 13; line++) {
@@ -250,9 +250,9 @@ public partial class Word {
                 }
                 break;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double[] y = new[] { "First", "Second", "Third" }
             .Select(text => Assert.Single(words, word => word.Text == text).Letters[0].StartBaseLine.Y).ToArray();

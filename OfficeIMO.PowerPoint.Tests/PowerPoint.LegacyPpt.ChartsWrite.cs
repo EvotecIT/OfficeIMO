@@ -27,8 +27,7 @@ namespace OfficeIMO.Tests {
                     OfficeChartKind.ColumnClustered, data, 30D, 20D, 240D, 150D);
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -70,13 +69,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 LegacyPptWriteFinding finding = Assert.Single(
                     preflight.Findings, candidate =>
-                        candidate.Code == "PPT-WRITE-CHART-CONVERTED");
+                        candidate.Code == "ppt-write-chart-converted");
                 Assert.Equal(LegacyPptFeature.Charts, finding.Feature);
-                Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                    PowerPointFileFormat.Ppt));
+                Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -106,7 +103,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(image.ImageBytes, projectedPicture.GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
     }
 }

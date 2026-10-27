@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             ExcelCommentInfo legacy = Assert.Single(sheet.GetComments());
             Assert.Equal("E1", legacy.CellReference);
             Assert.Equal("Keep legacy", legacy.Text);
-            ExcelThreadedCommentSnapshot threaded = Assert.Single(sheet.GetThreadedComments());
+            ExcelThreadedCommentInfo threaded = Assert.Single(sheet.GetThreadedComments());
             Assert.Equal("F1", threaded.CellReference);
             Assert.Equal("Keep threaded", threaded.Text);
             Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
@@ -104,13 +104,13 @@ namespace OfficeIMO.Tests {
                 toRow: 7,
                 toRowOffset: "0",
                 Xdr.EditAsValues.Absolute);
-            absolute.FromMarker!.ColumnId!.Text = (A1.MaxColumns - 1).ToString();
-            absolute.ToMarker!.ColumnId!.Text = (A1.MaxColumns - 1).ToString();
+            absolute.FromMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
+            absolute.ToMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
 
             absoluteSheet.InsertColumns(1);
 
-            Assert.Equal((A1.MaxColumns - 1).ToString(), absolute.FromMarker.ColumnId.Text);
-            Assert.Equal((A1.MaxColumns - 1).ToString(), absolute.ToMarker.ColumnId!.Text);
+            Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.FromMarker.ColumnId.Text);
+            Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.ToMarker.ColumnId!.Text);
 
             ExcelSheet columnMoveOnlySheet = CreateDrawingSheet(document);
             Xdr.TwoCellAnchor columnMoveOnly = ReplaceWithTwoCellAnchor(

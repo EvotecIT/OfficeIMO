@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>A plain-text license name, optionally tagged with an ONIX list 74 language.</summary>

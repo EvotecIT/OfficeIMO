@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                     sourceErrors.Select(error => error.Description + " | "
                         + error.Path)) + Environment.NewLine
                     + slide.SlidePart.Slide!.OuterXml);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                         AfterEffect = PowerPointClassicAnimationAfterEffect.HideImmediately
                     });
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.Slides[0].RemoveClassicAnimation(
                     imported.Slides[0].Shapes[0]));
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             Assert.Null(LegacyPptPresentation.Load(removedBytes)
                 .Slides[0].Shapes[0].Animation);
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1200000, 500000);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
                 slide.AddClassicAnimation(slide.Shapes[0],
                     PowerPointClassicAnimationEffect.Fade);
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             Assert.Equal(LegacyPptAnimationEffect.Fade,
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
                     "Animation Chime", stopExistingSounds: true);
                 Assert.Equal(wave, slide.GetClassicAnimationSoundBytes(shape));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
                 Assert.Empty(source.ValidateDocument());
-                ppt = source.ToBytes(PowerPointFileFormat.Ppt);
+                ppt = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptAnimation[] animations = LegacyPptPresentation.Load(ppt)
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, classic.Count);
                 Assert.Empty(features.FindFeatures("Animations and timing"));
                 Assert.Empty(source.ValidateDocument());
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptAnimation animationAtom = Assert.IsType<LegacyPptAnimation>(
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-TIMING"
+                finding.Code == "ppt-write-timing"
                 && finding.Feature == LegacyPptFeature.Animations);
         }
 
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(inferred.Automatic);
                 Assert.Equal(325, inferred.DelayMilliseconds);
                 Assert.True(automatic.AnalyzeLegacyPptWrite().CanWrite);
-                automaticBytes = automatic.ToBytes(PowerPointFileFormat.Ppt);
+                automaticBytes = automatic.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptAnimation atom = Assert.IsType<LegacyPptAnimation>(
                 LegacyPptPresentation.Load(automaticBytes).Slides[0]
@@ -520,7 +520,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(concurrentSlide.ClassicAnimations);
             Assert.Contains(concurrent.AnalyzeLegacyPptWrite().Findings,
-                finding => finding.Code == "PPT-WRITE-TIMING");
+                finding => finding.Code == "ppt-write-timing");
         }
 
         private static byte[] CreateBinaryAnimationPresentation() {
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
                     Direction = 2,
                     Reverse = true
                 });
-            return source.ToBytes(PowerPointFileFormat.Ppt);
+            return source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         private static byte[] CreateWavePayload() => new byte[] {

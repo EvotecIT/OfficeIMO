@@ -137,11 +137,11 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
-        /// Sets the text color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         /// <param name="color">The color to apply.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetColor(OfficeIMO.Drawing.OfficeColor color) {
+        public WordParagraph SetColor(OfficeIMO.OfficeColor color) {
             this.Color = color;
             return this;
         }

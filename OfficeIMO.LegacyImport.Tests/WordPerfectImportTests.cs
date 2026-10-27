@@ -99,7 +99,7 @@ public sealed class WordPerfectImportTests {
         using var result = Import(source);
         Assert.Equal("Visible", result.PlainText);
         Assert.Null(Assert.Single(result.Content.Paragraphs[0].Runs).FontSizePoints);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_FONT_SIZE");
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-font-size");
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
     }
 
@@ -179,7 +179,7 @@ public sealed class WordPerfectImportTests {
         Assert.InRange(image.HeightPoints, 474, 475);
         Assert.Single(result.Value.Images);
         Assert.Equal("BeforeAfter", result.PlainText);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_GRAPHIC_LAYOUT");
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-graphic-layout");
         using var docx = new MemoryStream(); result.Value.Save(docx); docx.Position = 0;
         using WordDocument loaded = WordDocument.Load(docx); Assert.Single(loaded.Images);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
@@ -202,7 +202,7 @@ public sealed class WordPerfectImportTests {
         byte[] unsupported = (byte[])wpg.Clone(); unsupported[10] = 2;
         using LegacyWordImportResult result = Import(GraphicDocument(unsupported));
         Assert.Empty(result.Value.Images);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_GRAPHIC_PROFILE");
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-graphic-profile");
         Assert.Equal(OfficeLegacyInertContentKind.None, result.Report.InertContent);
     }
 
@@ -210,7 +210,7 @@ public sealed class WordPerfectImportTests {
     public void PdfKeepsAnInlineGraphicBetweenItsSurroundingText() {
         using LegacyWordImportResult result = Import(GraphicDocument(File.ReadAllBytes(
             Path.Combine(AppContext.BaseDirectory, "Fixtures", "WordPerfect", "WPG1.wpg"))));
-        var page = Assert.Single(PdfDocument.Load(result.Value.ToPdfBytes()).Read().Pages);
+        var page = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream((result.Value.ToPdf()).ToBytes())).Read().Pages);
         var before = Assert.Single(page.TextBlocks.SelectMany(block => block.Spans), span => span.Text == "Before");
         var after = Assert.Single(page.TextBlocks.SelectMany(block => block.Spans), span => span.Text == "After");
         var image = Assert.Single(page.Images).PrimaryPlacement!;

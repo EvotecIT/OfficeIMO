@@ -38,7 +38,7 @@ public sealed class PowerPointConnectorDiagramExportTests {
         using var presentation = CreateDiagram();
         PowerPointSlide slide = presentation.Slides[0];
 
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         byte[] pdf = result.ToBytes();
 
         Assert.DoesNotContain(result.Warnings, _ => _.Code is "unsupported-shape" or "invalid-shape-bounds" or "unsupported-connector");
@@ -48,7 +48,7 @@ public sealed class PowerPointConnectorDiagramExportTests {
         Assert.DoesNotContain("Click to edit", text, StringComparison.Ordinal);
 
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(read.Pages[0].ToDrawing(), 1D, OfficeColor.White);
-        PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions());
+        PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions());
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(snapshot.Drawing, 1D, OfficeColor.White);
         foreach ((string name, double x, double y, bool painted) in samples) {
             OfficeColor pdfPixel = rendered.GetPixel((int)x, (int)y);

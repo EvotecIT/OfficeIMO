@@ -18,7 +18,7 @@ public partial class Word {
         Assert.True(document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
         foreach (bool enabled in new[] { false, true, false }) {
             document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop = enabled;
-            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
             Assert.Equal(enabled, restored.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
             Assert.Equal(enabled, Assert.Single(compatibility.Elements<DoNotUseIndentAsNumberingTabStop>()).Val!.Value);
             Assert.True(restored.CompatibilitySettings.SplitPageBreakAndParagraphMark);
@@ -32,8 +32,8 @@ public partial class Word {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Word", "LegacyLists", "WordListNumberTabs.doc");
         using WordDocument source = WordDocument.Load(path);
         Assert.True(source.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Docx)));
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.True(docx.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
         Assert.True(native.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
         Assert.Equal(WordCompatibilityMode.Word2003, docx.CompatibilitySettings.CompatibilityMode);
@@ -48,9 +48,9 @@ public partial class Word {
         document.AddParagraph("Retained content");
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop = false;
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("DoNotUseIndentAsNumberingTabStop=false", error.Message);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         Assert.False(docx.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop);
         Assert.Equal("Retained content", Assert.Single(docx.Paragraphs).Text);
     }

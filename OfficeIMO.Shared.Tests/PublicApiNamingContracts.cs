@@ -126,7 +126,7 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain("CellEdit", exportedTypeNames);
         Assert.DoesNotContain(documentMethods, static method => method.Name == "Read");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "Rows");
-        Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
+        Assert.Contains(documentMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
         Assert.Contains(sheetMethods, static method =>
@@ -275,7 +275,6 @@ public sealed class PublicApiNamingContracts {
         });
 
         Type[] parseResults = {
-            typeof(OfficeIMO.Markdown.MarkdownParseResult),
             typeof(OfficeIMO.Rtf.RtfReadResult)
         };
         Assert.All(parseResults, static resultType =>
@@ -414,7 +413,7 @@ public sealed class PublicApiNamingContracts {
 
         Assert.Equal(4, canonicalTypes.Select(static type => type.Name).Distinct(StringComparer.Ordinal).Count());
         Assert.DoesNotContain(typeof(WordDocument).Assembly.GetExportedTypes(), static type => type.Name == "ParagraphBuilder");
-        Assert.DoesNotContain(typeof(OfficeIMO.Markdown.MarkdownDoc).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.Markdown.MarkdownDocument).Assembly.GetExportedTypes(),
             static type => type.Name is "ParagraphBuilder" or "TextRun");
         Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), static type => type.Name == "TextRun");
     }
@@ -491,35 +490,6 @@ public sealed class PublicApiNamingContracts {
             methods.Where(method => method.Name == name),
             method => Assert.Equal(typeof(ExcelPackagePartInfo), method.ReturnType)));
         Assert.All(methodNames, name => Assert.Contains(methods, method => method.Name == name));
-    }
-
-    [Fact]
-    public void OfficeImageApisUseCanonicalVerbAndCardinalityVocabulary() {
-        Assembly[] assemblies = {
-            typeof(WordDocument).Assembly,
-            typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
-        };
-        MethodInfo[] methods = assemblies
-            .SelectMany(static assembly => assembly.GetExportedTypes())
-            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
-            .ToArray();
-
-        Assert.DoesNotContain(methods, static method =>
-            method.Name is "SaveImage" or "SaveAsImage");
-
-        Assert.NotNull(typeof(WordDocument).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.NotNull(typeof(WordDocument).GetMethods().SingleOrDefault(static method =>
-            method.Name == "ExportImage" && method.GetParameters().Length > 0));
-        Assert.Contains(typeof(WordDocument).GetMethods(), static method => method.Name == "SaveAsImages");
-
-        Assert.NotNull(typeof(ExcelSheet).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.Contains(typeof(ExcelSheet).GetMethods(), static method => method.Name == "ExportImage");
-        Assert.Contains(typeof(ExcelDocument).GetMethods(), static method => method.Name == "SaveAsImages");
-
-        Assert.NotNull(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethods(), static method => method.Name == "ExportImage");
-        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).GetMethods(), static method => method.Name == "SaveAsImages");
     }
 
     [Fact]

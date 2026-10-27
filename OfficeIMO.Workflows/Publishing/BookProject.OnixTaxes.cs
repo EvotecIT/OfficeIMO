@@ -5,7 +5,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixTaxes(BookOnixPrice price) {
-        ArgumentNullException.ThrowIfNull(price.Taxes);
+        if (price.Taxes == null) throw new ArgumentNullException("price.Taxes");
         if (price.Taxes.Count > 16 || price.TaxExempt && price.Taxes.Count != 0)
             throw new ArgumentException("Supply at most 16 tax components, or TaxExempt, not both.", nameof(price));
         XNamespace ns = OnixNamespace;
@@ -16,7 +16,7 @@ public sealed partial class BookProject {
         var result = new List<XElement>();
         decimal remaining = price.Amount;
         foreach (BookOnixTax tax in price.Taxes) {
-            ArgumentNullException.ThrowIfNull(tax);
+            if (tax == null) throw new ArgumentNullException(nameof(tax));
             string type = tax.Type switch {
                 BookOnixTaxType.ValueAdded => "01", BookOnixTaxType.Sales => "02", BookOnixTaxType.Environmental => "03",
                 _ => throw new ArgumentOutOfRangeException(nameof(tax.Type))

@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +7,7 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static string? ResolveDefaultFontFamily(MarkdownToWordOptions options) {
+        private static string? ResolveDefaultFontFamily(WordMarkdownImportOptions options) {
             if (options == null) {
                 return null;
             }
@@ -17,7 +15,7 @@ namespace OfficeIMO.Word.Markdown {
             return WordFontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
         }
 
-        private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.ColumnAlignment alignment) {
+        private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment) {
             if (quoteDepth > 0) {
                 paragraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
             }
@@ -25,10 +23,10 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
-        private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownToWordOptions options) =>
+        private static Omd.MarkdownVisualTheme? ResolveTheme(WordMarkdownImportOptions options) =>
             Omd.MarkdownVisualTheme.ResolveOrDefault(options.ThemeSnapshot, options.ApplyDefaultTheme);
 
-        private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+        private static void ApplyHeadingTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -44,7 +42,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyCodeTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+        private static void ApplyCodeTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -63,7 +61,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyBodyTextTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+        private static void ApplyBodyTextTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -75,7 +73,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyCalloutTitleTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+        private static void ApplyCalloutTitleTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -95,7 +93,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyTableTheme(WordTable table, MarkdownToWordOptions options, bool hasHeaderRow) {
+        private static void ApplyTableTheme(WordTable table, WordMarkdownImportOptions options, bool hasHeaderRow) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -181,11 +179,11 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyAlignment(Omd.ColumnAlignment align, WordParagraph para) {
+        private static void ApplyAlignment(Omd.MarkdownColumnAlignment align, WordParagraph para) {
             switch (align) {
-                case Omd.ColumnAlignment.Left: para.ParagraphAlignment = WordParagraphAlignment.Left; break;
-                case Omd.ColumnAlignment.Center: para.ParagraphAlignment = WordParagraphAlignment.Center; break;
-                case Omd.ColumnAlignment.Right: para.ParagraphAlignment = WordParagraphAlignment.Right; break;
+                case Omd.MarkdownColumnAlignment.Left: para.ParagraphAlignment = WordParagraphAlignment.Left; break;
+                case Omd.MarkdownColumnAlignment.Center: para.ParagraphAlignment = WordParagraphAlignment.Center; break;
+                case Omd.MarkdownColumnAlignment.Right: para.ParagraphAlignment = WordParagraphAlignment.Right; break;
             }
         }
     }

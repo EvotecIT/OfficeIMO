@@ -99,5 +99,5 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
     }
 
     private static bool IsRejectedImageDiagnostic(HtmlDiagnostic diagnostic) =>
-        diagnostic.Code == "ImageResourceRejectedByPolicy";
+        diagnostic.Code == "image-resource-rejected-by-policy";
 }

@@ -88,7 +88,7 @@ public sealed class WatermarkPreviewTests {
                     var preview = model.Prepared!;
                     Assert.Equal(new[] { 2 }, preview.Pages);
                     Assert.NotEmpty(preview.PageImage);
-                    var candidate = PdfDocument.Load(preview.DocumentBytes);
+                    var candidate = PdfDocument.Load(new System.IO.MemoryStream(preview.DocumentBytes));
                     var displayOptions = new PdfPageDisplayOptions {
                         Scale = Math.Min(1.5D, 1000D / Math.Max(preview.PageWidth, preview.PageHeight)),
                         MaximumOutputBytes = 8 * 1024 * 1024
@@ -106,7 +106,7 @@ public sealed class WatermarkPreviewTests {
                     }
                     await workspace.ApplyWatermarkAsync(preview, CancellationToken.None);
                     Assert.Equal(preview.DocumentBytes, workspace.CopyBytes());
-                    Assert.Equal(new[] { 2 }, Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Stamp.ReadWatermarks()).TargetPages!.Resolve(2));
+                    Assert.Equal(new[] { 2 }, Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Stamp.ReadWatermarks()).TargetPages!.Resolve(2));
                 } finally { dialog.Close(); }
             }, source);
             return true;
@@ -134,12 +134,12 @@ public sealed class WatermarkPreviewTests {
                 Assert.Equal(20, model.Rotation);
                 await model.PreviewCommand.ExecuteAsync(null);
                 Assert.True(model.CanApply, model.ErrorMessage);
-                Assert.Equal(settings.Id, Assert.Single(PdfDocument.Load(model.Prepared!.DocumentBytes).Stamp.ReadWatermarks()).Id);
+                Assert.Equal(settings.Id, Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(model.Prepared!.DocumentBytes)).Stamp.ReadWatermarks()).Id);
                 model.Text = "REVISED MARK";
                 await model.PreviewCommand.ExecuteAsync(null);
                 Assert.True(model.CanApply, model.ErrorMessage);
                 await workspace.ApplyWatermarkAsync(model.Prepared!, CancellationToken.None);
-                var result = PdfDocument.Load(workspace.CopyBytes());
+                var result = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes()));
                 string text = System.Text.RegularExpressions.Regex.Replace(result.Read().Text, @"\s+", " ");
                 Assert.DoesNotContain("ORIGINAL MARK", text);
                 Assert.Contains("REVISED MARK", text);
@@ -171,7 +171,7 @@ public sealed class WatermarkPreviewTests {
                     dialog.UpdateLayout();
                     var surface = dialog.FindControl<Grid>("PreviewSurface")!;
                     var preview = model.Prepared!;
-                    var layout = PdfDocument.Load(workspace.CopyBytes()).GetPageLayouts()[0];
+                    var layout = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).GetPageLayouts()[0];
                     Assert.Equal(layout.VisualWidth, preview.PageWidth);
                     Assert.Equal(layout.VisualHeight, preview.PageHeight);
                     double scale = Math.Min(surface.Bounds.Width / preview.PageWidth, surface.Bounds.Height / preview.PageHeight);
@@ -259,7 +259,7 @@ public sealed class WatermarkPreviewTests {
             await workspace.ApplyWatermarkAsync(preview, CancellationToken.None);
             Assert.Equal(preview.DocumentBytes, workspace.CopyBytes());
             Assert.True(workspace.IsDirty);
-            Assert.Contains("REVIEWED", PdfDocument.Load(workspace.CopyBytes()).Read().Text);
+            Assert.Contains("REVIEWED", PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text);
             await workspace.UndoAsync(CancellationToken.None);
             Assert.Equal(original, workspace.CopyBytes());
             Assert.False(workspace.IsDirty);

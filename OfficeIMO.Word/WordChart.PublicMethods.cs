@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
         /// <summary>Reads persisted inline or anchored package geometry for this chart.</summary>
         /// <param name="snapshot">The package-geometry snapshot when the chart has a supported drawing frame.</param>
         /// <returns><see langword="true"/> when persisted layout evidence was available.</returns>
-        public bool TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot snapshot) =>
+        public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo snapshot) =>
             WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Line color.</param>
-        public void AddChartLine<T>(string name, int[] values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddChartLine<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine();
             var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
             if (lineChart != null) {
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word {
         /// <param name="name"></param>
         /// <param name="values"></param>
         /// <param name="color"></param>
-        public void AddLine<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddLine<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine();
             var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
             if (lineChart != null) {
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         /// sure to call <see cref="AddChartAxisX"/> first so the categories are
         /// shared across both chart types.
         /// </summary>
-        public void AddBar(string name, int values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddBar(string name, int values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
@@ -152,7 +152,7 @@ namespace OfficeIMO.Word {
         /// with line series the categories must be set via
         /// <see cref="AddChartAxisX"/> before calling this method.
         /// </summary>
-        public void AddBar<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddBar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
         /// Adds a bar series from an array of values. For combo charts ensure
         /// <see cref="AddChartAxisX"/> has been called first.
         /// </summary>
-        public void AddBar(string name, int[] values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddBar(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
@@ -181,7 +181,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Fill color for the series.</param>
-        public void AddArea<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddArea<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea();
             if (_chart != null) {
                 var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
@@ -199,7 +199,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Data values.</param>
         /// <param name="color">Fill color for the series.</param>
-        public void AddArea<T>(string name, int[] values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddArea<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea();
             if (_chart != null) {
                 var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
@@ -217,7 +217,7 @@ namespace OfficeIMO.Word {
         /// <param name="xValues">Values plotted on the X axis.</param>
         /// <param name="yValues">Values plotted on the Y axis.</param>
         /// <param name="color">Color of the series.</param>
-        public void AddScatter(string name, List<double> xValues, List<double> yValues, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddScatter(string name, List<double> xValues, List<double> yValues, OfficeIMO.OfficeColor color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
                 var scatterChart = _chart.PlotArea?.GetFirstChild<ScatterChart>();
@@ -235,7 +235,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Color of the series.</param>
-        public void AddRadar<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddRadar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsRadar();
             var radarChart = _chart?.PlotArea?.GetFirstChild<RadarChart>();
             if (radarChart != null) {
@@ -250,7 +250,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Series data values.</param>
         /// <param name="color">Color of the bars.</param>
-        public void AddBar3D<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddBar3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar3D();
             var chart3d = _chart?.PlotArea?.GetFirstChild<Bar3DChart>();
             if (chart3d != null) {
@@ -289,7 +289,7 @@ namespace OfficeIMO.Word {
         /// of element ordering and may indicate that Line3DChart does not actually support data
         /// series in the current OpenXML specification.
         /// </remarks>
-        public void AddLine3D<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddLine3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine3D();
             var line3d = _chart?.PlotArea?.GetFirstChild<Line3DChart>();
             if (line3d != null) {
@@ -306,7 +306,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Series data values.</param>
         /// <param name="color">Series color.</param>
-        public void AddArea3D<T>(string name, List<T> values, OfficeIMO.Drawing.OfficeColor color) {
+        public void AddArea3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea3D();
             var area3d = _chart?.PlotArea?.GetFirstChild<Area3DChart>();
             if (area3d != null) {
@@ -368,7 +368,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontSize">Font size in points.</param>
         /// <param name="color">Text color.</param>
         /// <returns>The current <see cref="WordChart"/> instance.</returns>
-        public WordChart SetAxisTitleFormat(string fontName, int fontSize, OfficeIMO.Drawing.OfficeColor color) {
+        public WordChart SetAxisTitleFormat(string fontName, int fontSize, OfficeIMO.OfficeColor color) {
             _axisTitleFontName = fontName;
             _axisTitleFontSize = fontSize;
             _axisTitleColor = color;
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the color of a specific pie slice by zero-based index.
         /// </summary>
-        public WordChart SetPieSliceColor(uint index, OfficeIMO.Drawing.OfficeColor color) {
+        public WordChart SetPieSliceColor(uint index, OfficeIMO.OfficeColor color) {
             var series = InitializePieChartSeries();
             if (series == null) return this;
             var before = series.GetFirstChild<CategoryAxisData>();
@@ -409,7 +409,7 @@ namespace OfficeIMO.Word {
         /// Sets the base fill of a filled cartesian, filled radar, bubble or 3-D line series, or the connecting
         /// stroke of a 2-D line, scatter or unfilled radar series. Explicit point and marker overrides are retained.
         /// </summary>
-        public WordChart SetSeriesColor(uint index, OfficeIMO.Drawing.OfficeColor color) {
+        public WordChart SetSeriesColor(uint index, OfficeIMO.OfficeColor color) {
             if (_chart == null) return this;
             var plot = _chart.PlotArea; if (plot == null) return this;
 
@@ -433,7 +433,7 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        private static void ApplyNativeSeriesColor(OpenXmlCompositeElement series, OfficeIMO.Drawing.OfficeColor color) {
+        private static void ApplyNativeSeriesColor(OpenXmlCompositeElement series, OfficeIMO.OfficeColor color) {
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             var properties = series.GetFirstChild<ChartShapeProperties>();
             if (properties == null) { properties = new ChartShapeProperties(); series.AddChild(properties, true); }
@@ -448,69 +448,69 @@ namespace OfficeIMO.Word {
         /// Applies a built-in palette across the chart. Optionally honors semantic outcome
         /// names (Passed/Failed/Skipped/Error). Use applyToPies/applyToSeries to target types.
         /// </summary>
-        public WordChart ApplyPalette(WordChartPalette palette, bool semanticOutcomes = true, bool applyToPies = true, bool applyToSeries = true, Dictionary<string, OfficeIMO.Drawing.OfficeColor>? overrides = null) {
+        public WordChart ApplyPalette(WordChartPalette palette, bool semanticOutcomes = true, bool applyToPies = true, bool applyToSeries = true, Dictionary<string, OfficeIMO.OfficeColor>? overrides = null) {
             var pal = GetPaletteColors(palette);
             if (applyToPies) ApplyPaletteToPie(pal, semanticOutcomes, overrides);
             if (applyToSeries) ApplyPaletteToSeries(pal, semanticOutcomes, overrides);
             return this;
         }
 
-        private OfficeIMO.Drawing.OfficeColor[] GetPaletteColors(WordChartPalette palette) {
+        private OfficeIMO.OfficeColor[] GetPaletteColors(WordChartPalette palette) {
             switch (palette) {
                 case WordChartPalette.ColorBlindSafe:
                     return new[] {
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#0072B2"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#E69F00"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#009E73"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#D55E00"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#CC79A7"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#F0E442"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#56B4E9"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#000000"),
+                        OfficeIMO.OfficeColor.ParseHex("#0072B2"),
+                        OfficeIMO.OfficeColor.ParseHex("#E69F00"),
+                        OfficeIMO.OfficeColor.ParseHex("#009E73"),
+                        OfficeIMO.OfficeColor.ParseHex("#D55E00"),
+                        OfficeIMO.OfficeColor.ParseHex("#CC79A7"),
+                        OfficeIMO.OfficeColor.ParseHex("#F0E442"),
+                        OfficeIMO.OfficeColor.ParseHex("#56B4E9"),
+                        OfficeIMO.OfficeColor.ParseHex("#000000"),
                     };
                 case WordChartPalette.MonochromeGray:
                     return new[] {
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#212529"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#495057"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#868e96"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#adb5bd"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#ced4da"),
+                        OfficeIMO.OfficeColor.ParseHex("#212529"),
+                        OfficeIMO.OfficeColor.ParseHex("#495057"),
+                        OfficeIMO.OfficeColor.ParseHex("#868e96"),
+                        OfficeIMO.OfficeColor.ParseHex("#adb5bd"),
+                        OfficeIMO.OfficeColor.ParseHex("#ced4da"),
                     };
                 case WordChartPalette.Soft:
                     return new[] {
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#74c0fc"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#8ce99a"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#ffd8a8"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#e599f7"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#63e6be"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#ffa94d"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#dee2e6"),
+                        OfficeIMO.OfficeColor.ParseHex("#74c0fc"),
+                        OfficeIMO.OfficeColor.ParseHex("#8ce99a"),
+                        OfficeIMO.OfficeColor.ParseHex("#ffd8a8"),
+                        OfficeIMO.OfficeColor.ParseHex("#e599f7"),
+                        OfficeIMO.OfficeColor.ParseHex("#63e6be"),
+                        OfficeIMO.OfficeColor.ParseHex("#ffa94d"),
+                        OfficeIMO.OfficeColor.ParseHex("#dee2e6"),
                     };
                 case WordChartPalette.Professional:
                 default:
                     return new[] {
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#206bc4"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#2fb344"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#f76707"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#ae3ec9"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#12b886"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#e8590c"),
-                        OfficeIMO.Drawing.OfficeColor.ParseHex("#868e96"),
+                        OfficeIMO.OfficeColor.ParseHex("#206bc4"),
+                        OfficeIMO.OfficeColor.ParseHex("#2fb344"),
+                        OfficeIMO.OfficeColor.ParseHex("#f76707"),
+                        OfficeIMO.OfficeColor.ParseHex("#ae3ec9"),
+                        OfficeIMO.OfficeColor.ParseHex("#12b886"),
+                        OfficeIMO.OfficeColor.ParseHex("#e8590c"),
+                        OfficeIMO.OfficeColor.ParseHex("#868e96"),
                     };
             }
         }
 
-        private WordChart ApplyPaletteToPie(OfficeIMO.Drawing.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.Drawing.OfficeColor>? overrides) {
+        private WordChart ApplyPaletteToPie(OfficeIMO.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
             EnsureChartExistsPie();
             var series = InitializePieChartSeries();
             var catAxis = series?.GetFirstChild<CategoryAxisData>()?.GetFirstChild<StringLiteral>();
             if (series == null || catAxis == null) return this;
 
-            var map = new Dictionary<string, OfficeIMO.Drawing.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Passed"]  = OfficeIMO.Drawing.OfficeColor.ParseHex("#2fb344"),
-                ["Failed"]  = OfficeIMO.Drawing.OfficeColor.ParseHex("#f76707"),
-                ["Error"]   = OfficeIMO.Drawing.OfficeColor.ParseHex("#d63939"),
-                ["Skipped"] = OfficeIMO.Drawing.OfficeColor.ParseHex("#868e96"),
+            var map = new Dictionary<string, OfficeIMO.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
+                ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
+                ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
+                ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
+                ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
             };
             if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
 
@@ -526,14 +526,14 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        private WordChart ApplyPaletteToSeries(OfficeIMO.Drawing.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.Drawing.OfficeColor>? overrides) {
+        private WordChart ApplyPaletteToSeries(OfficeIMO.OfficeColor[] palette, bool semanticOutcomes, Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
             if (_chart == null) return this;
             var plot = _chart.PlotArea; if (plot == null) return this;
-            var map = new Dictionary<string, OfficeIMO.Drawing.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Passed"]  = OfficeIMO.Drawing.OfficeColor.ParseHex("#2fb344"),
-                ["Failed"]  = OfficeIMO.Drawing.OfficeColor.ParseHex("#f76707"),
-                ["Error"]   = OfficeIMO.Drawing.OfficeColor.ParseHex("#d63939"),
-                ["Skipped"] = OfficeIMO.Drawing.OfficeColor.ParseHex("#868e96"),
+            var map = new Dictionary<string, OfficeIMO.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
+                ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
+                ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
+                ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
+                ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
             };
             if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
 

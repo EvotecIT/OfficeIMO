@@ -50,7 +50,7 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "<img alt='Nested marker' src='" + image
             + "' style='position:absolute;left:28px;top:18px;width:24px;height:18px'></div>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
         HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         string rtf = rtfResult.Value.ToRtf();

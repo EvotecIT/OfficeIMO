@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Root PDF lifecycle and capability container.
-/// Author content through <see cref="Create(System.Action{PdfDocumentBuilder}, PdfOptions)"/> or <see cref="Compose"/>;
+/// Author content through <see cref="Create(System.Action{PdfDocumentBuilder}, PdfCreateOptions)"/> or <see cref="Compose"/>;
 /// use the focused capability properties for reading and existing-document operations.
 /// </summary>
 /// <example>
@@ -18,9 +18,9 @@ namespace OfficeIMO.Pdf;
 ///     .Save("hello.pdf");
 /// </code>
 /// </example>
-public sealed partial class PdfDocument {
+public sealed partial class PdfDocument : IDisposable {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
-    private PdfOptions? _optionsStorage;
+    private PdfCreateOptions? _optionsStorage;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>>? _blockScopes;
     private readonly PdfDocumentSource? _source;
     private readonly PdfPipelineReport _pipeline;
@@ -47,8 +47,8 @@ public sealed partial class PdfDocument {
     private string? _subject;
     private string? _keywords;
 
-    private PdfDocument(PdfOptions? options = null) {
-        _optionsStorage = options?.Clone() ?? new PdfOptions();
+    private PdfDocument(PdfCreateOptions? options = null) {
+        _optionsStorage = options?.Clone() ?? new PdfCreateOptions();
         _optionsStorage.MaterializeAutomaticPdfXProductionMetadata();
         _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
@@ -65,11 +65,11 @@ public sealed partial class PdfDocument {
         _pipeline = pipeline;
     }
 
-    private PdfOptions _options => Volatile.Read(ref _optionsStorage) ??
+    private PdfCreateOptions _options => Volatile.Read(ref _optionsStorage) ??
         LazyInitializer.EnsureInitialized(ref _optionsStorage, CreateSourceBackedOptions)!;
 
-    private static PdfOptions CreateSourceBackedOptions() {
-        var options = new PdfOptions();
+    private static PdfCreateOptions CreateSourceBackedOptions() {
+        var options = new PdfCreateOptions();
         options.MaterializeAutomaticPdfXProductionMetadata();
         return options;
     }
@@ -79,7 +79,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     /// <param name="options">Page size, margins and default font options. When null, sensible defaults are used.</param>
     /// <returns>New <see cref="PdfDocument"/> instance.</returns>
-    public static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
+    public static PdfDocument Create(PdfCreateOptions? options = null) => new PdfDocument(options);
 
     /// <summary>
     /// Gets the content builder for ordinary incremental authoring. It uses the same document
@@ -98,7 +98,7 @@ public sealed partial class PdfDocument {
     /// <param name="compose">Document composition callback.</param>
     /// <param name="options">Optional document-wide rendering, catalog, security, and compliance options.</param>
     /// <returns>The composed <see cref="PdfDocument"/>.</returns>
-    public static PdfDocument Create(System.Action<PdfDocumentBuilder> compose, PdfOptions? options = null) {
+    public static PdfDocument Create(System.Action<PdfDocumentBuilder> compose, PdfCreateOptions? options = null) {
         Guard.NotNull(compose, nameof(compose));
         return new PdfDocument(options).Compose(compose);
     }
@@ -106,7 +106,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Loads an existing PDF from bytes and snapshots the caller-owned input once.
     /// </summary>
-    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
+    internal static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
         new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, loadOptions));
 
     /// <summary>
@@ -128,7 +128,7 @@ public sealed partial class PdfDocument {
     /// Loads an existing PDF from a bounded file snapshot.
     /// </summary>
     public static PdfDocument Load(string path, PdfLoadOptions? loadOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions));
+        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions)) { _filePath = System.IO.Path.GetFullPath(path) };
 
     /// <summary>
     /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
@@ -138,7 +138,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Loads a bounded file snapshot with cooperative cancellation.</summary>
     public static PdfDocument Load(string path, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
-        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions, cancellationToken), cancellationToken);
+        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions, cancellationToken), cancellationToken) { _filePath = System.IO.Path.GetFullPath(path) };
 
     /// <summary>Loads a bounded stream snapshot with cooperative cancellation and preserves seekable stream position.</summary>
     public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
@@ -152,7 +152,7 @@ public sealed partial class PdfDocument {
         PdfDocumentSource source = await PdfDocumentSource
             .FromPathAsync(path, loadOptions, cancellationToken)
             .ConfigureAwait(false);
-        return new PdfDocument(source, cancellationToken);
+        return new PdfDocument(source, cancellationToken) { _filePath = System.IO.Path.GetFullPath(path) };
     }
 
     /// <summary>Asynchronously loads a complete PDF from a readable caller-owned stream.</summary>
@@ -175,8 +175,8 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Builds the canonical semantic document result using the structured profile by default.
     /// </summary>
-    public PdfDocumentReadResult Read(PdfReadOptions? options = null, CancellationToken cancellationToken = default) {
-        return PdfDocumentReadEngine.Read(this, PdfReadOptions.Resolve(options), cancellationToken);
+    public PdfDocumentReadResult Read(PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        return PdfDocumentReadEngine.Read(this, PdfLoadOptions.Resolve(options ?? ReadOptions), cancellationToken);
     }
 
     /// <summary>
@@ -284,7 +284,7 @@ public sealed partial class PdfDocument {
 
     // Internal getters for writer/compose
     internal System.Collections.Generic.IEnumerable<IPdfBlock> Blocks => _blocks;
-    internal PdfOptions Options => _options;
+    internal PdfCreateOptions Options => _options;
 
     private System.Action<IPdfBlock> CurrentBlockSink => _blockScopes!.Peek();
 
@@ -438,14 +438,14 @@ public sealed partial class PdfDocument {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions, cancellationToken);
+        PdfArtifactInfo input = _pipeline.Output ?? PdfArtifactInfo.Capture(inputBytes, ReadOptions, cancellationToken);
         return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument, cancellationToken);
     }
 
     /// <summary>Adopts an optional readback already validated against the output bytes and read settings.</summary>
     internal PdfDocument WithBytes(
         byte[] inputBytes,
-        PdfArtifactSnapshot input,
+        PdfArtifactInfo input,
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
@@ -458,9 +458,9 @@ public sealed partial class PdfDocument {
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
             readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
-        PdfArtifactSnapshot output = readDocument is null
-            ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument, cancellationToken)
-            : PdfArtifactSnapshot.CaptureKnownPageCount(pdf, readDocument.Pages.Count, cancellationToken);
+        PdfArtifactInfo output = readDocument is null
+            ? PdfArtifactInfo.Capture(pdf, effectiveReadOptions, out readDocument, cancellationToken)
+            : PdfArtifactInfo.CaptureKnownPageCount(pdf, readDocument.Pages.Count, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readDocument);
     }
@@ -471,7 +471,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     internal PdfDocument WithCanonicalBytesKnownPageCount(
         byte[] inputBytes,
-        PdfArtifactSnapshot input,
+        PdfArtifactInfo input,
         byte[] pdf,
         int outputPageCount,
         PdfLoadOptions? readOptions = null,
@@ -491,7 +491,7 @@ public sealed partial class PdfDocument {
 
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
             readOptions ?? ReadOptions, inputBytes, pdf);
-        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
+        PdfArtifactInfo output = PdfArtifactInfo.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(
             inputBytes,
@@ -505,9 +505,9 @@ public sealed partial class PdfDocument {
 
     private PdfDocument WithBytes(
         byte[] inputBytes,
-        PdfArtifactSnapshot input,
+        PdfArtifactInfo input,
         byte[] pdf,
-        PdfArtifactSnapshot output,
+        PdfArtifactInfo output,
         PdfLoadOptions effectiveReadOptions,
         string operationName,
         PdfReadDocument? readDocument = null,

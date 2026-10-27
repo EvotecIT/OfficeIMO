@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,14 +6,12 @@ using System.Linq;
 using System.Management.Automation;
 using System.Threading.Tasks;
 using PSWriteOffice.Services;
-#if !FRAMEWORK
 using OfficeIMO.Workflows;
-#endif
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Converts a file or file batch through the canonical OfficeIMO workflow runner.</summary>
-/// <para>Requires PowerShell 7.4 or newer. Returns verified workflow evidence; unsupported input is diagnosed by the owning route.</para>
+/// <para>Returns verified workflow evidence; unsupported input is diagnosed by the owning route.</para>
 /// <example>
 ///   <summary>Convert one supported input with output evidence.</summary>
 ///   <code>ConvertTo-OfficeDocument -InputPath ./report.pdf -OutputPath ./report.docx</code>
@@ -26,9 +25,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -RequireNoLoss)</code>
 /// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficeDocument", DefaultParameterSetName = "File", SupportsShouldProcess = true)]
-#if !FRAMEWORK
-[OutputType(typeof(OfficeWorkflowResult), typeof(OfficeConversionBatchResult), typeof(OfficeConversionBatchItemResult))]
-#endif
+[OutputType(typeof(OfficeConversionReport), typeof(OfficeBatchSummary), typeof(OfficeBatchItemReport))]
 public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
     private readonly List<string> _inputs = new();
 
@@ -73,11 +70,7 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <summary>Renderer and reconstruction settings from New-OfficeConversionOptions.</summary>
     [Parameter]
-#if FRAMEWORK
-    public object? ConversionOptions { get; set; }
-#else
-    public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
-#endif
+    public OfficeConversionOptions? ConversionOptions { get; set; }
 
     /// <summary>Runtime-only password for encrypted Office or PDF source files.</summary>
     [Parameter]
@@ -154,65 +147,58 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <inheritdoc />
     protected override async Task EndProcessingAsync() {
-#if FRAMEWORK
-        await Task.CompletedTask;
-        throw new PlatformNotSupportedException("General conversion jobs require PowerShell 7.4 or newer. Use supported format-specific commands on Windows PowerShell 5.1.");
-#else
-        var options = ConversionOptions?.Clone() ?? new OfficeWorkflowConversionOptions();
+        var options = ConversionOptions?.Clone() ?? new OfficeConversionOptions { WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } };
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password;
-        var runner = OfficeWorkflowCommandUtilities.CreateRunner();
-        var conflict = (OfficeWorkflowConflictPolicy)Enum.Parse(typeof(OfficeWorkflowConflictPolicy), ConflictPolicy, ignoreCase: true);
-        var profile = (OfficeWorkflowOutputProfile)Enum.Parse(typeof(OfficeWorkflowOutputProfile), OutputProfile, ignoreCase: true);
+        OfficeWorkflowCommandUtilities.RegisterConversions();
+        var conflict = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, ignoreCase: true);
+        var profile = (OfficeConversionProfile)Enum.Parse(typeof(OfficeConversionProfile), OutputProfile, ignoreCase: true);
         if (ParameterSetName == "File") {
             if (_inputs.Count != 1) throw new PSArgumentException("Select exactly one source file.");
             string output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
             if (!ShouldProcess(output, "Convert document")) return;
-            var result = await runner.RunAsync(new OfficeWorkflowRequest {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = _inputs[0], OutputPath = output,
-                ConversionRouteId = ConversionRouteId ?? OfficeWorkflowCatalog.Find(Path.GetExtension(_inputs[0]), Path.GetExtension(output), runner.ConversionRoutes)?.Id,
-                ConversionOptions = options,
-                PdfPassword = Password, ConflictPolicy = conflict, OutputProfile = profile,
-                Limits = new OfficeWorkflowLimits { MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes }
-            }, cancellationToken: CancelToken);
-            SetSummary(result);
-            if (!result.Succeeded) WriteError(new ErrorRecord(new InvalidOperationException(result.Summary),
-                "OfficeDocumentConversionFailed", ErrorCategory.InvalidOperation, result));
-            WriteObject(result);
+            options.RouteId = ConversionRouteId;
+            options.FileConflictPolicy = conflict; options.OutputProfile = profile;
+            options.MaximumInputBytes = MaximumInputBytes; options.MaximumOutputBytes = MaximumOutputBytes;
+            try {
+                var result = await OfficeConverter.ConvertAsync(_inputs[0], output, options, CancelToken);
+                SetSummary(result);
+                WriteObject(result);
+            } catch (Exception conversionError) when (conversionError is IOException or UnauthorizedAccessException or OfficeConversionException) {
+                WriteError(new ErrorRecord(conversionError, "OfficeDocumentConversionFailed", ErrorCategory.WriteError, output));
+            }
             return;
         }
         string directory = OfficeFileCommandUtilities.ResolvePath(this, OutputDirectory);
         if (!ShouldProcess(directory, "Convert document batch")) return;
-        var batch = await runner.RunBatchAsync(new OfficeConversionBatchRequest {
+        var report = await OfficeConverter.ConvertAsync(new OfficeBatchOptions {
             InputDirectory = ParameterSetName == "Directory" ? OfficeFileCommandUtilities.ResolvePath(this, InputDirectory) : null,
             InputPaths = ParameterSetName == "Files" ? _inputs.ToArray() : null,
             OutputDirectory = directory, TargetExtension = TargetExtension, ConversionRouteId = ConversionRouteId,
-            ConversionOptions = options, PdfPassword = Password, ConflictPolicy = conflict, OutputProfile = profile,
-            CheckpointDirectory = CheckpointDirectory == null ? null : OfficeFileCommandUtilities.ResolvePath(this, CheckpointDirectory),
-            Recursive = !NoRecurse.IsPresent, SourceExtensions = SourceExtension,
-            MaximumFiles = MaximumFiles, MaximumConcurrency = MaximumConcurrency,
+            ConversionOptions = options, ConflictPolicy = conflict, OutputProfile = profile,
+            ResumeFrom = CheckpointDirectory == null ? null : System.IO.Path.Combine(OfficeFileCommandUtilities.ResolvePath(this, CheckpointDirectory), "plan.json"),
+            Recursive = !NoRecurse.IsPresent, Extensions = SourceExtension,
+            MaximumFiles = MaximumFiles, MaxParallelism = MaximumConcurrency,
             MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes, RetryFailed = RetryFailed.IsPresent
         }, new BatchProgress(this), CancelToken);
+        var batch = report.Summary;
         SetSummary(batch);
         WriteProgress(new ProgressRecord(1, "Convert documents", "Finished") { RecordType = ProgressRecordType.Completed });
         ErrorRecord? error = OfficeWorkflowCommandUtilities.GetBatchError(batch, AllowEmpty.IsPresent, "OfficeDocumentBatch");
         if (error != null) WriteError(error);
         if (!ItemResults.IsPresent) WriteObject(batch);
-#endif
     }
 
     private void SetSummary(object value) {
         if (!string.IsNullOrWhiteSpace(SummaryVariable)) SessionState.PSVariable.Set(SummaryVariable, value);
     }
 
-#if !FRAMEWORK
-    private sealed class BatchProgress(ConvertToOfficeDocumentCommand command) : IProgress<OfficeConversionBatchItemResult> {
+    private sealed class BatchProgress(ConvertToOfficeDocumentCommand command) : IProgress<OfficeBatchItemReport> {
         private int _completed;
-        public void Report(OfficeConversionBatchItemResult item) {
+        public void Report(OfficeBatchItemReport item) {
             if (command.ItemResults.IsPresent) command.WriteObject(item);
             int completed = System.Threading.Interlocked.Increment(ref _completed);
             if (completed == 1 || completed % 100 == 0)
                 command.WriteProgress(new ProgressRecord(1, "Convert documents", $"Processed {completed} files"));
         }
     }
-#endif
 }

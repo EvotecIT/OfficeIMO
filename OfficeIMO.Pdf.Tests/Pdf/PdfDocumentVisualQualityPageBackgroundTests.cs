@@ -55,7 +55,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PageBorder_ValidatesAndClonesOptions() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageBorder = new PdfPageBorder {
                 Color = PdfColor.FromRgb(1, 2, 3),
                 Width = 2,
@@ -74,7 +74,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Opacity = double.NaN });
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageBorder = new PdfPageBorder {
                         Inset = 400
                     }
@@ -110,7 +110,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void BackgroundImage_FallsBackToPageBoxWhenDimensionsAreUnknown() {
         byte[] legacyJpegLikeImage = { 0xFF, 0xD8, 0xFF, 0xD9 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -152,7 +152,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundImage_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageBackgroundImage = new PdfPageBackgroundImage(image) {
                 Fit = OfficeImageFit.Contain,
                 Opacity = 0.25
@@ -238,7 +238,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void BackgroundBands_ComputePageAnchoredGeometry() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 400,
                 MarginLeft = 30,
@@ -291,7 +291,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundShape_ValidatesAndClonesOptions() {
         var shape = PdfPageBackgroundShape.Rectangle(12, 24, 120, 48, PdfColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageBackgroundShapes = new[] { shape }
         };
 

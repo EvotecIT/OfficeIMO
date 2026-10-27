@@ -127,7 +127,7 @@ internal static partial class PdfWriter {
                     () => { NewBlockFrame(); RemeasureFlowFrame(); AdmitRunningFlowFrame(); });
             int startPageNumber = pages.Count + 1;
             double startY = y;
-            PdfOptions startOptions = currentOpts;
+            PdfCreateOptions startOptions = currentOpts;
             var paintedRegions = new FloatingFlowCapture();
             if (capture != null) activeFloatingFlowCaptures.Push(paintedRegions);
             try { ProcessBlocks(blocks, flow); }
@@ -177,7 +177,7 @@ internal static partial class PdfWriter {
                     : null);
         }
 
-        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions, FloatingFlowCapture paintedRegions) {
+        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfCreateOptions startOptions, FloatingFlowCapture paintedRegions) {
             if (capture == null) {
                 return;
             }
@@ -216,7 +216,7 @@ internal static partial class PdfWriter {
 
             for (int pageNumber = startPageNumber + 1; pageNumber < endPageNumber; pageNumber++) {
                 LayoutResult.Page completedPage = pages[pageNumber - 1];
-                PdfOptions options = completedPage.Options;
+                PdfCreateOptions options = completedPage.Options;
                 AddCapturedRegion(new PdfLayoutRegion(
                     pageNumber,
                     options.MarginLeft,

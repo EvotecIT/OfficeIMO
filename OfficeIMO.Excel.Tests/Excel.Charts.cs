@@ -1701,7 +1701,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(chartDataSheetName, sheetName);
 
                 string a1Range = formula.Substring(bang + 1).Replace("$", string.Empty);
-                Assert.True(A1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2));
+                Assert.True(ExcelA1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2));
                 Assert.Equal(c1, c2);
 
                 var dataSheet = spreadsheet.WorkbookPart.Workbook.Sheets!
@@ -1710,7 +1710,7 @@ namespace OfficeIMO.Tests {
                 var dataSheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
 
                 for (int r = r1; r <= r2; r++) {
-                    string cellRef = $"{A1.ColumnIndexToLetters(c1)}{r}";
+                    string cellRef = $"{ExcelA1.ColumnIndexToLetters(c1)}{r}";
                     var cell = dataSheetPart.Worksheet.Descendants<Cell>()
                         .First(c => c.CellReference != null && c.CellReference.Value == cellRef);
                     Assert.NotEqual(CellValues.SharedString, cell.DataType?.Value);
@@ -2637,7 +2637,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
-                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
                 Assert.Equal("0000FF", snapshot.Data.Series[0].SeriesColorArgb);
                 Assert.Equal("FF0000", snapshot.Data.Series[1].SeriesColorArgb);
             }
@@ -2680,7 +2680,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
-                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
 
                 double[] values = Assert.Single(snapshot.Data.Series).Values.ToArray();
                 Assert.Equal(3, values.Length);
@@ -2741,7 +2741,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
-                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
 
                 Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
                 ExcelChartSeries series = Assert.Single(snapshot.Data.Series);

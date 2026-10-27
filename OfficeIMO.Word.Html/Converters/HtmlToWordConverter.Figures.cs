@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             WordDocument doc,
             WordSection section,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             WordParagraph? currentParagraph,
             Stack<WordList> listStack,
             TextFormatting formatting,
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word.Html {
                 } else {
                     AddDiagnostic(
                         options,
-                        "HtmlFigureStructureFlattened",
+                        "html-figure-structure-flattened",
                         "Figure content did not materialize as exactly one reciprocal Word block, so no grouping marker was emitted.",
                         "figure",
                         lossKind: OfficeConversionLossKind.Approximation);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Html {
             IElement caption,
             WordDocument doc,
             WordSection section,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             Stack<WordList> listStack,
             TextFormatting formatting,
             WordTableCell? cell,

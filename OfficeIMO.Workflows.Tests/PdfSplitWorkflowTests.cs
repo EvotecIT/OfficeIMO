@@ -79,7 +79,7 @@ public sealed class PdfSplitWorkflowTests {
             File.WriteAllText(Path.Combine(output, "current.txt"), "current");
             File.WriteAllText(Path.Combine(recovery, "previous.txt"), "previous");
             var result = await new OfficeWorkflowRunner().SplitPdfAsync(new() {
-                InputPath = source, OutputDirectory = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = source, OutputDirectory = output, ConflictPolicy = OfficePublicationPolicy.Replace
             });
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             var diagnostic = Assert.Single(result.Diagnostics, item => item.Code == "PdfSplitFailed");
@@ -160,10 +160,10 @@ public sealed class PdfSplitWorkflowTests {
             using var cancel = new CancellationTokenSource();
             string output = Path.Combine(root, "parts");
             var request = new PdfSplitWorkflowRequest { InputPath = source, OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail };
+                ConflictPolicy = OfficePublicationPolicy.Fail };
             if (failure == "part-limit") request.MaximumParts = 2;
             if (failure == "byte-limit") request.Limits.MaximumOutputBytes = 10;
-            if (failure == "source-folder") { request.OutputDirectory = root; request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace; }
+            if (failure == "source-folder") { request.OutputDirectory = root; request.ConflictPolicy = OfficePublicationPolicy.Replace; }
             var progress = new ProgressInline(item => {
                 if (item.Stage != "publish") return;
                 if (failure == "source-change") File.WriteAllBytes(source, CreatePdf(1));
@@ -188,7 +188,7 @@ public sealed class PdfSplitWorkflowTests {
             int writes = 0;
             var request = new PdfSplitWorkflowRequest {
                 InputPath = "content://split/input", InputStream = new("input.pdf", _ => Task.FromResult<Stream>(new MemoryStream(CreatePdf()))),
-                OutputDirectory = "content://split/output", PagesPerDocument = 2, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputDirectory = "content://split/output", PagesPerDocument = 2, ConflictPolicy = OfficePublicationPolicy.Replace,
                 DirectoryOutput = new((name, _) => {
                     string path = "content://split/output/" + name;
                     return Task.FromResult(new OfficeWorkflowDirectoryOutputFile(path, new(name,

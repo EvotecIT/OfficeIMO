@@ -32,7 +32,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
 #if WORD_PERFORMANCE_EVIDENCE
         var stopwatch = Stopwatch.StartNew();
 #endif
-        string markdown = document.ToMarkdown();
+        string markdown = ((document.ToMarkdown().ToMarkdown()));
 #if WORD_PERFORMANCE_EVIDENCE
         stopwatch.Stop();
 #endif
@@ -49,7 +49,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
         WordParagraph paragraph = document.AddParagraph("bounded");
         paragraph.IndentationBefore = int.MaxValue;
 
-        string markdown = document.ToMarkdown();
+        string markdown = ((document.ToMarkdown().ToMarkdown()));
 
         Assert.Equal(64, markdown.TakeWhile(character => character == '>' || character == ' ').Count(character => character == '>'));
         Assert.Contains("bounded", markdown, StringComparison.Ordinal);
@@ -71,10 +71,10 @@ public sealed class WordAllSeverityBatch13SecurityTests {
             images[0].FileName = "../a/logo.jpg";
             images[1].FileName = "../b/logo.jpg";
 
-            string markdown = document.ToMarkdown(new WordToMarkdownOptions {
-                ImageExportMode = ImageExportMode.File,
+            string markdown = ((document.ToMarkdown(new WordMarkdownExportOptions {
+                ImageExportMode = WordMarkdownImageExportMode.File,
                 ImageDirectory = output
-            });
+            }).ToMarkdown()));
 
             Assert.False(File.Exists(escaped));
             string[] exported = Directory.GetFiles(output);
@@ -100,7 +100,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.ToMarkdown(new WordToMarkdownOptions { MaxEmbeddedImageBytes = 1 }));
+            document.ToMarkdown(new WordMarkdownExportOptions { MaxEmbeddedImageBytes = 1 }));
 
         Assert.Contains("embedded image", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -136,10 +136,10 @@ public sealed class WordAllSeverityBatch13SecurityTests {
         Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListIndices(document));
         Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListMarkers(document));
         Assert.Throws<InvalidDataException>(() =>
-            document.ToMarkdown(new WordToMarkdownOptions { MaxListNestingDepth = 8 }));
+            document.ToMarkdown(new WordMarkdownExportOptions { MaxListNestingDepth = 8 }));
         Assert.Throws<InvalidDataException>(() =>
             document.ExtractMarkdownChunks(
-                new WordToMarkdownOptions { MaxListNestingDepth = 8 }).ToList());
+                new WordMarkdownExportOptions { MaxListNestingDepth = 8 }).ToList());
     }
 
     [Fact]

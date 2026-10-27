@@ -17,7 +17,7 @@ public sealed class ProviderOutputPreparationTests {
             File.WriteAllText(first, "<p>Independent conversion</p>");
             var results = await new OfficeWorkflowRunner().RunBatchAsync([
                 new() { InputPath = first, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
-                    ConversionRouteId = "html-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                    ConversionRouteId = "html-pdf", ConflictPolicy = OfficePublicationPolicy.Replace,
                     PublicationGuard = new MissingSourceGuard(mode == "appeared" ? missing : null) },
                 new() { InputPath = missing, Operation = OfficeWorkflowOperation.Inspect }
             ]);
@@ -27,10 +27,10 @@ public sealed class ProviderOutputPreparationTests {
         } finally { Directory.Delete(root, true); }
     }
 
-    private sealed class MissingSourceGuard(string? appearedPath) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+    private sealed class MissingSourceGuard(string? appearedPath) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
             if (appearedPath is not null) File.WriteAllText(appearedPath, "A newly appeared selected input");
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 
@@ -51,7 +51,7 @@ public sealed class ProviderOutputPreparationTests {
             var results = await new OfficeWorkflowRunner().RunBatchAsync([
                 new() { InputPath = "content://provider/first", InputStream = new("first.html", _ => Task.FromResult<Stream>(new MemoryStream(html))),
                     Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = "html-pdf", OutputPath = deferred ? "content://provider/folder" : "content://provider/second",
-                    OutputStream = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace },
+                    OutputStream = output, ConflictPolicy = OfficePublicationPolicy.Replace },
                 new() { Id = invalidSecond ? "" : "second", InputPath = "content://provider/second", InputStream = new("second.pdf", _ => Task.FromResult<Stream>(new MemoryStream(pdf))), Operation = OfficeWorkflowOperation.Inspect }
             ]);
             Assert.Equal(0, writes);
@@ -76,7 +76,7 @@ public sealed class ProviderOutputPreparationTests {
         try {
             var result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(new() {
                 InputPath = "content://provider/source", InputStream = new("source.pdf", _ => Task.FromResult<Stream>(new MemoryStream(source))),
-                OutputDirectory = "content://provider/selected-folder", MaximumDimension = 32, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputDirectory = "content://provider/selected-folder", MaximumDimension = 32, ConflictPolicy = OfficePublicationPolicy.Replace,
                 DirectoryOutput = new((name, _) => {
                     string? actual = null;
                     var output = new OfficeWorkflowStreamOutput(name,

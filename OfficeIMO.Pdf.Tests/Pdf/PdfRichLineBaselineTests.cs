@@ -50,7 +50,7 @@ public sealed class PdfRichLineBaselineTests {
 
     private static byte[] Render(string frame, bool namedFont, bool mixed) {
         const string family = "Line Box Test";
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 300,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 300,
             MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30, DefaultFontSize = 8 };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
@@ -77,7 +77,7 @@ public sealed class PdfRichLineBaselineTests {
                 : new[] { Run("A", 24) };
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) },
                 linkUri: frame == "linked-table" ? "https://example.com/cell" : null);
-            var tableStyle = TableStyles.Minimal();
+            var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 8;
             tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
             document.Table(new[] { new[] { cell } }, style: tableStyle);

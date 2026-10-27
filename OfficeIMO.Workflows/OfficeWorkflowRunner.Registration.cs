@@ -5,10 +5,10 @@ public sealed partial class OfficeWorkflowRunner {
 
     private static (IReadOnlyDictionary<string, OfficeWorkflowConversionRegistration>, IReadOnlyList<OfficeWorkflowRoute>)
         SnapshotRegistrations(IEnumerable<OfficeWorkflowConversionRegistration> conversions) {
-        ArgumentNullException.ThrowIfNull(conversions);
+        if (conversions == null) throw new ArgumentNullException(nameof(conversions));
         var registrations = new Dictionary<string, OfficeWorkflowConversionRegistration>(StringComparer.OrdinalIgnoreCase);
         foreach (OfficeWorkflowConversionRegistration conversion in conversions) {
-            ArgumentNullException.ThrowIfNull(conversion);
+            if (conversion == null) throw new ArgumentNullException(nameof(conversion));
             if (!registrations.TryAdd(conversion.RouteId, conversion))
                 throw new ArgumentException("A conversion route was registered more than once: " + conversion.RouteId, nameof(conversions));
         }

@@ -18,7 +18,7 @@ dotnet add package OfficeIMO.Markdown
 ```csharp
 using OfficeIMO.Markdown;
 
-var document = MarkdownDoc.Create()
+var document = MarkdownDocument.Create()
     .FrontMatter(new { title = "OfficeIMO.Markdown", tags = new[] { "docs", "reporting" } })
     .H1("OfficeIMO.Markdown")
     .P("Typed Markdown builder, reader, and HTML renderer for .NET.")
@@ -29,14 +29,14 @@ var document = MarkdownDoc.Create()
     .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
 string markdown = document.ToMarkdown();
-string htmlFragment = document.ToHtmlFragment();
-string htmlDocument = document.ToHtmlDocument();
+string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment });
+string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
 ## What it does
 
 - Builds Markdown documents with headings, paragraphs, lists, task lists, tables, code blocks, callouts, details, front matter, footnotes, table-of-contents helpers, and semantic fenced blocks.
-- Parses Markdown into a typed `MarkdownDoc` object model with headings, blocks, inlines, anchors, source spans, front matter, and transform diagnostics.
+- Parses Markdown into a typed `MarkdownDocument` object model with headings, blocks, inlines, anchors, source spans, front matter, and transform diagnostics.
 - Renders HTML fragments or full HTML documents with configurable profiles, CSS delivery, Prism options, Mermaid/chart/math shell assets, and safe defaults.
 - Provides native AST projection for editor, transcript, chat, and document hosts that need stable block ids and DTO-style snapshots.
 - Supports AOT-sensitive code paths through typed selectors and explicit overloads while leaving reflection helpers available for convenience scenarios.
@@ -45,7 +45,7 @@ string htmlDocument = document.ToHtmlDocument();
 
 ### Literal text without HTML entities
 
-Use `document.ToMarkdown(new MarkdownWriteOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash })` to write literal model text with Markdown backslash escapes. Ordinary parentheses and ampersands remain literal; HTML-like text and entity starts are escaped. Unstructured table strings are treated as literal text, while parsed and structured table nodes retain explicit Markdown formatting. The default writer mode keeps its existing behavior.
+Use `document.ToMarkdown(new MarkdownSaveOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash })` to write literal model text with Markdown backslash escapes. Ordinary parentheses and ampersands remain literal; HTML-like text and entity starts are escaped. Unstructured table strings are treated as literal text, while parsed and structured table nodes retain explicit Markdown formatting. The default writer mode keeps its existing behavior.
 
 ### Tables from typed objects
 
@@ -55,7 +55,7 @@ var results = new[] {
     new { Name = "Bob", Role = "Ops", Score = 91.0 }
 };
 
-var document = MarkdownDoc.Create()
+var document = MarkdownDocument.Create()
     .H2("Team")
     .Table(table => table.FromSequence(results,
         ("Name", item => item.Name),
@@ -66,21 +66,20 @@ var document = MarkdownDoc.Create()
 ### Load or parse directly, with diagnostics when needed
 
 ```csharp
-MarkdownDoc document = MarkdownDoc.Load("README.md");
-MarkdownParseResult parsed = MarkdownDoc.LoadResult("README.md");
+MarkdownDocument document = MarkdownDocument.Load("README.md");
+using MarkdownDocument inspected = MarkdownDocument.Load("README.md", null, out OfficeConversionReport report);
 
 foreach (var heading in document.GetHeadingInfos()) {
     Console.WriteLine($"{heading.Level}: {heading.Text} -> {heading.Anchor}");
 }
 ```
 
-`MarkdownDoc.Parse(...)` and `Load(...)` return the native document. Use
-`ParseResult(...)` or `LoadResult(...)` when syntax-tree and transform diagnostics
-must travel with it. Async file and stream loading follows the same direct/result
-naming and accepts a final cancellation token.
+`MarkdownDocument.Parse(...)` and `Load(...)` return the native document. Use
+the overload with `out OfficeConversionReport report` when syntax-tree and transform diagnostics
+must travel with it. Async loading returns the document and accepts a final cancellation token.
 
 Markdown writing also accepts cancellation: `document.ToMarkdown(writeOptions, cancellationToken)`
-and `document.ToBytes(writeOptions, encoding, cancellationToken)` check it during serialization.
+and `document.ToBytes(writeOptions, cancellationToken)` check it during serialization.
 `SaveAsync` passes its token through serialization before writing the destination.
 Custom renderers can use `context.CancellationToken` for their own work.
 
@@ -99,7 +98,7 @@ var snapshot = native.ToSnapshot();
 ### Front matter, task lists, callouts, details, and TOC
 
 ```csharp
-var document = MarkdownDoc.Create()
+var document = MarkdownDocument.Create()
     .FrontMatter(new {
         title = "Deployment checklist",
         owner = "Platform",
@@ -126,7 +125,7 @@ string markdown = document.ToMarkdown();
 ### HTML fragments, full documents, and parts
 
 ```csharp
-var document = MarkdownDoc.Create()
+var document = MarkdownDocument.Create()
     .H1("Status")
     .P(p => p.Text("Generated ").Bold("today").Text(" for the portal."))
     .TableAuto(table => table
@@ -134,16 +133,16 @@ var document = MarkdownDoc.Create()
         .Row("API", "Green", "42")
         .Row("Jobs", "Yellow", "210"));
 
-string fragment = document.ToHtmlFragment();
-string fullPage = document.ToHtmlDocument();
-HtmlRenderParts parts = document.ToHtmlParts();
+string fragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment });
+string fullPage = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
+MarkdownHtmlParts parts = document.ToHtmlParts();
 ```
 
 ### Parse, inspect, and rewrite a document
 
 ```csharp
-var parsed = MarkdownReader.Parse(File.ReadAllText("README.md"),
-    MarkdownReaderOptions.CreateOfficeIMOProfile());
+var parsed = MarkdownDocument.Parse(File.ReadAllText("README.md"),
+    MarkdownLoadOptions.CreateOfficeIMOProfile());
 
 if (!parsed.HasHeading("Install")) {
     parsed.H2("Install")
@@ -212,6 +211,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Markdown` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

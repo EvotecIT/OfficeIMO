@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
         /// Reads package-level placement and geometry evidence for this group.
         /// This is not a claim about Word's final rendered coordinates.
         /// </summary>
-        public bool TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? snapshot) =>
+        public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo? snapshot) =>
             WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
         /// <summary>Removes the group drawing from its containing paragraph.</summary>
@@ -166,7 +166,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string NormalizeRgb(string value, string paramName) {
-            if (!OfficeIMO.Drawing.OfficeColor.TryParseHex(value, out OfficeIMO.Drawing.OfficeColor color)) {
+            if (!OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)) {
                 throw new ArgumentException("Color must be a three-, six-, or eight-digit hexadecimal value.", paramName);
             }
             return color.ToRgbHex();

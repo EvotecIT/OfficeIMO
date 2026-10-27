@@ -9,7 +9,7 @@ internal static class MarkdownReaderAdapter {
 
     internal static ReaderMarkdownOptions Clone(ReaderMarkdownOptions? source) => new ReaderMarkdownOptions {
         ChunkByHeadings = source?.ChunkByHeadings ?? true,
-        ParserOptions = (source?.ParserOptions ?? new MarkdownReaderOptions()).Clone()
+        ParserOptions = (source?.ParserOptions ?? new MarkdownLoadOptions()).Clone()
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
@@ -46,11 +46,11 @@ internal static class MarkdownReaderAdapter {
     }
 
     private static ReaderChunk[] Project(string text, string sourceName, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
-        MarkdownReaderOptions parserOptions = (options.ParserOptions ?? new MarkdownReaderOptions()).Clone();
-        MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans(
+        MarkdownLoadOptions parserOptions = (options.ParserOptions ?? new MarkdownLoadOptions()).Clone();
+        MarkdownDocument document = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans(
             text ?? string.Empty,
             parserOptions);
-        MarkdownParseResult? fullParse = null;
+        MarkdownParseInfo? fullParse = null;
         if (document.Blocks.Any(static block => block is not MarkdownObject)) {
             fullParse = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(
                 text ?? string.Empty,

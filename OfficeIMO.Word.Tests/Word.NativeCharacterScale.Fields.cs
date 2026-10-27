@@ -36,10 +36,10 @@ public partial class Word {
             Assert.Empty(source.ValidateDocument());
 
             if (explicitWidth == 100) {
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+                NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
                 Assert.Contains("display runs use one formatting set", error.Message);
             } else {
-                using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+                using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
                 MainDocumentPart main = loaded._wordprocessingDocument.MainDocumentPart!;
                 SimpleField field = Assert.Single(EnumerateFieldFormattingRoots(main).SelectMany(root => root.Descendants<SimpleField>()));
                 Assert.Equal("FIRSTSECOND", field.InnerText);
@@ -69,7 +69,7 @@ public partial class Word {
         }
         string originalStyles = styles.OuterXml;
         Assert.Empty(source.ValidateDocument());
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         SimpleField[] fields = EnumerateFieldFormattingRoots(loaded._wordprocessingDocument.MainDocumentPart!)
             .SelectMany(root => root.Descendants<SimpleField>()).ToArray();
         for (int index = 0; index < paragraphs.Length; index++) {
@@ -101,7 +101,7 @@ public partial class Word {
         paragraph.Descendants<Run>().Single(run => run.InnerText == "SECOND").RunProperties!
             .AddChild(new CharacterScale { Val = 125L }, true);
         Assert.Empty(source.ValidateDocument());
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         SimpleField field = Assert.Single(loaded._wordprocessingDocument.MainDocumentPart!.Document.Descendants<SimpleField>());
         Assert.Equal("FIRSTSECOND", field.InnerText);
         Assert.All(field.Descendants<Run>(), run => Assert.Equal(125L, run.RunProperties!.GetFirstChild<CharacterScale>()!.Val!.Value));

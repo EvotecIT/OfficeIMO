@@ -132,7 +132,7 @@ public sealed class ConvertToOfficePdfRedactedCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        redacted.Save(outputPath).RequireSuccess();
+        redacted.Save(outputPath);
         WriteObject(new FileInfo(outputPath));
     }
 }

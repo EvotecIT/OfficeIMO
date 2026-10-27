@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 """);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = loaded.Sheets.Single().GetHeaderFooter();
 
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.Null(snapshot.HeaderCenterImage);

@@ -90,9 +90,9 @@ namespace OfficeIMO.Excel.Fluent {
 
                 var opts = new ObjectFlattenerOptions();
                 configure?.Invoke(opts);
-                opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
+                opts.MaxColumns = System.Math.Min(opts.MaxColumns, ExcelA1.MaxColumns);
                 var flattener = new ObjectFlattener();
-                int availableSheetColumns = A1.MaxColumns - _baseCol + 1;
+                int availableSheetColumns = ExcelA1.MaxColumns - _baseCol + 1;
                 int maximumRenderedColumns = _maxTableColumns.HasValue
                     ? Math.Min(_maxTableColumns.Value, availableSheetColumns)
                     : availableSheetColumns;

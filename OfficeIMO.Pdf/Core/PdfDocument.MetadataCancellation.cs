@@ -25,7 +25,7 @@ public sealed partial class PdfDocument {
         AppendMetadataRevision(title, author, subject, keywords, ReadOptions, createXmpMetadata, cancellationToken);
 
     /// <summary>Attempts metadata updating through the planner-selected path; requested cancellation propagates to the caller.</summary>
-    public PdfOperationResult<PdfDocument> UpdateMetadataResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> UpdateMetadataResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) =>
         TryMutationOperation("Update metadata", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.UpdateMetadata,
             mode => mode == PdfMutationExecutionMode.AppendOnly
@@ -34,7 +34,7 @@ public sealed partial class PdfDocument {
             options: options, cancellationToken: cancellationToken);
 
     /// <summary>Attempts metadata replacement with cancellation through planning, full rewriting and output adoption.</summary>
-    public PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken,
+    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken,
         PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation("Replace metadata", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.UpdateMetadata,
@@ -43,7 +43,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts Info/XMP synchronization with cancellation across the planner-selected rewrite or append-only path.</summary>
-    public PdfOperationResult<PdfDocument> SynchronizeMetadataResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> SynchronizeMetadataResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, bool createXmpMetadata = true,
         PdfLoadOptions? options = null) =>
         TryMutationOperation("Synchronize Info and XMP metadata", PdfPreflightCapability.ManipulatePages,
@@ -55,7 +55,7 @@ public sealed partial class PdfDocument {
             options: options, cancellationToken: cancellationToken);
 
     /// <summary>Attempts a metadata-only incremental revision; requested cancellation propagates without changing the source.</summary>
-    public PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null,
         bool createXmpMetadata = false) =>
         TryMutationOperation("Append metadata revision", PdfPreflightCapability.AppendMetadataRevision,

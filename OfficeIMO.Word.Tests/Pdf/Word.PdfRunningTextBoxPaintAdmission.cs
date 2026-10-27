@@ -107,10 +107,10 @@ public partial class Word {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         ConfigureRunningTextBoxPaint(document, paint);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Equal((612D - 468D * .585D) / 2D + 7.2D,
             AnchoredRunningLetters(pdf.GetPage(2), "BOX")[0].StartBaseLine.X, 3);
@@ -132,10 +132,10 @@ public partial class Word {
 
     private static void AssertRunningTextBoxPaintIsExplicitlyApproximated(WordDocument document, string[]? additionalTokens = null) {
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         foreach (string token in additionalTokens ?? Array.Empty<string>()) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);

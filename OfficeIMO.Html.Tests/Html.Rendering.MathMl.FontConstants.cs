@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         var pdfOptions = new HtmlToPdfOptions { PageSize = new OfficePageSize(2, 2), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0), AllowSystemFontFallback = false };
         pdfOptions.Fonts.Add("ScopedMath", font);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         Assert.Contains("(x)/(2)", OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(pdf));
         OfficeDrawing reopened = OfficeIMO.Pdf.PdfPageImageRenderer.RenderPage(pdf);

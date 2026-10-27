@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class PdfReadLayoutSmokeTests {
     private static byte[] BuildThreePageTablePdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 320,
                 MarginLeft = 36,

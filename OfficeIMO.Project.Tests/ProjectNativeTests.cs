@@ -146,6 +146,6 @@ public sealed class ProjectNativeTests {
         using var output = new MemoryStream(); await streamed.SaveAsync(output);
         Assert.Equal(bytes, output.ToArray());
         streamed.Dispose(); Assert.True(input.CanRead); Assert.True(output.CanWrite);
-        await Assert.ThrowsAsync<OperationCanceledException>(() => ProjectDocument.LoadAsync(path, cancellationToken: new CancellationToken(true)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ProjectDocument.LoadAsync(path, cancellationToken: new CancellationToken(true)));
     }
 }

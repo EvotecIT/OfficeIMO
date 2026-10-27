@@ -75,9 +75,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the left border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the left border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor LeftColor {
+        public OfficeIMO.OfficeColor LeftColor {
             get {
                 var hex = LeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
@@ -209,9 +209,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the right border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the right border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor RightColor {
+        public OfficeIMO.OfficeColor RightColor {
             get {
                 var hex = RightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
@@ -343,9 +343,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the top border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the top border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor TopColor {
+        public OfficeIMO.OfficeColor TopColor {
             get {
                 var hex = TopColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
@@ -480,9 +480,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the bottom border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the bottom border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor BottomColor {
+        public OfficeIMO.OfficeColor BottomColor {
             get {
                 var hex = BottomColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));

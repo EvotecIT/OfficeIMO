@@ -15,7 +15,7 @@ public partial class PdfExternalEngineProofTests {
     [InlineData("Résumé 😀", false, 0)]
     [InlineData("moons", false, 1)]
     public void BoundedLogicalSpansPreserveAdjacentPunctuationAndAuthoredSpace(string word, bool textPaint, int embeddedFont) {
-        var options = new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers();
+        var options = new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers();
         if (embeddedFont != 0) {
             byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ');
             options.EmbedStandardFont(PdfStandardFont.Helvetica, data);
@@ -92,7 +92,7 @@ public partial class PdfExternalEngineProofTests {
                     effect => effect.ActualText("logical", 10D, 28D, 50D, 12D, Paint));
             },
                 new PdfCanvasStructureOptions { AlternativeText = "A logical expression" }))),
-            new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers()).ToBytes();
+            new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers()).ToBytes();
         var read = PdfReadDocument.Open(pdf);
         Assert.Equal("logical", read.ExtractText().Trim());
         PdfTextSpan span = Assert.Single(read.Pages[0].GetTextSpans());

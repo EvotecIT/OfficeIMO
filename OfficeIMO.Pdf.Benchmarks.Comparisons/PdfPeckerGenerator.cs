@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 /// <summary>Adapts the published comparison package without changing the shared HTML or its fonts.</summary>
 internal static class PdfPeckerGenerator {
     internal static byte[] Generate(string html, PdfEmbeddedFontFamily? additionalFont = null) {
-        var options = new global::PdfPecker.PdfOptions {
+        var options = new global::PdfPecker.PdfCreateOptions {
             PageSize = global::PdfPecker.PageSize.A4,
             Accessibility = global::PdfPecker.PdfAccessibility.Tagged
         };
@@ -22,7 +22,7 @@ internal static class PdfPeckerGenerator {
         var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource();
         var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var options = new global::PdfPecker.PdfOptions {
+        var options = new global::PdfPecker.PdfCreateOptions {
             ResourceResolver = _ => {
                 started.TrySetResult(true);
                 // The resolver is synchronous and has no token. Release it after cancellation;

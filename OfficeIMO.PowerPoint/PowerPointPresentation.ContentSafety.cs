@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint;
 
 public sealed partial class PowerPointPresentation {
     /// <summary>Inspects PPTX, PPTM, and legacy PPT-family presentations through the normal first-party loader.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
@@ -24,7 +24,7 @@ public sealed partial class PowerPointPresentation {
     }
 
     /// <summary>Inspects encoded presentation bytes. The file name preserves macro and legacy-family routing.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] presentationBytes,
         string fileName = "presentation.pptx",
         OfficeContentSafetyOptions? options = null) {
@@ -58,7 +58,7 @@ public sealed partial class PowerPointPresentation {
             .OrderByDescending(item => item.SourceTextOffset ?? -1)
             .GroupBy(item => targets[item.Id])) group.Key.Remove();
 
-        byte[] output = presentation.ToBytes(presentation.SourceFormat, new PowerPointSaveOptions());
+        byte[] output = presentation.EncodeBytes(presentation.SourceFormat, new PowerPointSaveOptions());
         OfficeContentSafetyReport after = InspectContentSafety(output, fileName, options.Inspection);
         OfficeContentCleanupChange[] changes = selected.Select(item => new OfficeContentCleanupChange(item.Id, item.Location, item.CleanupCapability)).ToArray();
         return new OfficeContentCleanupResult(output, before, after, changes);

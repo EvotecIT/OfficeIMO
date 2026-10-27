@@ -449,7 +449,7 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
         chart.SetData(snapshot.ChartKind, snapshot.Data);
         Assert.False(space.Descendants<C.ValueAxis>().Single().NumberingFormat!.SourceLinked!.Value);
-        using var package = document.ToStream();
+        using var package = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(package);
         Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out _));
     }

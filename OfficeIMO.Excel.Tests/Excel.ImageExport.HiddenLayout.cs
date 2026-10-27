@@ -30,9 +30,9 @@ namespace OfficeIMO.Tests {
             sheet.AddChartFromRange("A1:C3", row: 2, column: 3, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Hidden Chart");
 
             ExcelRange range = sheet.Range("A1:C3");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            ExcelRangeVisualSnapshot includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true });
+            ExcelRangeVisualInfo includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true });
             OfficeImageExportResult includeHiddenPng = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
 
             Assert.Equal(new[] { 1, 3 }, snapshot.Columns.Select(column => column.Index).ToArray());
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(includeHidden.Cells, cell => cell.Text == "Hidden Row");
             Assert.Single(includeHidden.Images);
             Assert.Single(includeHidden.Charts);
-            Assert.DoesNotContain(includeHidden.Diagnostics, diagnostic => diagnostic.Code.StartsWith("ExcelHidden", StringComparison.Ordinal));
+            Assert.DoesNotContain(includeHidden.Diagnostics, diagnostic => diagnostic.Code.StartsWith("excel-hidden-", StringComparison.Ordinal));
             Assert.DoesNotContain(includeHidden.Diagnostics, diagnostic => diagnostic.Code.EndsWith("AnchorHidden", StringComparison.Ordinal));
 
             OfficeImageInfo defaultInfo = OfficeImageReader.Identify(png.Bytes);
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(2, 18D);
 
             ExcelRange range = sheet.Range("A1:A3");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
-            ExcelRangeVisualSnapshot includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo includeHidden = range.CreateVisualSnapshot(new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
 
             ExcelVisualRow row = Assert.Single(snapshot.Rows);
             Assert.Equal(2, row.Index);
@@ -183,19 +183,19 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultPngExportExpandsRangeForMalformedImageAnchors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("UnsupportedImage");
+            ExcelSheet sheet = document.AddWorksheet("unsupported-image");
             sheet.CellValue(1, 1, "Visible");
             sheet.AddImage(12, 8, CreateMinimalJpegHeader(), "image/jpeg", widthPixels: 64, heightPixels: 32, name: "JpegOutside");
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
-            ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions { ShowGridlines = false });
 
-            Assert.Equal("UnsupportedImage!A1:H13", png.Source);
+            Assert.Equal("unsupported-image!A1:H13", png.Source);
             Assert.Equal("A1:H13", snapshot.Range);
             Assert.Contains(
                 png.Diagnostics,
                 diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted
-                    && diagnostic.Source == "UnsupportedImage!JpegOutside");
+                    && diagnostic.Source == "unsupported-image!JpegOutside");
             Assert.Contains(snapshot.Images, image => image.Name == "JpegOutside" && image.DetectedFormat == OfficeImageFormat.Jpeg);
         }
 
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
             sheet.MergeRange("A1:B1");
             sheet.AddConditionalRule("A1:B1", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualCell origin = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal("FFC6EFCE", origin.Style.FillColorArgb);

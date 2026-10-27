@@ -15,11 +15,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlFlexPdf_ColumnStructureContainsLaterParagraphBeforeEarlierPaintedCaption(
         string containerStyle, string primaryStyle = "", string sidebarStyle = "") {
         string html = CreateFlexLogicalOrderFixture(containerStyle, primaryStyle, sidebarStyle);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             AutoFitWidePrintContent = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        });
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(pdf);
+        })).ToBytes();
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Equal(2, document.Pages.Count);
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         PdfCore.PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, item => item.StructureType == "Sect");
@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 400px;margin:10px}body,p{margin:0;font:14px/20px Arial}.row{display:flex}.later{order:-1}</style>"
             + "<section><div class='row'><p>FirstRowOne</p><p class='later'>FirstRowTwo</p></div>"
             + "<div class='row'><p>SecondRowOne</p><p class='later'>SecondRowTwo</p></div></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         var elements = tagged.StructureElements.ToDictionary(item => item.ObjectNumber);
         PdfCore.PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, item => item.StructureType == "Sect");
@@ -68,8 +68,8 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 180px;margin:10px}body,p,table,td,th{margin:0;font:14px/20px Arial}table{border-spacing:0}td,th{padding:0}</style>"
             + "<section style='display:flex;align-items:flex-start'><div style='width:240px;flex-shrink:0'>"
             + tableHtml + "</div><div style='width:100px;flex-shrink:0'><p>Sidebar</p></div></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(pdf);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.True(document.Pages.Count >= 3);
         Assert.Contains("Header", document.Pages[1].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Footer", document.Pages[1].ExtractText(), StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 400px;margin:10px}body,p{margin:0;font:14px/20px Arial}</style>"
             + "<main style='display:flex'><section style='display:contents'><p>First</p><p>Second</p></section>"
             + "<div style='-officeimo-pdf-tag-type:artifact'>Decoration</div></main>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         var elements = tagged.StructureElements.ToDictionary(item => item.ObjectNumber);
         PdfCore.PdfStructureElementInfo main = Assert.Single(tagged.StructureElements,
@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
         if (nested) contents = "<section style='display:contents'>" + contents + "</section>";
         string html = "<main style='display:flex'><" + tag + " style='display:contents'>" + contents
             + "</" + tag + "><div style='order:-1'>Third</div></main>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         var elements = tagged.StructureElements.ToDictionary(item => item.ObjectNumber);
         PdfCore.PdfStructureElementInfo document = Assert.Single(tagged.StructureElements, item => item.StructureType == "Document");

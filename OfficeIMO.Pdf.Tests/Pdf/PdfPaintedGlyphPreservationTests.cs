@@ -70,7 +70,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true, ArabicVisual)]
     public void PositionedPdfOutputPreservesPaintedGlyphsAcrossFormattingCopies(bool named, string visualText) {
         byte[] data = CreateDirectionalFont();
-        var options = new PdfOptions().UseManagedTextShaping();
+        var options = new PdfCreateOptions().UseManagedTextShaping();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
         PdfTextRun run = new PdfTextRun(visualText, fontSize: 12D, fontFamily: named ? "Painted" : null)
@@ -104,7 +104,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true, ArabicVisual, true)]
     public void PreflightHonorsPaintedGlyphOwnershipAndRetainsLogicalWarnings(bool named, string text, bool preservesPaintedGlyphs) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+        var options = new PdfCreateOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
             .ReportDiagnosticsTo(report);
         byte[] data = CreateDirectionalFont();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
@@ -119,7 +119,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
         if (preservesPaintedGlyphs) report.RequireNoLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
 
-        Assert.NotEmpty(document.ToBytes());
+        Assert.NotEmpty(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         if (preservesPaintedGlyphs) report.RequireNoLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
     }
@@ -129,7 +129,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true)]
     public void PaintedGlyphPreflightStillRejectsMissingFontGlyphs(bool named) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+        var options = new PdfCreateOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
             .ReportDiagnosticsTo(report);
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A');
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));

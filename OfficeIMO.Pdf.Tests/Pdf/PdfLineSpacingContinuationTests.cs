@@ -61,7 +61,7 @@ public sealed class PdfLineSpacingContinuationTests {
         Assert.Equal(expected, first.StartBaseLine.Y - other.StartBaseLine.Y, 3);
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 400, PageHeight = 400, DefaultFontSize = 12,
         MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30
     };

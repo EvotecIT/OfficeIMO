@@ -98,7 +98,7 @@ internal static partial class PdfTextExtractor {
     /// <summary>Extracts logical Markdown from all pages.</summary>
     public static string ExtractMarkdown(string path, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return PdfDocumentReadResult.Load(path, options).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.Load(path, options).ExtractMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from all pages and writes UTF-8 Markdown to <paramref name="outputStream"/>.</summary>
@@ -140,90 +140,90 @@ internal static partial class PdfTextExtractor {
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges and concatenates selected pages with Markdown page separators.</summary>
     public static string ExtractMarkdownByPageRangesAsDocument(string path, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return PdfDocumentReadResult.LoadPageRanges(path, options, pageRanges).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.LoadPageRanges(path, options, pageRanges).ExtractMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts structured content for each page, including detected lines, lists, leader rows, and simple tables.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(string path, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return PdfReadDocument.Open(path).ExtractStructuredPages(options);
     }
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(string path, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPageRanges(string path, params PdfPageRange[] pageRanges) {
         return ExtractStructuredByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractStructuredByPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
     
     /// <summary>Extracts detected paragraphs grouped by page while preserving paragraph geometry.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPage(string path, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return PdfReadDocument.Open(path).ExtractParagraphsByPage(options);
     }
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPageRanges(string path, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPageRanges(string path, params PdfPageRange[] pageRanges) {
         return ExtractParagraphsByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractParagraphsByPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
     
     /// <summary>Extracts detected headings grouped by page while preserving heading geometry.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPage(string path, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return PdfReadDocument.Open(path).ExtractHeadingsByPage(options);
     }
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPageRanges(string path, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPageRanges(string path, params PdfPageRange[] pageRanges) {
         return ExtractHeadingsByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractHeadingsByPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
     
     /// <summary>Extracts detected list items grouped by page while preserving marker and nesting hints.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(string path, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return PdfReadDocument.Open(path).ExtractListItemsByPage(options);
     }
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(string path, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPageRanges(string path, params PdfPageRange[] pageRanges) {
         return ExtractListItemsByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractListItemsByPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
     
     /// <summary>Extracts detected tables grouped by page while preserving table geometry.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(string path, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return PdfReadDocument.Open(path).ExtractTablesByPage(options);
     }
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(string path, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPageRanges(string path, params PdfPageRange[] pageRanges) {
         return ExtractTablesByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractTablesByPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }

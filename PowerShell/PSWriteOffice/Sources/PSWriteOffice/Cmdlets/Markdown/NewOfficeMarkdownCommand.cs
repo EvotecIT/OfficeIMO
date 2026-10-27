@@ -30,7 +30,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeMarkdown", SupportsShouldProcess = true)]
 [Alias("OfficeMarkdown", "MarkdownNew")]
-[OutputType(typeof(FileInfo), typeof(MarkdownDoc))]
+[OutputType(typeof(FileInfo), typeof(MarkdownDocument))]
 public sealed class NewOfficeMarkdownCommand : PSCmdlet
     , IMarkdownWriteOptionSource {
     /// <summary>Destination path for the Markdown file.</summary>
@@ -52,7 +52,7 @@ public sealed class NewOfficeMarkdownCommand : PSCmdlet
 
     /// <summary>Optional Markdown writer options.</summary>
     [Parameter]
-    public MarkdownWriteOptions? WriteOptions { get; set; }
+    public MarkdownSaveOptions? WriteOptions { get; set; }
 
     /// <summary>Friendly Markdown writer profile.</summary>
     [Parameter]
@@ -78,7 +78,7 @@ public sealed class NewOfficeMarkdownCommand : PSCmdlet
             return;
         }
 
-        var document = MarkdownDoc.Create();
+        var document = MarkdownDocument.Create();
         if (Content != null) {
             using (MarkdownDslContext.Enter(document)) {
                 Content.InvokeReturnAsIs();

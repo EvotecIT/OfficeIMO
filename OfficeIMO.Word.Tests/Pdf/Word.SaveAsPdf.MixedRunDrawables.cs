@@ -38,7 +38,7 @@ public partial class Word {
         sourceRun.Append(new W.Text("AfterDrawable"));
         document.Save();
         string sourceXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(sourceXml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));

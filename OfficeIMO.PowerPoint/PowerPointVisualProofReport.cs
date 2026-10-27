@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Structural, extraction, accessibility, and visual evidence for one slide.</summary>
     public sealed class PowerPointVisualSlideProof {
         internal PowerPointVisualSlideProof(int slideNumber, int shapeCount, string extractedText,
-            PowerPointSlideVisualSnapshot snapshot, byte[] png, byte[] svg,
+            PowerPointSlideVisualInfo snapshot, byte[] png, byte[] svg,
             int accessibilityErrors, int accessibilityWarnings) {
             SlideNumber = slideNumber;
             ShapeCount = shapeCount;
@@ -251,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
             var slides = new List<PowerPointVisualSlideProof>(_slides.Count);
             for (int index = 0; index < _slides.Count; index++) {
                 PowerPointSlide slide = _slides[index];
-                PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(
                     new PowerPointImageExportOptions { IncludeHiddenShapes = true });
                 byte[] png = OfficeDrawingRasterRenderer.ToPng(snapshot.Drawing);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(snapshot.Drawing);

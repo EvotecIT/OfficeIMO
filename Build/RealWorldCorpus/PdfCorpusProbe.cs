@@ -11,7 +11,7 @@ internal static class PdfCorpusProbe {
         PdfDocumentInfo? documentInfo = null;
 
         Measure(stages, "inspect", () => {
-            document = PdfDocument.Load(snapshot);
+            document = PdfDocument.Load(new System.IO.MemoryStream(snapshot));
             documentInfo = document.Inspect();
             evidence.PageCount = documentInfo.PageCount;
         });

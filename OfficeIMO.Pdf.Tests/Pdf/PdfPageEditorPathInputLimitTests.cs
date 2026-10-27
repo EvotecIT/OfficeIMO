@@ -21,7 +21,7 @@ public class PdfPageEditorPathInputLimitTests {
                 input => PdfPageEditor.MovePages(input, 1, 1),
                 input => PdfPageEditor.ReorderPages(input, 1),
                 input => PdfPageEditor.RotatePages(input, 90, 1),
-                input => PdfPageEditor.ResizePages(input, new PageSize(612, 792), 1),
+                input => PdfPageEditor.ResizePages(input, new PdfPageSize(612, 792), 1),
                 input => PdfPageEditor.SetPageBox(input, "TrimBox", 0, 0, 612, 792, 1)
             };
             foreach (Action<string> route in routes) {

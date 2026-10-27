@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static bool TryCreateRubyNode(IDocument htmlDoc, WordParagraph run, WordToHtmlOptions options, out INode node) {
+        private static bool TryCreateRubyNode(IDocument htmlDoc, WordParagraph run, WordHtmlExportOptions options, out INode node) {
             node = htmlDoc.CreateTextNode(string.Empty);
             var ruby = run._run?.Elements<Ruby>().FirstOrDefault();
             if (ruby == null) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement target,
             OpenXmlCompositeElement? source,
-            WordToHtmlOptions options) {
+            WordHtmlExportOptions options) {
             foreach (Run run in source?.Elements<Run>() ?? Enumerable.Empty<Run>()) {
                 INode node = htmlDoc.CreateTextNode(run.InnerText);
                 RunProperties? properties = run.RunProperties;
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Html {
                         span.AppendChild(node);
                         node = span;
                         if (!IsExactCssUnderline(wordUnderline)) {
-                            AddWordTextStyleApproximation(options, "WordUnderlineStyleApproximated", "Word underline style '" + wordUnderline + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.", "word:ruby-run");
+                            AddWordTextStyleApproximation(options, "word-underline-style-approximated", "Word underline style '" + wordUnderline + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.", "word:ruby-run");
                         }
                     }
                 }

@@ -65,7 +65,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedWrappedAndRowColumnHeadingLinks() {
-        var wrappedOptions = new PdfOptions {
+        var wrappedOptions = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -92,7 +92,7 @@ public partial class PdfInspectorTests {
             Assert.True(link.Height > 0);
         });
 
-        byte[] rowBytes = PdfDocument.Create(new PdfOptions {
+        byte[] rowBytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             })
@@ -117,7 +117,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedImageLinks() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -148,7 +148,7 @@ public partial class PdfInspectorTests {
         var drawing = new OfficeDrawing(60, 30)
             .AddShape(OfficeShape.Rectangle(60, 30), 0, 0);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -187,7 +187,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedConvenienceVectorLinks() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -216,7 +216,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Preflight_AllowsGeneratedBookmarkNamedDestinationsForReadAndRewrite() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -248,7 +248,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedBookmarkLinksAsNamedDestinationLinks() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 220,
                 MarginLeft = 30,

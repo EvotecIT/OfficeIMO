@@ -7,8 +7,8 @@ internal static partial class PdfWriter {
         FreeTextAnnotation annotation,
         double width,
         double height,
-        PdfOptions pageOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions pageOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         Guard.NotNull(annotation, nameof(annotation));
         Guard.NotNull(pageOptions, nameof(pageOptions));
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static bool CanEncodeFreeTextAppearanceLine(IReadOnlyList<RichSeg> line, PdfOptions pageOptions) {
+    private static bool CanEncodeFreeTextAppearanceLine(IReadOnlyList<RichSeg> line, PdfCreateOptions pageOptions) {
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
             if (segment.LeadingSpace && !CanEncodeAppearanceText(" ", segment.Font, pageOptions)) {
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool CanEncodeAppearanceText(string text, PdfStandardFont font, PdfOptions pageOptions) {
+    private static bool CanEncodeAppearanceText(string text, PdfStandardFont font, PdfCreateOptions pageOptions) {
         if (text.Length == 0) {
             return true;
         }
@@ -132,8 +132,8 @@ internal static partial class PdfWriter {
         double x,
         double y,
         PdfColor defaultTextColor,
-        PdfOptions pageOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions pageOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         double xCursor = 0D;
         for (int index = 0; index < line.Count; index++) {
@@ -185,7 +185,7 @@ internal static partial class PdfWriter {
         string text,
         PdfStandardFont font,
         PdfColor color,
-        PdfOptions pageOptions) {
+        PdfCreateOptions pageOptions) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
             .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font));
@@ -200,7 +200,7 @@ internal static partial class PdfWriter {
             .EndText();
     }
 
-    private static string GetFreeTextAppearanceFontResourceName(PdfStandardFont font, PdfOptions pageOptions) =>
+    private static string GetFreeTextAppearanceFontResourceName(PdfStandardFont font, PdfCreateOptions pageOptions) =>
         font == PdfStandardFont.Helvetica
             ? "Helv"
             : GetStandardFontResourceName(font, ChooseNormal(pageOptions.DefaultFont));

@@ -57,10 +57,10 @@ public sealed class OpenDocumentConversionContracts {
         roundTrip.AddParagraph("Detached conversion remains editable");
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
-        WordDocumentSnapshot snapshot = roundTrip.CreateInspectionSnapshot();
-        Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>(),
+        WordDocumentInfo snapshot = roundTrip.Inspect();
+        Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>(),
             paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
-        Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements), block => block is WordTableSnapshot);
+        Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements), block => block is WordTableInfo);
     }
 
     [Fact]
@@ -106,9 +106,9 @@ public sealed class OpenDocumentConversionContracts {
 
         OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
         using WordDocument roundTrip = toWord.Value;
-        WordParagraphSnapshot converted = Assert.Single(roundTrip.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
-        WordRunSnapshot run = Assert.Single(converted.Runs);
+        WordParagraphInfo converted = Assert.Single(roundTrip.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
+        WordRunInfo run = Assert.Single(converted.Runs);
 
         Assert.Equal("Center", converted.Alignment);
         Assert.Equal(18, converted.IndentStartPoints!.Value, 3);
@@ -151,8 +151,8 @@ public sealed class OpenDocumentConversionContracts {
 
         OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("Before bold between link after", converted.Text);
         Assert.Equal(new[] { "Before ", "bold", " between ", "link", " after" },
@@ -192,8 +192,8 @@ public sealed class OpenDocumentConversionContracts {
         OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
         using WordDocument converted = conversion.Value;
         using WordDocument target = WordDocument.Load(new MemoryStream(converted.ToBytes()));
-        WordParagraphSnapshot output = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo output = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         Assert.Equal(new[] { "Outer ", "inner", " linked", "Another ", "styled", " end" },
             output.Runs.Select(run => run.Text));
         Assert.True(output.Runs[0].Bold);
@@ -233,8 +233,8 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Null(nested.BackgroundColor);
         OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordRunSnapshot[] runs = target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+        WordRunInfo[] runs = target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .Single().Runs.ToArray();
         Assert.Equal("Yellow", runs[0].HighlightColor);
         Assert.Null(runs[1].HighlightColor);
@@ -312,8 +312,8 @@ public sealed class OpenDocumentConversionContracts {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         using var packageStream = new MemoryStream(target.ToBytes());
         using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
             DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(packageStream, false);
@@ -344,8 +344,8 @@ public sealed class OpenDocumentConversionContracts {
 
         OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         int imageIndex = converted.Runs.ToList().FindIndex(run => run.InlineImage != null);
         Assert.True(imageIndex > 0 && imageIndex < converted.Runs.Count - 1);
@@ -383,7 +383,7 @@ public sealed class OpenDocumentConversionContracts {
         using ExcelDocument roundTrip = toExcel.Value;
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
-        ExcelWorksheetSnapshot snapshot = Assert.Single(roundTrip.CreateInspectionSnapshot().Worksheets);
+        ExcelWorksheetInfo snapshot = Assert.Single(roundTrip.Inspect().Worksheets);
         Assert.Contains(snapshot.Cells, cell => cell.Row == 2 && cell.Column == 1 && Convert.ToDecimal(cell.Value) == 12.5m);
         Assert.Contains(snapshot.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Formula != null);
         Assert.Contains(snapshot.MergedRanges, merge => merge.A1Range == "A4:B4");

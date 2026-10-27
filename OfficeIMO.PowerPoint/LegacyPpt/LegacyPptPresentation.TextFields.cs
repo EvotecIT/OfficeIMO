@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     || !positions.Add(field.Position)) {
                     isMalformed = true;
                     if (options.ReportUnsupportedContent) {
-                        AddDiagnostic("PPT-TEXT-FIELD-MALFORMED",
+                        AddDiagnostic("ppt-text-field-malformed",
                             LegacyPptDiagnosticSeverity.Warning,
                             "A dynamic text-field metacharacter is malformed, overlaps another field, or points outside its text body.",
                             record.Offset);

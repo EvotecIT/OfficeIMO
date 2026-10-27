@@ -37,7 +37,7 @@ public partial class Word {
         if (!derivedStyle) table.StyleDetails!.TableIndentationWidth = 0;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Explicit zero indentation";
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable reloaded = Assert.Single(reopened.Tables);
         // The native zero edge may omit an optional property, but its effective indent must remain zero.
         Assert.Equal((short)0, reloaded.StyleDetails!.TableIndentationWidth.GetValueOrDefault());

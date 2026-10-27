@@ -24,7 +24,7 @@ internal static partial class PdfRedactionPlanner {
         }
         if (areas.Count == 0) {
             PdfDiagnosticFinding[] findings = selectionFindings.Count > 0 ? selectionFindings.ToArray() : new[] {
-                new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "RedactionSearchNoMatches", "No native text or form widgets matched the requested criteria.")
+                new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "redaction-search-no-matches", "No native text or form widgets matched the requested criteria.")
             };
             return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), areas.AsReadOnly(),
                 Array.Empty<PdfRedactionMatch>(), findings, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf),

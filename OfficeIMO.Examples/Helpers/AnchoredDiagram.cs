@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Utils {
     internal static class AnchoredDiagram {

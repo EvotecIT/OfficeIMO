@@ -124,10 +124,10 @@ public sealed class WordPdfJustificationPolicyTests {
         string body = main.Document.OuterXml;
         string settings = main.DocumentSettingsPart!.Settings!.OuterXml;
         string? notes = main.FootnotesPart?.Footnotes?.OuterXml;
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(300, 320),
-            Margins = PageMargins.Uniform(30),
+            PageSize = new PdfPageSize(300, 320),
+            Margins = PdfPageMargins.Uniform(30),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal(body, main.Document.OuterXml);

@@ -27,7 +27,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
 
         Font font = imported.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal(expectedPoints, font.FontSize!.Val!.Value, 6);
-        Assert.Equal("Visible cell", imported.CreateInspectionSnapshot().Worksheets[0].Cells.Single().Value);
+        Assert.Equal("Visible cell", imported.Inspect().Worksheets[0].Cells.Single().Value);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         Assert.Equal(14D, restored.FontSize!.Val!.Value);
         Assert.NotNull(restored.Bold);
         Assert.NotNull(restored.Italic);
-        var cellStyle = roundTrip.CreateInspectionSnapshot().Worksheets[0].Cells.Single().Style!;
+        var cellStyle = roundTrip.Inspect().Worksheets[0].Cells.Single().Style!;
         Assert.Equal("Cell Face", cellStyle.FontName);
         Assert.False(cellStyle.Bold);
         Assert.False(cellStyle.Italic);

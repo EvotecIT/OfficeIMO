@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight chart snapshot that consumers can render without depending on Excel or Open XML chart internals.
     /// </summary>
-    public sealed class ExcelChartSnapshot {
-        internal ExcelChartSnapshot(
+    public sealed class ExcelChartInfo {
+        internal ExcelChartInfo(
             string name,
             string? title,
             ExcelChartType chartType,

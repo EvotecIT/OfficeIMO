@@ -74,8 +74,8 @@ namespace OfficeIMO.Examples.Pdf {
             }
         }
 
-        private static PdfOptions StandardOptions(string header) {
-            return new PdfOptions {
+        private static PdfCreateOptions StandardOptions(string header) {
+            return new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

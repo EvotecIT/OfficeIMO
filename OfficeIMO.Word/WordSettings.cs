@@ -503,11 +503,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Sets the background color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
         /// <param name="backgroundColor">Color value.</param>
         /// <returns>The current <see cref="WordSettings"/> instance.</returns>
-        public WordSettings SetBackgroundColor(OfficeIMO.Drawing.OfficeColor backgroundColor) {
+        public WordSettings SetBackgroundColor(OfficeIMO.OfficeColor backgroundColor) {
             BackgroundColor = backgroundColor.ToRgbHex();
             return this;
         }

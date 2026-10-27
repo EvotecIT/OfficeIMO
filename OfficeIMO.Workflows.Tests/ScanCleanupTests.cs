@@ -36,7 +36,7 @@ public sealed class ScanCleanupTests {
                 InputPath = sourceLocation,
                 InputStream = new("source.pdf", _ => Task.FromResult<Stream>(new MemoryStream(source))),
                 OutputPath = deferred ? "content://scan/folder" : sourceLocation,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputStream = new("copy.pdf", _ => Task.FromResult<Stream>(new MemoryStream(source)),
                     _ => { writes++; return Task.FromResult<Stream>(new MemoryStream()); }, recovery,
                     deferred ? _ => Task.FromResult(sourceLocation) : null),
@@ -76,7 +76,7 @@ public sealed class ScanCleanupTests {
                 Operation = OfficeWorkflowOperation.ScanCleanup,
                 InputPath = input,
                 OutputPath = input,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 ScanCleanup = settings
             };
             Assert.NotEqual(OfficeWorkflowStatus.Completed, (await new OfficeWorkflowRunner().RunAsync(overwrite)).Status);

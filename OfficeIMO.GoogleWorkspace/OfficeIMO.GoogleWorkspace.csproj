@@ -6,7 +6,7 @@
         <AssemblyTitle>OfficeIMO.GoogleWorkspace</AssemblyTitle>
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -40,10 +40,6 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
         <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
     </ItemGroup>
@@ -65,4 +61,7 @@
         <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
     </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
 </Project>

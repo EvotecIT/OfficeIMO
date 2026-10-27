@@ -17,6 +17,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string HeadersFootersOmitted = "headers-footers-omitted";
     /// <summary>Stable code: <c>heading-font-tier</c>.</summary>
     public const string HeadingFontTier = "heading-font-tier";
+    /// <summary>Stable code: <c>html-block-as-text</c>.</summary>
+    public const string HtmlBlockAsText = "html-block-as-text";
     /// <summary>Stable code: <c>html-comment-skipped</c>.</summary>
     public const string HtmlCommentSkipped = "html-comment-skipped";
     /// <summary>Stable code: <c>html-element-skipped</c>.</summary>
@@ -31,16 +33,28 @@ public static partial class OfficeDiagnosticCodes {
     public const string HtmlStylesheetLinkMissingHref = "html-stylesheet-link-missing-href";
     /// <summary>Stable code: <c>html-stylesheet-link-skipped</c>.</summary>
     public const string HtmlStylesheetLinkSkipped = "html-stylesheet-link-skipped";
+    /// <summary>Stable code: <c>image-blend-mode-approximated</c>.</summary>
+    public const string ImageBlendModeApproximated = "image-blend-mode-approximated";
+    /// <summary>Stable code: <c>image-clip-not-safely-editable</c>.</summary>
+    public const string ImageClipNotSafelyEditable = "image-clip-not-safely-editable";
     /// <summary>Stable code: <c>image-content-type-rejected</c>.</summary>
     public const string ImageContentTypeRejected = "image-content-type-rejected";
+    /// <summary>Stable code: <c>image-data-too-large</c>.</summary>
+    public const string ImageDataTooLarge = "image-data-too-large";
+    /// <summary>Stable code: <c>image-data-unavailable</c>.</summary>
+    public const string ImageDataUnavailable = "image-data-unavailable";
     /// <summary>Stable code: <c>image-data-uri-invalid</c>.</summary>
     public const string ImageDataUriInvalid = "image-data-uri-invalid";
     /// <summary>Stable code: <c>image-data-uri-unsupported</c>.</summary>
     public const string ImageDataUriUnsupported = "image-data-uri-unsupported";
+    /// <summary>Stable code: <c>image-decode-not-safely-editable</c>.</summary>
+    public const string ImageDecodeNotSafelyEditable = "image-decode-not-safely-editable";
     /// <summary>Stable code: <c>image-link-skipped</c>.</summary>
     public const string ImageLinkSkipped = "image-link-skipped";
     /// <summary>Stable code: <c>image-load-failed</c>.</summary>
     public const string ImageLoadFailed = "image-load-failed";
+    /// <summary>Stable code: <c>image-opacity-mapped</c>.</summary>
+    public const string ImageOpacityMapped = "image-opacity-mapped";
     /// <summary>Stable code: <c>image-optimization-failed</c>.</summary>
     public const string ImageOptimizationFailed = "image-optimization-failed";
     /// <summary>Stable code: <c>image-optimization-metadata-loss</c>.</summary>
@@ -53,6 +67,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string ImageOptimizationUnsupported = "image-optimization-unsupported";
     /// <summary>Stable code: <c>image-optimized</c>.</summary>
     public const string ImageOptimized = "image-optimized";
+    /// <summary>Stable code: <c>image-page-rotation-not-safely-editable</c>.</summary>
+    public const string ImagePageRotationNotSafelyEditable = "image-page-rotation-not-safely-editable";
+    /// <summary>Stable code: <c>image-paint-effect-not-safely-editable</c>.</summary>
+    public const string ImagePaintEffectNotSafelyEditable = "image-paint-effect-not-safely-editable";
+    /// <summary>Stable code: <c>image-placement-soft-mask-not-safely-editable</c>.</summary>
+    public const string ImagePlacementSoftMaskNotSafelyEditable = "image-placement-soft-mask-not-safely-editable";
     /// <summary>Stable code: <c>image-region-caption-proximity</c>.</summary>
     public const string ImageRegionCaptionProximity = "image-region-caption-proximity";
     /// <summary>Stable code: <c>image-region-marked-content</c>.</summary>
@@ -73,6 +93,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string ImageResourceTooLarge = "image-resource-too-large";
     /// <summary>Stable code: <c>image-skipped-by-policy</c>.</summary>
     public const string ImageSkippedByPolicy = "image-skipped-by-policy";
+    /// <summary>Stable code: <c>image-transform-not-safely-editable</c>.</summary>
+    public const string ImageTransformNotSafelyEditable = "image-transform-not-safely-editable";
+    /// <summary>Stable code: <c>image-transparency-mask-not-resolved</c>.</summary>
+    public const string ImageTransparencyMaskNotResolved = "image-transparency-mask-not-resolved";
+    /// <summary>Stable code: <c>image-unsupported-blend-mode-not-safely-editable</c>.</summary>
+    public const string ImageUnsupportedBlendModeNotSafelyEditable = "image-unsupported-blend-mode-not-safely-editable";
     /// <summary>Stable code: <c>incorrect-page-tree-count</c>.</summary>
     public const string IncorrectPageTreeCount = "incorrect-page-tree-count";
     /// <summary>Stable code: <c>incorrect-stream-length</c>.</summary>
@@ -99,6 +125,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string InvalidSlideBackgroundImage = "invalid-slide-background-image";
     /// <summary>Stable code: <c>invalid-start-xref</c>.</summary>
     public const string InvalidStartXref = "invalid-start-xref";
+    /// <summary>Stable code: <c>invisible-image-placement-suppressed</c>.</summary>
+    public const string InvisibleImagePlacementSuppressed = "invisible-image-placement-suppressed";
     /// <summary>Stable code: <c>invisible-outline</c>.</summary>
     public const string InvisibleOutline = "invisible-outline";
     /// <summary>Stable code: <c>large-image-stream</c>.</summary>
@@ -337,6 +365,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string NoIndirectObjects = "no-indirect-objects";
     /// <summary>Stable code: <c>no-signatures</c>.</summary>
     public const string NoSignatures = "no-signatures";
+    /// <summary>Stable code: <c>non-visible-image-placement-suppressed</c>.</summary>
+    public const string NonVisibleImagePlacementSuppressed = "non-visible-image-placement-suppressed";
     /// <summary>Stable code: <c>object-graph-parse-failed</c>.</summary>
     public const string ObjectGraphParseFailed = "object-graph-parse-failed";
     /// <summary>Stable code: <c>occluded-outline</c>.</summary>
@@ -363,6 +393,14 @@ public static partial class OfficeDiagnosticCodes {
     public const string PackageByteLimitExceeded = "package-byte-limit-exceeded";
     /// <summary>Stable code: <c>package-signatures-omitted</c>.</summary>
     public const string PackageSignaturesOmitted = "package-signatures-omitted";
+    /// <summary>Stable code: <c>page-appearance-browser-fonts</c>.</summary>
+    public const string PageAppearanceBrowserFonts = "page-appearance-browser-fonts";
+    /// <summary>Stable code: <c>page-appearance-image-fallback</c>.</summary>
+    public const string PageAppearanceImageFallback = "page-appearance-image-fallback";
+    /// <summary>Stable code: <c>page-appearance-unaccounted-image-omitted</c>.</summary>
+    public const string PageAppearanceUnaccountedImageOmitted = "page-appearance-unaccounted-image-omitted";
+    /// <summary>Stable code: <c>page-appearance-unsafe-image-fallback</c>.</summary>
+    public const string PageAppearanceUnsafeImageFallback = "page-appearance-unsafe-image-fallback";
     /// <summary>Stable code: <c>paragraph-canvas-clip-paint-clipped</c>.</summary>
     public const string ParagraphCanvasClipPaintClipped = "paragraph-canvas-clip-paint-clipped";
     /// <summary>Stable code: <c>paragraph-page-bounds-paint-clipped</c>.</summary>
@@ -381,14 +419,20 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfAnnotationsNotEditable = "pdf-annotations-not-editable";
     /// <summary>Stable code: <c>pdf-annotations-not-reconstructed</c>.</summary>
     public const string PdfAnnotationsNotReconstructed = "pdf-annotations-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-annotations-omitted</c>.</summary>
+    public const string PdfAnnotationsOmitted = "pdf-annotations-omitted";
     /// <summary>Stable code: <c>pdf-attachments-not-reconstructed</c>.</summary>
     public const string PdfAttachmentsNotReconstructed = "pdf-attachments-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-attachments-omitted</c>.</summary>
+    public const string PdfAttachmentsOmitted = "pdf-attachments-omitted";
     /// <summary>Stable code: <c>pdf-catalog-actions-not-reconstructed</c>.</summary>
     public const string PdfCatalogActionsNotReconstructed = "pdf-catalog-actions-not-reconstructed";
     /// <summary>Stable code: <c>pdf-conversion-warning</c>.</summary>
     public const string PdfConversionWarning = "pdf-conversion-warning";
     /// <summary>Stable code: <c>pdf-document-actions-not-reconstructed</c>.</summary>
     public const string PdfDocumentActionsNotReconstructed = "pdf-document-actions-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-document-actions-omitted</c>.</summary>
+    public const string PdfDocumentActionsOmitted = "pdf-document-actions-omitted";
     /// <summary>Stable code: <c>pdf-editable-content-reconstructed</c>.</summary>
     public const string PdfEditableContentReconstructed = "pdf-editable-content-reconstructed";
     /// <summary>Stable code: <c>pdf-editable-layout-reconstructed</c>.</summary>
@@ -401,12 +445,18 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfExcelTablesTruncated = "pdf-excel-tables-truncated";
     /// <summary>Stable code: <c>pdf-form-definitions-not-reconstructed</c>.</summary>
     public const string PdfFormDefinitionsNotReconstructed = "pdf-form-definitions-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-form-definitions-omitted</c>.</summary>
+    public const string PdfFormDefinitionsOmitted = "pdf-form-definitions-omitted";
     /// <summary>Stable code: <c>pdf-form-widget-placeholder</c>.</summary>
     public const string PdfFormWidgetPlaceholder = "pdf-form-widget-placeholder";
     /// <summary>Stable code: <c>pdf-form-widget-skipped</c>.</summary>
     public const string PdfFormWidgetSkipped = "pdf-form-widget-skipped";
+    /// <summary>Stable code: <c>pdf-form-widgets-flattened</c>.</summary>
+    public const string PdfFormWidgetsFlattened = "pdf-form-widgets-flattened";
     /// <summary>Stable code: <c>pdf-form-widgets-not-reconstructed</c>.</summary>
     public const string PdfFormWidgetsNotReconstructed = "pdf-form-widgets-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-form-widgets-omitted</c>.</summary>
+    public const string PdfFormWidgetsOmitted = "pdf-form-widgets-omitted";
     /// <summary>Stable code: <c>pdf-forms-and-controls-not-editable</c>.</summary>
     public const string PdfFormsAndControlsNotEditable = "pdf-forms-and-controls-not-editable";
     /// <summary>Stable code: <c>pdf-forms-not-reconstructed</c>.</summary>
@@ -431,6 +481,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfImageOpacityMapped = "pdf-image-opacity-mapped";
     /// <summary>Stable code: <c>pdf-image-paint-effect-not-safely-editable</c>.</summary>
     public const string PdfImagePaintEffectNotSafelyEditable = "pdf-image-paint-effect-not-safely-editable";
+    /// <summary>Stable code: <c>pdf-image-pixels-omitted</c>.</summary>
+    public const string PdfImagePixelsOmitted = "pdf-image-pixels-omitted";
     /// <summary>Stable code: <c>pdf-image-placeholder</c>.</summary>
     public const string PdfImagePlaceholder = "pdf-image-placeholder";
     /// <summary>Stable code: <c>pdf-image-placement-soft-mask-not-safely-editable</c>.</summary>
@@ -449,6 +501,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfImagesNotEditable = "pdf-images-not-editable";
     /// <summary>Stable code: <c>pdf-images-not-reconstructed</c>.</summary>
     public const string PdfImagesNotReconstructed = "pdf-images-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-images-omitted</c>.</summary>
+    public const string PdfImagesOmitted = "pdf-images-omitted";
     /// <summary>Stable code: <c>pdf-internal-link-not-reconstructed</c>.</summary>
     public const string PdfInternalLinkNotReconstructed = "pdf-internal-link-not-reconstructed";
     /// <summary>Stable code: <c>pdf-internal-link-reconstructed</c>.</summary>
@@ -461,6 +515,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfLinkActionsNotReconstructed = "pdf-link-actions-not-reconstructed";
     /// <summary>Stable code: <c>pdf-link-annotation-not-reconstructed</c>.</summary>
     public const string PdfLinkAnnotationNotReconstructed = "pdf-link-annotation-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-link-annotations-omitted</c>.</summary>
+    public const string PdfLinkAnnotationsOmitted = "pdf-link-annotations-omitted";
     /// <summary>Stable code: <c>pdf-links-not-reconstructed</c>.</summary>
     public const string PdfLinksNotReconstructed = "pdf-links-not-reconstructed";
     /// <summary>Stable code: <c>pdf-lists-not-imported</c>.</summary>
@@ -469,6 +525,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfMetadataNotImported = "pdf-metadata-not-imported";
     /// <summary>Stable code: <c>pdf-metadata-not-reconstructed</c>.</summary>
     public const string PdfMetadataNotReconstructed = "pdf-metadata-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-metadata-omitted</c>.</summary>
+    public const string PdfMetadataOmitted = "pdf-metadata-omitted";
     /// <summary>Stable code: <c>pdf-navigation-not-editable</c>.</summary>
     public const string PdfNavigationNotEditable = "pdf-navigation-not-editable";
     /// <summary>Stable code: <c>pdf-navigation-not-reconstructed</c>.</summary>
@@ -483,6 +541,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfOutlineHierarchyNotReconstructed = "pdf-outline-hierarchy-not-reconstructed";
     /// <summary>Stable code: <c>pdf-outlines-not-reconstructed</c>.</summary>
     public const string PdfOutlinesNotReconstructed = "pdf-outlines-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-outlines-omitted</c>.</summary>
+    public const string PdfOutlinesOmitted = "pdf-outlines-omitted";
+    /// <summary>Stable code: <c>pdf-output-compressed</c>.</summary>
+    public const string PdfOutputCompressed = "pdf-output-compressed";
     /// <summary>Stable code: <c>pdf-page-actions-not-reconstructed</c>.</summary>
     public const string PdfPageActionsNotReconstructed = "pdf-page-actions-not-reconstructed";
     /// <summary>Stable code: <c>pdf-page-labels-not-reconstructed</c>.</summary>
@@ -531,6 +593,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfProjectionVisioPreviewOmitted = "pdf-projection-visio-preview-omitted";
     /// <summary>Stable code: <c>pdf-projection-visio-semantic-fallback</c>.</summary>
     public const string PdfProjectionVisioSemanticFallback = "pdf-projection-visio-semantic-fallback";
+    /// <summary>Stable code: <c>pdf-semantic-layout-reflowed</c>.</summary>
+    public const string PdfSemanticLayoutReflowed = "pdf-semantic-layout-reflowed";
     /// <summary>Stable code: <c>pdf-source-page-size-not-applied</c>.</summary>
     public const string PdfSourcePageSizeNotApplied = "pdf-source-page-size-not-applied";
     /// <summary>Stable code: <c>pdf-source-security-not-reconstructed</c>.</summary>
@@ -543,6 +607,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfTablesNotImported = "pdf-tables-not-imported";
     /// <summary>Stable code: <c>pdf-tagged-structure-not-reconstructed</c>.</summary>
     public const string PdfTaggedStructureNotReconstructed = "pdf-tagged-structure-not-reconstructed";
+    /// <summary>Stable code: <c>pdf-tagged-structure-omitted</c>.</summary>
+    public const string PdfTaggedStructureOmitted = "pdf-tagged-structure-omitted";
     /// <summary>Stable code: <c>pdf-text-content-not-imported</c>.</summary>
     public const string PdfTextContentNotImported = "pdf-text-content-not-imported";
     /// <summary>Stable code: <c>pdf-text-not-editable</c>.</summary>
@@ -557,6 +623,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfUriLinkSkipped = "pdf-uri-link-skipped";
     /// <summary>Stable code: <c>pdf-uri-link-skipped-unsafe</c>.</summary>
     public const string PdfUriLinkSkippedUnsafe = "pdf-uri-link-skipped-unsafe";
+    /// <summary>Stable code: <c>pdf-vector-appearance-omitted</c>.</summary>
+    public const string PdfVectorAppearanceOmitted = "pdf-vector-appearance-omitted";
     /// <summary>Stable code: <c>pdf-vector-graphics-reconstructed-semantically</c>.</summary>
     public const string PdfVectorGraphicsReconstructedSemantically = "pdf-vector-graphics-reconstructed-semantically";
     /// <summary>Stable code: <c>pdf-vectors-not-editable</c>.</summary>
@@ -569,6 +637,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PictureAspectDistortion = "picture-aspect-distortion";
     /// <summary>Stable code: <c>picture-bullet-text-fallback</c>.</summary>
     public const string PictureBulletTextFallback = "picture-bullet-text-fallback";
+    /// <summary>Stable code: <c>positioned-font-substitution</c>.</summary>
+    public const string PositionedFontSubstitution = "positioned-font-substitution";
     /// <summary>Stable code: <c>power-point-destination-feature-unsupported</c>.</summary>
     public const string PowerPointDestinationFeatureUnsupported = "power-point-destination-feature-unsupported";
     /// <summary>Stable code: <c>power-point-digital-signature-invalidated</c>.</summary>

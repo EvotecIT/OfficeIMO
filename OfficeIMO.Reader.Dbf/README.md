@@ -74,7 +74,7 @@ using (var output = File.CreateText("contacts.csv")) {
 using (var rows = DbfDataReader.Open("contacts.dbf"))
 using (var output = File.Create("contacts.xlsx")) {
     ExcelDocument.WriteDataReader(output, rows,
-        new ExcelTabularWriteOptions { RequireStreaming = true });
+        new ExcelWriterOptions { RequireStreaming = true });
 }
 ```
 

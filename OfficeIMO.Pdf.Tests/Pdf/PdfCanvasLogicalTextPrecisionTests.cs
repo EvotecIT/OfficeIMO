@@ -14,7 +14,7 @@ public class PdfCanvasLogicalTextPrecisionTests {
     [InlineData(.2214321D, true)]
     [InlineData(.0044321D, true)]
     public void BoundedActualText_FractionalHeightPreservesAuthoredAdvance(double height, bool embedded) {
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         if (embedded) {
             string path = Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf");
             Assert.True(File.Exists(path));
@@ -23,7 +23,7 @@ public class PdfCanvasLogicalTextPrecisionTests {
         byte[] bytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.ActualText("Logical marker", 10D, 20D, 50D, height,
                 paint => paint.Text("PaintOnly", 10D, 20D, 50D, 12D)))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
         PdfTextSpan span = Assert.Single(page.GetTextSpans());
         Assert.Equal("Logical marker", span.Text);

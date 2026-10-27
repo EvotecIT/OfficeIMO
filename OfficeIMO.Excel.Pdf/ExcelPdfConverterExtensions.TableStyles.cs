@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
+        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
             int exportedRows = rowIndexes.Count;
             int headerRows = Math.Min(headerRowCount, exportedRows);
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Pdf {
             return tableStyle;
         }
 
-        private static PdfCore.PdfTableStyle CreateBaseTableStyle(ExcelToPdfOptions options) {
+        private static PdfCore.PdfTableStyle CreateBaseTableStyle(ExcelPdfExportOptions options) {
             PdfCore.PdfTableStyle? configuredStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? options.PdfOptions.DefaultTableStyle
                 : null;
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.Pdf {
             };
         }
 
-        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelToPdfOptions options) {
+        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelPdfExportOptions options) {
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
             tableStyle.HeaderRowCount = 0;
             tableStyle.RepeatHeaderRowCount = null;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel.Pdf {
             return columnWidths.ApproximateWidthPoints * chunkWeight / totalWeight;
         }
 
-        private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
+        private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
             if (!IsFitToHeight(pageSetup) || rowIndexes.Count == 0) {
                 return;
             }
@@ -137,9 +137,9 @@ namespace OfficeIMO.Excel.Pdf {
             return pageSetup?.FitToHeight is uint fitToHeight && fitToHeight > 0U;
         }
 
-        private static double CalculateFitToHeightMaxHeight(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
-            PdfCore.PageSize pageSize = GetEffectivePageSize(options, pageSetup);
-            PdfCore.PageMargins margins = GetEffectiveMargins(options, pageSetup);
+        private static double CalculateFitToHeightMaxHeight(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
+            PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
+            PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
             double pageContentHeight = Math.Max(24D, pageSize.Height - margins.Top - margins.Bottom);
             uint fitToHeight = pageSetup?.FitToHeight ?? 1U;
             return pageContentHeight * Math.Max(1U, fitToHeight);
@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel.Pdf {
             return value.HasValue ? Math.Max(0D, value.Value * scale) : null;
         }
 
-        private static double GetDefaultTableFontSize(ExcelToPdfOptions options) {
+        private static double GetDefaultTableFontSize(ExcelPdfExportOptions options) {
             return options.PdfOptions?.DefaultFontSize ?? 11D;
         }
 
@@ -177,15 +177,15 @@ namespace OfficeIMO.Excel.Pdf {
             return Math.Max(0.1D, (value ?? defaultFontSize) * scale);
         }
 
-        private static double CalculateFitToWidthMaxWidth(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
-            PdfCore.PageSize pageSize = GetEffectivePageSize(options, pageSetup);
-            PdfCore.PageMargins margins = GetEffectiveMargins(options, pageSetup);
+        private static double CalculateFitToWidthMaxWidth(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
+            PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
+            PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
             return Math.Max(24D, pageSize.Width - margins.Left - margins.Right);
         }
 
-        private static PdfCore.PageSize GetEffectivePageSize(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static PdfCore.PdfPageSize GetEffectivePageSize(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.PageSize.HasValue) {
-                PdfCore.PageSize pageSize = options.PageSize.Value;
+                PdfCore.PdfPageSize pageSize = options.PageSize.Value;
                 if (pageSetup?.Orientation == OfficePageOrientation.Landscape) {
                     return pageSize.Landscape();
                 }
@@ -202,10 +202,10 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
-            return new PdfCore.PageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
+            return new PdfCore.PdfPageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
         }
 
-        private static PdfCore.PageMargins GetEffectiveMargins(ExcelToPdfOptions options, ExcelSheetPageSetup? pageSetup) {
+        private static PdfCore.PdfPageMargins GetEffectiveMargins(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             if (options.Margins.HasValue) {
                 return options.Margins.Value;
             }
@@ -214,10 +214,10 @@ namespace OfficeIMO.Excel.Pdf {
                 return ToPdfMargins(pageSetup.Margins);
             }
 
-            return PdfCore.PageMargins.Normal;
+            return PdfCore.PdfPageMargins.Normal;
         }
 
-        private static ExcelCellStyleSnapshot? GetCellStyle(ExcelCellStyleSnapshot?[,]? styles, int row, int column) {
+        private static ExcelCellStyleInfo? GetCellStyle(ExcelCellStyleInfo?[,]? styles, int row, int column) {
             if (styles == null || row >= styles.GetLength(0) || column >= styles.GetLength(1)) {
                 return null;
             }
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel.Pdf {
             return styles[row, column];
         }
 
-        private static ExcelHyperlinkSnapshot? GetHyperlink(ExcelHyperlinkSnapshot?[,]? hyperlinks, int row, int column) {
+        private static ExcelHyperlinkInfo? GetHyperlink(ExcelHyperlinkInfo?[,]? hyperlinks, int row, int column) {
             if (hyperlinks == null || row >= hyperlinks.GetLength(0) || column >= hyperlinks.GetLength(1)) {
                 return null;
             }
@@ -233,7 +233,7 @@ namespace OfficeIMO.Excel.Pdf {
             return hyperlinks[row, column];
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null && conditionalFills == null && structuredTables.Count == 0) {
                 return null;
             }
@@ -375,7 +375,7 @@ namespace OfficeIMO.Excel.Pdf {
             return paddings;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateCellAlignments(ExcelCellStyleSnapshot?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateCellAlignments(ExcelCellStyleInfo?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null) {
                 return null;
             }
@@ -401,7 +401,7 @@ namespace OfficeIMO.Excel.Pdf {
             return alignments;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>? CreateCellVerticalAlignments(ExcelCellStyleSnapshot?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>? CreateCellVerticalAlignments(ExcelCellStyleInfo?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null) {
                 return null;
             }
@@ -427,7 +427,7 @@ namespace OfficeIMO.Excel.Pdf {
             return alignments;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateCellBorders(ExcelCellStyleSnapshot?[,]? styles, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateCellBorders(ExcelCellStyleInfo?[,]? styles, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null && structuredTables.Count == 0) {
                 return null;
             }
@@ -524,7 +524,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static PdfCore.PdfCellBorder? ToPdfCellBorder(ExcelCellBorderSnapshot? border) {
+        private static PdfCore.PdfCellBorder? ToPdfCellBorder(ExcelCellBorderInfo? border) {
             if (border == null) {
                 return null;
             }
@@ -553,7 +553,7 @@ namespace OfficeIMO.Excel.Pdf {
             };
         }
 
-        private static PdfCore.PdfCellBorderSide? ToPdfCellBorderSide(ExcelBorderSideSnapshot? side) {
+        private static PdfCore.PdfCellBorderSide? ToPdfCellBorderSide(ExcelBorderSideInfo? side) {
             if (side == null) {
                 return null;
             }

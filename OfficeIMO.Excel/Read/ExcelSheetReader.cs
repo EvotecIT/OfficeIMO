@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         private readonly bool _hasSdkWorksheetPart;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
-        private readonly ExcelReadOptions _opt;
+        private readonly ExcelReaderOptions _opt;
         private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             WorksheetPart wsPart,
             SharedStringCache sst,
             StylesCacheProvider styles,
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             bool canStreamWorksheetPart,
             OpenXmlPackagePartBufferReader? partBufferReader = null) {
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
             string worksheetPartName,
             SharedStringCache sst,
             StylesCacheProvider styles,
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             OpenXmlPackagePartBufferReader partBufferReader,
             Lazy<RichValueErrorLookup>? richValueErrors = null) {
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
 
         // Native tabular readers retain the opened package snapshot. A worksheet
         // that is too large to index can still use the existing XML projection.
-        private Stream OpenDataReaderWorksheetStream(CancellationToken ct) {
+        private Stream OpenReaderWorksheetStream(CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
             if (_partBufferReader != null
                 && _partBufferReader.TryGetLength(_worksheetPartName, out long length)

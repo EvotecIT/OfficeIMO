@@ -27,7 +27,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
             formula.FormulaType = CellFormulaValues.Shared; formula.SharedIndex = 0;
             if (row == 1) formula.Reference = "B1:B3"; else formula.Text = string.Empty;
         }
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         if (crossSheet) bytes = MakePreviousWriter3dGroup(bytes);
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out _));
         Assert.Contains(BiffRecordReader.ReadRecords(compound!.Streams["Workbook"], new()), record => record.Type == 0x04bc);
@@ -60,7 +60,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         using var seed = ExcelDocument.Create();
         var data = seed.AddWorksheet("Data"); data.CellValue(1, 1, 10D);
         var calculations = seed.AddWorksheet("Calculations"); calculations.CellFormula(1, 1, "Data!A1+1");
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var document = ExcelDocument.Load(new MemoryStream(original));
         for (int iteration = 0; iteration < 3; iteration++) {
             var added = document.AddWorksheet("Added" + iteration); added.CellValue(1, 1, 20D + iteration);
@@ -107,7 +107,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D);
         sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)"); sheet.CellValue(1, 2, 5D); sheet.CellValue(2, 2, 5D);
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         foreach (bool reload in new[] { false, true }) {
             using var imported = ExcelDocument.Load(new MemoryStream(original));
             var document = reload ? imported : seed;

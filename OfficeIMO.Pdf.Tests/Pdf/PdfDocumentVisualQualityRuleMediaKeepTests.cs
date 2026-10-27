@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HorizontalRule_RendersInTopLevelFlow() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -40,7 +40,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HorizontalRule_LeavesBreathingRoomBeforeFollowingParagraph() {
         const double fontSize = 10;
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -71,7 +71,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnHorizontalRule_LeavesBreathingRoomBeforeFollowingParagraph() {
         const double fontSize = 10;
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void HorizontalRule_KeepWithNextMovesRuleWithFollowingParagraph() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHorizontalRule_KeepWithNextMovesRuleWithFollowingParagraph() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -188,7 +188,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Image_KeepWithNextMovesImageWithFollowingParagraph() {
         byte[] png = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -224,7 +224,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Image_KeepWithNextMeasuresFollowingHeadingChain() {
         byte[] png = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -263,7 +263,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnImage_KeepWithNextMovesImageWithFollowingParagraph() {
         byte[] png = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -305,7 +305,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void Shape_KeepWithNextMovesShapeWithFollowingParagraph() {
         var shape = OfficeShape.Rectangle(24, 24);
         shape.FillColor = OfficeColor.WhiteSmoke;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -342,7 +342,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumnShape_KeepWithNextMovesShapeWithFollowingParagraph() {
         var shape = OfficeShape.Rectangle(24, 24);
         shape.FillColor = OfficeColor.WhiteSmoke;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -383,7 +383,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Drawing_KeepWithNextMovesDrawingWithFollowingParagraph() {
         var drawing = CreateKeepWithNextDrawingScene();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -419,7 +419,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnDrawing_KeepWithNextMovesDrawingWithFollowingParagraph() {
         var drawing = CreateKeepWithNextDrawingScene();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -459,10 +459,10 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_KeepWithNextMovesTableWithFollowingParagraph() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.KeepWithNext = true;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -496,10 +496,10 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_KeepWithNextMovesTableWithFollowingParagraph() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.KeepWithNext = true;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -541,7 +541,7 @@ public partial class PdfDocumentVisualQualityTests {
         var rowStyle = new PdfRowStyle {
             KeepWithNext = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,
@@ -585,7 +585,7 @@ public partial class PdfDocumentVisualQualityTests {
         var rowStyle = new PdfRowStyle {
             KeepWithNext = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,

@@ -8,7 +8,7 @@ internal static class WeeklyBrief {
     internal static void Create(string folder) {
         PdfColor navy = PdfColor.FromRgb(23, 54, 93);
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
-        var options = new PdfOptions { DefaultFontSize = 11 }
+        var options = new PdfCreateOptions { DefaultFontSize = 11 }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito",
                 File.ReadAllBytes(Path.Combine(fonts, "Carlito-Regular.ttf")),
                 File.ReadAllBytes(Path.Combine(fonts, "Carlito-Bold.ttf"))))

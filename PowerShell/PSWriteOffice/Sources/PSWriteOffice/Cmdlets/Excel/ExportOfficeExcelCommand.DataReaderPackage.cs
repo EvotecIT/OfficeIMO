@@ -19,7 +19,7 @@ public sealed partial class ExportOfficeExcelCommand
             return false;
         }
 
-        var options = new ExcelTabularWriteOptions
+        var options = new ExcelWriterOptions
         {
             SheetName = WorksheetName,
             IncludeHeaders = !NoHeader.IsPresent,

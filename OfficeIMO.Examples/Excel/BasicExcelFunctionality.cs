@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Excel {
         public static void BasicExcel_Example2(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath, "Worksheet1")) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Worksheet1" })) {
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

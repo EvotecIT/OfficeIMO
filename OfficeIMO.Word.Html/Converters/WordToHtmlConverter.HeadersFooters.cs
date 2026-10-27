@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
             Action resetParagraphFlow,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (!options.ExportHeadersAndFooters) {
                 return;
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Html {
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
             Action resetParagraphFlow,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (headerFooter == null || !HasRenderableHeaderFooterContent(headerFooter)) {
                 return;

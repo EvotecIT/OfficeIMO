@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             var comment = Assert.Single(doc.Comments);
             comment.AddReply("Alex Roe", "AR", "Reply note");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportComments = true });
 
             Assert.Contains("href=\"#comment1\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("id=\"commentref1\"", html, StringComparison.OrdinalIgnoreCase);
@@ -48,9 +48,9 @@ namespace OfficeIMO.Tests {
             var comment = Assert.Single(doc.Comments);
             comment.AddReply("Alex Roe", "AR", "Reply note");
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportComments = true });
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.DoesNotContain(roundTrip.Paragraphs.Select(paragraph => paragraph.Text), text => text.Contains("Review note", StringComparison.OrdinalIgnoreCase));
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
             var reply = comment.AddReply("Alex Roe", "AR", "Reply note");
             reply.DateTime = replyDate;
 
-            string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { ExportComments = true });
 
-            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
             var rootReply = Assert.Single(rootComment.Replies);
@@ -87,32 +87,32 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_RawHtmlComments_CanImportAsNativeWordComments() {
-            var options = new HtmlToWordOptions {
+            var options = new WordHtmlImportOptions {
                 ImportHtmlComments = true,
                 HtmlCommentAuthor = "HTML Reviewer",
                 HtmlCommentInitials = "HR"
             };
             string html = "<p>Visible <!-- reviewer note -->text.</p>";
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
             using var doc = conversion.Value;
 
             Assert.Equal("Visible text.", string.Concat(doc.Paragraphs.Select(paragraph => paragraph.Text)));
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "html-comment-skipped");
             var comment = Assert.Single(doc.Comments);
             Assert.Equal("HTML Reviewer", comment.Author);
             Assert.Equal("HR", comment.Initials);
             Assert.Equal("reviewer note", comment.Text);
 
-            using var stream = doc.ToStream();
+            using var stream = new System.IO.MemoryStream(doc.ToBytes());
             using var loaded = WordDocument.Load(stream);
             var loadedComment = Assert.Single(loaded.Comments);
             Assert.Equal("HTML Reviewer", loadedComment.Author);
             Assert.Equal("HR", loadedComment.Initials);
             Assert.Equal("reviewer note", loadedComment.Text);
 
-            string roundTrip = loaded.ToHtml(new WordToHtmlOptions { ExportComments = true });
+            string roundTrip = loaded.ToHtml(new WordHtmlExportOptions { ExportComments = true });
             Assert.Contains("class=\"comments\"", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-author=\"HTML Reviewer\"", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-initials=\"HR\"", roundTrip, StringComparison.OrdinalIgnoreCase);

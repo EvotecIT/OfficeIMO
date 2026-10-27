@@ -16,14 +16,14 @@ public sealed class PdfSourcePassthroughCancellationTests {
     [InlineData(true, true)]
     public async Task OpenedSaveStopsAfterDestinationCancelsAndCanBeRetried(bool asynchronous, bool seekable) {
         byte[] source = CreateSource(256 * 1024);
-        PdfDocument document = PdfDocument.Load(source);
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
         using var cancellation = new CancellationTokenSource();
         using var destination = new CancellingWriteStream(cancellation, seekable);
 
         if (asynchronous) {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsync(destination, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsync(destination, cancellationToken: cancellation.Token));
         } else {
-            Assert.ThrowsAny<OperationCanceledException>(() => document.Save(destination, cancellation.Token));
+            Assert.ThrowsAny<OperationCanceledException>(() => document.Save(destination, cancellationToken: cancellation.Token));
         }
 
         byte[] partial = destination.ToArray();
@@ -33,8 +33,8 @@ public sealed class PdfSourcePassthroughCancellationTests {
 
         using var retry = new MemoryStream();
         PdfSaveResult result = asynchronous
-            ? await document.SaveAsync(retry)
-            : document.Save(retry);
+            ? await document.SaveWithEvidenceAsync(retry)
+            : document.SaveWithEvidence(retry);
 
         Assert.True(result.Succeeded);
         Assert.Equal(source, retry.ToArray());
@@ -50,14 +50,14 @@ public sealed class PdfSourcePassthroughCancellationTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task OpenedSaveResultPropagatesCancellationDuringItsFinalWrite(bool asynchronous) {
-        PdfDocument document = PdfDocument.Load(CreateSource(16));
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(CreateSource(16)));
         using var cancellation = new CancellationTokenSource();
         using var destination = new CancellingWriteStream(cancellation, seekable: true);
 
         if (asynchronous) {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveResultAsync(destination, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.TrySaveWithEvidenceAsync(destination, cancellation.Token));
         } else {
-            Assert.ThrowsAny<OperationCanceledException>(() => document.SaveResult(destination, cancellation.Token));
+            Assert.ThrowsAny<OperationCanceledException>(() => document.TrySaveWithEvidence(destination, cancellation.Token));
         }
 
         Assert.True(destination.CanWrite);
@@ -66,7 +66,7 @@ public sealed class PdfSourcePassthroughCancellationTests {
     private static byte[] CreateSource(int attachmentBytes) {
         var payload = new byte[attachmentBytes];
         new Random(71283).NextBytes(payload);
-        var options = new PdfOptions().AddEmbeddedFile("payload.bin", payload, "application/octet-stream");
+        var options = new PdfCreateOptions().AddEmbeddedFile("payload.bin", payload, "application/octet-stream");
         return PdfDocument.Create(pdf => pdf.Content(content => content
             .Paragraph(paragraph => paragraph.Text("Opened PDF passthrough cancellation."))), options).ToBytes();
     }

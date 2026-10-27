@@ -77,9 +77,9 @@ internal sealed partial class StudioStorageAccess {
             _folders.TryGetValue(location, out var folder)
                 ? new(folder.Name, Inputs[location], new PackageRootGuard(this, folder)) : null;
 
-        private sealed class PackageRootGuard(DirectoryInputSession session, IStorageFolder folder) : IOfficeWorkflowPublicationGuard {
+        private sealed class PackageRootGuard(DirectoryInputSession session, IStorageFolder folder) : IOfficePublicationGuard {
             private string? _identity;
-            public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+            public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
                 ObjectDisposedException.ThrowIf(session._disposed, session);
                 // Avalonia keeps the folder's native permission scope open while its iterator is alive.
                 // A reference to IStorageFolder alone does not grant filesystem access.

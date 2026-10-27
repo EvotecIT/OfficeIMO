@@ -24,7 +24,7 @@ internal static partial class TableDetector {
     /// one closed grid of full-span straight rulings. Fragmented and merged grids retain
     /// text inference. No text, source ownership, row count or column count is changed.
     /// </summary>
-    internal static bool TryRefineClosedRulingGrid(StructuredTable table,
+    internal static bool TryRefineClosedRulingGrid(PdfStructuredTable table,
         IReadOnlyList<PdfTableRuling> rulings, PdfUnderstandingPageContext context) {
         if (table.Columns.Count < 2 || table.Columns.Count > MaximumPositionedRecoveryColumns ||
             table.Rows.Count < 2 || table.Rows.Count >= MaximumRulingSegments ||
@@ -122,7 +122,7 @@ internal static partial class TableDetector {
         return true;
     }
 
-    private static bool CellsAgreeWithGrid(StructuredTable table, double[] x, double[] y,
+    private static bool CellsAgreeWithGrid(PdfStructuredTable table, double[] x, double[] y,
         PdfUnderstandingPageContext context) {
         var splits = x.Skip(1).Take(x.Length - 2).ToList();
         var owned = new HashSet<PdfTextSpan>();

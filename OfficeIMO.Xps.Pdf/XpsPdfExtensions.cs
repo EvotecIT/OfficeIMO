@@ -32,7 +32,7 @@ public static class XpsPdfExtensions {
         if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsToPdfOptions()).Clone();
-        return CreatePdf(document, snapshot, cancellationToken).Save(output, cancellationToken);
+        return CreatePdf(document, snapshot, cancellationToken).SaveWithEvidence(output, cancellationToken);
     }
 
     private static PdfDocument CreatePdf(XpsDocument document, XpsToPdfOptions options, CancellationToken cancellationToken) {
@@ -48,7 +48,7 @@ public static class XpsPdfExtensions {
                 var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
-                builder.Page(p => p.Size(width, height).Margin(new PageMargins(0, 0, 0, 0))
+                builder.Page(p => p.Size(width, height).Margin(new PdfPageMargins(0, 0, 0, 0))
                     .Canvas(c => {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {

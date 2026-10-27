@@ -46,7 +46,7 @@ public partial class Word {
             paragraph.SetStyleId(styleId);
         }
 
-        using WordDocument reloaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         OpenXmlCompositeElement properties = paragraphMark
             ? reloaded.Paragraphs[0]._paragraphProperties!.GetFirstChild<ParagraphMarkRunProperties>()!
             : reloaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>()
@@ -74,7 +74,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("AB").KerningMinimumFontSizePoints = threshold;
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+            ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         Assert.Equal(threshold, reloaded.Paragraphs[0].KerningMinimumFontSizePoints);
     }
 
@@ -107,7 +107,7 @@ public partial class Word {
             .First().RunProperties!.Kern!.Val!.Value);
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? document.ToBytes(WordFileFormat.Doc) : document.ToBytes()));
+            ? document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : document.ToBytes()));
         WordParagraph reloadedLink = Assert.Single(reloaded.Paragraphs, item => item.IsHyperLink);
         Assert.Equal(1.5D, reloadedLink.KerningMinimumFontSizePoints);
         Assert.Equal(new Uri("https://example.com/kerning"), reloadedLink.Hyperlink!.Uri);
@@ -132,7 +132,7 @@ public partial class Word {
             .Single(item => item.Text == "Endnote").KerningMinimumFontSizePoints = 9D;
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? document.ToBytes(WordFileFormat.Doc) : document.ToBytes()));
+            ? document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : document.ToBytes()));
         Assert.Equal(0D, reloaded.Tables[0].Rows[0].Cells[0].Paragraphs.Single(item => item.Text == "Cell")
             .KerningMinimumFontSizePoints);
         Assert.Equal(1.5D, reloaded.Sections[0].Header.Default!.Paragraphs.Single(item => item.Text == "Header")

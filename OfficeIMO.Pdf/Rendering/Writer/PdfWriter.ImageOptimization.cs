@@ -9,13 +9,13 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static void ApplyPlacementAwareImageOptimization(
         PageImage image,
-        PdfOptions documentOptions,
+        PdfCreateOptions documentOptions,
         Dictionary<string, OfficeImageOptimizationResult> cache,
         System.Threading.CancellationToken cancellationToken) {
         PdfImageOptimizationOptions? options = documentOptions.ImageOptimizationSnapshot;
         if (options?.Enabled != true) return;
         if (!CanOptimizeImageFormat(image.Info.Format)) {
-            ReportImageOptimization(documentOptions, image, "ImageOptimizationUnsupported", "Original image format was preserved.");
+            ReportImageOptimization(documentOptions, image, "image-optimization-unsupported", "Original image format was preserved.");
             return;
         }
 
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
                 exception is FormatException ||
                 exception is InvalidOperationException ||
                 exception is OverflowException) {
-                ReportImageOptimization(documentOptions, image, "ImageOptimizationFailed", "Original image retained because optimization failed: " + exception.Message);
+                ReportImageOptimization(documentOptions, image, "image-optimization-failed", "Original image retained because optimization failed: " + exception.Message);
                 return;
             }
 
@@ -64,20 +64,20 @@ internal static partial class PdfWriter {
         }
 
         if (!result.Changed) {
-            ReportImageOptimization(documentOptions, image, "ImageOptimizationPreserved", "Original image retained: " + result.Status + ".");
+            ReportImageOptimization(documentOptions, image, "image-optimization-preserved", "Original image retained: " + result.Status + ".");
             return;
         }
         bool removesMetadata = result.Metadata.HasLoss || result.Metadata.Stripped != OfficeImageMetadataKinds.None;
         if (removesMetadata && !options.AllowMetadataLoss) {
-            ReportImageOptimization(documentOptions, image, "ImageOptimizationMetadataLoss", "Original image retained because the candidate would lose metadata.");
+            ReportImageOptimization(documentOptions, image, "image-optimization-metadata-loss", "Original image retained because the candidate would lose metadata.");
             return;
         }
-        ReportImageOptimization(documentOptions, image, "ImageOptimized",
+        ReportImageOptimization(documentOptions, image, "image-optimized",
             "Encoded image changed from " + result.OriginalEncodedLength.ToString(CultureInfo.InvariantCulture) + " to " +
             result.FinalEncodedLength.ToString(CultureInfo.InvariantCulture) + " bytes; " +
             result.Final.Width.ToString(CultureInfo.InvariantCulture) + "x" + result.Final.Height.ToString(CultureInfo.InvariantCulture) + " pixels.");
         if (removesMetadata) {
-            ReportImageOptimization(documentOptions, image, "ImageOptimizationMetadataRemoved",
+            ReportImageOptimization(documentOptions, image, "image-optimization-metadata-removed",
                 "Image metadata removed: lost " + result.Metadata.Lost + "; stripped " + result.Metadata.Stripped + ".",
                 PdfConversionWarningSeverity.Warning);
         }
@@ -87,7 +87,7 @@ internal static partial class PdfWriter {
         image.PreparedStream = prepared.PreparedStream;
     }
 
-    private static void ReportImageOptimization(PdfOptions options, PageImage image, string code, string message,
+    private static void ReportImageOptimization(PdfCreateOptions options, PageImage image, string code, string message,
         PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Information) =>
         options.AddLayoutDiagnostic(code, "image at " + image.X.ToString("R", CultureInfo.InvariantCulture) + "," +
             image.Y.ToString("R", CultureInfo.InvariantCulture), message, PdfLayoutDiagnosticKind.ImageOptimization,

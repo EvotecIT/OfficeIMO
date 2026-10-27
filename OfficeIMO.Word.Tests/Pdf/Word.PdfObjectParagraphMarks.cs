@@ -165,7 +165,7 @@ public partial class Word {
             new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
         p.InsertImage(image, "boundary.png", wide ? 1000D * 96D / 72D : 64D, wide ? 100D * 96D / 72D : 32D);
         document.AddParagraph("B");
-        return document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        return document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static double ObjectMarkGap(string kind, bool followingBlank, bool inherited = false, bool spaced = false,
@@ -242,9 +242,9 @@ public partial class Word {
             if (followingBlank) AddBlank();
         }
         document.AddParagraph("B").LineSpacingBeforePoints = neighborSpacing;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         inspect?.Invoke(pdf.GetPage(1));
         if (mixedAnchor) Assert.Equal(2, pdf.GetPage(1).GetImages().Count());

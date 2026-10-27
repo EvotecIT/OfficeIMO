@@ -72,7 +72,7 @@ public partial class Word {
         properties.RemoveAllChildren<A.Outline>();
         properties.AddChild(new A.Outline(new A.SolidFill(color)) { Width = 50800 }, true);
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var page = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
         var paint = Assert.Single(page.GetIdentityVisualPrimitives(), primitive => primitive.StrokeWidth == 4D);
         if (colorKind == "gradient") {

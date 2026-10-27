@@ -18,7 +18,7 @@ public class PdfOcrExecutionTests {
         Task<PdfOcrMergeResult> operation = document.ReadWithOcrAsync(engine, new PdfOcrMergeOptions {
             Dpi = 36,
             MaxConcurrentPages = 2,
-            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(3, 1, 2) }
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(3, 1, 2) }
         });
         await engine.WaitForCallsAsync(expectedOutstanding);
         Assert.Equal(expectedOutstanding, engine.CallCount);

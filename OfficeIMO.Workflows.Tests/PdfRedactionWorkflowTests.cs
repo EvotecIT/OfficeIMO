@@ -454,7 +454,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
             Recipe = recipe,
             Decisions = new PdfRedactionDecisionManifest {
                 SourceSha256 = plan.SourceSha256,
@@ -653,7 +653,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             EvidencePath = input,
             Recipe = recipe,
             Decisions = decisions,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);

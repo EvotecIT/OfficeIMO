@@ -82,9 +82,9 @@ public sealed class PdfRotatedFragmentExtractionTests {
             new PdfTextLayoutOptions { ForceSingleColumn = true }).Split('\n'));
     }
 
-    private static byte[] CreatePdf(Action<PdfPageCanvas> build) => PdfDocument.Create(new PdfOptions {
+    private static byte[] CreatePdf(Action<PdfPageCanvas> build) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = 600D, PageHeight = 800D, CompressContentStreams = false
-    }).Canvas(build).ToBytes();
+    }).Canvas(build).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static void AddGlyphs(PdfPageCanvas canvas, string text, double x, double y) {
         for (int index = 0; index < text.Length; index++) {

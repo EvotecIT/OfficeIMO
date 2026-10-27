@@ -78,12 +78,12 @@ public sealed class StudioKeyboardEditingTests {
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "annotated.pdf");
-            byte[] annotated = Pdf.PdfDocument.Load(Pdf.PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes())
+            byte[] annotated = Pdf.PdfDocument.Load(new System.IO.MemoryStream(Pdf.PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes()))
                 .Annotations.Add(new Pdf.PdfAnnotationCreateOptions { Subtype = "Text", Rectangle = [40D, 50D, 60D, 70D], Contents = "Original", Title = "Reviewer" }).Bytes;
             await File.WriteAllBytesAsync(path, annotated);
             using var document = new Features.Shell.MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await document.OpenDocumentAsync(path);
-            int objectNumber = Assert.Single(Pdf.PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            int objectNumber = Assert.Single(Pdf.PdfDocument.Load(new System.IO.MemoryStream(annotated)).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
             document.Pages[0].SelectObject(new PdfEditorSelection(PdfEditorSelectionKind.Annotation, 1,
                 new PdfEditorVisualBounds(40D, 730D, 60D, 750D), ObjectNumber: objectNumber, Subtype: "Text"));
             double width = document.SelectedAnnotationWidth;

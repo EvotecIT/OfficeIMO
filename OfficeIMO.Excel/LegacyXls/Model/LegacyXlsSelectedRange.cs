@@ -28,8 +28,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the A1 reference for the selected range.</summary>
         public string Reference {
             get {
-                string start = A1.CellReference(StartRow, StartColumn);
-                string end = A1.CellReference(EndRow, EndColumn);
+                string start = ExcelA1.CellReference(StartRow, StartColumn);
+                string end = ExcelA1.CellReference(EndRow, EndColumn);
                 return start == end ? start : start + ":" + end;
             }
         }

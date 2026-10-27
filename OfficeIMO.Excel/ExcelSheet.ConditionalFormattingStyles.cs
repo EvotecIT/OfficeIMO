@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyProjectedConditionalFormattingBorder(
             Border border,
-            ExcelCellBorderSnapshot snapshot) {
+            ExcelCellBorderInfo snapshot) {
             border.LeftBorder = CreateProjectedConditionalFormattingBorderSide<LeftBorder>(snapshot.Left);
             border.RightBorder = CreateProjectedConditionalFormattingBorderSide<RightBorder>(snapshot.Right);
             border.TopBorder = CreateProjectedConditionalFormattingBorderSide<TopBorder>(snapshot.Top);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static TBorder? CreateProjectedConditionalFormattingBorderSide<TBorder>(
-            ExcelBorderSideSnapshot? snapshot)
+            ExcelBorderSideInfo? snapshot)
             where TBorder : BorderPropertiesType, new() {
             if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.Style)) return null;
             var side = new TBorder();

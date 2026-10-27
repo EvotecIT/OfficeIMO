@@ -465,13 +465,13 @@ namespace OfficeIMO.Excel {
                 startColumn,
                 ParseMarkerOffset(fromMarker.ColumnOffset?.Text),
                 widthPixels,
-                A1.MaxColumns,
+                ExcelA1.MaxColumns,
                 index => GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth));
             var rowMarker = ResolveEndMarker(
                 startRow,
                 ParseMarkerOffset(fromMarker.RowOffset?.Text),
                 heightPixels,
-                A1.MaxRows,
+                ExcelA1.MaxRows,
                 index => GetRowHeightPixels(worksheetPart, index + 1));
 
             toMarker.ColumnId = new Xdr.ColumnId(columnMarker.Index.ToString(CultureInfo.InvariantCulture));
@@ -502,8 +502,8 @@ namespace OfficeIMO.Excel {
         /// <param name="offsetXPixels">Horizontal offset from the cell edge, in pixels.</param>
         /// <param name="offsetYPixels">Vertical offset from the cell edge, in pixels.</param>
         public ExcelImage MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0) {
-            if (row <= 0 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
-            if (column <= 0 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
+            if (row <= 0 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
+            if (column <= 0 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
 
             var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
             if (marker == null) {
@@ -541,11 +541,11 @@ namespace OfficeIMO.Excel {
 
             int targetColumn = ParseMarkerIndex(toMarker.ColumnId?.Text) + columnDelta;
             int targetRow = ParseMarkerIndex(toMarker.RowId?.Text) + rowDelta;
-            if (targetColumn < 0 || targetColumn >= A1.MaxColumns) {
+            if (targetColumn < 0 || targetColumn >= ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException("column", "Moving this two-cell image would place its end marker outside the Excel column limit.");
             }
 
-            if (targetRow < 0 || targetRow >= A1.MaxRows) {
+            if (targetRow < 0 || targetRow >= ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException("row", "Moving this two-cell image would place its end marker outside the Excel row limit.");
             }
 

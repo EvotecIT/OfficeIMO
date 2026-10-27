@@ -149,7 +149,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
@@ -157,9 +157,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(15, 15));
-        string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchablePdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("PositionPdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(85, 45));
@@ -192,9 +192,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(85, 45));
-        string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchablePdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("AbsolutePdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

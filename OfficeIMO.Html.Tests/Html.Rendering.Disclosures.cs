@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
             + "<button class='actions'>HIDDEN-ACTION</button><details><summary>VISIBLE-SUMMARY</summary>HIDDEN-DIRECT"
             + "<h2 id='closed-target'>HIDDEN-HEADING</h2><a href='https://evotec.xyz/closed'>HIDDEN-LINK</a></details>"
             + "<details open><summary>PRINT-SUMMARY</summary><p>PRINT-BODY</p><h2 id='print-target'>PRINT-HEADING</h2></details>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { InteractiveFormControls = false });
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { InteractiveFormControls = false })).ToBytes();
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText();
         var inspection = OfficeIMO.Pdf.PdfInspector.Inspect(bytes);
 

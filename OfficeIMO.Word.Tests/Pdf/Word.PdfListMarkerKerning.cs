@@ -87,12 +87,12 @@ public sealed class WordPdfListMarkerKerningTests {
             paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties =
                 new ParagraphMarkRunProperties(new Kern { Val = paragraphMarkThreshold.Value });
         if (route is "header" or "footer") document.AddParagraph("B").FontFamily = "Courier";
-        var options = new PdfOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var allLetters = pdf.GetPage(1).Letters;
         var letters = allLetters.Where(letter => letter.Value is "A" or "V").ToArray();
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));

@@ -83,7 +83,7 @@ public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Office
         PdfAnnotationEditResult result = PdfDocument
             .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
             .Annotations.Update(ObjectNumber, options);
-        result.ToDocument().Save(outputPath).RequireSuccess();
+        result.ToDocument().Save(outputPath);
         if (PassThruReport.IsPresent) {
             WriteObject(result);
             return;

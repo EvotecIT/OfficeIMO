@@ -40,7 +40,7 @@ public sealed class LatexMarkdownConversionTests {
     public void LatexProjection_UsesExistingWordBridge() {
         LatexToMarkdownResult conversion = LatexDocument.ParseResult(Source).Document.ToMarkdownDocumentResult();
 
-        using var word = conversion.Value.ToWordDocument();
+        using var word = conversion.Value.ToWord();
         string text = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
 
         Assert.Contains("Guide", text, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public sealed class LatexMarkdownConversionTests {
             "- One\n- Two\n\n" +
             "| Name | Value |\n| --- | --- |\n| A | B |\n\n" +
             "![Plot](plot.png)\n";
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 
@@ -95,11 +95,11 @@ public sealed class LatexMarkdownConversionTests {
     [Fact]
     public void StructuredMarkdownTableSpans_GenerateMulticolumnAndMultirow() {
         const string asciidocLikeMarkdown = "| H1 | H2 |\n| --- | --- |\n| A | B |\n";
-        TableBlock table = Assert.Single(MarkdownReader.Parse(asciidocLikeMarkdown).Blocks.OfType<TableBlock>());
+        TableBlock table = Assert.Single(MarkdownDocument.Parse(asciidocLikeMarkdown).Blocks.OfType<TableBlock>());
         TableCell cell = table.GetCell(0, 0)!;
         cell.ColumnSpan = 2;
         cell.RowSpan = 2;
-        MarkdownDoc document = MarkdownDoc.Create().Add(table);
+        MarkdownDocument document = MarkdownDocument.Create().Add(table);
 
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 
@@ -110,7 +110,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void UnsupportedMarkdown_IsVisibleInVerbatimAndDiagnosed() {
-        MarkdownDoc document = MarkdownDoc.Create().Hr();
+        MarkdownDocument document = MarkdownDocument.Create().Hr();
 
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 
@@ -120,7 +120,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void MarkdownFootnoteReference_UsesDefinitionBodyAndDoesNotEmitDefinitionFallback() {
-        MarkdownDoc document = MarkdownReader.Parse("Text[^1].\n\n[^1]: real **text**\n");
+        MarkdownDocument document = MarkdownDocument.Parse("Text[^1].\n\n[^1]: real **text**\n");
 
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 

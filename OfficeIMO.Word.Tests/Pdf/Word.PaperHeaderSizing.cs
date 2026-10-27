@@ -38,7 +38,7 @@ public sealed class WordPaperHeaderSizingTests {
         Assert.All(saved.Rows, row => Assert.Equal(saved.GridColumnWidth, row.Cells.Select(cell => cell.Width!.Value)));
         Assert.True(saved.ColumnWidth[1] > available * .05D);
         Assert.True(saved.ColumnWidth[0] > saved.ColumnWidth[1]);
-        byte[] bytes = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] bytes = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_PAPER_PROOF_DIR");
         if (!string.IsNullOrWhiteSpace(proof)) {
             Directory.CreateDirectory(proof);

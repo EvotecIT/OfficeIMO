@@ -509,7 +509,7 @@ namespace OfficeIMO.Excel {
                 .ToList() ?? new List<DateTime>();
             if (values.Count == 0 && !string.IsNullOrWhiteSpace(pivot.SourceSheet)
                 && !string.IsNullOrWhiteSpace(pivot.SourceRange)
-                && A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int r1, out int c1, out int r2, out int c2)) {
+                && ExcelA1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int r1, out int c1, out int r2, out int c2)) {
                 ExcelSheet? sheet = GetPivotInteractionSheetsForCurrentLock().FirstOrDefault(item =>
                     string.Equals(item.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
                 List<CacheField> fields = FindPivotTablePart(pivot)?.PivotTableCacheDefinitionPart?.PivotCacheDefinition?
@@ -517,7 +517,7 @@ namespace OfficeIMO.Excel {
                 int fieldIndex = fields.FindIndex(field => string.Equals(field.Name?.Value, cacheField.Name?.Value, StringComparison.OrdinalIgnoreCase));
                 if (sheet != null && fieldIndex >= 0 && c1 + fieldIndex <= c2) {
                     for (int row = r1 + 1; row <= r2; row++) {
-                        if (sheet.TryGetCellValueSnapshot(row, c1 + fieldIndex, out ExcelCellValueSnapshot? snapshot)
+                        if (sheet.TryGetCellValueSnapshot(row, c1 + fieldIndex, out ExcelNativeCellValueInfo? snapshot)
                             && snapshot!.DateTimeValue.HasValue) values.Add(snapshot.DateTimeValue.Value);
                     }
                 }

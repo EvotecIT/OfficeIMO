@@ -50,8 +50,8 @@ public partial class Word {
         }
 
         var configuredMinimums = new double?[] { 72D, null, 96D };
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     AutoFitColumns = true,
                     ColumnMinWidthPoints = configuredMinimums.ToList()
@@ -90,11 +90,11 @@ public partial class Word {
 
         Assert.Equal("Operational status summary", style.AlternativeText);
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
             }
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
         PdfCore.PdfStructureElementInfo tableElement = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
@@ -586,8 +586,8 @@ public partial class Word {
             SpacingAfter = 11D
         };
 
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = configuredStyle
             }
         });
@@ -629,8 +629,8 @@ public partial class Word {
             BorderColor = null
         };
 
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = configuredStyle
             }
         });
@@ -653,8 +653,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitTableGrid.docx"));
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
 
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     BorderColor = null,
                     HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
@@ -848,8 +848,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitStyleFallbacks.docx"));
         WordTable table = document.AddTable(1, 1, WordTableStyle.GridTable1Light);
 
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     CellPaddingTop = 12D,
                     CellPaddingBottom = 13D,
@@ -870,8 +870,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableNormalUnrelatedOptions.docx"));
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
 
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultFontSize = 9D
             }
         });

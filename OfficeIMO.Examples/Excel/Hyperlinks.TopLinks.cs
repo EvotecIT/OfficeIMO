@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Excel {
             var a1 = s.TableFrom(rows, title: null, configure: o => { o.HeaderCase = HeaderCase.Title; }, visuals: v => v.FreezeHeaderRow = true);
 
             // Convert Title cells to clickable hyperlinks through the editable worksheet surface.
-            var (headerRow, titleColumn, lastRow, _) = A1.ParseRange(a1);
+            var (headerRow, titleColumn, lastRow, _) = ExcelA1.ParseRange(a1);
             int urlColumn = titleColumn + 1;
             for (int rowIndex = headerRow + 1; rowIndex <= lastRow; rowIndex++) {
                 string safeTitle = links[rowIndex - headerRow - 1].Title.Replace("\"", "\"\"");

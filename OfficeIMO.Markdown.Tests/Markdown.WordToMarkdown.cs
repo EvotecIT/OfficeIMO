@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             doc.AddParagraph().AddImage(imagePath);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 
             Assert.Contains("# Heading", markdown);
             Assert.Contains("**bold**", markdown);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Hello").AddFootNote("First note");
             doc.AddParagraph("World").AddFootNote("Second note");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 
             Assert.Contains("Hello[^1]", markdown);
             Assert.Contains("World[^2]", markdown);
@@ -80,12 +80,12 @@ namespace OfficeIMO.Tests {
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
 
-            var options = new WordToMarkdownOptions {
-                ImageExportMode = ImageExportMode.File,
+            var options = new WordMarkdownExportOptions {
+                ImageExportMode = WordMarkdownImageExportMode.File,
                 ImageDirectory = tempDir
             };
 
-            string markdown = doc.ToMarkdown(options);
+            string markdown = ((doc.ToMarkdown(options).ToMarkdown()));
 
             string fileName = Path.GetFileName(imagePath);
             Assert.Contains($"![", markdown);
@@ -101,13 +101,13 @@ namespace OfficeIMO.Tests {
             paragraph.AddText(" and ");
             paragraph.AddText("important").Underline = OfficeIMO.Word.WordUnderlineStyle.Single;
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions { EnableUnderline = true });
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true });
             var block = Assert.IsType<ParagraphBlock>(Assert.Single(markdown.Blocks));
 
             Assert.Contains(block.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "sub");
             Assert.Contains(block.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "u");
 
-            string renderedHtml = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            string renderedHtml = markdown.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<sub>2</sub>", renderedHtml, StringComparison.Ordinal);
             Assert.Contains("<u>important</u>", renderedHtml, StringComparison.Ordinal);
         }
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
             var footnoteParagraph = doc.FootNotes[0].Paragraphs![1];
             footnoteParagraph.SetStyleId("CodeLang_csharp");
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
             var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(markdown.Blocks, block => block is FootnoteDefinitionBlock));
             var code = Assert.IsType<CodeBlock>(Assert.Single(footnote.ChildBlocks));
 
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Console.WriteLine(1);", code.Content);
             Assert.Empty(footnote.ParagraphBlocks);
 
-            string renderedHtml = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            string renderedHtml = markdown.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<li id=\"fn:1\"><pre><code class=\"language-csharp\">Console.WriteLine(1);", renderedHtml, StringComparison.Ordinal);
             Assert.Contains("<a class=\"footnote-backref\"", renderedHtml, StringComparison.Ordinal);
         }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             nestedTable.Rows[1].Cells[0].Paragraphs[0].Text = "Inner Value";
             bodyCell.Paragraphs[bodyCell.Paragraphs.Count - 1].Text = "After nested";
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
             var table = Assert.IsType<TableBlock>(Assert.Single(markdown.Blocks));
             var markdownCell = Assert.Single(Assert.Single(table.RowCells));
 
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
 
             doc.AddParagraph("Tail");
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 block => Assert.Equal("Beta", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.Equal("Tail", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
-            string renderedMarkdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string renderedMarkdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
             Assert.Contains("Intro", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("Alpha", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("Beta", renderedMarkdown, StringComparison.Ordinal);
@@ -195,11 +195,11 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Body line");
             doc.Footer!.Default!.AddParagraph("Footer line");
 
-            var options = new WordToMarkdownOptions {
+            var options = new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
             };
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(options);
+            MarkdownDocument markdown = doc.ToMarkdown(options);
 
             Assert.Collection(
                 markdown.Blocks,
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("default", semantic.FenceInfo.GetAttribute("slot"));
                 });
 
-            string renderedMarkdown = doc.ToMarkdown(options);
+            string renderedMarkdown = ((doc.ToMarkdown(options).ToMarkdown()));
             Assert.Contains("```officeimo-word-header section=1 slot=default", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("Header line", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("```officeimo-word-footer section=1 slot=default", renderedMarkdown, StringComparison.Ordinal);
@@ -237,17 +237,17 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Region").Style = WordParagraphStyles.Heading2;
             doc.AddParagraph("Pipeline").Style = WordParagraphStyles.Heading3;
 
-            MarkdownDoc markdownDocument = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdownDocument = doc.ToMarkdown(new WordMarkdownExportOptions());
             var marker = Assert.IsType<TocMarkerBlock>(markdownDocument.Blocks[0]);
             Assert.Equal(2, marker.MinLevel);
             Assert.Equal(5, marker.MaxLevel);
             Assert.Equal("Contents", marker.Title);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
             Assert.Contains("[TOC min=2 max=5 title=\"Contents\" titleLevel=2]", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("- [Region]", markdown, StringComparison.Ordinal);
 
-            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             Assert.NotNull(restored.TableOfContent);
             Assert.Equal(2, restored.TableOfContent!.MinLevel);
             Assert.Equal(5, restored.TableOfContent.MaxLevel);
@@ -260,13 +260,13 @@ namespace OfficeIMO.Tests {
             toc.Text = string.Empty;
             doc.AddParagraph("Deep heading").Style = WordParagraphStyles.Heading9;
 
-            MarkdownDoc markdownDocument = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdownDocument = doc.ToMarkdown(new WordMarkdownExportOptions());
             var marker = Assert.IsType<TocMarkerBlock>(markdownDocument.Blocks[0]);
             Assert.False(marker.IncludeTitle);
             Assert.Equal(2, marker.MinLevel);
             Assert.Equal(9, marker.MaxLevel);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
             Assert.Contains("[TOC min=2 max=9]", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("Table of Contents", markdown, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("title=", markdown, StringComparison.OrdinalIgnoreCase);
@@ -279,9 +279,9 @@ namespace OfficeIMO.Tests {
             WordParagraph item = list.AddItem("Starts new page");
             item.PageBreakBefore = true;
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                PageBreakMode = WordMarkdownPageBreakMode.SemanticBlock
+            }).ToMarkdown()));
 
             int pageBreakIndex = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
             int listItemIndex = markdown.IndexOf("- Starts new page", StringComparison.Ordinal);
@@ -301,9 +301,9 @@ namespace OfficeIMO.Tests {
             WordParagraph third = list.AddItem("Three");
             third.PageBreakBefore = true;
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                PageBreakMode = WordMarkdownPageBreakMode.SemanticBlock
+            }).ToMarkdown()));
 
             int pageBreakIndex = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
             int thirdItemIndex = markdown.IndexOf("3. Three", StringComparison.Ordinal);
@@ -322,9 +322,9 @@ namespace OfficeIMO.Tests {
             item.AddEquation(omml);
             item.AddText(" after");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder
+            }).ToMarkdown()));
 
             Assert.Contains("- Formula:", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddEquation(omml);
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Contains("\\frac{a}{b}", markdown, StringComparison.Ordinal);
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddEquation(second);
             paragraph.AddText(" after");
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Equal(2, markdown.Split(new[] { "```math" }, StringSplitOptions.None).Length - 1);
             Assert.Contains("x=1", markdown, StringComparison.Ordinal);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
                 Author = "Reviewer"
             });
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Contains("tracked", markdown, StringComparison.Ordinal);
@@ -400,7 +400,7 @@ namespace OfficeIMO.Tests {
                     new M.OfficeMath(new M.Run(new M.Text("controlled"))),
                     new Run(new Text(" control-suffix")))));
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("Formula:", markdown, StringComparison.Ordinal);
             Assert.Contains("control-prefix", markdown, StringComparison.Ordinal);
@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
                 Anchor = "target"
             });
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("link-prefix", markdown, StringComparison.Ordinal);
             Assert.Contains("link-suffix", markdown, StringComparison.Ordinal);
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
             });
             paragraph.AddText(" after");
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("[wrapped-prefix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
             Assert.Contains("[wrapped-suffix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests {
                 Anchor = "target"
             });
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("prefix", markdown, StringComparison.Ordinal);
             Assert.Contains("suffix", markdown, StringComparison.Ordinal);
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
                 new M.OfficeMath(new M.Run(new M.Text("selected-equation"))),
                 displayRun);
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Equal(1, markdown.Split(new[] { "Selected" }, StringSplitOptions.None).Length - 1);
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests {
             picture._sdtRun.SdtContentRun!.Append(
                 new M.OfficeMath(new M.Run(new M.Text("picture-equation"))));
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
@@ -532,7 +532,7 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
             paragraph.AddText(" after");
 
-            string markdown = doc.ToMarkdown();
+            string markdown = ((doc.ToMarkdown().ToMarkdown()));
 
             Assert.Contains("before", markdown, StringComparison.Ordinal);
             Assert.Contains(" after", markdown, StringComparison.Ordinal);
@@ -553,9 +553,9 @@ namespace OfficeIMO.Tests {
             paragraph.AddBreak(WordBreakType.Page);
             paragraph.AddText(" after");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                PageBreakMode = WordMarkdownPageBreakMode.SemanticBlock
+            }).ToMarkdown()));
 
             Assert.Contains("before", markdown, StringComparison.Ordinal);
             Assert.Contains(" after", markdown, StringComparison.Ordinal);
@@ -577,9 +577,9 @@ namespace OfficeIMO.Tests {
             paragraph.AddEquation(omml);
             paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder
+            }).ToMarkdown()));
 
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Contains("x=1", markdown, StringComparison.Ordinal);
@@ -594,12 +594,12 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Body line");
             doc.Footer!.Default!.AddParagraph("Footer line");
 
-            var options = new WordToMarkdownOptions {
+            var options = new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
             };
 
-            string renderedMarkdown = doc.ToMarkdown(options);
-            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(renderedMarkdown, options.CreateReaderOptions());
+            string renderedMarkdown = ((doc.ToMarkdown(options).ToMarkdown()));
+            MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(renderedMarkdown, options.CreateReaderOptions());
 
             Assert.Collection(
                 parsed.Blocks,
@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddBreak(WordBreakType.Page);
             paragraph.AddText("After");
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
                 },
                 block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
-            string renderedMarkdown = markdown.ToMarkdown();
+            string renderedMarkdown = ((markdown.ToMarkdown()));
             Assert.Contains("Before", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("```officeimo-word-page-break", renderedMarkdown, StringComparison.Ordinal);
             Assert.Contains("After", renderedMarkdown, StringComparison.Ordinal);
@@ -652,7 +652,7 @@ namespace OfficeIMO.Tests {
                 new Break { Type = BreakValues.Page },
                 new Text("After")));
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,
@@ -672,7 +672,7 @@ namespace OfficeIMO.Tests {
                 new Break { Type = BreakValues.Page },
                 new Text("After")));
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,
@@ -693,7 +693,7 @@ namespace OfficeIMO.Tests {
             var after = doc.AddParagraph("After");
             after.PageBreakBefore = true;
 
-            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,
@@ -703,17 +703,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(MarkdownPageBreakMode.Html, "<div style=\"page-break-after: always;\"></div>")]
-        [InlineData(MarkdownPageBreakMode.HorizontalRule, "---")]
-        public void WordToMarkdown_PageBreakMode_Controls_Lossy_Output(MarkdownPageBreakMode mode, string expectedMarker) {
+        [InlineData(WordMarkdownPageBreakMode.Html, "<div style=\"page-break-after: always;\"></div>")]
+        [InlineData(WordMarkdownPageBreakMode.HorizontalRule, "---")]
+        public void WordToMarkdown_PageBreakMode_Controls_Lossy_Output(WordMarkdownPageBreakMode mode, string expectedMarker) {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Before");
             doc.AddPageBreak();
             doc.AddParagraph("After");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
                 PageBreakMode = mode
-            });
+            }).ToMarkdown()));
 
             Assert.Contains(expectedMarker, markdown, StringComparison.Ordinal);
             Assert.DoesNotContain(WordMarkdownSemanticBlocks.PageBreakFenceLanguage, markdown, StringComparison.Ordinal);
@@ -726,9 +726,9 @@ namespace OfficeIMO.Tests {
             doc.AddPageBreak();
             doc.AddParagraph("After");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                PageBreakMode = MarkdownPageBreakMode.Omit
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                PageBreakMode = WordMarkdownPageBreakMode.Omit
+            }).ToMarkdown()));
 
             Assert.DoesNotContain(WordMarkdownSemanticBlocks.PageBreakFenceLanguage, markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("<div style=\"page-break-after: always;\"></div>", markdown, StringComparison.Ordinal);
@@ -742,10 +742,10 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("After");
             var warnings = new List<string>();
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder,
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder,
                 OnWarning = warnings.Add
-            });
+            }).ToMarkdown()));
 
             Assert.Contains("Before", markdown, StringComparison.Ordinal);
             Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
@@ -754,20 +754,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordToMarkdown_Result_Reports_Fidelity_Loss() {
+        public void WordToMarkdown_ReportsUnsupportedContentOmission() {
             using var document = WordDocument.Create();
             document.AddShape(WordShapeType.Rectangle, 60, 30);
-
-            WordToMarkdownResult result = document.ToMarkdownDocumentResult(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
-            });
-
-            Assert.True(result.Succeeded);
-            Assert.True(result.HasLoss);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "WordToMarkdownWarning" &&
-                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<WordMarkdownConversionException>(() => result.RequireNoLoss());
+            var options = new WordMarkdownExportOptions { UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder };
+            using var markdown = document.ToMarkdown(options, out OfficeConversionReport report);
+            Assert.True(report.HasLoss);
+            Assert.Contains(report.Diagnostics, diagnostic =>
+                diagnostic.Code == OfficeDiagnosticCodes.WordToMarkdownWarning &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            options.FailOnLoss = true;
+            Assert.Throws<OfficeConversionException>(() => document.ToMarkdown(options));
         }
 
         [Fact]
@@ -776,9 +773,9 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.AddParagraph("Before");
             paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder
+            }).ToMarkdown()));
 
             Assert.Contains("Before", markdown, StringComparison.Ordinal);
             Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
@@ -789,9 +786,9 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddShape(WordShapeType.Rectangle, 60, 30);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                UnsupportedContentMode = MarkdownUnsupportedContentMode.HtmlComment
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                UnsupportedContentMode = WordMarkdownUnsupportedContentMode.HtmlComment
+            }).ToMarkdown()));
 
             Assert.Contains("<!-- Unsupported Word content: shape -->", markdown, StringComparison.Ordinal);
         }
@@ -807,7 +804,7 @@ namespace OfficeIMO.Tests {
                 After
                 """;
 
-            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWordDocument();
+            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWord();
 
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.Text.Trim() == "Before");
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.PageBreak?.BreakType == WordBreakType.Page);
@@ -823,7 +820,7 @@ namespace OfficeIMO.Tests {
                 - next item
                 """;
 
-            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions());
+            MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions());
             var list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Collection(
@@ -840,11 +837,11 @@ namespace OfficeIMO.Tests {
             source.AddParagraph("Body line");
             source.Footer!.Default!.AddParagraph("Footer line");
 
-            string markdown = source.ToMarkdown(new WordToMarkdownOptions {
+            string markdown = ((source.ToMarkdown(new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
-            });
+            }).ToMarkdown()));
 
-            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWordDocument();
+            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWord();
 
             Assert.Equal("Header line", restored.Header!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
             Assert.Equal("Footer line", restored.Footer!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
@@ -853,7 +850,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWord_ToWordDocument_Routes_First_And_Even_HeaderFooter_Semantic_Blocks() {
-            var markdown = MarkdownDoc.Create()
+            var markdown = MarkdownDocument.Create()
                 .Add(new SemanticFencedBlock(
                     WordMarkdownSemanticBlocks.HeaderSemanticKind,
                     $"{WordMarkdownSemanticBlocks.HeaderFenceLanguage} section=1 slot=first",
@@ -868,7 +865,7 @@ namespace OfficeIMO.Tests {
                     $"{WordMarkdownSemanticBlocks.FooterFenceLanguage} section=1 slot=even",
                     "Even footer"));
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
 
             Assert.True(document.DifferentFirstPage);
             Assert.True(document.DifferentOddAndEvenPages);
@@ -901,10 +898,11 @@ namespace OfficeIMO.Tests {
                     - Second
                     """;
 
-                var options = new MarkdownToWordTemplateOptions { BookmarkName = "MainContent" };
-                MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions());
+                var options = new WordMarkdownImportOptions { BookmarkName = "MainContent" };
+                MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
                 WordDocument templateDocument = WordDocument.Load(templatePath);
-                using var document = source.ToWordDocument(templateDocument, options);
+                options.Template = templateDocument;
+                using var document = source.ToWord(options);
 
                 var paragraphTexts = document.Paragraphs
                     .Select(paragraph => paragraph.Text.Trim())
@@ -942,10 +940,11 @@ namespace OfficeIMO.Tests {
                     ## Details
                     """;
 
-                var options = new MarkdownToWordTemplateOptions { BookmarkName = "MainContent" };
-                MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions());
+                var options = new WordMarkdownImportOptions { BookmarkName = "MainContent" };
+                MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
                 WordDocument templateDocument = WordDocument.Load(templatePath);
-                using var document = source.ToWordDocument(templateDocument, options);
+                options.Template = templateDocument;
+                using var document = source.ToWord(options);
 
                 Assert.NotNull(document.TableOfContent);
                 Assert.Equal("Contents", document.TableOfContent!.Text);
@@ -964,10 +963,10 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), 50, 50, description: "Linked image");
             var warnings = new List<string>();
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                ImageExportMode = ImageExportMode.File,
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                ImageExportMode = WordMarkdownImageExportMode.File,
                 OnWarning = warnings.Add
-            });
+            }).ToMarkdown()));
 
             Assert.Contains("![Linked image](cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8)", markdown);
             Assert.Contains(warnings, warning => warning.Contains("Externally linked image", StringComparison.Ordinal));
@@ -984,10 +983,10 @@ namespace OfficeIMO.Tests {
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
             try {
-                string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                    ImageExportMode = ImageExportMode.File,
+                string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                    ImageExportMode = WordMarkdownImageExportMode.File,
                     ImageDirectory = tempDir
-                });
+                }).ToMarkdown()));
 
                 Assert.Contains("![Logo](Picture 1.png)", markdown);
                 Assert.True(File.Exists(Path.Combine(tempDir, "Picture 1.png")));
@@ -1143,9 +1142,9 @@ namespace OfficeIMO.Tests {
             // The native DrawingML control rounds once after lumMod=50000 and lumOff=20000.
             Assert.Equal(OfficeColor.FromRgba(0x38, 0x64, 0xB2, 0x80), series.Color);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri
+            }).ToMarkdown()));
 
             const string prefix = "data:image/svg+xml;base64,";
             int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
@@ -1183,9 +1182,9 @@ namespace OfficeIMO.Tests {
             var series = Assert.Single(snapshot.Data.Series);
             Assert.Equal(OfficeColor.ParseHex("#44546A"), series.Color);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri
+            }).ToMarkdown()));
 
             const string prefix = "data:image/svg+xml;base64,";
             int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
@@ -1223,9 +1222,9 @@ namespace OfficeIMO.Tests {
             var series = Assert.Single(snapshot.Data.Series);
             Assert.Equal(OfficeColor.ParseHex("#CC3366"), series.Color);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri
+            }).ToMarkdown()));
 
             const string prefix = "data:image/svg+xml;base64,";
             int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
@@ -1254,9 +1253,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.ParseHex("#f76707"), series.PointColors[1]);
             Assert.Equal(OfficeColor.ParseHex("#868e96"), series.PointColors[2]);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
-            });
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri
+            }).ToMarkdown()));
 
             const string prefix = "data:image/svg+xml;base64,";
             int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
@@ -1279,10 +1278,10 @@ namespace OfficeIMO.Tests {
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             var warnings = new System.Collections.Generic.List<string>();
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri,
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
+                VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri,
                 OnWarning = warnings.Add
-            });
+            }).ToMarkdown()));
 
             const string prefix = "data:image/svg+xml;base64,";
             int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
@@ -1309,8 +1308,8 @@ namespace OfficeIMO.Tests {
                 chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
                 chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
-                doc.SaveAsMarkdown(markdownPath, new WordToMarkdownOptions {
-                    VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile
+                doc.SaveAsMarkdown(markdownPath, new WordMarkdownExportOptions {
+                    VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgFile
                 });
 
                 string markdown = File.ReadAllText(markdownPath);
@@ -1336,8 +1335,8 @@ namespace OfficeIMO.Tests {
                 chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
                 chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
-                var options = new WordToMarkdownOptions {
-                    VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile
+                var options = new WordMarkdownExportOptions {
+                    VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgFile
                 };
                 string firstPath = Path.Combine(tempDir, "First.md");
                 string secondPath = Path.Combine(tempDir, "Second.md");
@@ -1363,7 +1362,7 @@ namespace OfficeIMO.Tests {
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 
             Assert.DoesNotContain("data:image/svg+xml;base64", markdown, StringComparison.Ordinal);
         }

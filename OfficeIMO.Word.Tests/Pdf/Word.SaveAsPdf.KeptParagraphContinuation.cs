@@ -70,8 +70,8 @@ public partial class Word {
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 121);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 121);
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();
@@ -124,8 +124,8 @@ public partial class Word {
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 121);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 121);
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();
@@ -181,8 +181,8 @@ public partial class Word {
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 101);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 101);
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();

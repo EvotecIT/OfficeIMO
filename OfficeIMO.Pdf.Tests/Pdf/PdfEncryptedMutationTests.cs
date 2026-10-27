@@ -166,7 +166,7 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void MetadataExemptionAndRewriteBudgetsRemainEffective(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected text"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm, EncryptMetadata = false
             })).ToBytes();
         var options = new PdfLoadOptions { Password = "owner" };
@@ -314,7 +314,7 @@ public class PdfEncryptedMutationTests {
 
     private static byte[] CreateEncryptedSource(PdfStandardEncryptionAlgorithm algorithm) =>
         PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("ORIGINAL neighbor"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm, AllowedPermissions = PdfStandardPermissions.Print
             })).ToBytes();
 

@@ -36,8 +36,9 @@ internal static class OfficeEncryptedPackageService
             throw new NotSupportedException("Encrypted Excel workbooks require explicit Save-OfficeExcel -Password or Close-OfficeExcel -Save -Password. OfficeIMO does not support SaveOnDispose for encrypted sources.");
         }
 
-        return ExcelDocument.LoadEncrypted(path, password, new ExcelLoadOptions
+        return ExcelDocument.Load(path, new ExcelLoadOptions
         {
+            Password = password,
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
@@ -45,7 +46,9 @@ internal static class OfficeEncryptedPackageService
 
     public static void SaveExcel(ExcelDocument document, string path, string password, bool openExcel, ExcelSaveOptions? saveOptions)
     {
-        document.SaveEncrypted(path, password, saveOptions);
+        ExcelSaveOptions options = saveOptions?.Clone() ?? new ExcelSaveOptions();
+        options.Password = password;
+        document.Save(path, options);
         if (openExcel)
         {
             FileOpenService.Open(path);
@@ -59,8 +62,9 @@ internal static class OfficeEncryptedPackageService
             throw new NotSupportedException("Encrypted Word documents require explicit Save-OfficeWord -Password or Close-OfficeWord -Save -Password. OfficeIMO does not support SaveOnDispose for encrypted sources.");
         }
 
-        return WordDocument.LoadEncrypted(path, password, new WordLoadOptions
+        return WordDocument.Load(path, new WordLoadOptions
         {
+            Password = password,
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
@@ -68,7 +72,7 @@ internal static class OfficeEncryptedPackageService
 
     public static void SaveWord(WordDocument document, string path, string password, bool openWord)
     {
-        document.SaveEncrypted(path, password);
+        document.Save(path, new WordSaveOptions { Password = password });
         if (openWord)
         {
             FileOpenService.Open(path);
@@ -77,8 +81,9 @@ internal static class OfficeEncryptedPackageService
 
     public static PowerPointPresentation OpenPowerPoint(string path, string password, bool readOnly = false)
     {
-        return PowerPointPresentation.LoadEncrypted(path, password, new PowerPointLoadOptions
+        return PowerPointPresentation.Load(path, new PowerPointLoadOptions
         {
+            Password = password,
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
@@ -86,6 +91,6 @@ internal static class OfficeEncryptedPackageService
 
     public static void SavePowerPoint(PowerPointPresentation presentation, string path, string password)
     {
-        presentation.SaveEncrypted(path, password);
+        presentation.Save(path, new PowerPointSaveOptions { Password = password });
     }
 }

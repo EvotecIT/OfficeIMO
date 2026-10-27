@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Delegate used to override HTML emitted for a specific block type during HTML rendering.
 /// Returning <see langword="null"/> falls back to the block's built-in HTML rendering.
 /// </summary>
-public delegate string? MarkdownBlockHtmlRenderer(IMarkdownBlock block, HtmlOptions options);
+public delegate string? MarkdownBlockHtmlRenderer(IMarkdownBlock block, MarkdownHtmlExportOptions options);
 
 /// <summary>
 /// Delegate used to override HTML emitted for a specific block type during HTML rendering with access

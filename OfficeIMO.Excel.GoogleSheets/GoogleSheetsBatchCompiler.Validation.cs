@@ -5,8 +5,8 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static void AppendValidationRanges(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
             GoogleSheetsBatch batch,
             TranslationReport report,
             ref bool cellValidationNoticeAdded) {
@@ -58,8 +58,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             var normalizedRange = a1Range!.Replace("$", string.Empty);
-            if (!A1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
-                var (singleRow, singleColumn) = A1.ParseCellRef(normalizedRange);
+            if (!ExcelA1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
+                var (singleRow, singleColumn) = ExcelA1.ParseCellRef(normalizedRange);
                 startRow = endRow = singleRow;
                 startColumn = endColumn = singleColumn;
             }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return startRow > 0 && startColumn > 0 && endRow >= startRow && endColumn >= startColumn;
         }
 
-        private static bool IsSupportedDirectCellValidation(ExcelDataValidationSnapshot validation) {
+        private static bool IsSupportedDirectCellValidation(ExcelDataValidationInspectionInfo validation) {
             return string.Equals(validation.Type, "list", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(validation.Type, "whole", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(validation.Type, "decimal", StringComparison.OrdinalIgnoreCase)
@@ -76,8 +76,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsDataValidationRule? BuildCellValidationRule(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
             int row,
             int column,
             TranslationReport report,
@@ -107,9 +107,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsDataValidationRule? BuildDirectCellValidationRule(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
-            ExcelDataValidationSnapshot validation,
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
+            ExcelDataValidationInspectionInfo validation,
             int row,
             int column) {
             if (string.Equals(validation.Type, "list", StringComparison.OrdinalIgnoreCase)) {
@@ -200,8 +200,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static bool IsListValidationHandledByNativeTable(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelDataValidationSnapshot validation,
+            ExcelWorksheetInfo worksheet,
+            ExcelDataValidationInspectionInfo validation,
             int row,
             int column) {
             foreach (var table in worksheet.Tables) {
@@ -229,9 +229,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static IReadOnlyList<string> ResolveListValidationValues(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
-            ExcelDataValidationSnapshot validation) {
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
+            ExcelDataValidationInspectionInfo validation) {
             var explicitValues = ParseExplicitListValidationValues(validation.Formula1);
             if (explicitValues.Count > 0) {
                 return explicitValues;
@@ -245,9 +245,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return ResolveNamedRangeValidationValues(workbookSnapshot, worksheet.Name, validation.Formula1);
         }
 
-        private static ExcelDataValidationSnapshot? FindMatchingListValidation(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table,
+        private static ExcelDataValidationInspectionInfo? FindMatchingListValidation(
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table,
             int absoluteColumn) {
             var firstDataRow = GetFirstDataRowIndex(table);
             var lastDataRow = GetLastDataRowIndex(table);
@@ -255,7 +255,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return null;
             }
 
-            var columnAddress = A1.ColumnIndexToLetters(absoluteColumn);
+            var columnAddress = ExcelA1.ColumnIndexToLetters(absoluteColumn);
             var expectedRange = $"{columnAddress}{firstDataRow.Value}:{columnAddress}{lastDataRow.Value}";
             return worksheet.Validations.FirstOrDefault(validation =>
                 string.Equals(validation.Type, "list", StringComparison.OrdinalIgnoreCase)
@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 && string.Equals(validation.A1Ranges[0], expectedRange, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool ValidationAppliesToCell(ExcelDataValidationSnapshot validation, int row, int column) {
+        private static bool ValidationAppliesToCell(ExcelDataValidationInspectionInfo validation, int row, int column) {
             foreach (var a1Range in validation.A1Ranges) {
                 if (TryRangeContainsCell(a1Range, row, column)) {
                     return true;
@@ -284,8 +284,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int endRow;
             int endColumn;
 
-            if (!A1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
-                var (singleRow, singleColumn) = A1.ParseCellRef(normalizedRange);
+            if (!ExcelA1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
+                var (singleRow, singleColumn) = ExcelA1.ParseCellRef(normalizedRange);
                 if (singleRow <= 0 || singleColumn <= 0) {
                     return false;
                 }
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static bool TryBuildTextLengthValidationFormula(
-            ExcelDataValidationSnapshot validation,
+            ExcelDataValidationInspectionInfo validation,
             int row,
             int column,
             out string formula) {
@@ -422,7 +422,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return false;
             }
 
-            var cellReference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
+            var cellReference = ExcelA1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
             var lengthExpression = $"LEN({cellReference})";
 
             if (!TryParseValidationNumber(validation.Formula1, out var firstValue)) {
@@ -468,7 +468,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static IReadOnlyList<string> ResolveReferencedRangeValidationValues(
-            ExcelWorkbookSnapshot workbookSnapshot,
+            ExcelWorkbookInfo workbookSnapshot,
             string sourceSheetName,
             string? formula1) {
             if (string.IsNullOrWhiteSpace(formula1)) {
@@ -494,7 +494,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static IReadOnlyList<string> ResolveNamedRangeValidationValues(
-            ExcelWorkbookSnapshot workbookSnapshot,
+            ExcelWorkbookInfo workbookSnapshot,
             string sourceSheetName,
             string? formula1) {
             if (string.IsNullOrWhiteSpace(formula1)) {
@@ -536,7 +536,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static IReadOnlyList<string> ResolveWorksheetRangeValidationValues(
-            ExcelWorkbookSnapshot workbookSnapshot,
+            ExcelWorkbookInfo workbookSnapshot,
             string targetSheetName,
             string rangeText) {
             if (string.IsNullOrWhiteSpace(targetSheetName) || string.IsNullOrWhiteSpace(rangeText)) {
@@ -553,8 +553,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int startColumn;
             int endRow;
             int endColumn;
-            if (!A1.TryParseRange(rangeText, out startRow, out startColumn, out endRow, out endColumn)) {
-                var (row, column) = A1.ParseCellRef(rangeText);
+            if (!ExcelA1.TryParseRange(rangeText, out startRow, out startColumn, out endRow, out endColumn)) {
+                var (row, column) = ExcelA1.ParseCellRef(rangeText);
                 if (row <= 0 || column <= 0) {
                     return Array.Empty<string>();
                 }

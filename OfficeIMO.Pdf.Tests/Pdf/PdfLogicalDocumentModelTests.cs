@@ -34,7 +34,7 @@ public partial class PdfDocumentReadResultTests {
             explicitBlock.FontSize,
             explicitBlock,
             evidence: new[] {
-                new PdfInferenceEvidence("semantic.tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
+                new PdfInferenceEvidence("semantic-tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
             });
         var heuristicHeading = new PdfLogicalHeading(
             1,
@@ -176,7 +176,7 @@ public partial class PdfDocumentReadResultTests {
             Height = 24
         })).ToDocument();
 
-        PdfDocumentReadResult result = document.Read(new PdfReadOptions {
+        PdfDocumentReadResult result = document.Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(1, 1)
         });
         PdfLogicalFormWidget first = Assert.Single(result.Pages[0].FormWidgets);
@@ -304,7 +304,7 @@ public partial class PdfDocumentReadResultTests {
             0,
             100,
             30,
-            OfficeIMO.Drawing.OfficeColor.Red,
+            OfficeIMO.OfficeColor.Red,
             baseFont: "Helvetica");
         var second = new PdfTextSpan(
             "Blue",
@@ -313,7 +313,7 @@ public partial class PdfDocumentReadResultTests {
             36,
             100,
             24,
-            OfficeIMO.Drawing.OfficeColor.Blue,
+            OfficeIMO.OfficeColor.Blue,
             baseFont: "Courier");
 
         var block = new PdfLogicalTextBlock(
@@ -332,18 +332,18 @@ public partial class PdfDocumentReadResultTests {
             run => {
                 Assert.Equal("Red ", run.Text);
                 Assert.Equal("Helvetica", run.BaseFont);
-                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, run.Color);
+                Assert.Equal(OfficeIMO.OfficeColor.Red, run.Color);
             },
             run => {
                 Assert.Equal("Blue", run.Text);
                 Assert.Equal("Courier", run.BaseFont);
-                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, run.Color);
+                Assert.Equal(OfficeIMO.OfficeColor.Blue, run.Color);
             });
     }
 
     [Fact]
     public void Load_BuildsLogicalPagesWithTextTablesAndImages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -510,7 +510,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ReadsOutputIntentProfileMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
             .Paragraph(p => p.Text("Logical output intent readback."))
             .PageBreak()
             .Paragraph(p => p.Text("Second page."))
@@ -543,7 +543,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ReadsGeneratedXmpMetadataFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "B")
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("EN 16931"))

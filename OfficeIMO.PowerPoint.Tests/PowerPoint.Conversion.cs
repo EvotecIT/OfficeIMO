@@ -65,7 +65,7 @@ public sealed class PowerPointConversionTests {
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.Contains(blocked.Result.Report.Compatibility.Findings,
             finding => finding.State == OfficeCompatibilityState.Blocked
-                && finding.Code == "PPT-WRITE-CHART-CONVERTED");
+                && finding.Code == "ppt-write-chart-converted");
 
         PowerPointPresentationConversionResult converted = PowerPointPresentation.Convert(
             source,
@@ -76,7 +76,7 @@ public sealed class PowerPointConversionTests {
 
         Assert.Contains(converted.Report.Compatibility.Findings,
             finding => finding.State == OfficeCompatibilityState.Rasterized
-                && finding.Code == "PPT-WRITE-CHART-CONVERTED"
+                && finding.Code == "ppt-write-chart-converted"
                 && (finding.Impact & OfficeCompatibilityImpact.Editability) != 0);
         Assert.True(converted.HasLoss);
         using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
@@ -104,7 +104,7 @@ public sealed class PowerPointConversionTests {
 
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
         Assert.Contains(exception.Result.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-WRITE-CHART-CONVERTED"
+            finding => finding.Code == "ppt-write-chart-converted"
                 && finding.State == OfficeCompatibilityState.Blocked);
         Assert.False(File.Exists(destination));
     }
@@ -133,7 +133,7 @@ public sealed class PowerPointConversionTests {
                 options);
 
             Assert.Contains(analysis.Compatibility.Findings,
-                finding => finding.Code == "PPT-WRITE-CUSTOM-XML"
+                finding => finding.Code == "ppt-write-custom-xml"
                     && finding.State == OfficeCompatibilityState.Blocked
                     && finding.RepresentsLoss);
             PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
@@ -162,10 +162,10 @@ public sealed class PowerPointConversionTests {
             });
 
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-WRITE-CHART-CONVERTED"
+            finding => finding.Code == "ppt-write-chart-converted"
                 && finding.State == OfficeCompatibilityState.Rasterized);
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.SourceCarrier.Embedded"
+            finding => finding.Code == "power-point-source-carrier-embedded"
                 && finding.State == OfficeCompatibilityState.EmbeddedSource);
         using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
         Assert.Empty(reopened.Slides[0].Charts);
@@ -195,7 +195,7 @@ public sealed class PowerPointConversionTests {
             });
 
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.SourceCarrier.Embedded"
+            finding => finding.Code == "power-point-source-carrier-embedded"
                 && finding.State == OfficeCompatibilityState.EmbeddedSource);
         using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
         Assert.True(reopened.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
@@ -219,7 +219,7 @@ public sealed class PowerPointConversionTests {
         Assert.Contains(exception.Result.Report.FidelityDiagnostics,
             diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.Contains(exception.Result.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "PowerPoint.LegacyDestination.NotWritable"
+            diagnostic => diagnostic.Code == "power-point-legacy-destination-not-writable"
                 && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
         Assert.False(File.Exists(destination));
     }
@@ -268,7 +268,7 @@ public sealed class PowerPointConversionTests {
 
         Assert.True(analysis.Compatibility.HasSecurityImpact);
         Assert.Contains(analysis.Compatibility.Findings,
-            finding => finding.Code == "PPT-ENCRYPTION-DECRYPTED"
+            finding => finding.Code == "ppt-encryption-decrypted"
                 && finding.State == OfficeCompatibilityState.Blocked
                 && finding.RepresentsLoss);
         PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
@@ -287,7 +287,7 @@ public sealed class PowerPointConversionTests {
             });
         Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
         Assert.Contains(allowed.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-ENCRYPTION-DECRYPTED"
+            finding => finding.Code == "ppt-encryption-decrypted"
                 && finding.State == OfficeCompatibilityState.Dropped
                 && finding.RepresentsLoss);
         Assert.True(File.Exists(allowedDestination));
@@ -308,7 +308,7 @@ public sealed class PowerPointConversionTests {
 
         Assert.True(analysis.Compatibility.HasSecurityImpact);
         Assert.Contains(analysis.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.DigitalSignature.Invalidated"
+            finding => finding.Code == "power-point-digital-signature-invalidated"
                 && finding.State == OfficeCompatibilityState.Blocked
                 && finding.RepresentsLoss);
         PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
@@ -325,7 +325,7 @@ public sealed class PowerPointConversionTests {
             });
         Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
         Assert.Contains(allowed.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.DigitalSignature.Invalidated"
+            finding => finding.Code == "power-point-digital-signature-invalidated"
                 && finding.State == OfficeCompatibilityState.Dropped
                 && finding.RepresentsLoss);
         using PresentationDocument package = PresentationDocument.Open(allowedDestination, false);

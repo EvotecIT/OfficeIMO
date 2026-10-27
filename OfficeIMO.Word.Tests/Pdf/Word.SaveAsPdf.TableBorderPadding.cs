@@ -21,11 +21,11 @@ public partial class Word {
         ConfigurePartialColumnParagraph(cell.Paragraphs[0]);
         cell.Paragraphs[0].Text = "BorderRow";
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PageSize(300, 140),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 140),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("BeforeThree", pdf.GetPage(1).Text);
         Assert.DoesNotContain("BorderHeading", pdf.GetPage(1).Text);
@@ -37,7 +37,7 @@ public partial class Word {
         table.ConditionalFormattingFirstRow = false;
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
-        table.StyleDetails!.SetBordersForAllSides(style, 12U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(style, 12U, OfficeIMO.OfficeColor.Black);
         foreach (var row in table.Rows) {
             var cell = row.Cells[0];
             cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
@@ -66,7 +66,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(style, size, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(style, size, OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             var cell = table.Rows[row].Cells[0];
             cell.MarginTopWidth = marginTwips;
@@ -81,7 +81,7 @@ public partial class Word {
             paragraph.LineSpacing = 240;
         }
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var first = Assert.Single(words, word => word.Text == "RowMarker0");
         var second = Assert.Single(words, word => word.Text == "RowMarker1");

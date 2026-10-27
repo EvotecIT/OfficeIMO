@@ -50,7 +50,7 @@ public class ExcelLargeTypedReadBenchmarks {
                     ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
                     static (writer, row) => writer.Write(row.Id).Write(row.Amount)
                         .Write(row.CreatedOn).Write(row.Active),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = true, UseSharedStrings = false });
+                    new ExcelWriterOptions { IncludeCellReferences = true, UseSharedStrings = false });
             }
             _expected = ExpectedObservation(Operation == "FirstRow" ? 1 : RowCount);
             if (engine == nameof(ExcelReaderNet)) {
@@ -85,7 +85,7 @@ public class ExcelLargeTypedReadBenchmarks {
     }
 
     private DbDataReader Open(string engine) => engine == nameof(OfficeIMO)
-        ? ExcelDocument.OpenDataReader(_path, new ExcelReadOptions { NumericAsDecimal = true })
+        ? ExcelDocument.OpenReader(_path, new ExcelReaderOptions { NumericAsDecimal = true })
         : global::Sylvan.Data.Excel.ExcelDataReader.Create(_path,
             new ExcelDataReaderOptions { Schema = ExcelSchema.Default });
 

@@ -37,7 +37,7 @@ public sealed class ClearOfficeExcelConditionalFormattingCommand : PSWriteOffice
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Optional A1 range to clear. When omitted, all conditional formatting on the selected sheet is cleared.</summary>
+    /// <summary>Optional ExcelA1 range to clear. When omitted, all conditional formatting on the selected sheet is cleared.</summary>
     [Parameter]
     public string? Range { get; set; }
 

@@ -14,9 +14,9 @@ namespace OfficeIMO.Word.Html {
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
     internal partial class WordToHtmlConverter {
-        public string Convert(WordDocument document, WordToHtmlOptions options) {
+        public string Convert(WordDocument document, WordHtmlExportOptions options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new WordToHtmlOptions();
+            options ??= new WordHtmlExportOptions();
             lock (document) {
                 ExportInspection exportInspection = InspectExport(document, options);
                 ReportKnownExportLimitations(document, options, exportInspection);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private string ConvertPrepared(WordDocument document, WordToHtmlOptions options,
+        private string ConvertPrepared(WordDocument document, WordHtmlExportOptions options,
             IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection) {
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             CancellationToken cancellationToken = CancellationToken.None;
@@ -82,10 +82,10 @@ namespace OfficeIMO.Word.Html {
                 using Stream input = image.OpenRead();
                 long reservedImageOutputCharacters = 0;
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
-                    ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
+                    ThrowExportLimitExceeded(options, "word-image-size-limit-exceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
                 }
                 if (input.CanSeek && input.Length > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
-                    ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
+                    ThrowExportLimitExceeded(options, "word-image-total-size-limit-exceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
                 }
                 if (base64Mime != null && input.CanSeek) {
                     ReserveImageOutputCharacters(
@@ -110,10 +110,10 @@ namespace OfficeIMO.Word.Html {
                 while ((read = input.Read(buffer, 0, buffer.Length)) > 0) {
                     long nextImageBytes = imageBytes + read;
                     if (nextImageBytes > options.MaxEmbeddedImageBytes) {
-                        ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, nextImageBytes, options.MaxEmbeddedImageBytes);
+                        ThrowExportLimitExceeded(options, "word-image-size-limit-exceeded", "A Word image exceeds the configured per-image HTML export limit.", source, nextImageBytes, options.MaxEmbeddedImageBytes);
                     }
                     if (nextImageBytes > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
-                        ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
+                        ThrowExportLimitExceeded(options, "word-image-total-size-limit-exceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
                     }
                     if (base64Mime != null) {
                         ReserveImageOutputCharacters(
@@ -264,7 +264,7 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (HasExtendedChart(artifactElement ?? (includeAll ? run._run : null))) {
-                        AddExportDiagnostic(options, "WordChartOmitted", "An extended Office chart has no supported HTML image projection.",
+                        AddExportDiagnostic(options, "word-chart-omitted", "An extended Office chart has no supported HTML image projection.",
                             OfficeConversionLossKind.Omission);
                         return true;
                     }
@@ -1576,7 +1576,7 @@ namespace OfficeIMO.Word.Html {
 
             using var outputWriter = new BoundedHtmlWriter(
                 options.MaxOutputCharacters,
-                actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
+                actual => ThrowExportLimitExceeded(options, "word-html-output-limit-exceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
             if (options.EmitDocumentShell) {
                 // Preserve legacy default serialization byte-for-byte. Named shared-shell
                 // profiles opt into the explicit HTML5 document marker.

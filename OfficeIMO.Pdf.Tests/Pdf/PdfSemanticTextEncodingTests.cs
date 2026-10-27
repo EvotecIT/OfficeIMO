@@ -11,7 +11,7 @@ public sealed class PdfSemanticTextEncodingTests {
     [InlineData(true, "• – “quote” €")]
     [InlineData(false, "Nonbreaking\u00A0space\u00AD")]
     public void GeneratedActualTextAndMetadataKeepUnicodeInIndependentReaders(bool drawing, string text) {
-        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).Meta(title: text);
+        var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).Meta(title: text);
         if (drawing) {
             var ink = new OfficeDrawing(200D, 30D).AddText("Paint", 0D, 0D, 180D, 20D,
                 new OfficeFontInfo("Helvetica", 12D));

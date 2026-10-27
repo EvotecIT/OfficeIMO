@@ -44,7 +44,7 @@ public partial class Word {
         }
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         double logicalX = Assert.Single(page.GetWords(), word => word.Text == "LogicalCell").BoundingBox.Left;
         bool alignRight = (token == "end") != rightToLeft;
@@ -91,7 +91,7 @@ public partial class Word {
             storyKind == "footer" ? loaded.Sections[0].ResolveDefaultFooter()!.Tables.Single() : loaded.Tables.Single();
         Assert.Equal(2, Assert.Single(loadedTable.Rows).Cells.Count);
         Assert.Equal(new[] { "LeftCell", "ControlledCell" }, loadedTable.Rows[0].Cells.Select(cell => cell.Paragraphs[0].Text));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var leftWord = Assert.Single(page.GetWords(), word => word.Text == "LeftCell");
         var controlledWord = Assert.Single(page.GetWords(), word => word.Text == "ControlledCell");
@@ -121,7 +121,7 @@ public partial class Word {
         Assert.Equal(2, reloadedAnchor.RowSpan);
         Assert.Equal(2, table.Rows[0].Cells.Count);
         Assert.Equal(3, Assert.Single(table.Rows[0].Cells[1].DirectNestedTables).Rows[0].Cells.Count);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Equal(1, text.Split(new[] { "MergedAnchor" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, text.Split(new[] { "NestedMarker" }, StringSplitOptions.None).Length - 1);
@@ -153,9 +153,9 @@ public partial class Word {
         }
     }
 
-    private static WordToPdfOptions NativeInputTableOptions() => new() {
+    private static WordPdfExportOptions NativeInputTableOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PdfCore.PageSize(400, 500),
-        Margins = PdfCore.PageMargins.Uniform(40)
+        PageSize = new PdfCore.PdfPageSize(400, 500),
+        Margins = PdfCore.PdfPageMargins.Uniform(40)
     };
 }

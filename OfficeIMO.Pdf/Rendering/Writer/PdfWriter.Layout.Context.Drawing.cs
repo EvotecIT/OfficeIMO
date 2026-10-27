@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private static PdfColor? ToPdfColor(OfficeIMO.Drawing.OfficeColor? color) =>
+        private static PdfColor? ToPdfColor(OfficeIMO.OfficeColor? color) =>
             color.HasValue ? PdfColor.FromOfficeColorOrNull(color.Value) : null;
 
         private string? EnsureGraphicsState(double fillOpacity, double strokeOpacity, OfficeBlendMode blendMode = OfficeBlendMode.Normal) {

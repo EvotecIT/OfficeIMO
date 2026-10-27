@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             else if (selector == "complexScript") fonts.ComplexScript = "Courier New";
             else fonts.HighAnsi = "Courier New";
             normal.StyleRunProperties = new StyleRunProperties(fonts);
-            using var output = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+            using var output = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             using WordDocument reopened = WordDocument.Load(output);
             Assert.Equal("Courier New", GetNormalStyle(reopened).StyleRunProperties?.GetFirstChild<RunFonts>()?.Ascii?.Value);
         }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Mixed default fonts");
             GetNormalStyle(document).StyleRunProperties = new StyleRunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Courier New" });
-            Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+            Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         }
 
         [Theory]
@@ -44,9 +44,9 @@ namespace OfficeIMO.Tests {
             defaults.RemoveAllChildren<RunFonts>();
             defaults.PrependChild(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" });
             GetNormalStyle(document).StyleRunProperties = new StyleRunProperties(new RunFonts { EastAsia = overrideFont });
-            if (!supported) Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+            if (!supported) Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             else {
-                using var output = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+                using var output = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
                 using WordDocument reopened = WordDocument.Load(output);
                 Assert.Equal("Arial", GetNormalStyle(reopened).StyleRunProperties?.GetFirstChild<RunFonts>()?.Ascii?.Value);
             }
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             if (ascii) fonts.AsciiTheme = ThemeFontValues.MajorAscii;
             else fonts.HighAnsiTheme = ThemeFontValues.MajorHighAnsi;
             GetNormalStyle(document).StyleRunProperties = new StyleRunProperties(fonts);
-            using var output = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+            using var output = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             using WordDocument reopened = WordDocument.Load(output);
             Assert.Equal("Courier New", GetNormalStyle(reopened).StyleRunProperties?.GetFirstChild<RunFonts>()?.Ascii?.Value);
         }
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             GetNormalStyle(document).StyleRunProperties = new StyleRunProperties(new RunFonts {
                 AsciiTheme = ThemeFontValues.MajorAscii, HighAnsiTheme = ThemeFontValues.MinorHighAnsi
             });
-            Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+            Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         }
 
         [Fact]
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
                 Mode = OfficeImageOptimizationMode.DownsampleAndRecompress, TargetDpi = 144, JpegQuality = 65
             });
             Assert.True(report.BytesSaved > 0);
-            using var output = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+            using var output = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             using WordDocument reopened = WordDocument.Load(output);
             AssertNormalFont(reopened);
             Assert.Contains("Independent Word producer - cropped image optimization.", reopened.Paragraphs.Select(p => p.Text));

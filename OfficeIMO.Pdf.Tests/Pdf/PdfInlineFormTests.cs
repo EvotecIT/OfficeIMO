@@ -165,7 +165,7 @@ public sealed class PdfInlineFormTests {
         }), style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1.2D });
     }
 
-    private static PdfOptions Options(double width, double height) => new() {
+    private static PdfCreateOptions Options(double width, double height) => new() {
         PageWidth = width, PageHeight = height, MarginLeft = 18, MarginRight = 18,
         MarginTop = 18, MarginBottom = 18, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12
     };

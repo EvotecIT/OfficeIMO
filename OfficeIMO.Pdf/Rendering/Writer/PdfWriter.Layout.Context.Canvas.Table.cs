@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
                 throw new InvalidOperationException($"Canvas table grid contains {gridCells} logical cells, exceeding the supported limit of {MaximumCanvasTableGridCells}.");
             }
 
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             ValidateCanvasTableStyle(style, rows, columns);
             style = PreparePairedTableBorders(table, style);
             StringBuilder? pairedBorders = null;
@@ -406,11 +406,11 @@ internal static partial class PdfWriter {
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
             if (cell.Viewport == null)
-                ReportFullyClippedFrameLine("TableCellContentClipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",
+                ReportFullyClippedFrameLine("table-cell-content-clipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",
                     visibleLines, visibleHeights, firstBaseline, fontSize, leading, cellFont,
                     inkClip.Top - inkClip.Height - textClipBleed, inkClip.Height + textClipBleed * 2D,
                     cellX, cellTop, cellWidth, cellHeight);
-            ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + columnIndex + "]", paragraph,
+            ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + rowIndex + "," + columnIndex + "]", paragraph,
                 visibleLines, visibleHeights, firstBaseline, fontSize, leading, contentFrame.Left + padLeft, innerWidth,
                 new TableCellContentFrame(inkClip.Left - textClipBleed, inkClip.Top + textClipBleed,
                     inkClip.Width + 2D * textClipBleed, inkClip.Height + 2D * textClipBleed),

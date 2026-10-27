@@ -33,7 +33,7 @@ public sealed class GetOfficeExcelDataCommand : PSCmdlet
     [Parameter]
     public string? Sheet { get; set; }
 
-    /// <summary>Optional A1 range (e.g. A1:D10). When omitted, the sheet's used range is read.</summary>
+    /// <summary>Optional ExcelA1 range (e.g. ExcelA1:D10). When omitted, the sheet's used range is read.</summary>
     [Parameter]
     public string? Range { get; set; }
 
@@ -74,7 +74,7 @@ public sealed class GetOfficeExcelDataCommand : PSCmdlet
 
         try
         {
-            var options = new ExcelReadOptions
+            var options = new ExcelReaderOptions
             {
                 SheetName = string.IsNullOrWhiteSpace(Sheet) ? null : Sheet,
                 SheetIndex = string.IsNullOrWhiteSpace(Sheet) ? 0 : null,

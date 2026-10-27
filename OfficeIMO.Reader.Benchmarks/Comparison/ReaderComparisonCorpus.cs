@@ -111,7 +111,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("pptx", "evidence-deck.pptx", NormalizeOfficePackage(stream.ToArray()),
             Probe("title", ReaderComparisonProbeKind.ContainsText, "Quarterly evidence"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "Presentation list marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "Presentation list marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Presentation table marker"),
             Probe("notes", ReaderComparisonProbeKind.ContainsText, "Presenter notes retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
@@ -145,7 +145,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("html", "evidence-article.html", Encoding.UTF8.GetBytes(html),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "HTML evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "HTML list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "HTML list retention marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "HTML table retention marker"),
             Probe(
                 "link",
@@ -309,7 +309,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("epub", "evidence-book.epub", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "EPUB evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "EPUB list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "EPUB list retention marker"),
             Probe(
                 "link",
                 ReaderComparisonProbeKind.MarkdownLink,
@@ -329,7 +329,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("zip", "evidence-archive.zip", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "ZIP evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "ZIP list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "ZIP list retention marker"),
             Probe(
                 "link",
                 ReaderComparisonProbeKind.MarkdownLink,

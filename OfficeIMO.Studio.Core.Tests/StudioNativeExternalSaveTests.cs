@@ -38,7 +38,7 @@ public sealed class StudioNativeExternalSaveTests : IDisposable {
                 Assert.False((await document.GetInfoAsync(default)).IsDirty);
             }
             await document.RotatePagesAsync([1], 90, default);
-            Assert.Equal(90, PdfDocument.Load(prepared).GetPageLayouts()[0].RotationDegrees);
+            Assert.Equal(90, PdfDocument.Load(new System.IO.MemoryStream(prepared)).GetPageLayouts()[0].RotationDegrees);
         }
         string reopened = Copy("next", published ? prepared : original);
         using var next = await StudioNativeDocument.OpenAsync(reopened, null, default, Identity);
@@ -135,7 +135,7 @@ public sealed class StudioNativeExternalSaveTests : IDisposable {
             int page = 1;
             Assert.Equal(0, rotate(GCHandle.ToIntPtr(handle), &page, 1, 90, 0, &error));
             byte[] captured = new ReadOnlySpan<byte>(first, checked((int)length)).ToArray();
-            Assert.Equal(90, PdfDocument.Load(captured).GetPageLayouts()[0].RotationDegrees);
+            Assert.Equal(90, PdfDocument.Load(new System.IO.MemoryStream(captured)).GetPageLayouts()[0].RotationDegrees);
             Assert.Equal(0, prepare(GCHandle.ToIntPtr(handle), 0, &second, &length, &error));
             byte[] current = new ReadOnlySpan<byte>(second, checked((int)length)).ToArray();
             byte[] digest = Encoding.UTF8.GetBytes(Convert.ToHexString(SHA256.HashData(current)) + '\0');

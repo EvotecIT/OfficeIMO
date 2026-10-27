@@ -31,7 +31,7 @@ public sealed class SetOfficeExcelInternalLinksCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range containing values to convert into internal links.</summary>
+    /// <summary>ExcelA1 range containing values to convert into internal links.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Range { get; set; } = string.Empty;
 
@@ -45,7 +45,7 @@ public sealed class SetOfficeExcelInternalLinksCommand : PSCmdlet
 
     /// <summary>Destination cell on the target sheet.</summary>
     [Parameter]
-    public string TargetAddress { get; set; } = "A1";
+    public string TargetAddress { get; set; } = "ExcelA1";
 
     /// <summary>Skip hyperlink styling (blue + underline).</summary>
     [Parameter]

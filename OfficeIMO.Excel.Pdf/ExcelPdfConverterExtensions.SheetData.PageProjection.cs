@@ -4,13 +4,13 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         // Project the selected page grid once. Continuation fragments retain the
         // original merge's value, text formatting and full text-box geometry.
-        private static SheetExportData SelectPageCells(WorksheetPdfExportPlan plan, TableChunk chunk, ExcelToPdfOptions options) {
+        private static SheetExportData SelectPageCells(WorksheetPdfExportPlan plan, TableChunk chunk, ExcelPdfExportOptions options) {
             SheetExportData source = plan.ExportData;
             IReadOnlyList<int> rows = chunk.RowIndexes;
             IReadOnlyList<int> columns = chunk.ColumnIndexes;
             object?[,] values = SelectCells(source.Values, rows, columns)!;
-            ExcelCellStyleSnapshot?[,]? styles = SelectCells(source.Styles, rows, columns);
-            ExcelHyperlinkSnapshot?[,]? hyperlinks = SelectCells(source.Hyperlinks, rows, columns);
+            ExcelCellStyleInfo?[,]? styles = SelectCells(source.Styles, rows, columns);
+            ExcelHyperlinkInfo?[,]? hyperlinks = SelectCells(source.Hyperlinks, rows, columns);
             string?[,]? references = SelectCells(source.CellReferences, rows, columns);
             Dictionary<(int Row, int Column), string>? conditionalFills = source.ConditionalFills == null ? null : SelectCellVisuals(source.ConditionalFills.FillColors, rows, columns);
             Dictionary<(int Row, int Column), ConditionalDataBarCell>? dataBars = source.ConditionalFills == null ? null : SelectCellVisuals(source.ConditionalFills.DataBars, rows, columns);
@@ -38,9 +38,9 @@ namespace OfficeIMO.Excel.Pdf {
                         }
                         if (hyperlinks != null) hyperlinks[localRow, localColumn] = source.Hyperlinks![region.Row, region.Column];
                         if (styles != null || viewport != null && options.UseWorksheetCellStyles) {
-                            styles ??= new ExcelCellStyleSnapshot?[rows.Count, columns.Count];
-                            ExcelCellStyleSnapshot originalStyle = source.Styles?[region.Row, region.Column] ?? new ExcelCellStyleSnapshot();
-                            ExcelCellStyleSnapshot fragmentStyle = originalStyle.CopyWithBorder(
+                            styles ??= new ExcelCellStyleInfo?[rows.Count, columns.Count];
+                            ExcelCellStyleInfo originalStyle = source.Styles?[region.Row, region.Column] ?? new ExcelCellStyleInfo();
+                            ExcelCellStyleInfo fragmentStyle = originalStyle.CopyWithBorder(
                                 CreateMergeFragmentBorder(source.Styles, region, row, column, rowSpan, columnSpan));
                             if (viewport != null && string.IsNullOrWhiteSpace(fragmentStyle.VerticalAlignment)) fragmentStyle.VerticalAlignment = "bottom";
                             styles[localRow, localColumn] = fragmentStyle;
@@ -80,16 +80,16 @@ namespace OfficeIMO.Excel.Pdf {
             return new PdfCore.PdfTableCellViewport(Math.Max(fullWidth, offsetX + width), Math.Max(fullHeight, offsetY + height), width, height, offsetX, offsetY);
         }
 
-        private static ExcelCellBorderSnapshot? CreateMergeFragmentBorder(
-            ExcelCellStyleSnapshot?[,]? styles, MergeRegion region, int row, int column, int rowSpan, int columnSpan) {
+        private static ExcelCellBorderInfo? CreateMergeFragmentBorder(
+            ExcelCellStyleInfo?[,]? styles, MergeRegion region, int row, int column, int rowSpan, int columnSpan) {
             if (styles == null) return null;
-            ExcelCellBorderSnapshot? original = styles[region.Row, region.Column]?.Border;
+            ExcelCellBorderInfo? original = styles[region.Row, region.Column]?.Border;
             int lastRow = region.Row + region.Span.RowSpan - 1;
             int lastColumn = region.Column + region.Span.ColumnSpan - 1;
-            ExcelCellBorderSnapshot? right = styles[region.Row, lastColumn]?.Border;
-            ExcelCellBorderSnapshot? bottom = styles[lastRow, region.Column]?.Border;
+            ExcelCellBorderInfo? right = styles[region.Row, lastColumn]?.Border;
+            ExcelCellBorderInfo? bottom = styles[lastRow, region.Column]?.Border;
             bool includesAnchor = row == region.Row && column == region.Column;
-            return new ExcelCellBorderSnapshot(
+            return new ExcelCellBorderInfo(
                 left: column == region.Column ? original?.Left : null,
                 right: column + columnSpan - 1 == lastColumn ? right?.Right ?? original?.Right : null,
                 top: row == region.Row ? original?.Top : null,

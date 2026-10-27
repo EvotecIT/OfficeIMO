@@ -413,13 +413,13 @@ public sealed class WordChartOfficeSnapshotTests {
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
                 new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
         document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared projection");
-        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        var layout = new WordPdfExportOptions { IncludePageNumbers = false };
         var options = new WordImageExportOptions { LayoutOptions = layout };
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(layout);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(layout);
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(conversion.ToBytes()).Pages);
         var page = document.CreateVisualSnapshot(options);
-        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.Code == "native-body-chart-unsupported");
         string text = string.Concat(page.TextSpans.Select(span => span.Text));
         Assert.Contains("Shared projection", text, StringComparison.Ordinal);
         Assert.Contains(bubble ? "Measured" : "Ratio", text, StringComparison.Ordinal);

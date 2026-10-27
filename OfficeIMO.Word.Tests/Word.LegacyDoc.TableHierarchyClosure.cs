@@ -34,7 +34,7 @@ public partial class Word {
         header.Text = "Header";
         if (direct) { header.ColorHex = "FF00FF"; header.LineSpacingAfter = 60; }
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Body";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable result = Assert.Single(restored.Tables);
         Assert.Equal(direct ? "FF00FF" : derived ? "0000FF" : "FF0000", result.Rows[0].Cells[0].Paragraphs[0].ColorHex);
         Assert.Equal(direct ? 60 : derived ? 360 : 240, result.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter);
@@ -69,7 +69,7 @@ public partial class Word {
             Val = inheritedParagraph ? "DerivedCellBlue" : "CellBlue"
         };
         if (direct) paragraph.ColorHex = "00FF00";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(direct ? "00FF00" : "0000FF", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].ColorHex);
     }
 
@@ -96,7 +96,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = "NormalGridChild" };
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Inherited defaults";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell cell = restored.Tables[0].Rows[0].Cells[0];
         Assert.Equal(string.Empty, cell.ShadingFillColorHex);
         Assert.Equal((short)0, cell.MarginTopWidth);

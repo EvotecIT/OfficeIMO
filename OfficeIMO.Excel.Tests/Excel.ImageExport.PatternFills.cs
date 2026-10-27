@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             ApplyPatternFill(sheet, 1, 1, PatternValues.DarkGrid, "FFC00000", "FFFFE5E5");
 
             ExcelRange range = sheet.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
             string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", 0D);
 
             ExcelRange range = sheet.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
             string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", "FFFF0000", 0D);
 
             ExcelRange range = sheet.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
             string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             ApplyGradientFill(sheet, 1, 1, 0.0000005D, 0.5D, 0.9999995D);
 
             ExcelRange range = sheet.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
             ExcelVisualCell cell = Assert.Single(snapshot.Cells);
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             stylesheet.Fills.Count = fillId;
 
             Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>()
-                .Single(item => string.Equals(item.CellReference?.Value, A1.CellReference(row, column), StringComparison.OrdinalIgnoreCase));
+                .Single(item => string.Equals(item.CellReference?.Value, ExcelA1.CellReference(row, column), StringComparison.OrdinalIgnoreCase));
             CellFormat baseFormat = stylesheet.CellFormats.Elements<CellFormat>().ElementAtOrDefault((int)(cell.StyleIndex?.Value ?? 0U)) ?? new CellFormat();
             CellFormat format = (CellFormat)baseFormat.CloneNode(true);
             format.FillId = fillId - 1U;

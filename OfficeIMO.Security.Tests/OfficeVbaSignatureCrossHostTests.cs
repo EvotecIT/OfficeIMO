@@ -24,9 +24,9 @@ public sealed class OfficeVbaSignatureCrossHostTests {
             CreateMacroPackage(path, hostRoot);
 
             OfficeVbaSignatureInfo info = extension switch {
-                "docm" => WordDocument.InspectVbaSignatures(path),
-                "xlsm" or "xlsb" => ExcelDocument.InspectVbaSignatures(path),
-                "pptm" or "ppam" => PowerPointPresentation.InspectVbaSignatures(path),
+                "docm" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
+                "xlsm" or "xlsb" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
+                "pptm" or "ppam" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
                 _ => throw new ArgumentOutOfRangeException(nameof(extension))
             };
 

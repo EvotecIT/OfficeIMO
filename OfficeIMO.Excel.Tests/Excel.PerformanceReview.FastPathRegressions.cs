@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(3, 3, "TRUE");
             }
 
-            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReadOptions {
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReaderOptions {
                 UseCachedFormulaResult = useCachedFormulaResult
             });
             FormulaProjection row = reader.GetSheet("Formula")

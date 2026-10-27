@@ -370,7 +370,7 @@ public sealed partial class MainWindowViewModel {
     // Page size --------------------------------------------------------------------------------------
 
     public IReadOnlyList<PageSizeChoice> PageSizeChoices { get; } = [
-        new("A4", PageSizes.A4), new("Letter", PageSizes.Letter), new("Legal", PageSizes.Legal), new("A3", PageSizes.A3), new("A5", PageSizes.A5)
+        new("A4", PdfPageSizes.A4), new("Letter", PdfPageSizes.Letter), new("Legal", PdfPageSizes.Legal), new("A3", PdfPageSizes.A3), new("A5", PdfPageSizes.A5)
     ];
 
     public IReadOnlyList<ResizeModeChoice> ResizeModeChoices => [
@@ -448,7 +448,7 @@ public sealed partial class MainWindowViewModel {
     }
 }
 
-public sealed record PageSizeChoice(string Label, PageSize Size);
+public sealed record PageSizeChoice(string Label, PdfPageSize Size);
 
 public sealed record ResizeModeChoice(PdfPageResizeMode Mode, string Label);
 

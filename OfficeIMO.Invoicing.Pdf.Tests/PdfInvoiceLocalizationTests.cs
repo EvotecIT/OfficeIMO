@@ -44,7 +44,7 @@ public class PdfInvoiceLocalizationTests {
 
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout)
             .ToPresentationPdfBytes(MultilingualOptions());
-        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
 
         Assert.Contains(heading, text, StringComparison.Ordinal);
         Assert.Contains(amountDue, text, StringComparison.Ordinal);
@@ -66,13 +66,13 @@ public class PdfInvoiceLocalizationTests {
         layout.DateFormat = "yyyy";
         byte[] pdf = snapshot.ToPdfBytes(MultilingualOptions());
 
-        PdfDocument loaded = PdfDocument.Load(pdf);
+        PdfDocument loaded = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Equal(xml, Assert.Single(loaded.Attachments.Extract()).Bytes);
         InvoiceReadResult embedded = InvoiceParser.Read(xml);
         Assert.Equal(invoice.Lines[0].Name, embedded.Invoice.Lines[0].Name);
         Assert.Equal(invoice.Lines[0].Description, embedded.Invoice.Lines[0].Description);
 
-        PdfReadDocument visible = PdfReadDocument.Open(pdf);
+        PdfDocument visible = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         string text = visible.ExtractUnwrappedText();
         Assert.True(visible.Pages.Count > 1);
         Assert.Contains("Faktura / Invoice " + invoice.Number, text, StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public class PdfInvoiceLocalizationTests {
         layout.FormattingCulture = custom.Culture;
 
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout).ToPdfBytes(MultilingualOptions());
-        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
         Assert.Contains("Faktura INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains("Seller", text, StringComparison.Ordinal);
     }
@@ -116,11 +116,11 @@ public class PdfInvoiceLocalizationTests {
         Assert.Equal("Faktura korygująca", InvoicePdfLanguagePack.ForCulture("pl-PL")[InvoicePdfText.CorrectedInvoice]);
     }
 
-    private static PdfOptions MultilingualOptions() {
+    private static PdfCreateOptions MultilingualOptions() {
         string fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!;
         Assert.NotNull(fontPath);
         byte[] baseFont = File.ReadAllBytes(fontPath);
-        return new PdfOptions { IncludeStandardFontToUnicodeMaps = true }
+        return new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true }
             .EmbedStandardFont(PdfStandardFont.Helvetica, baseFont, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, baseFont, "OfficeIMO Source Serif")
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {

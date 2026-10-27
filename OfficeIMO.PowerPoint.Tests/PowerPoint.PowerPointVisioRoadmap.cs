@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(svg.Bytes);
                 Assert.Contains("Revenue", System.Text.Encoding.UTF8.GetString(svg.Bytes),
                     StringComparison.Ordinal);
-                byte[] pdf = presentation.ToPdfBytes();
+                byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
                 Assert.True(pdf.Length > 100);
                 Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(pdf, 0, 5));
             }
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.Contains(preflight.Findings, finding =>
                 finding.Feature == LegacyPptFeature.LinkedOle &&
-                finding.Code == "PPT-WRITE-LINKED-OLE");
+                finding.Code == "ppt-write-linked-ole");
         }
 
         [Fact]

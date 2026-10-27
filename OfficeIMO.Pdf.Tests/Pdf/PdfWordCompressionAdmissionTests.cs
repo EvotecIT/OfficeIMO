@@ -179,7 +179,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfJustificationMode mode = PdfJustificationMode.Words) =>
         PdfDocument.Create(Options(width)).Paragraph(p => p.Runs(runs), PdfAlign.Justify,
             style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
-    private static PdfOptions Options(double width) => new() { PageWidth = width + 40D, PageHeight = 300D,
+    private static PdfCreateOptions Options(double width) => new() { PageWidth = width + 40D, PageHeight = 300D,
         MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false };
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;

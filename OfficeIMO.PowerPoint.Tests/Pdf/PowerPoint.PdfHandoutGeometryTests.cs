@@ -25,9 +25,9 @@ public sealed class PowerPointPdfHandoutGeometryTests {
             slide.Notes.Text = "PRESENTER " + (index + 1);
         }
         presentation.Slides[0].TextBoxes.First().Paragraphs[0].Runs[0].SetHyperlink(presentation.Slides[2]);
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             PageLayout = PowerPointPdfPageLayout.Handouts, HandoutSlidesPerPage = 3, IncludeSpeakerNotes = true
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfCore.PdfReadPage page = Assert.Single(PdfCore.PdfReadDocument.Open(bytes).Pages);
         (double pageWidth, double pageHeight) = page.GetPageSize();
         var placements = page.GetImagePlacements();

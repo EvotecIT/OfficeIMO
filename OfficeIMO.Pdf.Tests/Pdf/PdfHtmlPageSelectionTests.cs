@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
@@ -15,9 +17,9 @@ public sealed class PdfHtmlPageSelectionTests {
             int capturedPageNumber = pageNumber;
             source.PageBreak().Paragraph(paragraph => paragraph.Text("Page " + capturedPageNumber));
         }
-        PdfDocument document = PdfDocument.Load(source.ToBytes());
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source.ToBytes()));
         var options = new PdfToHtmlOptions {
-            ReadOptions = new PdfReadOptions {
+            ReadOptions = new PdfLoadOptions {
                 Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
             },
             PageRanges = new[] { PdfPageRange.From(1001, 1001) }
@@ -39,7 +41,7 @@ public sealed class PdfHtmlPageSelectionTests {
 
         PdfHtmlConversionResult result = logical.ToHtmlResult();
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
 
         Assert.True(logical.HasOptionalContentGroups);
@@ -47,23 +49,23 @@ public sealed class PdfHtmlPageSelectionTests {
         Assert.Equal(logical.OptionalContentGroupCount, tableScope.OptionalContentGroupCount);
         Assert.Equal(0, tableScope.PagesWithOptionalContent);
         Assert.DoesNotContain(word.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.DoesNotContain(result.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
     }
 
     [Fact]
     public void VisualWordAndPowerPoint_DoNotReportUnusedOptionalContentDefinitions() {
-        PdfDocument document = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
-        PdfWordConversionResult word = document.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
-        PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateVisualPages());
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf()));
+        PdfWordConversionResult word = document.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+        PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateVisualPages());
         using (word.Value)
         using (powerPoint.Value) {
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfOptionalContentGroupsFlattened");
+                warning.Code == "pdf-optional-content-groups-flattened");
             Assert.DoesNotContain(powerPoint.Warnings, static warning =>
-                warning.Code == "PdfOptionalContentGroupsFlattened");
+                warning.Code == "pdf-optional-content-groups-flattened");
         }
     }
 
@@ -71,43 +73,43 @@ public sealed class PdfHtmlPageSelectionTests {
     [InlineData(1, false)]
     [InlineData(2, true)]
     public void VisualWordAndPowerPoint_ReportOptionalContentOnlyForSelectedUsage(int pageNumber, bool expectedWarning) {
-        PdfDocument document = PdfDocument.Load(PdfDocument.Create()
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Unlayered page"))
             .PageBreak()
             .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
-            .ToBytes());
-        PdfToWordOptions wordOptions = PdfToWordOptions.CreateVisualPages();
-        wordOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
-        PdfToPowerPointOptions powerPointOptions = PdfToPowerPointOptions.CreateVisualPages();
-        powerPointOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
-        PdfWordConversionResult word = document.ToWordDocumentResult(wordOptions);
-        PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(powerPointOptions);
+            .ToBytes()));
+        WordPdfImportOptions wordOptions = WordPdfImportOptions.CreateVisualPages();
+        wordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
+        PowerPointPdfImportOptions powerPointOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        powerPointOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
+        PdfWordConversionResult word = document.ConvertToWordWithEvidence(wordOptions);
+        PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(powerPointOptions);
         using (word.Value)
         using (powerPoint.Value) {
             Assert.Equal(expectedWarning, word.Report.Warnings.Any(static warning =>
-                warning.Code == "PdfOptionalContentGroupsFlattened"));
+                warning.Code == "pdf-optional-content-groups-flattened"));
             Assert.Equal(expectedWarning, powerPoint.Warnings.Any(static warning =>
-                warning.Code == "PdfOptionalContentGroupsFlattened"));
+                warning.Code == "pdf-optional-content-groups-flattened"));
         }
     }
 
     [Fact]
     public void VisualWordAndPowerPoint_ReportInconclusiveOptionalContentInspectionWithoutFailingConversion() {
-        PdfDocument document = PdfDocument.Load(PdfDocument.Create()
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
             .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
-            .ToBytes());
+            .ToBytes()));
         PdfReadPage.OptionalContentUsageInspectionObserverForTesting = static () =>
             throw new InvalidDataException("Synthetic optional-content inspection failure.");
         try {
-            PdfWordConversionResult word = document.ToWordDocumentResult(PdfToWordOptions.CreateVisualPages());
-            PdfPowerPointConversionResult powerPoint = document.ToPowerPointPresentationResult(
-                PdfToPowerPointOptions.CreateVisualPages());
+            PdfWordConversionResult word = document.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+            PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(
+                PowerPointPdfImportOptions.CreateVisualPages());
             using (word.Value)
             using (powerPoint.Value) {
                 Assert.Contains(word.Report.Warnings, static warning =>
-                    warning.Code == "PdfOptionalContentUsageInspectionInconclusive");
+                    warning.Code == "pdf-optional-content-usage-inspection-inconclusive");
                 Assert.Contains(powerPoint.Warnings, static warning =>
-                    warning.Code == "PdfOptionalContentUsageInspectionInconclusive");
+                    warning.Code == "pdf-optional-content-usage-inspection-inconclusive");
             }
         } finally {
             PdfReadPage.OptionalContentUsageInspectionObserverForTesting = null;
@@ -121,7 +123,7 @@ public sealed class PdfHtmlPageSelectionTests {
             .PageBreak()
             .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(source);
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
 
         PdfHtmlConversionResult firstPage = document.ToHtmlResult(new PdfToHtmlOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
@@ -129,28 +131,28 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfHtmlConversionResult secondPage = document.ToHtmlResult(new PdfToHtmlOptions {
             PageRanges = new[] { PdfPageRange.From(2, 2) }
         });
-        PdfDocumentReadResult firstPageLogical = document.Read(new PdfReadOptions {
+        PdfDocumentReadResult firstPageLogical = document.Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(1)
         });
-        PdfDocumentReadResult secondPageLogical = document.Read(new PdfReadOptions {
+        PdfDocumentReadResult secondPageLogical = document.Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(2)
         });
-        PdfWordConversionResult firstPageWord = firstPageLogical.ToWordDocumentResult();
-        PdfWordConversionResult secondPageWord = secondPageLogical.ToWordDocumentResult();
+        PdfWordConversionResult firstPageWord = firstPageLogical.ConvertToWordWithEvidence();
+        PdfWordConversionResult secondPageWord = secondPageLogical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument firstWordDocument = firstPageWord.Value;
         using OfficeIMO.Word.WordDocument secondWordDocument = secondPageWord.Value;
 
         Assert.DoesNotContain(firstPage.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(secondPage.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.Code == "pdf-optional-content-groups-flattened" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(firstPageLogical).PagesWithOptionalContent);
         Assert.Equal(1, PdfLogicalTableAnalysis.AnalyzeExtractionScope(secondPageLogical).PagesWithOptionalContent);
         Assert.DoesNotContain(firstPageWord.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(secondPageWord.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.Code == "pdf-optional-content-groups-flattened" &&
             warning.Details["GroupCount"] == "1");
     }
 
@@ -160,7 +162,7 @@ public sealed class PdfHtmlPageSelectionTests {
             BuildOptionalContentUsageWithoutCatalogMetadataPdf());
 
         PdfHtmlConversionResult html = logical.ToHtmlResult();
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
@@ -168,9 +170,9 @@ public sealed class PdfHtmlPageSelectionTests {
         Assert.True(Assert.Single(logical.Pages).HasOptionalContentUsage);
         Assert.Equal(1, tableScope.PagesWithOptionalContent);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(word.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
     }
 
     [Theory]
@@ -183,20 +185,20 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         PdfHtmlConversionResult html = logical.ToHtmlResult();
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);
         Assert.Equal(1, tableScope.PagesWithOptionalContent);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(word.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(powerPoint.Report.Warnings, static warning =>
-            warning.Code == "PdfGroupsNotReconstructed");
+            warning.Code == "pdf-groups-not-reconstructed");
     }
 
     [Theory]
@@ -212,20 +214,20 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         PdfHtmlConversionResult html = logical.ToHtmlResult();
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
 
         Assert.Equal(selectLayeredAppearance, page.HasOptionalContentUsage);
         Assert.Equal(selectLayeredAppearance ? 1 : 0, tableScope.PagesWithOptionalContent);
         Assert.Equal(selectLayeredAppearance, html.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened"));
+            warning.Code == "pdf-optional-content-groups-flattened"));
         Assert.Equal(selectLayeredAppearance, word.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened"));
+            warning.Code == "pdf-optional-content-groups-flattened"));
         Assert.Equal(selectLayeredAppearance, powerPoint.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfGroupsNotReconstructed"));
+            warning.Code == "pdf-groups-not-reconstructed"));
     }
 
     [Theory]
@@ -240,20 +242,20 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         PdfHtmlConversionResult html = logical.ToHtmlResult();
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
 
         Assert.Equal(expectedOptionalContent, page.HasOptionalContentUsage);
         Assert.Equal(expectedOptionalContent ? 1 : 0, tableScope.PagesWithOptionalContent);
         Assert.Equal(expectedOptionalContent, html.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened"));
+            warning.Code == "pdf-optional-content-groups-flattened"));
         Assert.Equal(expectedOptionalContent, word.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened"));
+            warning.Code == "pdf-optional-content-groups-flattened"));
         Assert.Equal(expectedOptionalContent, powerPoint.Report.Warnings.Any(static warning =>
-            warning.Code == "PdfGroupsNotReconstructed"));
+            warning.Code == "pdf-groups-not-reconstructed"));
     }
 
     [Fact]
@@ -264,20 +266,20 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfTableExtractionScopeReport tableScope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         PdfHtmlConversionResult html = logical.ToHtmlResult();
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);
         Assert.Equal(1, tableScope.PagesWithOptionalContent);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(word.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened");
+            warning.Code == "pdf-optional-content-groups-flattened");
         Assert.Contains(powerPoint.Report.Warnings, static warning =>
-            warning.Code == "PdfGroupsNotReconstructed");
+            warning.Code == "pdf-groups-not-reconstructed");
     }
 
     private static byte[] BuildOptionalContentUsageWithoutCatalogMetadataPdf() {

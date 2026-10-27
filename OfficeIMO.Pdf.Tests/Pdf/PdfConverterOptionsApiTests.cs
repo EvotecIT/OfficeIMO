@@ -11,20 +11,20 @@ public sealed class PdfConverterOptionsApiTests {
         Type asciiDoc = typeof(OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions);
         Type latex = typeof(OfficeIMO.Latex.Pdf.LatexToPdfOptions);
 
-        Assert.Equal(typeof(PdfOptions), html.GetProperty("PdfOptions")?.PropertyType);
+        Assert.Equal(typeof(PdfCreateOptions), html.GetProperty("PdfOptions")?.PropertyType);
         Assert.Null(html.GetProperty("DocumentOptions"));
-        Assert.Equal(typeof(MarkdownToPdfOptions), asciiDoc.GetProperty("MarkdownOptions")?.PropertyType);
-        Assert.Equal(typeof(MarkdownToPdfOptions), latex.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Equal(typeof(MarkdownPdfExportOptions), asciiDoc.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Equal(typeof(MarkdownPdfExportOptions), latex.GetProperty("MarkdownOptions")?.PropertyType);
         Assert.Null(asciiDoc.GetProperty("PdfOptions"));
         Assert.Null(latex.GetProperty("PdfOptions"));
     }
 
     [Fact]
     public void ConverterOptionsExposeExpectedResourceDefaults() {
-        var markdown = new MarkdownToPdfOptions();
-        var word = new OfficeIMO.Word.Pdf.WordToPdfOptions();
-        var excel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions();
-        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions();
+        var markdown = new MarkdownPdfExportOptions();
+        var word = new OfficeIMO.Word.Pdf.WordPdfExportOptions();
+        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions();
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions();
         var html = new OfficeIMO.Html.Pdf.HtmlToPdfOptions();
         var rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions();
         var asciiDoc = new OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions();
@@ -47,13 +47,13 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void MarkdownProfileMapsToSingleOptionsObject() {
-        var options = new MarkdownToPdfOptions {
+        var options = new MarkdownPdfExportOptions {
             IncludeImages = true,
             ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
             ApplyDefaultTheme = true
         };
 
-        MarkdownToPdfOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
+        MarkdownPdfExportOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
 
         Assert.Same(options, returned);
         Assert.False(options.IncludeImages);
@@ -66,9 +66,9 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void MarkdownProfilesDoNotDependOnPreviouslyAppliedProfile() {
-        var reused = new MarkdownToPdfOptions();
+        var reused = new MarkdownPdfExportOptions();
         reused.UseProfile(PdfExportProfile.TextOnly).UseProfile(PdfExportProfile.Lightweight);
-        var fresh = new MarkdownToPdfOptions().UseProfile(PdfExportProfile.Lightweight);
+        var fresh = new MarkdownPdfExportOptions().UseProfile(PdfExportProfile.Lightweight);
 
         Assert.Equal(fresh.IncludeImages, reused.IncludeImages);
         Assert.Equal(fresh.ApplyDefaultTheme, reused.ApplyDefaultTheme);
@@ -78,12 +78,12 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void WordProfileMapsPrintReadyChoices() {
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions {
+        var options = new OfficeIMO.Word.Pdf.WordPdfExportOptions {
             IncludePageNumbers = false,
             DefaultTableBorders = false
         };
 
-        OfficeIMO.Word.Pdf.WordToPdfOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
+        OfficeIMO.Word.Pdf.WordPdfExportOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
 
         Assert.Same(options, returned);
         Assert.False(options.IncludePageNumbers);
@@ -92,13 +92,13 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void ExcelProfileMapsLightweightChoices() {
-        var options = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions {
+        var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions {
             UseWorksheetImages = true,
             UseWorksheetCharts = true,
             UseWorksheetHyperlinks = true
         };
 
-        OfficeIMO.Excel.Pdf.ExcelToPdfOptions returned = options.UseProfile(PdfExportProfile.Lightweight);
+        OfficeIMO.Excel.Pdf.ExcelPdfExportOptions returned = options.UseProfile(PdfExportProfile.Lightweight);
 
         Assert.Same(options, returned);
         Assert.False(options.UseWorksheetHeaderFooterImages);
@@ -110,22 +110,22 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void ExcelProfilesDoNotDependOnPreviouslyAppliedProfile() {
-        var reused = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions();
+        var reused = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions();
         reused.UseProfile(PdfExportProfile.TextOnly).UseProfile(PdfExportProfile.PrintReady);
-        var fresh = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseProfile(PdfExportProfile.PrintReady);
+        var fresh = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions().UseProfile(PdfExportProfile.PrintReady);
 
         Assert.Equal(GetExcelProfileState(fresh), GetExcelProfileState(reused));
     }
 
     [Fact]
     public void PowerPointProfileMapsTextOnlyChoices() {
-        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions {
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions {
             IncludePictures = true,
             IncludeAutoShapes = true,
             IncludeCharts = true
         };
 
-        OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
+        OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
 
         Assert.Same(options, returned);
         Assert.False(options.IncludePictures);
@@ -139,16 +139,16 @@ public sealed class PdfConverterOptionsApiTests {
     public void ConverterProfilesRejectUnknownValues() {
         var profile = (PdfExportProfile)999;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => new MarkdownToPdfOptions().UseProfile(profile));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.WordToPdfOptions().UseProfile(profile));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseProfile(profile));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MarkdownPdfExportOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.WordPdfExportOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions().UseProfile(profile));
     }
 
     [Fact]
     public void PdfOptionsTrackAndCloneExplicitFontSlots() {
-        var defaults = new PdfOptions();
-        PdfOptions defaultClone = defaults.Clone();
+        var defaults = new PdfCreateOptions();
+        PdfCreateOptions defaultClone = defaults.Clone();
 
         Assert.False(defaults.HasExplicitDefaultFont);
         Assert.False(defaults.HasExplicitHeaderFont);
@@ -157,12 +157,12 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.False(defaultClone.HasExplicitHeaderFont);
         Assert.False(defaultClone.HasExplicitFooterFont);
 
-        var configured = new PdfOptions {
+        var configured = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier,
             HeaderFont = PdfStandardFont.TimesRoman,
             FooterFont = PdfStandardFont.Helvetica
         };
-        PdfOptions configuredClone = configured.Clone();
+        PdfCreateOptions configuredClone = configured.Clone();
 
         Assert.True(configured.HasExplicitDefaultFont);
         Assert.True(configured.HasExplicitHeaderFont);
@@ -174,14 +174,14 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void PdfOptionsExposeAndClonePlannedFontFamilySubstitutions() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Portable Latin", [1]))
             .RegisterFontFamilySubstitution(
                 "Source Sans",
                 "Portable Latin",
                 PdfFontFamilySubstitutionImpact.Compatible);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         PdfFontFamilySubstitution substitution = Assert.Single(options.FontFamilySubstitutions);
         PdfFontFamilySubstitution clonedSubstitution = Assert.Single(clone.FontFamilySubstitutions);
 
@@ -206,7 +206,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void UnresolvedFontFamilySubstitutionRemainsAWarning() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterFontFamilySubstitution(
                 "Source Sans",
                 "Missing Portable Latin",
@@ -228,7 +228,7 @@ public sealed class PdfConverterOptionsApiTests {
     [Fact]
     public void ResolvedFallbackListSubstitutionUsesItsOwnImpactClassification() {
         const string resolvedFamily = "Portable Calibri";
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(resolvedFamily, [1]))
             .RegisterFontFamilySubstitution(
                 "Primary",
@@ -277,7 +277,7 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.True(policy.AllowEmbeddedPackageResources);
     }
 
-    private static bool[] GetExcelProfileState(OfficeIMO.Excel.Pdf.ExcelToPdfOptions options) => new[] {
+    private static bool[] GetExcelProfileState(OfficeIMO.Excel.Pdf.ExcelPdfExportOptions options) => new[] {
         options.RespectWorkbookSheetVisibility,
         options.UseWorksheetPrintAreas,
         options.UseWorksheetPageSetup,

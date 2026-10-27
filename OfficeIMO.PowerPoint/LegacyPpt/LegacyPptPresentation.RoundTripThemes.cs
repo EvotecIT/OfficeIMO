@@ -32,14 +32,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             XElement? themeRoot = null;
             if (themeRecord != null) {
                 if (themeRecord.PayloadLength > options.MaxInputBytes) {
-                    AddDiagnostic("PPT-ROUNDTRIP-THEME-INVALID",
+                    AddDiagnostic("ppt-roundtrip-theme-invalid",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML theme remains preserve-only: the payload exceeds the configured input limit.",
                         themeRecord.Offset);
                 } else if (!TryReadRoundTripThemeXml(themeRecord,
                         _decodedStorageBudget, out themeXml,
                         out themeRoot, out string? themeReason)) {
-                    AddDiagnostic("PPT-ROUNDTRIP-THEME-INVALID",
+                    AddDiagnostic("ppt-roundtrip-theme-invalid",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML theme remains preserve-only: {themeReason}",
                         themeRecord.Offset);
@@ -47,14 +47,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             if (mappingRecord != null) {
                 if (mappingRecord.PayloadLength > options.MaxInputBytes) {
-                    AddDiagnostic("PPT-ROUNDTRIP-COLOR-MAP-INVALID",
+                    AddDiagnostic("ppt-roundtrip-color-map-invalid",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML color mapping remains preserve-only: the payload exceeds the configured input limit.",
                         mappingRecord.Offset);
                 } else if (!TryReadRoundTripColorMapping(mappingRecord,
                         _decodedStorageBudget, out mappingXml,
                         out string? mappingReason)) {
-                    AddDiagnostic("PPT-ROUNDTRIP-COLOR-MAP-INVALID",
+                    AddDiagnostic("ppt-roundtrip-color-map-invalid",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML color mapping remains preserve-only: {mappingReason}",
                         mappingRecord.Offset);

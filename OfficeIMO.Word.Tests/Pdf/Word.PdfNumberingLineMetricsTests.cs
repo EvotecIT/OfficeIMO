@@ -44,9 +44,9 @@ public partial class Word {
         options.RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Arial",
             NumberingMetricFont(600)));
         if (namedBody) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Calibri", NumberingMetricFont(300)));
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var marker = pdf.GetPage(1).Letters.Where(letter => letter.Value is "g" or "j").ToArray();
         Assert.Equal("gjgjgj", string.Concat(marker.Select(letter => letter.Value)));
         Assert.Equal(7.5D, marker[1].StartBaseLine.X - marker[0].StartBaseLine.X, 3);
@@ -61,9 +61,9 @@ public partial class Word {
             (paragraph.ParagraphProperties!.ParagraphMarkRunProperties ??= new ParagraphMarkRunProperties()).Append(new Strike());
             foreach (Run run in paragraph.Elements<Run>()) (run.RunProperties ??= new RunProperties()).Append(new Strike());
         }
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = NumberingMetricPdfOptions()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var marker = page.Letters.First(letter => letter.Value == "g");
         var strokes = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -126,9 +126,9 @@ public partial class Word {
             firstText.Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve;
         }
         string original = main.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = NumberingMetricPdfOptions()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(original, main.Document.OuterXml);
         var markers = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value == "g").ToArray();
         Assert.Equal(3, markers.Length);
@@ -172,11 +172,11 @@ public partial class Word {
         Assert.Equal(25.5D, markers[1].StartBaseLine.Y - markers[2].StartBaseLine.Y, 3);
     }
 
-    private static UglyToad.PdfPig.Content.Letter[] ReadEmptyNumberingMarkers(WordDocument source, PdfOptions options, int count = 3) {
+    private static UglyToad.PdfPig.Content.Letter[] ReadEmptyNumberingMarkers(WordDocument source, PdfCreateOptions options, int count = 3) {
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(original, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var markers = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value == "g").ToArray();
         Assert.Equal(count, markers.Length);
@@ -281,17 +281,17 @@ public partial class Word {
         throw new InvalidOperationException("The numbering fixture requires horizontal font metrics.");
     }
 
-    private static PdfOptions NumberingMetricPdfOptions() {
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+    private static PdfCreateOptions NumberingMetricPdfOptions() {
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, NumberingMetricFont(300), "OfficeIMO-Numbering-Regular");
         return options;
     }
 
     private static UglyToad.PdfPig.Content.Letter[] ReadNumberingMetricLetters(WordDocument source) {
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = NumberingMetricPdfOptions()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(original, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var letters = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal("ABC", string.Concat(letters.Select(letter => letter.Value)));

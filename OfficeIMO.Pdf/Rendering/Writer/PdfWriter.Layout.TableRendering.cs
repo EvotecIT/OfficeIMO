@@ -681,7 +681,7 @@ internal static partial class PdfWriter {
         return rowIndex < headerRowCount ? style.HeaderBold : rowIndex >= footerStartRowIndex && style.FooterBold;
     }
 
-    private static PdfStandardFont GetTableRowFont(PdfOptions options, bool bold) {
+    private static PdfStandardFont GetTableRowFont(PdfCreateOptions options, bool bold) {
         var normalFont = ChooseNormal(options.DefaultFont);
         return bold ? ChooseBold(normalFont) : normalFont;
     }

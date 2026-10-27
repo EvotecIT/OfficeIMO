@@ -35,9 +35,9 @@ public sealed class WordPdfTableParagraphLineBoxTests {
             paragraph.LineSpacingPoints = 10;
             paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(10D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);

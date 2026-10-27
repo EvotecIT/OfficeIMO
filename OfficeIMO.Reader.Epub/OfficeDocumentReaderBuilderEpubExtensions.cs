@@ -57,7 +57,7 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
         };
     }
 
-    private static EpubReadOptions? Clone(EpubReadOptions? options) {
+    internal static EpubReadOptions? Clone(EpubReadOptions? options) {
         if (options == null) return null;
         return new EpubReadOptions {
             MaxPackageBytes = options.MaxPackageBytes,

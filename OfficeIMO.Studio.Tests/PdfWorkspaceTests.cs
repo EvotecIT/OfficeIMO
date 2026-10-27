@@ -153,7 +153,7 @@ public sealed partial class PdfWorkspaceTests {
             PdfEditorSelection selection = CreateTextSelection(workspace.CopyBytes(), "target");
 
             await workspace.ReplaceSelectedTextAsync(selection, "replacement", options: null, CancellationToken.None);
-            string replacedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            string replacedText = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text;
             Assert.Contains("Alpha", replacedText, StringComparison.Ordinal);
             Assert.Contains("replacement", replacedText, StringComparison.Ordinal);
             Assert.Contains("Omega", replacedText, StringComparison.Ordinal);
@@ -161,17 +161,17 @@ public sealed partial class PdfWorkspaceTests {
 
             PdfEditorSelection movedSelection = CreateTextSelection(workspace.CopyBytes(), "replacement");
             await workspace.MoveSelectedTextAsync(movedSelection, 12D, -30D, CancellationToken.None);
-            string movedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            string movedText = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text;
             Assert.Contains("Alpha", movedText, StringComparison.Ordinal);
             Assert.Contains("replacement", movedText, StringComparison.Ordinal);
             Assert.Contains("Omega", movedText, StringComparison.Ordinal);
 
             await workspace.ReplaceAllTextAsync("replacement", "final", matchCase: true, wholeWords: true, CancellationToken.None);
-            Assert.Contains("final", PdfDocument.Load(workspace.CopyBytes()).Read().Text, StringComparison.Ordinal);
+            Assert.Contains("final", PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text, StringComparison.Ordinal);
 
             PdfEditorSelection deleteSelection = CreateTextSelection(workspace.CopyBytes(), "final");
             await workspace.ReplaceSelectedTextAsync(deleteSelection, string.Empty, options: null, CancellationToken.None);
-            string deletedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            string deletedText = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text;
             Assert.Contains("Alpha", deletedText, StringComparison.Ordinal);
             Assert.DoesNotContain("final", deletedText, StringComparison.Ordinal);
             Assert.Contains("Omega", deletedText, StringComparison.Ordinal);
@@ -193,17 +193,17 @@ public sealed partial class PdfWorkspaceTests {
             PdfEditorSelection selection = CreateImageSelection(workspace.CopyBytes());
 
             await workspace.MoveSelectedImageAsync(selection, 15D, 5D, CancellationToken.None);
-            PdfImagePlacement moved = Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+            PdfImagePlacement moved = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Images.Placements());
             Assert.Equal(65D, moved.X, 3);
             Assert.Equal(65D, moved.Y, 3);
 
             PdfEditorSelection replacementSelection = CreateImageSelection(workspace.CopyBytes());
             await workspace.ReplaceSelectedImageAsync(replacementSelection, TinyPng, CancellationToken.None);
-            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Images.Placements());
 
             PdfEditorSelection removalSelection = CreateImageSelection(workspace.CopyBytes());
             await workspace.RemoveSelectedImageAsync(removalSelection, CancellationToken.None);
-            Assert.Empty(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+            Assert.Empty(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Images.Placements());
             Assert.Equal(PdfWorkspaceOperationKind.ImageEdit, workspace.Journal[^1].Kind);
         } finally {
             Directory.Delete(root, recursive: true);
@@ -234,12 +234,12 @@ public sealed partial class PdfWorkspaceTests {
             Assert.True(workspace.IsDirty);
             Assert.True(workspace.CanUndo);
             Assert.Equal(PdfWorkspaceOperationKind.Annotation, Assert.Single(workspace.Journal).Kind);
-            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().GetAnnotationsBySubtype("Text"));
 
             await workspace.UndoAsync(CancellationToken.None);
-            Assert.Empty(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Empty(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().GetAnnotationsBySubtype("Text"));
             await workspace.RedoAsync(CancellationToken.None);
-            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().GetAnnotationsBySubtype("Text"));
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -259,11 +259,11 @@ public sealed partial class PdfWorkspaceTests {
             Assert.True(workspace.CanFlattenForms);
 
             await workspace.FillFormFieldAsync("Customer.Name", "After", flatten: false, CancellationToken.None);
-            PdfFormField filled = Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFields);
+            PdfFormField filled = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().FormFields);
             Assert.Equal("After", filled.Value);
 
             await workspace.FlattenFormFieldsAsync(CancellationToken.None);
-            PdfDocument flattened = PdfDocument.Load(workspace.CopyBytes());
+            PdfDocument flattened = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes()));
             Assert.Empty(flattened.Inspect().FormFields);
             Assert.Contains("After", flattened.Read().Text, StringComparison.Ordinal);
         } finally {
@@ -309,7 +309,7 @@ public sealed partial class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
             await workspace.ImportFormDataAsync(input, CancellationToken.None);
-            Assert.Equal("Café", Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFields).Value);
+            Assert.Equal("Café", Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().FormFields).Value);
             byte[] after = workspace.CopyBytes();
 
             using (var stream = new FileStream(input, FileMode.Create, FileAccess.Write))
@@ -361,7 +361,7 @@ public sealed partial class PdfWorkspaceTests {
                 FieldFlags = 2097152
             }, CancellationToken.None);
 
-            PdfDocumentInfo authored = PdfDocument.Load(workspace.CopyBytes()).Inspect();
+            PdfDocumentInfo authored = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect();
             Assert.Single(workspace.Pages);
             Assert.True(authored.FormFieldsByName["Account.Secret"].IsPassword);
             Assert.True(authored.FormFieldsByName["Account.Enabled"].IsCheckBox);
@@ -370,21 +370,21 @@ public sealed partial class PdfWorkspaceTests {
 
             var checkBox = new PdfFormFieldViewModel(authored.FormFieldsByName["Account.Enabled"]) { IsChecked = true };
             await workspace.FillFormFieldAsync(checkBox.Name, checkBox.CreateValue(), flatten: false, CancellationToken.None);
-            Assert.Equal("Yes", PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName[checkBox.Name].Value);
+            Assert.Equal("Yes", PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().FormFieldsByName[checkBox.Name].Value);
 
-            var regions = new PdfFormFieldViewModel(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName["Account.Regions"]);
+            var regions = new PdfFormFieldViewModel(PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().FormFieldsByName["Account.Regions"]);
             foreach (PdfFormChoiceViewModel choice in regions.Choices) {
                 choice.IsSelected = choice.ExportValue is "US" or "APAC";
             }
             await workspace.FillFormFieldAsync(regions.Name, regions.CreateValue(), flatten: false, CancellationToken.None);
-            PdfFormField persistedRegions = PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName[regions.Name];
+            PdfFormField persistedRegions = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect().FormFieldsByName[regions.Name];
             Assert.Equal(["US", "APAC"], persistedRegions.Values);
             var reopenedRegions = new PdfFormFieldViewModel(persistedRegions);
             Assert.Equal(2, reopenedRegions.Choices.Count(static choice => choice.IsSelected));
             Assert.Equal(["US", "APAC"], reopenedRegions.CreateValue().Values);
 
             await workspace.FlattenFormFieldAsync("Account.Enabled", CancellationToken.None);
-            PdfDocumentInfo selectivelyFlattened = PdfDocument.Load(workspace.CopyBytes()).Inspect();
+            PdfDocumentInfo selectivelyFlattened = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Inspect();
             Assert.DoesNotContain("Account.Enabled", selectivelyFlattened.FormFieldsByName.Keys);
             Assert.Contains("Account.Secret", selectivelyFlattened.FormFieldsByName.Keys);
             Assert.Contains("Account.Regions", selectivelyFlattened.FormFieldsByName.Keys);
@@ -453,7 +453,7 @@ public sealed partial class PdfWorkspaceTests {
                 Prefix = "CASE-",
                 Position = PdfBatesPosition.BottomCenter
             }, CancellationToken.None);
-            string numberedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            string numberedText = PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Read().Text;
             Assert.Contains("CASE-0042", numberedText, StringComparison.Ordinal);
             Assert.Contains("CASE-0043", numberedText, StringComparison.Ordinal);
             Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
@@ -512,7 +512,7 @@ public sealed partial class PdfWorkspaceTests {
         string source = Path.Combine(root, "certified.pdf");
         byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Certified content")))))).ToBytes();
-        PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+        PdfExternalSignaturePreparation preparation = PdfDocument.Load(new System.IO.MemoryStream(unsigned)).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
             FieldName = "Certification",
@@ -533,7 +533,7 @@ public sealed partial class PdfWorkspaceTests {
 
             byte[] edited = workspace.CopyBytes();
             Assert.True(edited.AsSpan(0, signed.Length).SequenceEqual(signed));
-            Assert.Single(PdfDocument.Load(edited).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(edited)).Inspect().GetAnnotationsBySubtype("Text"));
             await Assert.ThrowsAnyAsync<Exception>(() => workspace.ApplyWatermarkAsync("BLOCKED", CancellationToken.None));
         } finally {
             Directory.Delete(root, recursive: true);
@@ -590,7 +590,7 @@ public sealed partial class PdfWorkspaceTests {
 
             Assert.Contains("changed after this redaction was reviewed", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(afterNote, workspace.CopyBytes());
-            Assert.Single(PdfDocument.Load(afterNote).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(afterNote)).Inspect().GetAnnotationsBySubtype("Text"));
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -680,14 +680,14 @@ public sealed partial class PdfWorkspaceTests {
             Assert.Equal(4, workspace.Pages.Count);
             Assert.Equal(
                 ["First A", "First B", "Second", "Target"],
-                PdfReadDocument.Open(workspace.CopyBytes()).Pages.Select(page => page.ExtractText().Trim()).ToArray());
+PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Pages.Select(page => page.ExtractText().Trim()).ToArray());
             Assert.Single(workspace.Journal);
             Assert.Equal(PdfWorkspaceOperationKind.Import, workspace.Journal[0].Kind);
 
             await workspace.UndoAsync(CancellationToken.None);
 
             Assert.Single(workspace.Pages);
-            Assert.Contains("Target", PdfReadDocument.Open(workspace.CopyBytes()).ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Target", PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).ExtractText(), StringComparison.Ordinal);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -927,7 +927,7 @@ public sealed partial class PdfWorkspaceTests {
         byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Protected content")))))).ToBytes();
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" };
-        await File.WriteAllBytesAsync(source, PdfDocument.Load(plain).Security.Encrypt(encryption).Pdf);
+        await File.WriteAllBytesAsync(source, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(encryption).Pdf);
 
         try {
             PdfPasswordRequiredException exception = await Assert.ThrowsAsync<PdfPasswordRequiredException>(

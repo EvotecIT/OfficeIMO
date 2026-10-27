@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Optional page background color rendered behind all page content.</summary>
     public PdfColor? BackgroundColor { get; set; }
     /// <summary>Optional reusable text watermark rendered behind all page content.</summary>

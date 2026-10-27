@@ -18,7 +18,7 @@ public sealed class PdfLogicalTableValueAnalysisTests {
 
     [Fact]
     public void Extract_ProfilesRichTableValueKindsForAllAdapters() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 760,
                 PageHeight = 360,
                 MarginLeft = 20,

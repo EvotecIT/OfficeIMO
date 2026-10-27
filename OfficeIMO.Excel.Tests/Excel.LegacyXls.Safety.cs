@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
             OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
                 failed.FidelityDiagnostics,
-                item => item.Code == "XLS-PROJECTION-FAILED");
+                item => item.Code == "xls-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
@@ -169,27 +169,5 @@ namespace OfficeIMO.Tests {
             Assert.Contains("legacy PowerPoint presentation", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        [Fact]
-        public void FormatApi_UsesCanonicalExcelNamingWithoutLegacyAliases() {
-            Type documentType = typeof(ExcelDocument);
-            Type importOptionsType = typeof(LegacyXlsImportOptions);
-
-            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToBytes),
-                new[] { typeof(ExcelFileFormat), typeof(ExcelSaveOptions) }));
-            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToStream),
-                new[] { typeof(ExcelFileFormat), typeof(ExcelSaveOptions) }));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "ToXlsx" or "ToXls" or "ToXlsxStream" or "ToXlsStream");
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "Save" or "SaveAsync" &&
-                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Open");
-            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(ExcelDocument.OpenInApplication));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Close");
-            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(ExcelDocument.SaveCopy));
-            Assert.Null(documentType.GetProperty("WasLoadedFromLegacyXls"));
-            Assert.Null(importOptionsType.GetProperty("MaxWorkbookStreamBytes"));
-            Assert.Null(importOptionsType.GetProperty("ReportUnsupportedRecords"));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyXlsImportOptions.MaxInputBytes)));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyXlsImportOptions.ReportUnsupportedContent)));
-        }
     }
 }

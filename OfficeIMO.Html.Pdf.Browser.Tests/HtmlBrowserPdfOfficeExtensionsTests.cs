@@ -32,7 +32,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
 
         PdfDocumentConversionResult result = capture.ToPdfDocumentResult();
 
-        Assert.True(result.Value.Preflight().CanExtractText);
+        Assert.True(result.Value.Analyze().Preflight.CanExtractText);
         Assert.True(result.Value.PlanMutation(PdfMutationOperation.ModifyPageContent).CanExecute);
         HtmlBrowserPdfCaptureReport report = Assert.IsType<HtmlBrowserPdfCaptureReport>(
             Assert.Single(result.SourceConversionReports));
@@ -59,7 +59,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
         Assert.True(report.HasLoss);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.True(result.Value.Preflight().CanExtractText);
+        Assert.True(result.Value.Analyze().Preflight.CanExtractText);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
         HtmlBrowserPdfCaptureReport report = Assert.IsType<HtmlBrowserPdfCaptureReport>(
             Assert.Single(result.SourceConversionReports));
         Assert.True(report.Tagged);
-        Assert.True(result.Value.Preflight().CanRead);
+        Assert.True(result.Value.Analyze().Preflight.CanRead);
     }
 
     private static HtmlBrowserPdfResult CreateCapture(

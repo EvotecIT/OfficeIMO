@@ -6,23 +6,23 @@ namespace OfficeIMO.Word.Html;
 
 public static partial class WordHtmlConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
-    public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
+    internal static HtmlToWordResult ConvertToWordWithEvidence(this HtmlConversionDocument document, WordHtmlImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
+        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         HtmlToWordConverter.ValidateDocumentLimits(
             document.CreateSourceDocumentForConversion(), resolved);
         EnsureOfflineSynchronousImport(document, resolved);
-        return ToWordDocumentResultAsync(document, resolved).GetAwaiter().GetResult();
+        return ConvertToWordWithEvidenceAsync(document, resolved).GetAwaiter().GetResult();
     }
 
     /// <summary>Asynchronously imports a prepared shared HTML document into Word and returns structured evidence.</summary>
-    public static async Task<HtmlToWordResult> ToWordDocumentResultAsync(
+    internal static async Task<HtmlToWordResult> ConvertToWordWithEvidenceAsync(
         this HtmlConversionDocument document,
-        HtmlToWordOptions? options = null,
+        WordHtmlImportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
+        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         resolved.ConversionReport.AddRange(document.Diagnostics);
         HtmlToWordConverter.ValidateDocumentLimits(
             document.CreateSourceDocumentForConversion(), resolved);
@@ -93,7 +93,7 @@ public static partial class WordHtmlConverterExtensions {
 
     private static bool HasExternalEditableLayoutStylesheetBoundary(
         HtmlConversionDocument document,
-        HtmlToWordOptions options) {
+        WordHtmlImportOptions options) {
         if (options.StylesheetPaths.Any(path => !string.IsNullOrWhiteSpace(path))) return true;
         if (!options.AllowDocumentStylesheetLinks) return false;
         AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
@@ -105,7 +105,7 @@ public static partial class WordHtmlConverterExtensions {
         return source.QuerySelector("body *") != null;
     }
 
-    private static OfficeIMO.Drawing.OfficePageSize ResolveWordProjectionPageSize(HtmlToWordOptions options) {
+    private static OfficeIMO.Drawing.OfficePageSize ResolveWordProjectionPageSize(WordHtmlImportOptions options) {
         WordPageSizeDefinition definition = ResolveWordPageSizeDefinition(options.DefaultPageSize);
         double widthInches = definition.WidthTwips / 1440D;
         double heightInches = definition.HeightTwips / 1440D;
@@ -118,11 +118,11 @@ public static partial class WordHtmlConverterExtensions {
     private static WordPageSizeDefinition ResolveWordPageSizeDefinition(WordPageSize? pageSize) =>
         pageSize.HasValue ? WordPageSizes.GetDefinition(pageSize.Value) ?? WordPageSizes.A4 : WordPageSizes.A4;
 
-    private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {
+    private static HtmlToWordResult CreateResult(WordDocument document, WordHtmlImportOptions options) {
         return new HtmlToWordResult(document, options.ConversionReport);
     }
 
-    private static void EnsureOfflineSynchronousImport(HtmlConversionDocument document, HtmlToWordOptions options) {
+    private static void EnsureOfflineSynchronousImport(HtmlConversionDocument document, WordHtmlImportOptions options) {
         if (HtmlToWordConverter.RequiresRemoteAccess(CreateWordSourceDocument(document, diagnostics: null), options)) {
             throw new InvalidOperationException(
                 "Synchronous HTML-to-Word import is offline-only. Use the Async method when images or stylesheets require HTTP access.");

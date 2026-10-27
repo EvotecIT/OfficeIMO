@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
         public void Legacy_CSE_conditionals_keep_array_operands_under_an_aggregate() {
             using ExcelDocument document = ExcelDocument.Create(); document.AddWorksheet("Data");
             document.AddWorksheet("Formulas").SetArrayFormula("D1:D1", "SUM(IF(Data!A1:A4>0,Data!A1:A4,0))");
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             var areas = native.FormulaTokenRecords.Where(token => token.TokenName == "PtgArea3d").ToArray();
             Assert.Equal(2, areas.Length);
             Assert.All(areas, token => Assert.Equal((byte)0x7b, token.Token));
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Rules");
             sheet.ValidationCustomFormula("D4:D5", expression);
             sheet.AddConditionalFormulaRule("D4:D5", expression);
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].DataValidations).Formula1);
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].ConditionalFormattings).Formula1);
         }
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void Native_control_flow_offsets_land_on_token_boundaries(string expression) {
             using ExcelDocument document = ExcelDocument.Create();
             document.AddWorksheet("Formulas").CellFormula(1, 1, expression);
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             var formula = BiffRecordReader.ReadRecords(native.SourceCompoundFile!.Streams["Workbook"], new()).Single(record => record.Type == 6);
             byte[] bytes = formula.Payload.Skip(22).Take(BiffRecordReader.ReadUInt16(formula.Payload, 20)).ToArray();
             var scanned = new List<LegacyXlsFormulaTokenRecord>();

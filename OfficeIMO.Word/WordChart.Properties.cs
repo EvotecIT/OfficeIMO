@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
     public partial class WordChart {
         /// <summary>
         /// Built‑in color palettes for charts.
-        /// Used by <see cref="WordChart.ApplyPalette(WordChartPalette, bool, bool, bool, System.Collections.Generic.Dictionary{string, OfficeIMO.Drawing.OfficeColor}?)"/>
+        /// Used by <see cref="WordChart.ApplyPalette(WordChartPalette, bool, bool, bool, System.Collections.Generic.Dictionary{string, OfficeIMO.OfficeColor}?)"/>
         /// to style series and pie slices in a consistent, professional way.
         /// </summary>
         public enum WordChartPalette {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
         private string? _yAxisTitle;
         private string _axisTitleFontName = "Calibri";
         private int _axisTitleFontSize = 11;
-        private OfficeIMO.Drawing.OfficeColor _axisTitleColor = OfficeIMO.Drawing.OfficeColor.Black;
+        private OfficeIMO.OfficeColor _axisTitleColor = OfficeIMO.OfficeColor.Black;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
         /// <summary>

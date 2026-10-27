@@ -23,7 +23,7 @@ internal sealed record SearchablePdfOcrOptions(
     bool ProvisionMissingLanguageData,
     OfficeConversionFileConflictPolicy OutputConflictPolicy,
     PdfOcrMergeOptions Pdf) {
-    internal IOfficeWorkflowPublicationGuard? PublicationGuard { get; init; }
+    internal IOfficePublicationGuard? PublicationGuard { get; init; }
     internal OfficeWorkflowStreamInput? InputStream { get; init; }
     internal OfficeWorkflowStreamOutput? OutputStream { get; init; }
     internal Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyDictionary<PdfRecognizedWord, string>>>? ReviewCorrectionsAsync { get; init; }
@@ -55,7 +55,7 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
             InputStream = options.InputStream,
             OutputStream = options.OutputStream,
             ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
-                ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
+                ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
             PublicationGuard = options.PublicationGuard,
             ReviewCorrectionsAsync = options.ReviewCorrectionsAsync
         };
@@ -109,7 +109,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
     private readonly Func<string, CancellationToken, Task>? _openDocument;
     private readonly ISearchablePdfOcrService _service;
     private readonly Func<string, bool> _canPublishPath;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly IStudioLocalizer _localizer;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
@@ -130,7 +130,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         Func<string, bool>? canPublishPath = null,
         IStudioLocalizer? localizer = null,
         StudioJobHistory? jobHistory = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioStorageAccess? storage = null,
         Func<CancellationToken, Task<string?>>? pickOutputPdf = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
@@ -344,7 +344,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     ? OfficeConversionFileConflictPolicy.Replace
                     : OfficeConversionFileConflictPolicy.FailIfExists,
                 Scan.ApplyTo(new PdfOcrMergeOptions {
-                    ReadOptions = new PdfReadOptions {
+                    ReadOptions = new PdfLoadOptions {
                         PageSelection = string.IsNullOrWhiteSpace(Pages) ? null : PdfPageSelection.Parse(Pages)
                     },
                     Dpi = RenderDpi,

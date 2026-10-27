@@ -3,12 +3,12 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
-using SixColor = OfficeIMO.Drawing.OfficeColor;
+using SixColor = OfficeIMO.OfficeColor;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter,
             TextFormatting inheritedFormatting) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Html {
             int cols = DetermineTableColumnCount(tableElem, rows, options);
             ValidateTableLimit(options, rows, cols);
             WordParagraph? captionParagraph = null;
-            if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
+            if (caption != null && options.TableCaptionPosition == WordHtmlTableCaptionPosition.Above) {
                 captionParagraph = cell != null ? AddParagraphInScope(section, cell, headerFooter)
                     : currentParagraph != null ? currentParagraph.AddParagraphAfterSelf()
                     : headerFooter != null ? headerFooter.AddParagraph("")
@@ -90,8 +90,8 @@ namespace OfficeIMO.Word.Html {
 
             void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
                 var groupRowCount = htmlRows.Length;
-                for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
-                    var htmlRow = htmlRows[localRowIndex];
+                int localRowIndex = 0;
+                foreach (var htmlRow in htmlRows) {
                     if (htmlRow.ParentElement is IElement rowGroup) ApplyCssToElement(rowGroup);
                     var groupFormatting = htmlRow.ParentElement is IElement group
                         ? GetTableTextFormatting(group, tableFormatting) : tableFormatting;
@@ -100,12 +100,11 @@ namespace OfficeIMO.Word.Html {
                     var wordRow = wordTable.Rows[rIndex];
                     ApplyRowStyles(wordRow, htmlRow);
                     int cIndex = 0;
-                    for (int c = 0; c < htmlRow.Cells.Length; c++) {
+                    foreach (var htmlCell in htmlRow.Cells) {
                         while (cIndex < cols && occupied[rIndex, cIndex]) {     
                             cIndex++;
                         }
 
-                        var htmlCell = htmlRow.Cells[c];
                         ApplyCssToElement(htmlCell);
                         var wordCell = wordRow.Cells[cIndex];
                         int rowSpan = 1;
@@ -165,6 +164,7 @@ namespace OfficeIMO.Word.Html {
                         cIndex++;
                     }
                     rIndex++;
+                    localRowIndex++;
                 }
             }
 
@@ -185,7 +185,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
+            if (caption != null && options.TableCaptionPosition == WordHtmlTableCaptionPosition.Below) {
                 WordParagraph captionParagraphBelow;
                 if (cell != null) {
                     Paragraph? trailingParagraph = wordTable._table.NextSibling<Paragraph>();

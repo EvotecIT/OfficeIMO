@@ -42,7 +42,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".rtf" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect });
         AddNativeLifecycle(rows, "markdown-native", "OfficeIMO.Markdown", "Markdown.Native",
-            "MarkdownDoc.Create / Load / Save / ToMarkdown",
+            "MarkdownDocument.Create / Load / Save / ToMarkdown",
             "OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts",
             new[] { ".md", ".markdown" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit },

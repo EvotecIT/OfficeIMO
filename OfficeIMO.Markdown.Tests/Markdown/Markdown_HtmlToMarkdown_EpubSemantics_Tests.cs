@@ -17,7 +17,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
 </aside>
 """;
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
 
         ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
         FootnoteRefInline reference = Assert.Single(paragraph.Inlines.Nodes.OfType<FootnoteRefInline>());
@@ -47,7 +47,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
 </section>
 """;
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
 
         FootnoteDefinitionBlock definition = Assert.Single(document.Blocks.OfType<FootnoteDefinitionBlock>());
         FootnoteRefInline reference = Assert.Single(
@@ -63,7 +63,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
     public void HtmlToMarkdown_KeepsGenericEpubNotesAsOrdinaryContent() {
         const string html = "<aside epub:type=\"note\" id=\"editorial\"><p>Editorial context.</p></aside>";
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
         string markdown = document.ToMarkdown();
 
         Assert.Empty(document.Blocks.OfType<FootnoteDefinitionBlock>());
@@ -80,9 +80,9 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
 <ol type="A" start="3"><li>Third</li></ol>
 <pre data-language="csharp">Console.WriteLine(3);</pre>
 """;
-        var options = new HtmlToMarkdownOptions { BaseUri = new Uri("https://example.test/book/chapter.xhtml") };
+        var options = new MarkdownHtmlImportOptions { BaseUri = new Uri("https://example.test/book/chapter.xhtml") };
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
 
         HeadingBlock heading = Assert.Single(document.Blocks.OfType<HeadingBlock>());
         LinkInline link = Assert.Single(
@@ -106,7 +106,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
     public void HtmlToMarkdown_RejectsFenceSyntaxInCodeLanguageAttributes() {
         const string html = "<pre data-language=\"csharp&#10;```&#10;# injected\">safe()</pre>";
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
         CodeBlock code = Assert.Single(document.Blocks.OfType<CodeBlock>());
         string markdown = document.ToMarkdown();
 
@@ -122,7 +122,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
 <ol type="A" start="27"><li>Twenty seven</li><li>Twenty eight</li></ol>
 """;
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
         OrderedListBlock[] lists = document.Blocks.OfType<OrderedListBlock>().ToArray();
 
         Assert.Equal(2, lists.Length);
@@ -137,7 +137,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
         Assert.Contains("27. Twenty seven", markdown, StringComparison.Ordinal);
         Assert.Contains("28. Twenty eight", markdown, StringComparison.Ordinal);
         Assert.Contains("<ol start=\"3\" reversed>", ((IMarkdownBlock)lists[0]).RenderHtml(), StringComparison.Ordinal);
-        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
         OrderedListBlock parsedList = Assert.Single(parsed.Blocks.OfType<OrderedListBlock>());
         Assert.Equal(5, parsedList.Items.Count);
     }

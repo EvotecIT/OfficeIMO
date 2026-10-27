@@ -47,4 +47,17 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="System.Text" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Collections" />
+    <Using Include="OfficeIMO.Drawing" />
+    <Using Include="OfficeIMO.OpenXml.Internal" />
+    <Using Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

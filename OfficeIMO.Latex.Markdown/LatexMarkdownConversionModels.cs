@@ -65,8 +65,8 @@ public sealed class MarkdownToLatexOptions {
 }
 
 /// <summary>Markdown result from LaTeX.</summary>
-public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDoc, LatexToMarkdownReport> {
-    internal LatexToMarkdownResult(MarkdownDoc value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
+public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocument, LatexToMarkdownReport> {
+    internal LatexToMarkdownResult(MarkdownDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
         : base(value, new LatexToMarkdownReport(diagnostics)) { }
 }
 

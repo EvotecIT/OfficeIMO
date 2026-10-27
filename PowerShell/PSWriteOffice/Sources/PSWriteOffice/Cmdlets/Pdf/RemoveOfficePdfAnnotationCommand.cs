@@ -71,7 +71,7 @@ public sealed class RemoveOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Off
         PdfAnnotationEditResult result = PdfDocument
             .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
             .Annotations.Remove(options);
-        result.ToDocument().Save(outputPath).RequireSuccess();
+        result.ToDocument().Save(outputPath);
         if (PassThruReport.IsPresent) {
             WriteObject(result);
             return;

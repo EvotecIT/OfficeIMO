@@ -32,7 +32,7 @@ public sealed class WordImageCloneResourcesTests {
         var copied = target._paragraph.Descendants().Single(item => item.LocalName == "imgLayer");
         string id = copied.GetAttribute("embed", RelationshipsNamespace).Value;
         Assert.IsType<ImagePart>(owner.GetPartById(id));
-        using var package = destination.ToStream();
+        using var package = new System.IO.MemoryStream(destination.ToBytes());
         using var reopened = WordDocument.Load(package);
         var persisted = reopened.MainDocumentPartRoot.HeaderParts.Single();
         Assert.IsType<ImagePart>(persisted.GetPartById(persisted.Header!.Descendants()
@@ -52,7 +52,7 @@ public sealed class WordImageCloneResourcesTests {
         var image = paragraph.Image!;
         image.Description = "Chart summary";
         Assert.Equal("Chart summary", image.Description);
-        using var package = document.ToStream();
+        using var package = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(package);
         Assert.Equal("Chart summary", reopened.MainDocumentPartRoot.Document!.Descendants<V.Shape>()
             .Single().GetAttribute("alt", "").Value);
@@ -83,7 +83,7 @@ public sealed class WordImageCloneResourcesTests {
         Assert.NotEqual(imageId, fillId);
         Assert.IsType<ImagePart>(owner.GetPartById(imageId));
         Assert.IsType<ImagePart>(owner.GetPartById(fillId));
-        using var bytes = destination.ToStream();
+        using var bytes = new System.IO.MemoryStream(destination.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         var persistedOwner = reopened.MainDocumentPartRoot.HeaderParts.Single();
         var persistedShape = persistedOwner.Header!.Descendants<V.Shape>().Single();
@@ -109,7 +109,7 @@ public sealed class WordImageCloneResourcesTests {
         var copiedHover = Assert.Single(target._paragraph.Descendants<A.HyperlinkOnHover>());
         Assert.Equal("https://example.test/click", owner.HyperlinkRelationships.Single(item => item.Id == copiedClick.Id!.Value).Uri.ToString());
         Assert.Equal("https://example.test/hover", owner.HyperlinkRelationships.Single(item => item.Id == copiedHover.Id!.Value).Uri.ToString());
-        using var package = destination.ToStream();
+        using var package = new System.IO.MemoryStream(destination.ToBytes());
         using var reopened = WordDocument.Load(package);
         var persisted = reopened.MainDocumentPartRoot.HeaderParts.Single();
         Assert.Equal("https://example.test/click", persisted.HyperlinkRelationships.Single(item =>
@@ -156,7 +156,7 @@ public sealed class WordImageCloneResourcesTests {
         Assert.Equal("#" + definition.Id!.Value, shape.Type!.Value);
         Assert.NotEqual("shared-type", definition.Id!.Value);
         Assert.Equal("m0,0l21600,21600e", definition.EdgePath!.Value);
-        using var bytes = destination.ToStream();
+        using var bytes = new System.IO.MemoryStream(destination.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         Assert.Single(reopened.MainDocumentPartRoot.HeaderParts.Single().Header.Descendants<V.Shapetype>(),
             item => item.EdgePath?.Value == "m0,0l21600,21600e");
@@ -189,7 +189,7 @@ public sealed class WordImageCloneResourcesTests {
         using var output = new MemoryStream();
         bytes.CopyTo(output);
         Assert.Equal(svgBytes, output.ToArray());
-        using var package = destination.ToStream();
+        using var package = new System.IO.MemoryStream(destination.ToBytes());
         using var reopened = WordDocument.Load(package);
         var persistedOwner = reopened.MainDocumentPartRoot.HeaderParts.Single();
         var persistedSvg = persistedOwner.Header!.Descendants().Single(item => item.LocalName == "svgBlip");

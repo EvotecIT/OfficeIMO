@@ -119,7 +119,7 @@ public sealed class ReaderPublisherTests {
     public void LiteralSourcePunctuationDoesNotActivateMarkdownOrHtml() {
         const string text = "[click](https://example.test) <script>alert(1)</script> # title *value*";
         string escaped = ReaderMarkdownEscaping.EscapeLiteral(text);
-        var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownReader.Parse(escaped).Blocks));
+        var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(escaped).Blocks));
         var literal = new System.Text.StringBuilder();
         ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(literal);
         Assert.Equal(text, literal.ToString());

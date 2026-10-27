@@ -40,15 +40,15 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.CustomXml
-                && finding.Code == "PPT-WRITE-CUSTOM-XML");
+                && finding.Code == "ppt-write-custom-xml");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTENDED-PART");
+                finding.Code == "ppt-write-extended-part");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EMBEDDED-PACKAGE");
+                finding.Code == "ppt-write-embedded-package");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTERNAL-RELATIONSHIP");
+                finding.Code == "ppt-write-external-relationship");
             Assert.Throws<NotSupportedException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                     PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Imported package preflight");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(sourceBytes);
@@ -72,9 +72,9 @@ namespace OfficeIMO.Tests {
                 imported.AnalyzeLegacyPptWrite();
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-CUSTOM-XML");
+                finding.Code == "ppt-write-custom-xml");
             Assert.Throws<NotSupportedException>(() =>
-                imported.ToBytes(PowerPointFileFormat.Ppt));
+                imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -105,15 +105,15 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.ActiveX
-                && finding.Code == "PPT-WRITE-ACTIVEX");
+                && finding.Code == "ppt-write-activex");
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.UnknownRecordsAndStreams
-                && finding.Code == "PPT-WRITE-WEB-EXTENSION");
+                && finding.Code == "ppt-write-web-extension");
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.VbaProjects
-                && finding.Code == "PPT-WRITE-VBA-EXTENDED-PART");
+                && finding.Code == "ppt-write-vba-extended-part");
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTENDED-PART");
+                finding.Code == "ppt-write-extended-part");
         }
 
         [Fact]
@@ -134,11 +134,11 @@ namespace OfficeIMO.Tests {
                 presentation.AnalyzeLegacyPptWrite();
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-PACKAGE-PART");
+                finding.Code == "ppt-write-package-part");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTERNAL-RELATIONSHIP");
+                finding.Code == "ppt-write-external-relationship");
             Assert.Throws<NotSupportedException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -160,10 +160,10 @@ namespace OfficeIMO.Tests {
                 presentation.AnalyzeLegacyPptWrite();
 
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EMBEDDED-PACKAGE");
+                finding.Code == "ppt-write-embedded-package");
             Assert.True(report.CanWrite,
                 string.Join(Environment.NewLine, report.Findings));
-            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.NotEmpty(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
                     PowerPointClassicAnimationEffect.Fade);
                 Assert.Contains(slide.GetGroupChildren(group),
                     child => child.Id == marker.Id);
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(bytes, writable: false);
@@ -256,13 +256,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.DigitalSignatures
-                && finding.Code == "PPT-WRITE-OPENXML-SIGNATURE");
+                && finding.Code == "ppt-write-openxml-signature");
             Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             presentation.SignatureMutationPolicy =
                 OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             Assert.NotEmpty(bytes);
             Assert.False(presentation.InspectSignatures().HasSignatureMetadata);
         }

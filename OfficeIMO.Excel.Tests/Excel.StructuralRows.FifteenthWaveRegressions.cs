@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("keep");
-            var pageBreak = new Break { Id = (uint)A1.MaxRows, ManualPageBreak = true };
+            var pageBreak = new Break { Id = (uint)ExcelA1.MaxRows, ManualPageBreak = true };
             sheet.WorksheetPart.Worksheet.Append(new CustomSheetViews(
                 new CustomSheetView(
                     new RowBreaks(pageBreak) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
 
-            Assert.Equal((uint)A1.MaxRows, pageBreak.Id!.Value);
+            Assert.Equal((uint)ExcelA1.MaxRows, pageBreak.Id!.Value);
             Assert.Equal("keep", sheet.CellAt(1, 1).GetValue<string>());
         }
 

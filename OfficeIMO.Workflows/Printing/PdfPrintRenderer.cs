@@ -8,14 +8,14 @@ public static class PdfPrintRenderer {
     /// <summary>Prepares raster sheets from an authenticated snapshot without reopening the source location.</summary>
     public static PdfPreparedPrintDocument Prepare(PdfDocument document, PdfPrintPlanRequest request,
         PdfPrintRenderOptions? options = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(request);
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
         string sourcePath = request.InputPath;
         options ??= new();
         double dpi = options.Dpi;
         int maximumPages = options.MaximumPages;
         long maximumPixels = options.MaximumPixelsPerImage, maximumOutputBytes = options.MaximumOutputBytes;
-        if (!double.IsFinite(dpi) || dpi < 72 || dpi > 600) throw new ArgumentOutOfRangeException(nameof(options.Dpi));
+        if (!OfficeRuntimeCompatibility.IsFinite(dpi) || dpi < 72 || dpi > 600) throw new ArgumentOutOfRangeException(nameof(options.Dpi));
         if (maximumPages <= 0 || maximumPixels <= 0 || maximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
         // Preparation must stay within the shared decoder's delivery bounds.
         _ = new OfficeRasterDecodeOptions { MaximumDecodedPixels = maximumPixels };

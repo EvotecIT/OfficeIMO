@@ -40,7 +40,7 @@ public class PdfDelimitedTokenFrameTests {
 
     private static byte[] Create(string text, double innerWidth, int route) {
         double frameWidth = innerWidth + (route == 0 ? 0D : 4D);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = frameWidth + 40D, PageHeight = 400D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10D

@@ -15,16 +15,16 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Markdown;
 
 var document = MermaidMarkdownAdapter.Materialize(
-    MarkdownReader.Parse(markdown), diagnostic => Console.WriteLine(diagnostic.Message));
+    MarkdownDocument.Parse(markdown), diagnostic => Console.WriteLine(diagnostic.Message));
 
-using var word = document.ToWordDocument(new MarkdownToWordOptions { FitImagesToContextWidth = true });
+using var word = document.ToWord(new WordMarkdownImportOptions { FitImagesToContextWidth = true });
 word.Save("report.docx");
 document.SaveAsPdf("report.pdf");
 ```
 
 The transform replaces Mermaid fences with embedded PNG images, including fences inside lists, quotes and other Markdown containers. The Word example uses the existing context-width image policy so wide diagrams fit the page, including list and quote indentation. It preserves captions and supplies alternative text from the rendered artifact. Other fence languages remain unchanged. Invalid or unsupported diagrams retain their source fence and report diagnostics through the supplied callback.
 
-For a converter that accepts `MarkdownReaderOptions`, add `MermaidMarkdownAdapter.CreateTransform()` to `DocumentTransforms`. Each application renders its own document, so the same transform can be reused.
+For a converter that accepts `MarkdownLoadOptions`, add `MermaidMarkdownAdapter.CreateTransform()` to `DocumentTransforms`. Each application renders its own document, so the same transform can be reused.
 
 ## Static HTML
 
@@ -49,7 +49,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.PowerPoint;
 
-var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
 reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
 var parsed = OfficeMarkupParser.Parse(markdown, new OfficeMarkupParserOptions {
     Profile = OfficeMarkupProfile.Presentation,

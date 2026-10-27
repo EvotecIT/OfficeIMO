@@ -23,7 +23,7 @@ public sealed class GetOfficeMarkdownTableCommand : PSCmdlet
 
     /// <summary>Markdown document to inspect.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Path to the Markdown file.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
@@ -37,11 +37,11 @@ public sealed class GetOfficeMarkdownTableCommand : PSCmdlet
     /// <summary>Optional reader options used when parsing path or text input.</summary>
     [Parameter]
     [Alias("ReaderOptions")]
-    public MarkdownReaderOptions? Options { get; set; }
+    public MarkdownLoadOptions? Options { get; set; }
 
     /// <summary>Named reader profile used when <see cref="Options"/> is not supplied.</summary>
     [Parameter]
-    public MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; set; }
+    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
 
     /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
     [Parameter]
@@ -83,7 +83,7 @@ public sealed class GetOfficeMarkdownTableCommand : PSCmdlet
     [Parameter]
     public SwitchParameter AsObject { get; set; }
 
-    MarkdownReaderOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
+    MarkdownLoadOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {

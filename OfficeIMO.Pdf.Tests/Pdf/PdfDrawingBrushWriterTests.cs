@@ -76,7 +76,7 @@ public sealed class PdfDrawingBrushWriterTests {
         Assert.Throws<NotSupportedException>(() => Write(drawing));
     }
 
-    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = drawing.Width, PageHeight = drawing.Height, CompressContentStreams = false,
         MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
     }).Drawing(drawing).ToBytes();

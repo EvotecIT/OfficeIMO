@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             connector.SetShapeData("Protocol", "TLS", "Protocol", VisioShapeDataType.String);
             page.AddCallout(service, "service-note", "SLO: 99.9%", VisioSide.Bottom);
 
-            VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot();
+            VisioInspectionSnapshot snapshot = document.Inspect();
             string text = snapshot.ToText();
 
             Assert.Equal("Inspection sample", snapshot.Title);
@@ -72,11 +72,11 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Diff", 6, 4);
             VisioShape start = page.AddRectangle(1, 2, 1, 0.5, "Start");
 
-            VisioInspectionSnapshot before = document.CreateInspectionSnapshot();
+            VisioInspectionSnapshot before = document.Inspect();
 
             start.Text = "Renamed";
             page.AddRectangle(3, 2, 1, 0.5, "Added");
-            VisioInspectionSnapshot after = document.CreateInspectionSnapshot();
+            VisioInspectionSnapshot after = document.Inspect();
 
             VisioInspectionDiff diff = before.Diff(after);
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            VisioInspectionSnapshot snapshot = loaded.CreateInspectionSnapshot();
+            VisioInspectionSnapshot snapshot = loaded.Inspect();
 
             VisioInspectionShapeSnapshot loadedNode = Assert.Single(snapshot.Pages[0].Shapes, shape => shape.Text == "Node");
             Assert.Equal("Tier 0", loadedNode.ShapeData.Single(row => row.Name == "Criticality").Value);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             VisioShape node = page.AddRectangle(1, 2, 1, 0.5, "Line 1\nLine 2");
             node.Data["owner=team\nprimary"] = "value=one\nvalue two";
 
-            VisioInspectionSnapshot before = document.CreateInspectionSnapshot();
+            VisioInspectionSnapshot before = document.Inspect();
             string text = before.ToText();
             string normalized = text.Replace("\r\n", "\n");
 
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("Line 1\nLine 2", normalized, StringComparison.Ordinal);
 
             node.Text = "Line 1\nChanged";
-            VisioInspectionDiff diff = before.Diff(document.CreateInspectionSnapshot());
+            VisioInspectionDiff diff = before.Diff(document.Inspect());
 
             Assert.Contains(diff.Differences, difference =>
                 difference.Kind == VisioInspectionDifferenceKind.Changed &&
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
             VisioShape firstShape = first.AddRectangle(1, 2, 1, 0.5, "First");
             VisioShape secondShape = second.AddRectangle(1, 2, 1, 0.5, "Second");
 
-            string text = document.CreateInspectionSnapshot().ToText();
+            string text = document.Inspect().ToText();
 
             Assert.Contains("page[" + first.Id + ":Same].shape[" + firstShape.Id + "].text=First", text, StringComparison.Ordinal);
             Assert.Contains("page[" + second.Id + ":Same].shape[" + secondShape.Id + "].text=Second", text, StringComparison.Ordinal);
@@ -161,10 +161,10 @@ namespace OfficeIMO.Tests {
                 .PlaceLabel(0.5);
             connector.Label = "Moved";
 
-            VisioInspectionSnapshot before = document.CreateInspectionSnapshot();
+            VisioInspectionSnapshot before = document.Inspect();
 
             connector.LabelPlacement = VisioConnectorLabelPlacement.Along(0.5, offsetY: 0.25);
-            VisioInspectionDiff diff = before.Diff(document.CreateInspectionSnapshot());
+            VisioInspectionDiff diff = before.Diff(document.Inspect());
 
             Assert.Contains(diff.Differences, difference =>
                 difference.Kind == VisioInspectionDifferenceKind.Changed &&
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
             VisioConnector connector = page.AddConnector(source, child, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5);
 
-            VisioInspectionConnectorSnapshot snapshot = Assert.Single(document.CreateInspectionSnapshot().Pages[0].Connectors);
+            VisioInspectionConnectorSnapshot snapshot = Assert.Single(document.Inspect().Pages[0].Connectors);
 
             Assert.Equal(connector.Id, snapshot.Id);
             Assert.Equal(2.95, snapshot.LabelResolvedPinX);

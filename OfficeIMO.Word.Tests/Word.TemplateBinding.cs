@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Logo {{Logo}} and {{Portal}}.");
                 byte[] png = OfficeIMO.Drawing.OfficePngWriter.Encode(
-                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
+                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 var values = new Dictionary<string, object?> {
                     ["Logo"] = new WordTemplateImage(png, "logo.png", width: 12, height: 12, description: "Company logo"),
                     ["Portal"] = new WordTemplateHyperlink("customer portal", new Uri("https://example.com/customer"))
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                 else repeated._paragraph.PrependChild(bookmarkStart);
                 repeated._paragraph.Append(new BookmarkEnd { Id = "5" });
                 byte[] png = OfficeIMO.Drawing.OfficePngWriter.Encode(
-                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
+                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 using (var image = new MemoryStream(png, writable: false)) {
                     repeated.AddImage(image, "marker.png", 8, 8);
                 }

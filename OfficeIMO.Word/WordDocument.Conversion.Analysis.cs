@@ -7,14 +7,14 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Analyzes a file-to-file Word conversion without creating or changing an artifact.</summary>
-    public static WordDocumentConversionReport AnalyzeConversion(
+    internal static WordDocumentConversionReport AnalyzeConversion(
         string sourcePath,
         string destinationPath,
         WordDocumentConversionOptions? options = null) =>
         AnalyzeConversionAsync(sourcePath, destinationPath, options).GetAwaiter().GetResult();
 
     /// <summary>Asynchronously analyzes a file-to-file Word conversion without creating or changing an artifact.</summary>
-    public static async Task<WordDocumentConversionReport> AnalyzeConversionAsync(
+    internal static async Task<WordDocumentConversionReport> AnalyzeConversionAsync(
         string sourcePath,
         string destinationPath,
         WordDocumentConversionOptions? options = null,

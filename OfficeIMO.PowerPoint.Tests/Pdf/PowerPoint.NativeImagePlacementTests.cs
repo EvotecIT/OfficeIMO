@@ -18,7 +18,7 @@ public partial class PowerPointSaveAsPdfTests {
         slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!.Append(source.CloneNode(true));
         text.Remove();
 
-        byte[] pdf = presentation.ToPdfBytes();
+        byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("Layout footer", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -36,7 +36,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(30));
         slide.AddShapePoints(OfficePresetShapeType.Rectangle, 80, 20, 30, 20).FillColor = "D7263D";
 
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-picture");
@@ -49,7 +49,7 @@ public partial class PowerPointSaveAsPdfTests {
     public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeImagePlacement");
         using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));
-        byte[] actual = presentation.ToPdfBytes();
+        byte[] actual = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-picture-crop-rotation.pdf"));
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(actual).Pages[0].ToDrawing(), 1D, OfficeColor.White);
         OfficeRasterImage native = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(reference).Pages[0].ToDrawing(), 1D, OfficeColor.White);

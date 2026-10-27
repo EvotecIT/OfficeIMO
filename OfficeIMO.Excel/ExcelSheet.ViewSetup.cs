@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
                     pane.HorizontalSplit = leftCols;  // HorizontalSplit = number of columns to freeze
                 }
 
-                pane.TopLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
+                pane.TopLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
 
                 if (topRows > 0 && leftCols > 0) {
                     pane.ActivePane = PaneValues.BottomRight;

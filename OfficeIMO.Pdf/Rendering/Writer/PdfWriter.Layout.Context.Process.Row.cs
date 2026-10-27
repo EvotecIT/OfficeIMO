@@ -261,7 +261,7 @@ internal static partial class PdfWriter {
                             pageDirty = true;
                             var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                             int? markedContentId = RegisterTextStructureElement("P");
-                            ReportRichPaintDiagnostics("Paragraph", "PdfColumnParagraph", pblock, sliceLines, sliceHeights,
+                            ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfColumnParagraph", pblock, sliceLines, sliceHeights,
                                 FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, xCol + par.XOffset, par.TextWidth,
                                 new TableCellContentFrame(xCol + par.XOffset, currentOpts.PageHeight, par.TextWidth, currentOpts.PageHeight), clipsToFrame: false,
                                 firstLineX: start == 0 ? xCol + par.FirstLineXOffset : null, firstLineWidth: start == 0 ? par.FirstLineTextWidth : null,

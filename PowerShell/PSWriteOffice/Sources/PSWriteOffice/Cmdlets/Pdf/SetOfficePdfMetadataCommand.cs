@@ -98,7 +98,7 @@ public sealed class SetOfficePdfMetadataCommand : PSCmdlet
             var updatedDocument = Incremental.IsPresent
                 ? inputDocument.AppendMetadataRevision(Title, Author, Subject, Keywords)
                 : inputDocument.UpdateMetadata(Title, Author, Subject, Keywords);
-            updatedDocument.Save(outputPath).RequireSuccess();
+            updatedDocument.Save(outputPath);
 
             WriteObject(new FileInfo(outputPath));
             return;

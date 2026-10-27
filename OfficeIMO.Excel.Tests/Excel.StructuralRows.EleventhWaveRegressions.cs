@@ -26,13 +26,13 @@ namespace OfficeIMO.Tests {
             sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
-            formula.Text = $"A{A1.MaxRows}";
+            formula.Text = $"A{ExcelA1.MaxRows}";
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", formula.Text);
+            Assert.Equal($"A{ExcelA1.MaxRows}", formula.Text);
             Assert.Equal("Category", sheet.CellAt(1, 1).GetValue<string>());
         }
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 new Xdr.ToMarker(
                     new Xdr.ColumnId("8"),
                     new Xdr.ColumnOffset("0"),
-                    new Xdr.RowId((A1.MaxRows - 1).ToString()),
+                    new Xdr.RowId((ExcelA1.MaxRows - 1).ToString()),
                     new Xdr.RowOffset("0")),
                 oneCellAnchor.GetFirstChild<Xdr.GraphicFrame>()!.CloneNode(true),
                 new Xdr.ClientData()) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             sheet.InsertRows(3);
 
             Assert.Equal("0", oneCellPlacement.FromMarker!.RowId!.Text);
-            Assert.Equal((A1.MaxRows - 1).ToString(), oneCellPlacement.ToMarker!.RowId!.Text);
+            Assert.Equal((ExcelA1.MaxRows - 1).ToString(), oneCellPlacement.ToMarker!.RowId!.Text);
         }
 
         [Fact]

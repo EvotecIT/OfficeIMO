@@ -41,9 +41,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(path);
         string sourceXml = PercentageTableFrameSourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Page page = Assert.Single(pdf.GetPages());
         AssertPercentageTableFrameGeometry(page, frameWidth, firstCellWidth, frameLeft);
         Assert.Equal(sourceXml, PercentageTableFrameSourceXml(document));

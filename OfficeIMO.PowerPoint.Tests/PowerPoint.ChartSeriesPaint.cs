@@ -41,7 +41,7 @@ public sealed class PowerPointChartSeriesPaintTests {
             shape.Shape.StrokeColor == OfficeColor.Red && shape.Shape.StrokeWidth == 3 && shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dash);
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.FillColor == OfficeColor.Blue);
         Assert.Equal(pointOverride, drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.FillColor == OfficeColor.Green));
-        Assert.DoesNotContain(reopened.ToPdfDocumentResult().Warnings, warning => warning.Code == "unsupported-chart");
+        Assert.DoesNotContain(reopened.ConvertToPdfWithEvidence().Warnings, warning => warning.Code == "unsupported-chart");
     }
 
     private static void CheckPaint(OfficeChartSnapshot snapshot, int number) {

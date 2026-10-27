@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
     /// retains both extents separately from flattened inter-paragraph heights.
     /// </summary>
     private static void AppendRichBarTabDecorations(StringBuilder sb, List<List<RichSeg>> lines,
-        List<double> lineHeights, PdfOptions options, double startY, double fontSize, double leading,
+        List<double> lineHeights, PdfCreateOptions options, double startY, double fontSize, double leading,
         double xOrigin, double? firstLineX, IReadOnlyList<double>? lineXOffsets, IReadOnlyList<double>? lineTopGaps,
         PdfStandardFont? baselineFont, double paragraphSpacingAfter, double paragraphSpacingBefore, bool tagged, string? graphicsState,
         TableCellContentFrame? clipFrame) {

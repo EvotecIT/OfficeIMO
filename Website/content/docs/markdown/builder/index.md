@@ -4,14 +4,14 @@ description: "Fluent API for building Markdown documents — headings, paragraph
 order: 41
 ---
 
-The `MarkdownDoc` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDoc` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
+The `MarkdownDocument` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDocument` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
 
 ## Headings
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Main Title")
     .H2("Section")
     .H3("Subsection")
@@ -170,7 +170,7 @@ doc.TableFrom(data,
 ```csharp
 doc.Table(t => t
     .Headers("Left", "Center", "Right")
-    .Align(ColumnAlignment.Left, ColumnAlignment.Center, ColumnAlignment.Right)
+    .Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right)
     .Row("A", "B", "C")
 );
 ```
@@ -303,9 +303,9 @@ File.WriteAllText("output.md", markdown);
 ## Rendering to HTML
 
 ```csharp
-string html = doc.ToHtml(new HtmlOptions {
-    Style = HtmlStyle.GitHub,
+string html = doc.ToHtml(new MarkdownHtmlExportOptions {
+    Style = MarkdownHtmlStyle.GitHub,
     InjectTocAtTop = true,
-    Prism = new PrismOptions { Enabled = true }
+    Prism = new MarkdownPrismOptions { Enabled = true }
 });
 ```

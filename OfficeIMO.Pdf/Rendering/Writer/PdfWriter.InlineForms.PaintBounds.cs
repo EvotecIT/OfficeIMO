@@ -1,13 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static RichSeg CreateInlineAppearanceSegment(PdfTextRun run, PdfOptions options) {
+    private static RichSeg CreateInlineAppearanceSegment(PdfTextRun run, PdfCreateOptions options) {
         RichSeg segment = CreatePositionedTextSegment(run, options.DefaultFontSize, options);
         PrepareInlineAppearanceCommand(segment, options);
         return segment;
     }
 
-    private static void PrepareInlineAppearanceCommand(RichSeg segment, PdfOptions options) {
+    private static void PrepareInlineAppearanceCommand(RichSeg segment, PdfCreateOptions options) {
         // Register glyphs during layout, before font programs are subset and
         // serialized. The appearance later paints this exact cached command.
         segment.KerningCommand ??= EncodeTextShowCommand(segment.Text, segment.Font, segment.NamedFont,
@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             preservesPaintedGlyphs: segment.PreservesPaintedGlyphs);
     }
 
-    private static void PrepareInlineCheckBoxGlyphUsage(PdfInlineFormField field, PdfOptions options) {
+    private static void PrepareInlineCheckBoxGlyphUsage(PdfInlineFormField field, PdfCreateOptions options) {
         foreach (PdfTextRun? source in new[] { field.CheckedAppearanceRun, field.UncheckedAppearanceRun }) {
             if (source == null) continue;
             foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { source }, ChooseNormal(options.DefaultFont), options))
@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
     }
 
     private static void IncludeInlineFormPaintBounds(LayoutResult.Page page, RichSeg segment,
-        double x, double baseline, PdfOptions options,
+        double x, double baseline, PdfCreateOptions options,
         ref double left, ref double bottom, ref double right, ref double top) {
         page.OperationCancellationToken.ThrowIfCancellationRequested();
         PrepareInlineAppearanceCommand(segment, options);
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
             right = Math.Max(right, x + GetRichSegmentWidth(segment) + fontBox[2] * scale * horizontal);
             bottom = Math.Min(bottom, paintedBaseline + fontBox[1] * scale);
             top = Math.Max(top, paintedBaseline + fontBox[3] * scale);
-            options.AddUnassessedLayoutWarning("InlineFormPaintBoundsUnmeasured", "inline form", error.Message);
+            options.AddUnassessedLayoutWarning("inline-form-paint-bounds-unmeasured", "inline form", error.Message);
         }
         if (segment.Underline)
             IncludeDecorationVerticalBounds(segment.UnderlineStyle, paintedBaseline - size * .15D, .5D, ref bottom, ref top);

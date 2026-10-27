@@ -16,10 +16,10 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.pdf");
         string spacedPdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingExplicit.pdf");
         string beforePdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingBefore.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfCore.PageSize(420, 520),
-            Margins = PdfCore.PageMargins.Uniform(40)
+            PageSize = new PdfCore.PdfPageSize(420, 520),
+            Margins = PdfCore.PdfPageMargins.Uniform(40)
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
@@ -31,10 +31,10 @@ public partial class Word {
             document.AddParagraph("AfterChartSpacingProbe");
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var words = pdf.GetPage(1).GetWords().ToList();

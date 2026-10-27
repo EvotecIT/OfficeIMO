@@ -10,7 +10,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to inspect fonts, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<PdfFontInventory> FontsResult(
+    internal PdfOperationResult<PdfFontInventory> FontsResult(
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? readOptions = null) {
         return _document.TryOperation(
@@ -30,7 +30,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to inspect fonts on selected pages, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<PdfFontInventory> FontsResult(
+    internal PdfOperationResult<PdfFontInventory> FontsResult(
         PdfPageSelection selection,
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? readOptions = null) {
@@ -51,7 +51,7 @@ internal sealed partial class PdfDocumentReader {
     }
 
     /// <summary>Attempts to inspect fonts on pages described by one-based page ranges.</summary>
-    public PdfOperationResult<PdfFontInventory> FontsResult(
+    internal PdfOperationResult<PdfFontInventory> FontsResult(
         string pageRanges,
         PdfFontInspectionOptions? inspectionOptions = null,
         PdfLoadOptions? readOptions = null) {

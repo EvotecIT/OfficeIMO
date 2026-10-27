@@ -7,12 +7,12 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRequiresCiiPaymentTermsEssentials() {
-        var missingPaymentTermsOptions = new PdfOptions()
+        var missingPaymentTermsOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includePaymentTerms: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingPaymentTermsMarkerOptions = new PdfOptions()
+        var missingPaymentTermsMarkerOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -33,22 +33,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiAmountConsistency() {
-        var mismatchedLineOptions = new PdfOptions()
+        var mismatchedLineOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTotalAmount: "99.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mismatchedGrandOptions = new PdfOptions()
+        var mismatchedGrandOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(grandTotalAmount: "124.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var unparseableOptions = new PdfOptions()
+        var unparseableOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(taxTotalAmount: "not-a-number"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var allowanceAdjustedOptions = new PdfOptions()
+        var allowanceAdjustedOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -70,7 +70,7 @@ public partial class PdfComplianceAnalyzerTests {
                     "23"),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var mismatchedAllowanceTotalOptions = new PdfOptions()
+        var mismatchedAllowanceTotalOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -92,7 +92,7 @@ public partial class PdfComplianceAnalyzerTests {
                     "23"),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var mismatchedChargeTotalOptions = new PdfOptions()
+        var mismatchedChargeTotalOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -114,7 +114,7 @@ public partial class PdfComplianceAnalyzerTests {
                     "23"),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var paidAdjustedOptions = new PdfOptions()
+        var paidAdjustedOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -125,7 +125,7 @@ public partial class PdfComplianceAnalyzerTests {
                 paidAmount: "23.00",
                 roundingAmount: "0.05",
                 duePayableAmount: "100.05"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mismatchedDueOptions = new PdfOptions()
+        var mismatchedDueOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -134,12 +134,12 @@ public partial class PdfComplianceAnalyzerTests {
                 includePaidAmount: true,
                 paidAmount: "23.00",
                 duePayableAmount: "99.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var zeroAllowanceWithoutComponentsOptions = new PdfOptions()
+        var zeroAllowanceWithoutComponentsOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeAllowanceTotalAmount: true, allowanceTotalAmount: "0.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var zeroChargeWithoutComponentsOptions = new PdfOptions()
+        var zeroChargeWithoutComponentsOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -204,7 +204,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessExcludesHeaderLineTotalAmountFromLineSums() {
-        var headerLineTotalOptions = new PdfOptions()
+        var headerLineTotalOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -220,7 +220,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiAllowanceChargeReasons() {
-        var missingAllowanceReasonOptions = new PdfOptions()
+        var missingAllowanceReasonOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -243,7 +243,7 @@ public partial class PdfComplianceAnalyzerTests {
                     false),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var missingChargeReasonOptions = new PdfOptions()
+        var missingChargeReasonOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -266,7 +266,7 @@ public partial class PdfComplianceAnalyzerTests {
                     false),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var reasonedAllowanceChargeOptions = new PdfOptions()
+        var reasonedAllowanceChargeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))

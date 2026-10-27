@@ -68,8 +68,8 @@ public sealed class WordPdfDocumentDefaultRunStyleTests {
     };
 
     private static void AssertEquivalentPdf(WordDocument expected, WordDocument actual, string expectedText) {
-        using var reference = PdfPigDocument.Open(expected.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
-        using var candidate = PdfPigDocument.Open(actual.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var reference = PdfPigDocument.Open(expected.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var candidate = PdfPigDocument.Open(actual.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, reference.NumberOfPages);
         Assert.Equal(reference.NumberOfPages, candidate.NumberOfPages);
         var referencePage = reference.GetPage(1);

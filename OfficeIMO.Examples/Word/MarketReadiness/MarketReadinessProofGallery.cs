@@ -234,12 +234,11 @@ namespace OfficeIMO.Examples.Word {
 
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
-                HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Value).ToWordDocumentResult(options);
-                using WordDocument document = conversion.RequireValue();
+                WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+                using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Value).ToWord(options, out OfficeConversionReport conversion);
                 document.Save(docxPath);
-                File.WriteAllText(roundTripPath, document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }), Encoding.UTF8);
-                WriteHtmlDiagnostics(diagnosticsPath, conversion.Report.Diagnostics);
+                File.WriteAllText(roundTripPath, document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true }), Encoding.UTF8);
+                WriteHtmlDiagnostics(diagnosticsPath, conversion.Diagnostics);
             }
 
             WriteValidationReport(scenarioPath);
@@ -263,17 +262,17 @@ namespace OfficeIMO.Examples.Word {
 
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
-                var toWordOptions = new MarkdownToWordOptions {
+                var toWordOptions = new WordMarkdownImportOptions {
                     OnWarning = warnings.Add,
                     PreferNarrativeSingleLineDefinitions = true
                 };
-                using WordDocument document = OfficeIMO.Markdown.MarkdownReader.Parse(scenario.Value, toWordOptions.CreateReaderOptions()).ToWordDocument(toWordOptions);
+                using WordDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse(scenario.Value, toWordOptions.CreateReaderOptions()).ToWord(toWordOptions);
                 document.Save(docxPath);
 
-                var toMarkdownOptions = new WordToMarkdownOptions {
+                var toMarkdownOptions = new WordMarkdownExportOptions {
                     OnWarning = warnings.Add
                 };
-                File.WriteAllText(roundTripPath, document.ToMarkdown(toMarkdownOptions), Encoding.UTF8);
+                File.WriteAllText(roundTripPath, (document.ToMarkdown(toMarkdownOptions)).ToMarkdown(), Encoding.UTF8);
                 WriteWarnings(diagnosticsPath, warnings);
             }
 
@@ -332,14 +331,14 @@ namespace OfficeIMO.Examples.Word {
             return index.HasValue ? index.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-";
         }
 
-        private static void WriteHtmlDiagnostics(string path, IReadOnlyList<HtmlDiagnostic> diagnostics) {
+        private static void WriteHtmlDiagnostics(string path, IReadOnlyList<OfficeDiagnostic> diagnostics) {
             var builder = new StringBuilder();
             builder.AppendLine("# HTML Conversion Diagnostics");
             builder.AppendLine();
             if (diagnostics.Count == 0) {
                 builder.AppendLine("- No diagnostics.");
             } else {
-                foreach (HtmlDiagnostic diagnostic in diagnostics) {
+                foreach (OfficeDiagnostic diagnostic in diagnostics) {
                     builder.AppendLine("- " + diagnostic.Severity + " " + diagnostic.Code + ": " + diagnostic.Message);
                 }
             }

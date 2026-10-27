@@ -13,13 +13,13 @@ public sealed class PdfTableBottomAlignedFontBoundsTests {
     public void BottomAlignmentReservesNamedFontDescentWithoutChangingRowHeight(bool canvas, bool linked) {
         const string family = "Tall named table font";
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFontSize = 11 };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -400, 0, 400, 'A')));
         options.ReportDiagnosticsTo(report);
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FontSize = 11; style.LineHeight = 1;
         style.FixedRowHeights = new List<double?> { 24 };

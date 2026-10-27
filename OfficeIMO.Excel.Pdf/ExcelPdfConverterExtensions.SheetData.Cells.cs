@@ -8,12 +8,12 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
                 return null;
             }
 
-            IReadOnlyList<ExcelRowSnapshot> rowDefinitions = workbookSheet.GetRowDefinitions();
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions = workbookSheet.GetColumnDefinitions(cancellationToken);
+            IReadOnlyList<ExcelRowInfo> rowDefinitions = workbookSheet.GetRowDefinitions();
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions = workbookSheet.GetColumnDefinitions(cancellationToken);
             if (!rowDefinitions.Any(row => row.Hidden) && !columnDefinitions.Any(column => column.Hidden)) {
                 return null;
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static string?[,]? ReadCellReferenceData(string normalizedRange, int rowCount, int columnCount, VisibilityLayoutData? visibility = null) {
             if (rowCount == 0 || columnCount == 0 ||
-                !A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
+                !ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
                 return null;
             }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Pdf {
                 int sourceRow = visibility?.RowOffsets[row] ?? row;
                 for (int column = 0; column < columnCount; column++) {
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
-                    references[row, column] = A1.CellReference(firstRow + sourceRow, firstColumn + sourceColumn);
+                    references[row, column] = ExcelA1.CellReference(firstRow + sourceRow, firstColumn + sourceColumn);
                 }
             }
 
@@ -72,9 +72,9 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
-        private static bool IsWorksheetRowHidden(IReadOnlyList<ExcelRowSnapshot> rowDefinitions, int rowIndex) {
+        private static bool IsWorksheetRowHidden(IReadOnlyList<ExcelRowInfo> rowDefinitions, int rowIndex) {
             for (int i = rowDefinitions.Count - 1; i >= 0; i--) {
-                ExcelRowSnapshot definition = rowDefinitions[i];
+                ExcelRowInfo definition = rowDefinitions[i];
                 if (definition.Index == rowIndex) {
                     return definition.Hidden;
                 }
@@ -83,9 +83,9 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool IsWorksheetColumnHidden(IReadOnlyList<ExcelColumnSnapshot> columnDefinitions, int columnIndex) {
+        private static bool IsWorksheetColumnHidden(IReadOnlyList<ExcelColumnInfo> columnDefinitions, int columnIndex) {
             for (int i = columnDefinitions.Count - 1; i >= 0; i--) {
-                ExcelColumnSnapshot definition = columnDefinitions[i];
+                ExcelColumnInfo definition = columnDefinitions[i];
                 if (columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex) {
                     return definition.Hidden;
                 }
@@ -94,16 +94,16 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static ExcelCellStyleSnapshot?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, ExcelSheetReader sheetReader, string normalizedRange, int rowCount, int columnCount, bool enabled, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead, VisibilityLayoutData? visibility = null) {
+        private static ExcelCellStyleInfo?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, ExcelSheetReader sheetReader, string normalizedRange, int rowCount, int columnCount, bool enabled, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead, VisibilityLayoutData? visibility = null) {
             if (!enabled || workbookSheet == null || rowCount == 0 || columnCount == 0) {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
                 return null;
             }
 
-            ExcelCellStyleSnapshot?[,] styles = new ExcelCellStyleSnapshot?[rowCount, columnCount];
+            ExcelCellStyleInfo?[,] styles = new ExcelCellStyleInfo?[rowCount, columnCount];
             bool hasAnyStyle = false;
             uint?[,]? styleIndexes = boundedRead
                 ? sheetReader.ReadCellStyleIndexes(normalizedRange)
@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel.Pdf {
                         continue;
                     }
 
-                    ExcelCellStyleSnapshot style = useStreamedStyleIndexes
+                    ExcelCellStyleInfo style = useStreamedStyleIndexes
                         ? workbookSheet.GetCellStyleByIndex(styleIndex!.Value)
                         : workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
                     if (HasPdfExportStyle(style, defaultFontFamily)) {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel.Pdf {
             return hasAnyStyle ? styles : null;
         }
 
-        private static bool HasPdfExportStyle(ExcelCellStyleSnapshot style, PdfCore.PdfStandardFont defaultFontFamily) {
+        private static bool HasPdfExportStyle(ExcelCellStyleInfo style, PdfCore.PdfStandardFont defaultFontFamily) {
             if (style.HasPdfVisualStyle) {
                 return true;
             }
@@ -145,28 +145,28 @@ namespace OfficeIMO.Excel.Pdf {
                 PdfCore.PdfStandardFontMapper.GetFontFamily(font) != defaultFontFamily;
         }
 
-        private static ExcelHyperlinkSnapshot?[,]? ReadHyperlinkData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {
+        private static ExcelHyperlinkInfo?[,]? ReadHyperlinkData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {
             if (!enabled || workbookSheet == null || rowCount == 0 || columnCount == 0) {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out _, out _)) {
                 return null;
             }
 
-            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> worksheetHyperlinks = workbookSheet.GetHyperlinks();
+            IReadOnlyDictionary<string, ExcelHyperlinkInfo> worksheetHyperlinks = workbookSheet.GetHyperlinks();
             if (worksheetHyperlinks.Count == 0) {
                 return null;
             }
 
-            var links = new ExcelHyperlinkSnapshot?[rowCount, columnCount];
+            var links = new ExcelHyperlinkInfo?[rowCount, columnCount];
             bool hasAnyLink = false;
             for (int row = 0; row < rowCount; row++) {
                 int sourceRow = visibility?.RowOffsets[row] ?? row;
                 for (int column = 0; column < columnCount; column++) {
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
-                    string reference = A1.CellReference(firstRow + sourceRow, firstColumn + sourceColumn);
-                    if (TryGetHyperlink(worksheetHyperlinks, reference, out ExcelHyperlinkSnapshot? hyperlink) &&
+                    string reference = ExcelA1.CellReference(firstRow + sourceRow, firstColumn + sourceColumn);
+                    if (TryGetHyperlink(worksheetHyperlinks, reference, out ExcelHyperlinkInfo? hyperlink) &&
                         IsSupportedPdfHyperlink(hyperlink, workbookSheet.Name)) {
                         links[row, column] = hyperlink;
                         hasAnyLink = true;
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
 
-        private static bool IsSupportedPdfHyperlink(ExcelHyperlinkSnapshot hyperlink, string currentSheetName) {
+        private static bool IsSupportedPdfHyperlink(ExcelHyperlinkInfo hyperlink, string currentSheetName) {
             if (hyperlink.IsExternal) {
                 return Uri.TryCreate(hyperlink.Target, UriKind.Absolute, out _);
             }
@@ -186,15 +186,15 @@ namespace OfficeIMO.Excel.Pdf {
             return TryParseInternalSheetName(hyperlink.Target, currentSheetName, out _);
         }
 
-        private static bool TryGetHyperlink(IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks, string cellReference, out ExcelHyperlinkSnapshot hyperlink) {
-            if (hyperlinks.TryGetValue(cellReference, out ExcelHyperlinkSnapshot? direct)) {
+        private static bool TryGetHyperlink(IReadOnlyDictionary<string, ExcelHyperlinkInfo> hyperlinks, string cellReference, out ExcelHyperlinkInfo hyperlink) {
+            if (hyperlinks.TryGetValue(cellReference, out ExcelHyperlinkInfo? direct)) {
                 hyperlink = direct;
                 return true;
             }
 
-            foreach (KeyValuePair<string, ExcelHyperlinkSnapshot> entry in hyperlinks) {
-                (int Row, int Col) cell = A1.ParseCellRef(cellReference);
-                if (A1.TryParseRange(entry.Key, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) &&
+            foreach (KeyValuePair<string, ExcelHyperlinkInfo> entry in hyperlinks) {
+                (int Row, int Col) cell = ExcelA1.ParseCellRef(cellReference);
+                if (ExcelA1.TryParseRange(entry.Key, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) &&
                     cell.Row >= firstRow &&
                     cell.Row <= lastRow &&
                     cell.Col >= firstColumn &&

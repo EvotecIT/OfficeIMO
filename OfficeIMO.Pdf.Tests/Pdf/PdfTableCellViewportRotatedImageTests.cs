@@ -70,9 +70,9 @@ public sealed partial class PdfTableCellViewportTests {
         });
         if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(200, 72, 80, 72, offsetX: 120));
         var rows = new[] { new[] { cell } };
-        var options = new PdfOptions { PageWidth = 320, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 320, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null; style.BorderWidth = 0; style.HeaderRowCount = 0;
         style.ColumnWidthPoints = new List<double?> { width }; style.FixedRowHeights = new List<double?> { 72 };
         style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;

@@ -18,18 +18,25 @@ public sealed class DrawPdfWorkflowTests {
                 .AddParagraph(text).FontFamily = family;
             drawing.SaveFlatXml(input);
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(text.Select(c => (int)c).Distinct().ToArray());
-            var options = new OdgToPdfOptions { PdfOptions = new PdfOptions()
-                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, font)) };
+            var options = new OdgToPdfOptions {
+                PdfOptions = new PdfCreateOptions()
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, font))
+            };
             PdfDocumentConversionResult baseline = drawing.ToPdfDocumentResult(options);
             baseline.ToBytes();
             Assert.True(baseline.Report.HasLoss);
             byte[] original = { 1, 2, 3 };
             File.WriteAllBytes(output, original);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
                 ConversionRouteId = "odg-pdf",
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                ConversionOptions = new() { RequireNoLoss = true, Draw = options }
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                ConversionOptions = new() {
+                    FailOnLoss = true,
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = options }
+                }
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
@@ -58,7 +65,13 @@ public sealed class DrawPdfWorkflowTests {
             drawing.AddPage("Empty", OdfLength.Points(180), OdfLength.Points(120));
             if (extension == ".fodg") drawing.SaveFlatXml(input); else drawing.Save(input);
             byte[] before = File.ReadAllBytes(input);
-            var result = await OfficeWorkflow.Convert(input).To(output).RunAsync();
+            var result = await OfficeWorkflow.RunAsync((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+            }));
             Assert.True(result.Succeeded, result.Summary);
             Assert.Equal("odg-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf")?.Id);
             var read = PdfReadDocument.Open(File.ReadAllBytes(output));
@@ -71,7 +84,7 @@ public sealed class DrawPdfWorkflowTests {
             Assert.Equal(extension == ".fodg" ? "FODG" : "ODG", evidence.Facts["sourceFormat"]);
             Assert.Contains(evidence.FidelityDiagnostics, d => d.Location == "page:2:Empty");
             Assert.True(evidence.HasLoss);
-            Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
             Assert.Equal(before, File.ReadAllBytes(input));
             var preview = OfficeWorkflowRunner.PreviewDocument(before, extension);
             Assert.Equal(2, preview.Pages.Count);
@@ -80,11 +93,14 @@ public sealed class DrawPdfWorkflowTests {
 
     [Fact]
     public void DrawSettingsSnapshotAndMixedBatchSelectionStayRouteSpecific() {
-        var settings = new OfficeWorkflowConversionOptions { Draw = new OdgToPdfOptions { ForPrint = false, MaximumPages = 3 } };
-        var copy = settings.ForRoute("odg-pdf");
-        settings.Draw.MaximumPages = 50;
-        Assert.Equal(3, copy.Draw!.MaximumPages);
-        Assert.Null(settings.ForRoute("txt-pdf").Draw);
+        var settings = new OfficeConversionOptions {
+            RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new OdgToPdfOptions { ForPrint = false, MaximumPages = 3 } }
+        };
+        OfficeConversionOptions copy = settings.ForRoute("odg-pdf");
+        var native = Assert.IsType<OfficeWorkflowRouteSettings>(settings.RegisteredSettings).Draw!;
+        var copied = Assert.IsType<OfficeWorkflowRouteSettings>(copy.RegisteredSettings).Draw!;
+        native.MaximumPages = 50; Assert.Equal(3, copied.MaximumPages);
+        Assert.Null(settings.ForRoute("txt-pdf").RegisteredSettings);
     }
 
     [Theory]
@@ -102,9 +118,14 @@ public sealed class DrawPdfWorkflowTests {
             byte[] original = { 1, 2, 3 };
             File.WriteAllBytes(output, original);
             var result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = "odg-pdf",
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                ConversionOptions = new OfficeWorkflowConversionOptions { Draw = new() { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported } }
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionRouteId = "odg-pdf",
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                ConversionOptions = new OfficeConversionOptions {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new() { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported } }
+                }
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
@@ -126,9 +147,14 @@ public sealed class DrawPdfWorkflowTests {
             string input = Path.Combine(directory, "source.fodg"), output = Path.Combine(directory, "result.pdf");
             var drawing = OdgDocument.Create(); drawing.AddPage("One"); drawing.AddPage("Two"); drawing.SaveFlatXml(input);
             var result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = "odg-pdf",
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = pageLimit ? 1024 * 1024 : 64 },
-                ConversionOptions = new OfficeWorkflowConversionOptions { Draw = new() { MaximumPages = pageLimit ? 1 : 2 } }
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionRouteId = "odg-pdf",
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = pageLimit ? 1024 * 1024 : 64 },
+                ConversionOptions = new OfficeConversionOptions {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new() { MaximumPages = pageLimit ? 1 : 2 } }
+                }
             });
             Assert.False(result.Succeeded);
             Assert.False(File.Exists(output));

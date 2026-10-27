@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">The size of the line.</param>
         /// <param name="space">The space the line takes up.</param>
         /// <returns>The new Paragraph after the line.</returns>
-        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= WordBorderStyle.Single;
             var paragraphProperties = _paragraph!.ParagraphProperties ??= new ParagraphProperties();
             paragraphProperties.ParagraphBorders = new ParagraphBorders {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
         /// <param name="sourceTag">Tag of the bibliographic source.</param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddCitation(string sourceTag) {
-            var field = new CitationField { SourceTag = sourceTag };
+            var field = new WordCitationField { SourceTag = sourceTag };
             WordField.AddField(this, field, null!, null!, false);
             return this;
         }

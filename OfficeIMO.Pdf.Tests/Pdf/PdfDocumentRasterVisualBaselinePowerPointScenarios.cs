@@ -78,7 +78,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         rule.OutlineColor = "1E5A96";
         rule.OutlineWidthPoints = 1.5D;
 
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             ChartStyle = new OfficeChartStyle(
                 palette: new[] {
                     OfficeColor.FromRgb(30, 90, 150),
@@ -91,7 +91,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         presentation.Save();
         WriteReviewArtifact("native-powerpoint-slide.pptx", stream.ToArray());
-        return presentation.ToPdfBytes(options);
+        return (presentation.ToPdf(options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreateNativePowerPointDenseLayout() {
@@ -145,7 +145,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointChart chart = slide.AddChartPoints(chartData, 166, 82, 126, 74);
         chart.SetTitle("Flow");
 
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             ChartStyle = new OfficeChartStyle(
                 palette: new[] {
                     OfficeColor.FromRgb(34, 126, 102)
@@ -157,7 +157,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         presentation.Save();
         WriteReviewArtifact("native-powerpoint-dense-layout.pptx", stream.ToArray());
-        return presentation.ToPdfBytes(options);
+        return (presentation.ToPdf(options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreatePowerPointVisualGatePng() {

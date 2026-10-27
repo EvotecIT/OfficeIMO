@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseStatement(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Statement.pdf");
 
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10.5,
                 DefaultTextColor = PdfColor.FromRgb(24, 31, 42),
@@ -212,8 +212,8 @@ namespace OfficeIMO.Examples.Pdf {
         private static OfficeIMO.Drawing.OfficeShape CreateBrandRule() {
             var shape = OfficeIMO.Drawing.OfficeShape.RoundedRectangle(156, 8, 4);
             shape.FillGradient = OfficeIMO.Drawing.OfficeLinearGradient.Horizontal(
-                OfficeIMO.Drawing.OfficeColor.FromRgb(15, 23, 42),
-                OfficeIMO.Drawing.OfficeColor.FromRgb(14, 165, 233));
+                OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
+                OfficeIMO.OfficeColor.FromRgb(14, 165, 233));
             shape.StrokeWidth = 0;
             return shape;
         }

@@ -633,7 +633,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes()).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
@@ -643,7 +643,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEqual(OfficeColor.Red, svgRaster.GetPixel(25, 18));
         Assert.NotEqual(OfficeColor.Red, svgRaster.GetPixel(5, 23));
         Assert.Contains("FloatPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

@@ -139,7 +139,7 @@ internal static class MarkdownInlineToLatexConverter {
     private static string RenderFallback(IMarkdownInline node) {
         var sequence = new InlineSequence { AutoSpacing = false };
         sequence.AddRaw(node);
-        return MarkdownDoc.Create().Add(new ParagraphBlock(sequence)).ToMarkdown();
+        return MarkdownDocument.Create().Add(new ParagraphBlock(sequence)).ToMarkdown();
     }
 }
 

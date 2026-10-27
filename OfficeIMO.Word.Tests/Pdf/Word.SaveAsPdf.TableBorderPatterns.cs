@@ -18,7 +18,7 @@ public partial class Word {
         using WordDocument document = CreatePatternedTableDocument(borderStyle, inherited);
         WordTable table = document.Tables[0];
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Patterned border";
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("Patterned border", string.Concat(pdf.GetPages().Select(page => page.Text)));
         string raw = PdfOperatorSearchText.From(bytes);
@@ -40,7 +40,7 @@ public partial class Word {
                 cell.Paragraphs[0].Text = $"gyp{row}{column}";
                 if (row == 1) cell.ShadingFillColorHex = "FFE6A0";
             }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var lines = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
             .Where(bounds => bounds.HasValue).Select(bounds => bounds!.Value).ToArray();
@@ -84,7 +84,7 @@ public partial class Word {
             });
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
         } else {
-            table.StyleDetails!.SetBordersForAllSides(borderStyle, 12U, OfficeIMO.Drawing.OfficeColor.Red);
+            table.StyleDetails!.SetBordersForAllSides(borderStyle, 12U, OfficeIMO.OfficeColor.Red);
         }
         return document;
     }
@@ -99,7 +99,7 @@ public partial class Word {
         cell.Borders.TopStyle = borderStyle;
         cell.Borders.TopColorHex = "FF0000";
         cell.Borders.TopSize = 12U;
-        string raw = PdfOperatorSearchText.From(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        string raw = PdfOperatorSearchText.From(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(pattern, raw, StringComparison.Ordinal);
     }
 }

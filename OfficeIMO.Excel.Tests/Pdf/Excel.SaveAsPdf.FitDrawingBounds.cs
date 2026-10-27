@@ -10,7 +10,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_FitsRetainedBannerBeforeChoosingRowBreaks() {
         string path = Path.Combine(_directoryWithFiles, "FitDrawingBounds.xlsx");
-        using var workbook = ExcelDocument.Create(path, "Banner");
+        using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Banner" });
         var sheet = workbook.Sheets[0];
         sheet.CellValue(1, 1, "Banner");
         sheet.SetColumnWidth(1, 12);
@@ -22,9 +22,9 @@ public partial class Excel {
         sheet.AddImage(1, 1, CreateMinimalRgbPng(), "image/png", widthPixels: 800, heightPixels: 16);
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
         workbook.Save();
-        using var pdf = PdfPigDocument.Open(workbook.ToPdfBytes(new ExcelToPdfOptions {
-            PageSize = new PdfCore.PageSize(400, 300), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+        using var pdf = PdfPigDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions {
+            PageSize = new PdfCore.PdfPageSize(400, 300), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("Row10", pdf.GetPage(1).Text);
         Assert.InRange(FindWordStartY(pdf.GetPage(1), "Row1") - FindWordStartY(pdf.GetPage(1), "Row10"), 161.9, 162.1);

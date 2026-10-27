@@ -25,7 +25,7 @@ public sealed class PdfEditorCommandTests {
         PdfEditorCommand command = PdfEditorCommandFactory.Create(source, tool, CreateGesture(), CreateProperties());
 
         byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
-        PdfDocument reopened = PdfDocument.Load(edited);
+        PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(edited));
         PdfAnnotation annotation = Assert.Single(reopened.Inspect().GetAnnotationsBySubtype(subtype));
         PdfPageRenderResult render = Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Svg,
@@ -48,7 +48,7 @@ public sealed class PdfEditorCommandTests {
         PdfEditorCommand command = PdfEditorCommandFactory.Create(source, PdfEditorTool.Highlight, gesture, CreateProperties());
 
         byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
-        PdfAnnotation annotation = Assert.Single(PdfDocument.Load(edited).Inspect().GetAnnotationsBySubtype("Highlight"));
+        PdfAnnotation annotation = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(edited)).Inspect().GetAnnotationsBySubtype("Highlight"));
 
         Assert.Equal(16, annotation.QuadPoints.Count);
         Assert.Equal(100D, annotation.QuadPoints[2] - annotation.QuadPoints[0], 3);
@@ -58,7 +58,7 @@ public sealed class PdfEditorCommandTests {
     [Fact]
     public void SelectionGeometryGroupsAdjacentGlyphsWithoutFillingTheGapBetweenLines() {
         byte[] source = CreateSource(string.Join(" ", Enumerable.Repeat("selection geometry", 30)));
-        IReadOnlyList<PdfPageInteractionRegion> regions = PdfDocument.Load(source).Render.Interactions(1).TextRegions;
+        IReadOnlyList<PdfPageInteractionRegion> regions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1).TextRegions;
 
         IReadOnlyList<PdfEditorVisualBounds> quads = OfficeIMO.Studio.Features.Reader.PdfPageCanvas.MergeSelectedTextRegions(regions);
 
@@ -74,7 +74,7 @@ public sealed class PdfEditorCommandTests {
 
         byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
 
-        PdfLinkAnnotation link = Assert.Single(PdfDocument.Load(edited).Inspect().GetLinkAnnotationsByUri("https://officeimo.com"));
+        PdfLinkAnnotation link = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(edited)).Inspect().GetLinkAnnotationsByUri("https://officeimo.com"));
         Assert.Equal(1, link.PageNumber);
     }
 
@@ -90,7 +90,7 @@ public sealed class PdfEditorCommandTests {
             withText,
             PdfEditorCommandFactory.Create(withText, PdfEditorTool.AddImage, CreateGesture(), imageProperties));
 
-        PdfDocument reopened = PdfDocument.Load(withImage);
+        PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(withImage));
         Assert.Contains("Added overlay", reopened.Read().Text, StringComparison.Ordinal);
         Assert.NotEmpty(reopened.Read().Images);
         Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
@@ -100,7 +100,7 @@ public sealed class PdfEditorCommandTests {
     public void VerifiedRedaction_RemovesMatchedTextFromExtractedRawAndDecodedContent() {
         const string secret = "Secret account 123-45";
         byte[] source = CreateSource(secret);
-        PdfPageInteractionMap interactions = PdfDocument.Load(source).Render.Interactions(1);
+        PdfPageInteractionMap interactions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1);
         PdfPageInteractionRegion[] regions = interactions.TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
             .ToArray();
@@ -117,7 +117,7 @@ public sealed class PdfEditorCommandTests {
 
         Assert.True(result.Plan.HasMatches);
         Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
-        Assert.DoesNotContain(secret, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(secret, PdfDocument.Load(new System.IO.MemoryStream(result.Bytes)).Read().Text, StringComparison.Ordinal);
         Assert.All(result.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
         Assert.True(result.Evidence.Verification.RawPdfBytesChecked);
         Assert.True(result.Evidence.Verification.DecodedPdfStreamsChecked);
@@ -131,7 +131,7 @@ public sealed class PdfEditorCommandTests {
             compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
             compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
         }).ToBytes();
-        PdfPageInteractionRegion[] regions = PdfDocument.Load(source).Render.Interactions(1).TextRegions
+        PdfPageInteractionRegion[] regions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1).TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
             .ToArray();
         var gesture = new PdfEditorGesture(
@@ -147,7 +147,7 @@ public sealed class PdfEditorCommandTests {
             PdfEditorCommandFactory.Create(source, PdfEditorTool.Redact, gesture, CreateProperties()));
 
         Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
-        Assert.Contains(repeated, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
+        Assert.Contains(repeated, PdfDocument.Load(new System.IO.MemoryStream(result.Bytes)).Read().Text, StringComparison.Ordinal);
         Assert.Empty(result.Evidence.ResidualMatches);
         Assert.All(result.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
     }
@@ -160,7 +160,7 @@ public sealed class PdfEditorCommandTests {
             blank,
             PdfEditorCommandFactory.Create(blank, PdfEditorTool.AddImage, gesture, CreateProperties() with { ImageBytes = TinyPng }));
         PdfPageInteractionRegion imageRegion = Assert.Single(
-            PdfDocument.Load(withImage).Render.Interactions(1).Regions,
+            PdfDocument.Load(new System.IO.MemoryStream(withImage)).Render.Interactions(1).Regions,
             static region => region.Kind == PdfInteractionKind.Image);
         PdfEditorGesture imageGesture = Gesture(imageRegion);
         PdfVerifiedRedactionResult imageResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
@@ -176,7 +176,7 @@ public sealed class PdfEditorCommandTests {
             blank,
             PdfEditorCommandFactory.Create(blank, PdfEditorTool.Rectangle, gesture, CreateProperties()));
         PdfPageInteractionRegion annotationRegion = Assert.Single(
-            PdfDocument.Load(withAnnotation).Render.Interactions(1).Regions,
+            PdfDocument.Load(new System.IO.MemoryStream(withAnnotation)).Render.Interactions(1).Regions,
             static region => region.Kind == PdfInteractionKind.Annotation);
         PdfEditorGesture annotationGesture = Gesture(annotationRegion);
         PdfVerifiedRedactionResult annotationResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(

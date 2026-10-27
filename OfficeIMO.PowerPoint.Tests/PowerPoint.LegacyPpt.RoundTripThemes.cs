@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters,
                 master => master.MasterId == originalMaster.MasterId);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptRoundTripTheme written = Assert.IsType<
                 LegacyPptRoundTripTheme>(Assert.Single(
                     LegacyPptPresentation.Load(bytes).Masters).RoundTripTheme);
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create()) {
                 presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation decoded = LegacyPptPresentation.Load(bytes,
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(decoded.Masters, master =>
                 master.RoundTripTheme?.ThemeXml != null);
             Assert.Contains(decoded.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ROUNDTRIP-THEME-INVALID"
+                diagnostic.Code == "ppt-roundtrip-theme-invalid"
                 && diagnostic.Message.Contains("aggregate storage",
                     StringComparison.OrdinalIgnoreCase));
         }
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptSlide savedSlide = Assert.Single(saved.Slides);
 
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                finding.Code == "ppt-write-import-loss");
         }
 
         [Fact]
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
 
             Assert.Equal(2, saved.Slides.Count);
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
                 malformed);
 
             Assert.Contains(decoded.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ROUNDTRIP-THEME-INVALID");
+                diagnostic.Code == "ppt-roundtrip-theme-invalid");
             Assert.DoesNotContain(decoded.Masters, master =>
                 master.RoundTripTheme?.ThemeXml != null);
         }
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
                 guarded);
 
             Assert.Contains(decoded.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ROUNDTRIP-THEME-INVALID"
+                diagnostic.Code == "ppt-roundtrip-theme-invalid"
                 && diagnostic.Message.Contains("too many entries",
                     StringComparison.OrdinalIgnoreCase));
         }
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptNotesPage savedNotes = Assert.IsType<LegacyPptNotesPage>(
                 Assert.Single(saved.Slides).NotesPage);
@@ -589,7 +589,7 @@ namespace OfficeIMO.Tests {
                 colors,
                 sourceElements.FontScheme!.CloneNode(true),
                 sourceElements.FormatScheme!.CloneNode(true));
-            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+            return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         private static byte[] CreateNotesThemeOverrideBytes(string accent6,
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
                 new P.Background(new P.BackgroundProperties(
                     new A.SolidFill(
                         new A.RgbColorModelHex { Val = background })));
-            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+            return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         }
 
         private static void SetThemeOverrideColor<T>(A.ThemeOverride theme,

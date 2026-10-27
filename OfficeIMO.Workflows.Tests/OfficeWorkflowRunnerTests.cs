@@ -27,7 +27,7 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(
             ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
-        Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
+        Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
             Assert.False(string.IsNullOrWhiteSpace(route.Api));
             Assert.False(string.IsNullOrWhiteSpace(route.ResultContract));
@@ -39,32 +39,9 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
-    public void FluentConversionInfersAnExecutableRouteAndBuildsAnIndependentSnapshot() {
-        OfficeWorkflowBuilder builder = OfficeWorkflow.Convert("source.docx")
-            .To("result.pdf")
-            .WithProfile(OfficeWorkflowOutputProfile.PrintReady)
-            .OnConflict(OfficeWorkflowConflictPolicy.Replace)
-            .WithId("conversion-1");
-
-        OfficeWorkflowRequest first = builder.Build();
-        builder.To("other.pdf").WithId("conversion-2");
-        OfficeWorkflowRequest second = builder.Build();
-
-        Assert.Equal("docx-pdf", first.ConversionRouteId);
-        Assert.Equal("result.pdf", first.OutputPath);
-        Assert.Equal("conversion-1", first.Id);
-        Assert.Equal(OfficeWorkflowOutputProfile.PrintReady, first.OutputProfile);
-        Assert.Equal(OfficeWorkflowConflictPolicy.Replace, first.ConflictPolicy);
-        Assert.Equal("other.pdf", second.OutputPath);
-        Assert.Equal("conversion-2", second.Id);
-    }
-
-    [Fact]
     public void PlainTextDefaultsToLiteralConversionAndMarkupRemainsExplicit() {
         Assert.Equal("txt-pdf", OfficeWorkflowCatalog.Find(".txt", ".pdf", executableOnly: false)?.Id);
         Assert.Equal("html-pdf", OfficeWorkflowCatalog.Find(".html", ".pdf", executableOnly: true)?.Id);
-        Assert.Equal("txt-pdf", OfficeWorkflow.Convert("source.txt").To("result.pdf").Build().ConversionRouteId);
-        Assert.Equal("html-pdf", OfficeWorkflow.Convert("source.txt").To("result.pdf").Via("html-pdf").Build().ConversionRouteId);
     }
 
     [Fact]
@@ -103,7 +80,7 @@ public sealed class OfficeWorkflowRunnerTests {
             InputPath = input,
             OutputPath = output,
             ConversionRouteId = routeId,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -111,7 +88,7 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(output, result.OutputPath);
         Assert.True(File.Exists(output));
         Assert.True(result.OutputBytes > 0);
-        OfficeWorkflowDiagnostic reopened = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        OfficeWorkflowDiagnostic reopened = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
@@ -205,7 +182,7 @@ public sealed class OfficeWorkflowRunnerTests {
             ConversionRouteId = "html-pdf",
             InputPath = input,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = htmlBytes.LongLength + imageBytes.LongLength - 1L
             }
         });
@@ -227,8 +204,8 @@ public sealed class OfficeWorkflowRunnerTests {
             ConversionRouteId = "docx-pdf",
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
-            Limits = new OfficeWorkflowLimits {
+            ConflictPolicy = OfficePublicationPolicy.Fail,
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 128L
             }
@@ -237,7 +214,7 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
         Assert.Contains(result.Diagnostics, diagnostic =>
-            diagnostic.Message.Contains("while it was being serialized", StringComparison.Ordinal));
+            diagnostic.Message.Contains("output limit", StringComparison.Ordinal));
         Assert.False(File.Exists(output));
     }
 
@@ -251,14 +228,14 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Optimize,
             InputPath = input,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 128L
             }
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
-        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
         Assert.Contains("while it was being serialized", result.Summary, StringComparison.Ordinal);
         Assert.False(File.Exists(output));
     }
@@ -274,7 +251,7 @@ public sealed class OfficeWorkflowRunnerTests {
             ConversionRouteId = "pdf-html",
             InputPath = input,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 256L
             }
@@ -298,7 +275,7 @@ public sealed class OfficeWorkflowRunnerTests {
             InputPath = left,
             ComparisonPath = right,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 256L
             }
@@ -320,7 +297,7 @@ public sealed class OfficeWorkflowRunnerTests {
             ConversionRouteId = "html-pdf",
             InputPath = input,
             OutputPath = System.IO.Path.Combine(scope.Path, "lightweight.pdf"),
-            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+            OutputProfile = OfficeConversionProfile.Lightweight
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -345,7 +322,7 @@ public sealed class OfficeWorkflowRunnerTests {
             ConversionRouteId = routeId,
             InputPath = input,
             OutputPath = output,
-            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+            OutputProfile = OfficeConversionProfile.Lightweight
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -363,7 +340,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Optimize,
             InputPath = input,
             OutputPath = output,
-            OutputProfile = OfficeWorkflowOutputProfile.TextOnly
+            OutputProfile = OfficeConversionProfile.TextOnly
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -482,7 +459,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Id = "second",
             Operation = OfficeWorkflowOperation.Inspect,
             InputPath = second,
-            Limits = new OfficeWorkflowLimits()
+            Limits = new OfficeOperationLimits()
         };
         bool mutated = false;
         var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
@@ -615,7 +592,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Optimize,
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         }, progress, cancellation.Token);
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
@@ -661,7 +638,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Optimize,
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         }, progress);
 
         Assert.True(result.Succeeded, result.Summary);
@@ -678,17 +655,17 @@ public sealed class OfficeWorkflowRunnerTests {
         await File.WriteAllTextAsync(output, "existing");
         var runner = new OfficeWorkflowRunner();
 
-        OfficeWorkflowResult failed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Fail));
+        OfficeWorkflowResult failed = await runner.RunAsync(Optimize(input, output, OfficePublicationPolicy.Fail));
         Assert.Equal(OfficeWorkflowStatus.Failed, failed.Status);
         Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, failed.FailureKind);
         Assert.Equal("existing", await File.ReadAllTextAsync(output));
 
-        OfficeWorkflowResult renamed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
+        OfficeWorkflowResult renamed = await runner.RunAsync(Optimize(input, output, OfficePublicationPolicy.Rename));
         Assert.True(renamed.Succeeded, renamed.Summary);
         Assert.Equal(System.IO.Path.Combine(scope.Path, "optimized (1).pdf"), renamed.OutputPath);
         Assert.Equal("existing", await File.ReadAllTextAsync(output));
 
-        OfficeWorkflowResult replaced = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Replace));
+        OfficeWorkflowResult replaced = await runner.RunAsync(Optimize(input, output, OfficePublicationPolicy.Replace));
         Assert.True(replaced.Succeeded, replaced.Summary);
         Assert.NotEqual("existing", await File.ReadAllTextAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
@@ -718,12 +695,12 @@ public sealed class OfficeWorkflowRunnerTests {
             new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Inspect,
                 InputPath = input,
-                ConflictPolicy = (OfficeWorkflowConflictPolicy)999
+                ConflictPolicy = (OfficePublicationPolicy)999
             },
             new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Inspect,
                 InputPath = input,
-                OutputProfile = (OfficeWorkflowOutputProfile)999
+                OutputProfile = (OfficeConversionProfile)999
             }
         ];
 
@@ -748,7 +725,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Optimize,
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
         OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "WorkflowFailed");
 
@@ -764,7 +741,7 @@ public sealed class OfficeWorkflowRunnerTests {
         Directory.CreateDirectory(output);
 
         OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(
-            Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
+            Optimize(input, output, OfficePublicationPolicy.Rename));
 
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal(System.IO.Path.Combine(scope.Path, "optimized (1).pdf"), result.OutputPath);
@@ -811,7 +788,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Repair,
             InputPath = malformedPath,
             OutputPath = repairedPath,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(plan.Succeeded, plan.Summary);
@@ -835,7 +812,7 @@ public sealed class OfficeWorkflowRunnerTests {
         OfficeWorkflowResult plan = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
             Operation = OfficeWorkflowOperation.RepairPlan,
             InputPath = malformedPath,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 128L
             }
@@ -857,7 +834,7 @@ public sealed class OfficeWorkflowRunnerTests {
             Operation = OfficeWorkflowOperation.Sanitize,
             InputPath = input,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 128L
             }
@@ -865,7 +842,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.True(
-            result.FailureKind == OfficeWorkflowFailureKind.OperationFailed,
+            result.FailureKind == OfficeWorkflowFailureKind.OutputFailed,
             result.Summary + " " + string.Join(" ", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
         Assert.False(File.Exists(output));
     }
@@ -876,7 +853,7 @@ public sealed class OfficeWorkflowRunnerTests {
         string path = System.IO.Path.Combine(scope.Path, "encrypted.pdf");
         byte[] encrypted = PdfDocument.Create(
             compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected local content"))))),
-            new PdfOptions().SetEncryption("open", "owner"))
+            new PdfCreateOptions().SetEncryption("open", "owner"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, encrypted);
         var runner = new OfficeWorkflowRunner();
@@ -905,7 +882,7 @@ public sealed class OfficeWorkflowRunnerTests {
         string path = System.IO.Path.Combine(scope.Path, "tagged.pdf");
         byte[] tagged = PdfDocument.Create(
             compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Tagged document"))))),
-            new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-US"))
+            new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-US"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, tagged);
 
@@ -932,7 +909,7 @@ public sealed class OfficeWorkflowRunnerTests {
         await File.WriteAllBytesAsync(output, sentinel);
 
         OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(
-            Optimize(path, output, OfficeWorkflowConflictPolicy.Replace));
+            Optimize(path, output, OfficePublicationPolicy.Replace));
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(sentinel, await File.ReadAllBytesAsync(output));
@@ -952,13 +929,13 @@ public sealed class OfficeWorkflowRunnerTests {
             InputPath = left,
             ComparisonPath = right,
             OutputPath = gallery,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
         OfficeWorkflowResult sanitization = await runner.RunAsync(new OfficeWorkflowRequest {
             Operation = OfficeWorkflowOperation.Sanitize,
             InputPath = left,
             OutputPath = System.IO.Path.Combine(scope.Path, "sanitized.pdf"),
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(comparison.Succeeded, comparison.Summary);
@@ -991,7 +968,7 @@ public sealed class OfficeWorkflowRunnerTests {
             InputPath = input,
             ComparisonPath = input,
             OutputPath = gallery,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -1011,13 +988,13 @@ public sealed class OfficeWorkflowRunnerTests {
             left,
             PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
-                new PdfOptions().SetEncryption("left-open", "left-owner"))
+                new PdfCreateOptions().SetEncryption("left-open", "left-owner"))
                 .ToBytes());
         await File.WriteAllBytesAsync(
             right,
             PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
-                new PdfOptions().SetEncryption("right-open", "right-owner"))
+                new PdfCreateOptions().SetEncryption("right-open", "right-owner"))
                 .ToBytes());
 
         OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
@@ -1025,7 +1002,7 @@ public sealed class OfficeWorkflowRunnerTests {
             InputPath = left,
             ComparisonPath = right,
             OutputPath = System.IO.Path.Combine(scope.Path, "encrypted-comparison.html"),
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficePublicationPolicy.Fail,
             PdfPassword = "left-open",
             ComparisonPdfPassword = "right-open"
         });
@@ -1038,7 +1015,7 @@ public sealed class OfficeWorkflowRunnerTests {
             diagnostic.Message.Contains("right-open", StringComparison.Ordinal));
     }
 
-    private static OfficeWorkflowRequest Optimize(string input, string output, OfficeWorkflowConflictPolicy policy) => new() {
+    private static OfficeWorkflowRequest Optimize(string input, string output, OfficePublicationPolicy policy) => new() {
         Operation = OfficeWorkflowOperation.Optimize,
         InputPath = input,
         OutputPath = output,

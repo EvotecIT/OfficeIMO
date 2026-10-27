@@ -14,7 +14,7 @@ public class PdfTrueTypeCharacterCodeTests {
     public void SharedGlyphCharactersRemainDistinctAcrossNestedFontContextsAndRepeatedSave(bool named) {
         byte[] data = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B', 'C');
         var family = new PdfEmbeddedFontFamily("Shared Glyph", data);
-        var options = new PdfOptions { CompressEmbeddedFonts = false, CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressEmbeddedFonts = false, CompressContentStreams = false };
         if (named) options.RegisterNamedFontFamily(family); else options.UseFontFamily(family);
         var document = PdfDocument.Create(options).Panel(parent => parent
             .Paragraph(p => { if (named) p.FontFamily("Shared Glyph"); p.Text("AB"); })
@@ -30,7 +30,7 @@ public class PdfTrueTypeCharacterCodeTests {
     [Fact]
     public void LaterSelfReferentialLigatureCannotChangeOrdinaryCharacterMapping() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithSelfReferentialLigature('f', 'i', includeSpace: true);
-        byte[] pdf = PdfDocument.Create(new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Shared Ligature"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Shared Ligature"))
             .Paragraph(p => p.Text("f"))
             .Paragraph(p => p.Text("fi"))
             .Paragraph(p => p.Text("f"))
@@ -43,7 +43,7 @@ public class PdfTrueTypeCharacterCodeTests {
     [Fact]
     public void SharedFontResourceMergesCharacterCodesIntroducedOnLaterPageSnapshots() {
         byte[] data = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B', 'C');
-        byte[] pdf = PdfDocument.Create(new PdfOptions().UseFontFamily(new PdfEmbeddedFontFamily("Page Glyph", data)))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().UseFontFamily(new PdfEmbeddedFontFamily("Page Glyph", data)))
             .Page(page => page.Content(content => content.Item(item => item.Paragraph(p => p.Text("A")))))
             .Page(page => page.Content(content => content.Item(item => item.Paragraph(p => p.Text("B")))))
             .Page(page => page.Content(content => content.Item(item => item.Paragraph(p => p.Text("C")))))
@@ -63,7 +63,7 @@ public class PdfTrueTypeCharacterCodeTests {
     [Fact]
     public void DistinctGlyphRunsShareOneShowOperatorWithoutActualText() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B');
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Distinct", data)))
             .Paragraph(p => p.Text("AB BA AB"))
             .ToBytes();

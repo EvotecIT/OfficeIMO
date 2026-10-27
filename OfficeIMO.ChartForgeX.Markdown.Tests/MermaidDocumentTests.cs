@@ -29,7 +29,7 @@ public sealed class MermaidDocumentTests {
     [Fact]
     public void NestedFencesBecomeImagesWhileCaptionsAndFailedSourceRemain() {
         string source = "# Report\n\n> ```mermaid title=\"Approval flow\"\n> flowchart LR\n> A --> B\n> ```\n\n```csharp\nthrow;\n```\n\n```mermaid\nnot-a-diagram\n```";
-        var document = MarkdownReader.Parse(source);
+        var document = MarkdownDocument.Parse(source);
         var fences = document.DescendantObjectsOfType<CodeBlock>().ToArray();
         fences[0].Caption = "Request approval";
         var failed = fences.Single(block => block.Content == "not-a-diagram");
@@ -48,13 +48,13 @@ public sealed class MermaidDocumentTests {
 
     [Fact]
     public void WordAndPdfEmbedTheRenderedImageAndPreserveCaption() {
-        var document = MarkdownReader.Parse("# Report\n\n" + Fence);
+        var document = MarkdownDocument.Parse("# Report\n\n" + Fence);
         document.DescendantObjectsOfType<CodeBlock>().Single().Caption = "Request approval";
         MermaidMarkdownAdapter.Materialize(document);
         var image = Assert.Single(document.DescendantObjectsOfType<ImageBlock>());
         var png = Convert.FromBase64String(image.Path.Substring(image.Path.IndexOf(',') + 1));
 
-        using var word = document.ToWordDocument(new MarkdownToWordOptions { FitImagesToContextWidth = true });
+        using var word = document.ToWord(new WordMarkdownImportOptions { FitImagesToContextWidth = true });
         AssertWordImageFitsContent(word);
         using var stream = new MemoryStream();
         word.Save(stream);
@@ -70,7 +70,8 @@ public sealed class MermaidDocumentTests {
         Assert.Contains("Request approval", xml.Root!.Value);
         Assert.Contains(xml.Descendants().Attributes("descr"), value => value.Value == image.PlainAlt);
 
-        var pdf = document.ToPdfBytes();
+        using var convertedPdf = document.ToPdf();
+        byte[] pdf = convertedPdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var text = Encoding.ASCII.GetString(pdf);
         Assert.StartsWith("%PDF-", text);
         Assert.Contains("/Subtype /Image", text);
@@ -82,7 +83,7 @@ public sealed class MermaidDocumentTests {
     [InlineData(false, false)]
     [InlineData(true, true)]
     public void WordMarkupEmbedsTransformedImagesAndHonorsResourcePolicy(bool allowed, bool oversized) {
-        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
         var parsed = OfficeMarkupParser.Parse(Fence + "\n_Request approval_", new OfficeMarkupParserOptions {
             Profile = OfficeMarkupProfile.Document,
@@ -136,7 +137,7 @@ public sealed class MermaidDocumentTests {
     [InlineData("@slide title=\"Report\"\n\n", "")]
     [InlineData("~~~~officeimo-slide\ntitle=\"Report\"\n\n", "\n~~~~")]
     public void PowerPointUsesTheReaderTransformInsidePresentationAuthoring(string prefix, string suffix) {
-        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
         var parsed = OfficeMarkupParser.Parse(prefix + Fence + "\n_Request approval_" + suffix, new OfficeMarkupParserOptions {
             Profile = OfficeMarkupProfile.Presentation,
@@ -163,7 +164,7 @@ public sealed class MermaidDocumentTests {
 
     [Fact]
     public void PowerPointImageCaptionFollowsExplicitPlacement() {
-        var rendered = MermaidMarkdownAdapter.Materialize(MarkdownReader.Parse(Fence))
+        var rendered = MermaidMarkdownAdapter.Materialize(MarkdownDocument.Parse(Fence))
             .DescendantObjectsOfType<ImageBlock>().Single();
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(rendered.Path, rendered.PlainAlt) {
@@ -182,7 +183,7 @@ public sealed class MermaidDocumentTests {
     [InlineData(true, true, false)]
     [InlineData(true, false, true)]
     public void PowerPointRejectsDisabledOversizedAndMismatchedEmbeddedImages(bool allowed, bool oversized, bool mismatched) {
-        var document = MermaidMarkdownAdapter.Materialize(MarkdownReader.Parse(Fence));
+        var document = MermaidMarkdownAdapter.Materialize(MarkdownDocument.Parse(Fence));
         var rendered = document.DescendantObjectsOfType<ImageBlock>().Single();
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(mismatched

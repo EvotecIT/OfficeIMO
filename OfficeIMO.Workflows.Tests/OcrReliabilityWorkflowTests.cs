@@ -25,7 +25,7 @@ public sealed class OcrReliabilityWorkflowTests {
                         new OcrDiagnostic { Severity = OcrDiagnosticSeverity.Error, Code = "terminal", IsRecoverable = false }
                     ] }));
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace
             }, engine);
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             Assert.Null(result.OutputPath);
@@ -35,7 +35,7 @@ public sealed class OcrReliabilityWorkflowTests {
             string image = Path.Combine(root, "source.png"), text = Path.Combine(root, "output.txt");
             File.WriteAllBytes(image, OcrSessionWorkflowTests.Png()); File.WriteAllBytes(text, previous);
             var imageResult = await new OfficeWorkflowRunner().RecognizeImageAsync(new() {
-                InputPath = image, OutputPath = text, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = image, OutputPath = text, ConflictPolicy = OfficePublicationPolicy.Replace
             }, engine);
             Assert.Equal(OfficeWorkflowStatus.Failed, imageResult.Status);
             Assert.Equal(previous, File.ReadAllBytes(text));

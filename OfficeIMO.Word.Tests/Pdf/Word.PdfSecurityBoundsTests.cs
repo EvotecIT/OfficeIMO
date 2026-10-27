@@ -24,7 +24,7 @@ public partial class Word {
         }
         paragraph._paragraph!.Append(nested);
 
-        Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult());
+        Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence());
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public partial class Word {
         }
         table.Rows[0].Cells[0].Paragraphs[0]._paragraph!.Append((W.Run)nested.FirstChild!.CloneNode(true));
 
-        var result = word.ToPdfDocumentResult();
+        var result = word.ConvertToPdfWithEvidence();
         Assert.True(result.Succeeded);
     }
 
@@ -68,7 +68,7 @@ public partial class Word {
         }
         cell._paragraph!.Append((W.Run)nested.FirstChild!.CloneNode(true));
 
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 });
         Assert.True(result.Succeeded);
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         Assert.Single(pdf.Images.Placements());

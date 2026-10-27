@@ -33,9 +33,9 @@ public sealed class PdfNormalizedEncodingCoverageTests {
         Assert.Equal(500, glyph.AdvanceWidth);
 
         var report = new PdfConversionReport();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, family))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, family))
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .ReportDiagnosticsTo(report);
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
@@ -56,7 +56,7 @@ public sealed class PdfNormalizedEncodingCoverageTests {
     public void ExplicitScalarEncodingStillRejectsAnUnmappedOriginalMark() {
         const string source = "A\u0301";
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Scalar encoding")
             .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar);
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source));

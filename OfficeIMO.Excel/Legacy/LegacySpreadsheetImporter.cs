@@ -133,11 +133,11 @@ public static class LegacySpreadsheetImporter {
         }
         if (collisionCount > 0) {
             model.Metadata["UnprojectedNameCollisionCount"] = collisionCount.ToString(CultureInfo.InvariantCulture);
-            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_COLLISION", "Name", "One or more source names collided case-insensitively and were retained in the semantic snapshot without overwriting projected names; the total is available in metadata."));
+            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("wk-name-collision", "Name", "One or more source names collided case-insensitively and were retained in the semantic snapshot without overwriting projected names; the total is available in metadata."));
         }
         if (invalidCount > 0) {
             model.Metadata["UnprojectedInvalidNameCount"] = invalidCount.ToString(CultureInfo.InvariantCulture);
-            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_INVALID", "Name", "One or more source names were invalid Excel defined names and were retained in the semantic snapshot without silent sanitization; the total is available in metadata."));
+            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("wk-name-invalid", "Name", "One or more source names were invalid Excel defined names and were retained in the semantic snapshot without silent sanitization; the total is available in metadata."));
         }
     }
 

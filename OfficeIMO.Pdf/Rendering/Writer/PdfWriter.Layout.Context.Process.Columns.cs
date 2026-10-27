@@ -117,7 +117,7 @@ internal static partial class PdfWriter {
         }
 
         private sealed class ColumnFlowScope {
-            public ColumnFlowScope(PdfMultiColumnOptions options, IReadOnlyList<IPdfBlock> blocks, PdfOptions parent, double parentWidth, double parentYStart,
+            public ColumnFlowScope(PdfMultiColumnOptions options, IReadOnlyList<IPdfBlock> blocks, PdfCreateOptions parent, double parentWidth, double parentYStart,
                 double top, double[] widths, double[] gaps, int containerDepth) {
                 Options = options; Blocks = blocks; ParentOptions = parent; FrameOptions = parent.Clone();
                 ParentWidth = parentWidth; ParentYStart = parentYStart; Top = top; LowestY = top; LastOccupiedColumnBottom = top;
@@ -126,8 +126,8 @@ internal static partial class PdfWriter {
             public PdfMultiColumnOptions Options { get; }
             public IReadOnlyList<IPdfBlock> Blocks { get; }
             public ColumnBalanceContent? PendingBalanceContent { get; set; }
-            public PdfOptions ParentOptions { get; set; }
-            public PdfOptions FrameOptions { get; }
+            public PdfCreateOptions ParentOptions { get; set; }
+            public PdfCreateOptions FrameOptions { get; }
             public double ParentWidth { get; set; }
             public double ParentYStart { get; set; }
             public double Top { get; set; }

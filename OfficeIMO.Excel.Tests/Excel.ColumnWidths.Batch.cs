@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidths(widths);
                 Assert.Equal(0, saves);
                 if (withRange) {
-                    ExcelColumnSnapshot selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
+                    ExcelColumnInfo selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
                     Assert.Equal(25D, selected.Width);
                     Assert.True(selected.Hidden && selected.Collapsed);
                     Assert.Equal((byte)2, selected.OutlineLevel);

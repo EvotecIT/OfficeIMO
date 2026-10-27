@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Pdf {
                     "Review the generated PDF through the raster gate."
                 }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
                 .Table(rows, PdfAlign.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), new PdfOptions {
+                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

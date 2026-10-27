@@ -48,7 +48,7 @@ public sealed class PdfProtectionWorkflowTests {
                 InputStream = new("source.pdf", async token => {
                     entered.TrySetResult(); await resume.Task.WaitAsync(token);
                     return new MemoryStream(CreatePdf(), writable: false);
-                }), OutputPath = "content://provider/protected", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                }), OutputPath = "content://provider/protected", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputEncryption = new("selected-reader") { OwnerPassword = "selected-owner" },
                 OutputStream = new("protected.pdf", _ => Task.FromResult<Stream>(new MemoryStream(output)), _ => {
                     if (failWrite) throw new IOException("Provider denied write.");
@@ -124,7 +124,7 @@ public sealed class PdfProtectionWorkflowTests {
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = replace ? OfficeWorkflowOperation.ProtectPdf : OfficeWorkflowOperation.RemovePdfProtection,
                 InputPath = source, PdfPassword = "reader", PdfOwnerPassword = "reader", OutputPath = destination,
-                OutputEncryption = replace ? new("new-reader") : null, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                OutputEncryption = replace ? new("new-reader") : null, ConflictPolicy = OfficePublicationPolicy.Replace
             });
             Assert.False(result.Succeeded); Assert.Null(result.OutputPath);
             Assert.Equal("keep", File.ReadAllText(destination)); Assert.Equal(bytes, File.ReadAllBytes(source));
@@ -140,7 +140,7 @@ public sealed class PdfProtectionWorkflowTests {
             File.WriteAllBytes(source, CreatePdf()); File.WriteAllText(output, "keep");
             using var cts = new CancellationTokenSource(); if (cancelled) cts.Cancel();
             var result = await OfficeWorkflow.ProtectPdf(source, new("reader")).To(output)
-                .WithLimits(1000000, 10).OnConflict(OfficeWorkflowConflictPolicy.Replace).RunAsync(cancellationToken: cts.Token);
+                .WithLimits(1000000, 10).OnConflict(OfficePublicationPolicy.Replace).RunAsync(cancellationToken: cts.Token);
             Assert.Equal(cancelled ? OfficeWorkflowStatus.Cancelled : OfficeWorkflowStatus.Failed, result.Status);
             Assert.Equal("keep", File.ReadAllText(output)); Assert.Equal(2, Directory.GetFiles(root).Length);
         });
@@ -155,7 +155,7 @@ public sealed class PdfProtectionWorkflowTests {
     public async Task ProtectionCannotReplaceItsSource() {
         await InDirectory(async root => {
             string source = Path.Combine(root, "source.pdf"); byte[] original = CreatePdf(); File.WriteAllBytes(source, original);
-            var result = await OfficeWorkflow.ProtectPdf(source, new("reader")).To(source).OnConflict(OfficeWorkflowConflictPolicy.Replace).RunAsync();
+            var result = await OfficeWorkflow.ProtectPdf(source, new("reader")).To(source).OnConflict(OfficePublicationPolicy.Replace).RunAsync();
             Assert.False(result.Succeeded); Assert.Equal(original, File.ReadAllBytes(source));
         });
     }

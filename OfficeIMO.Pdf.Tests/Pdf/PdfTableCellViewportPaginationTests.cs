@@ -9,8 +9,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("flow")]
     [InlineData("column")]
     public void Overlapping_viewport_spans_move_as_one_visible_group(string mode) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180, MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
-        var style = TableStyles.Minimal();
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180, MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.FontSize = 10; style.CellPaddingX = 0; style.CellPaddingY = 0;
         style.CellSpacing = 0; style.SpacingBefore = 0; style.SpacingAfter = 0;
         style.ColumnWidthPoints = new List<double?> { 50, 50, 80 };
@@ -25,7 +25,7 @@ public sealed partial class PdfTableCellViewportTests {
             content.Item(item => item.Paragraph(paragraph => paragraph.Text("BeforeTable")).Spacer(30));
             if (mode == "flow") content.Item(item => item.Table(rows, style: style));
             else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
-        }))).ToBytes());
+        }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Row1", pdf.GetPage(1).Text);
         Assert.Contains("Row1", pdf.GetPage(2).Text);
@@ -68,10 +68,10 @@ public sealed partial class PdfTableCellViewportTests {
     }
 
     private static byte[] RenderViewportSpan(string mode, double rowHeight, double prefixHeight, bool repeatHeader) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = repeatHeader ? 1 : 0;
         style.RepeatHeaderRowCount = repeatHeader ? 1 : 0;
         style.FontSize = 10; style.LineHeight = 1.2;

@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
         double rightX = leftRightX + gutter;
         double rightRightX = rightX + columnWidth;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 280,
                 MarginLeft = margin,
@@ -115,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
         double rightX = leftRightX + gutter;
         double rightRightX = rightX + columnWidth;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 180,
                 MarginLeft = margin,
@@ -188,7 +188,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 10,
             ItemSpacing = 2
         };
-        var tableStyle = TableStyles.Minimal();
+        var tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 0;
         tableStyle.CellPaddingX = 6;
         tableStyle.CellPaddingY = 4;
@@ -203,7 +203,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 10
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 620,
                 MarginLeft = margin,
@@ -290,7 +290,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void WordLikeLineItemTable_KeepsReadableColumnsWithoutTemplateApi() {
         const double pageWidth = 595;
         const double margin = 56;
-        var style = TableStyles.ListTable1Light();
+        var style = PdfTableStyles.ListTable1Light();
         style.RightAlignNumeric = true;
         style.CellPaddingX = 5;
         style.CellPaddingY = 5.5;
@@ -302,7 +302,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.SpacingBefore = 8;
         style.SpacingAfter = 10;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 760,
                 MarginLeft = margin,

@@ -88,8 +88,8 @@ public partial class Word {
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         alpha._paragraph.ParagraphProperties!.Shading = new W.Shading { Fill = "FFFF00" };
         cell.AddParagraph("BETA");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" && warning.Source == "table cell");
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported" && warning.Source == "table cell");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Contains("ALPHA", pdf.GetPage(1).Text); Assert.Contains("BETA", pdf.GetPage(1).Text);
     }
@@ -123,8 +123,8 @@ public partial class Word {
         cell.AddParagraph("BETA");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" && warning.Source == "table cell");
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported" && warning.Source == "table cell");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var page = pdf.GetPage(1);
         Assert.Contains("ALPHA", page.Text);
@@ -140,9 +140,9 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordTable table = document.AddTable(1, 1); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
-        var options = new WordToPdfOptions { IncludePageNumbers = false,
-            PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } } };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false,
+            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } } };
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 91.9D, 92.1D);
     }
 
@@ -160,11 +160,11 @@ public partial class Word {
         table._tableProperties!.TableStyle = null;
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
-            PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { FontSize = 18D } } });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
+            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { FontSize = 18D } } });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(18D, pdf.GetPage(1).Letters.First(letter => letter.Value == "A").FontSize, 3);
         Assert.Equal(18D, Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "B").FontSize, 3);
     }
@@ -178,7 +178,7 @@ public partial class Word {
         table.Rows[0].Cells[0].AddParagraph("DEFAULT", removeExistingParagraphs: true);
         WordTableCell second = table.Rows[0].Cells[1]; second.AddParagraph("ZERO", removeExistingParagraphs: true);
         second.MarginLeftWidth = 0;
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell first = restored.Tables[0].Rows[0].Cells[0]; second = restored.Tables[0].Rows[0].Cells[1];
         Assert.Equal((short)60, first.MarginTopWidth);
         Assert.Equal((short)108, first.MarginLeftWidth); Assert.Equal((short)108, first.MarginRightWidth);
@@ -233,9 +233,9 @@ public partial class Word {
         table.Rows[0].Cells[1].AddParagraph("ZERO", removeExistingParagraphs: true);
         table.Rows[0].Cells[1].MarginLeftWidth = 0;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var margin = pdf.GetPage(1).Letters.First(letter => letter.Value == "M");
         double expectedX = configuredPdf ? 92D : nativeDoc ? 72D : 77.4D;
         Assert.InRange(margin.StartBaseLine.X, expectedX - .1D, expectedX + .1D);
@@ -268,9 +268,9 @@ public partial class Word {
             Assert.Equal((short)240, cell.MarginLeftWidth); Assert.Equal((short)180, cell.MarginRightWidth);
             Assert.Equal((short)60, cell.MarginTopWidth);
         }
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double expectedX = nativeDoc && !configuredPdf ? 72D : 84D;
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, expectedX - .1D, expectedX + .1D);
     }

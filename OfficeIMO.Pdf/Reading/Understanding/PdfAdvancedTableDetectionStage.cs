@@ -24,7 +24,7 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.LayoutOptions.ToEngineOptions(),
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
-        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(
+        List<PdfStructuredTable> tables = TableDetector.DetectTablesFromBands(
             bands,
             context.Height,
             context.ConsumeWork,
@@ -33,7 +33,7 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             ? Array.Empty<PdfTableRuling>()
             : context.Page.GetTableRulings(context);
         result.Capacity = tables.Count;
-        foreach (StructuredTable table in tables) {
+        foreach (PdfStructuredTable table in tables) {
             context.ConsumeWork();
             bool ruledGrid = rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
             ContentStructureExtractor.NormalizeDetectedTable(table);
@@ -90,17 +90,17 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             double confidence = PdfInference.Clamp(sourceLines.Average(static line => line.Confidence));
             var evidence = new List<PdfInferenceEvidence> {
                 new PdfInferenceEvidence(
-                    "table.aligned-geometry",
+                    "table-aligned-geometry",
                     "Repeated column geometry and row alignment form a bounded table candidate.",
                     0.9D)
             };
             if (ruledGrid) evidence.Add(new PdfInferenceEvidence(
-                "table.closed-ruling-grid",
+                "table-closed-ruling-grid",
                 "A unique closed grid of fully visible straight rulings agrees with every recovered cell and source run.",
                 0.95D));
             if (TableDetector.HasDistinctEmphasizedHeader(sourceLines)) {
                 evidence.Add(new PdfInferenceEvidence(
-                    "table.header-emphasis",
+                    "table-header-emphasis",
                     "The first row has a distinct emphasized font profile relative to the body rows.",
                     0.9D));
             }

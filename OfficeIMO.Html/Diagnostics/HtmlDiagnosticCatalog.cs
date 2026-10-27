@@ -51,20 +51,20 @@ public static class HtmlDiagnosticCatalog {
         [HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "An intrinsic box-size value used auto sizing or omitted a minimum or maximum constraint.", "Use the qualified horizontal normal-flow block/inline-block intrinsic width contract, or auto, absolute or percentage dimensions for other boxes. Intrinsic grid tracks have a separate contract."),
         [HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded, "ResourceLimit", HtmlDiagnosticSeverity.Error, "Repeated CSS background images exceeded the configured operation-wide tile limit.", "Increase MaxBackgroundImageTiles only for trusted documents or use a larger background tile."),
         [HtmlRenderDiagnosticCodes.GradientStopLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.GradientStopLimitExceeded, "ResourceLimit", HtmlDiagnosticSeverity.Error, "CSS gradients exceeded the configured color-stop limit.", "Increase MaxGradientStops only for trusted documents or reduce the number of gradient color stops."),
-        ["HtmlCommentSkipped"] = new HtmlDiagnosticDefinition(
-            "HtmlCommentSkipped",
+        [global::OfficeIMO.OfficeDiagnosticCodes.HtmlCommentSkipped] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.HtmlCommentSkipped,
             "ContentSimplification",
             HtmlDiagnosticSeverity.Info,
             "An HTML comment was omitted from generated document content.",
             "Enable HTML comment import when comments are part of the expected document contract, or keep comments as source-only metadata."),
-        ["ImageResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
-            "ImageResourceRejectedByPolicy",
+        [global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy,
             "ResourcePolicy",
             HtmlDiagnosticSeverity.Warning,
             "An image candidate was rejected before loading because its URI is not allowed by policy.",
             "Allow the URI scheme or host for trusted inputs, embed the image as data URI, or provide a local resource resolver."),
-        ["StylesheetResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
-            "StylesheetResourceRejectedByPolicy",
+        [global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy,
             "ResourcePolicy",
             HtmlDiagnosticSeverity.Warning,
             "A stylesheet was rejected before loading because its URI is not allowed by policy.",
@@ -101,8 +101,8 @@ public static class HtmlDiagnosticCatalog {
             HtmlDiagnosticSeverity.Warning,
             "A font dependency was rejected before loading because its URI is not allowed by policy.",
             "Use packaged fonts from trusted locations or allow approved font hosts in the URL policy."),
-        ["UnsupportedCssDeclaration"] = new HtmlDiagnosticDefinition(
-            "UnsupportedCssDeclaration",
+        [global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedCssDeclaration] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedCssDeclaration,
             "CssFidelity",
             HtmlDiagnosticSeverity.Warning,
             "A CSS declaration could not be mapped to the target document model.",

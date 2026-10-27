@@ -330,10 +330,10 @@ public sealed class WordPdfTabInheritanceTests {
         roots.AddRange(main.HeaderParts.Select(part => Assert.IsType<W.Header>(part.Header)));
         string[] before = roots.Select(root => root.OuterXml).ToArray();
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(612, 792),
-            Margins = PageMargins.Uniform(72),
+            PageSize = new PdfPageSize(612, 792),
+            Margins = PdfPageMargins.Uniform(72),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));

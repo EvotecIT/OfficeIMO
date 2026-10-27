@@ -113,7 +113,7 @@ public sealed class PdfNoteStructureTests {
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void NotesHaveUniqueIdsResolvedByTheStructureIdTree(PdfObjectSerializationMode serialization) {
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = serialization

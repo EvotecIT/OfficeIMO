@@ -83,7 +83,7 @@ still apply.
 
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
-`Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only
+`Save()`. Use `ExcelDocument.OpenReader(...)` when you only need forward-only
 rows. Formula calculation, dynamic arrays, and pivot materialization are
 operations on that workbook model when a report needs them; they are not
 alternate ways to open a workbook.
@@ -110,7 +110,7 @@ document.Save();
 ## What it does
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
-- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
+- Reads tabular values through the forward-only `ExcelDocument.OpenReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
 - Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
 - Renders supported numeric display formats consistently in PDF and image export, including mixed fractions that retain whole values beyond `Int64`, optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
@@ -150,7 +150,7 @@ The quick start covers the smallest workbook. These examples show common read, w
 ### Read rows by header
 
 ```csharp
-using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+using var reader = ExcelDocument.OpenReader("input.xlsx", new ExcelReaderOptions {
     SheetName = "Data"
 });
 
@@ -168,8 +168,8 @@ ExcelFeatureReport report = document.InspectFeatures();
 document.Save("converted.xlsx");
 document.Save("native-copy.xls");
 
-ExcelDocument.Convert("legacy.xls", "converted.xlsx");
-ExcelDocument.Convert("openxml.xlsx", "native-copy.xls");
+OfficeIMO.OfficeConverter.Convert("legacy.xls", "converted.xlsx");
+OfficeIMO.OfficeConverter.Convert("openxml.xlsx", "native-copy.xls");
 ```
 
 BIFF8 `.xls` files load through the normal `ExcelDocument.Load` entry point.
@@ -194,7 +194,7 @@ for format limits, retained-content boundaries and native Excel evidence.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
-`ExcelDocument.Convert(...)` uses those same load and save paths and blocks
+`OfficeIMO.OfficeConverter.Convert(...)` uses those same load and save paths and blocks
 legacy sources with unsupported or preserve-only content by default. Set
 `LossPolicy` to `OfficeConversionLossPolicy.Allow` on conversion or save options
 only after reviewing that loss. See
@@ -360,13 +360,13 @@ using OfficeIMO.Excel.Xlsb;
 using var document = ExcelDocument.Load(
     "source.xlsb",
     new ExcelLoadOptions {
-        XlsbImportOptions = new XlsbImportOptions { MaxCells = 2_000_000 }
+        MaxCells = 2_000_000
     });
 
 document["Data"].CellValue(2, 2, 1250m);
 document.Save("edited.xlsb");
 
-ExcelDocument.Convert("source.xlsb", "editable.xlsx");
+OfficeIMO.OfficeConverter.Convert("source.xlsb", "editable.xlsx");
 ```
 
 XLSB detection uses package content rather than trusting the extension. The
@@ -406,15 +406,16 @@ and DOC/XLS/XLSB loss policies, see the
 List worksheet names without decoding worksheet cells, shared strings, or styles:
 
 ```csharp
-IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
+using var metadata = ExcelDocument.OpenReader(
     "input.xlsx",
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         MaxWorksheets = 256,
         MaxMetadataPartBytes = 4 * 1024 * 1024
     });
+IReadOnlyList<string> sheetNames = metadata.SheetNames;
 ```
 
-`GetSheetNames` supports XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF5/BIFF8
+`OpenReader(...).SheetNames` supports XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF5/BIFF8
 XLS. It returns readable worksheets in workbook order and applies
 `MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
 cancellation token before worksheet data is opened.
@@ -441,7 +442,7 @@ buffer, rather than every workbook extraction path or total process memory.
 ```csharp
 using OfficeIMO.Excel;
 
-using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+using var reader = ExcelDocument.OpenReader("input.xlsx", new ExcelReaderOptions {
     SheetIndex = 0,
     A1Range = "A1:B1000",
     NumericAsDecimal = true
@@ -455,7 +456,7 @@ while (reader.Read()) {
 ```
 
 XLSX numeric cells and cached numeric formula results use invariant number notation,
-so `1.5` remains `1.5` when `ExcelReadOptions.Culture` is `de-DE`. The configured
+so `1.5` remains `1.5` when `ExcelReaderOptions.Culture` is `de-DE`. The configured
 culture remains the fallback for legacy localized numeric text and controls
 conversions from string cells. `CellValueConverter` receives
 the original decoded text and the configured culture before built-in conversion.
@@ -468,7 +469,7 @@ and phonetic guidance do not add cells, shift shared-string indexes or append te
 using asynchronous I/O, bounded by `MaxInputBytes`. Workbook validation and worksheet
 discovery then run synchronously. Caller-owned streams stay open, and seekable streams
 return to their original position after input is read. The opening cancellation token
-and the token in `ExcelReadOptions` remain active for the returned reader.
+and the token in `ExcelReaderOptions` remain active for the returned reader.
 
 On .NET 8 and later, `ReadAsync`, `NextResultAsync`, and `RowsAsAsync<T>` propagate
 cancellation through the native workbook reader:
@@ -476,7 +477,7 @@ cancellation through the native workbook reader:
 ```csharp
 using OfficeIMO.Data;
 
-await using var reader = await ExcelDocument.OpenDataReaderAsync("input.xlsx", new ExcelReadOptions {
+await using var reader = await ExcelDocument.OpenReaderAsync("input.xlsx", new ExcelReaderOptions {
     SheetName = "Data"
 }, cancellationToken);
 
@@ -487,15 +488,15 @@ await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToke
 
 ### Password-to-open output
 
-`SaveEncrypted(path, password)` selects XLSX/XLSM, XLSB or XLS from the destination
+`Save(path, new ExcelSaveOptions { Password = password })` selects XLSX/XLSM, XLSB or XLS from the destination
 extension. For a stream, select the physical format explicitly:
 
 ```csharp
 using var document = ExcelDocument.Create();
 document.AddWorksheet("Data").CellValue(1, 1, "Protected workbook");
-document.SaveEncrypted("protected.xlsb", password);
+document.Save("protected.xlsb", new ExcelSaveOptions { Password = password });
 using var output = new MemoryStream();
-document.SaveEncrypted(output, password, ExcelFileFormat.Xls);
+document.Save(output, new ExcelSaveOptions { Password = password, Format = ExcelFileFormat.Xls });
 ```
 
 XLSX/XLSM and XLSB use Agile Office package encryption. XLSB contains a native
@@ -523,18 +524,19 @@ and worksheet/workbook protection are separate from password-to-open encryption.
 
 After encrypting the associated file or stream, automatic persistence is disabled
 so disposal cannot replace the encrypted output with plaintext. No password is
-retained. Use `SaveEncrypted` explicitly for later changes; an ordinary explicit
+retained. Set `ExcelSaveOptions.Password` explicitly for later changes; an ordinary explicit
 `Save` writes an unencrypted file. Exporting to a different stream keeps the
 original destination's persistence policy.
 
-`OpenEncryptedDataReader` opens Office Open XML workbooks protected by Agile
+`OpenReader` with `ExcelReaderOptions.Password` opens Office Open XML workbooks protected by Agile
 encryption from a file, byte array, or the remaining bytes of a readable stream.
 The decrypted package determines the XLSX or XLSB format. Package integrity is
-always verified. Legacy XLS password encryption uses `LoadEncrypted`.
+always verified. Legacy XLS password encryption uses `ExcelLoadOptions.Password`.
 
 ```csharp
-using var reader = ExcelDocument.OpenEncryptedDataReader(
-    "protected.xlsx", password, new ExcelReadOptions {
+using var reader = ExcelDocument.OpenReader(
+    "protected.xlsx", new ExcelReaderOptions {
+        Password = password,
         MaxInputBytes = 64L * 1024 * 1024
     });
 while (reader.Read()) {
@@ -551,7 +553,7 @@ are restored after input is read, including on failure.
 `OpenEncryptedDataReaderAsync` supports local paths and streams. It uses
 asynchronous input, then performs cancellable decryption, integrity verification
 and workbook discovery synchronously. Its opening cancellation token and the
-token in `ExcelReadOptions` remain active for the returned reader.
+token in `ExcelReaderOptions` remain active for the returned reader.
 
 `ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
 XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
@@ -576,7 +578,7 @@ for the first-row and full-scan evidence boundaries.
 
 The XML streaming fallback completes a row before returning a cell value, so
 scalar and bulk getters agree when cell coordinates recur or arrive out of order.
-`ExcelReadOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization
+`ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization
 to 32 Mi characters per physical row by default. Out-of-order rows retained
 together share one aggregate allowance. Raw values, formula text, inline text,
 and resolved strings count conservatively, including replaced cell records.
@@ -607,7 +609,7 @@ worksheet text, normalized shared-string text, and XLSB string cells:
 using OfficeIMO.Data;
 using OfficeIMO.Excel;
 
-using var reader = ExcelDocument.OpenDataReader("input.xlsx");
+using var reader = ExcelDocument.OpenReader("input.xlsx");
 while (reader.Read()) {
     if (reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text)) {
         ProcessUtf8(text);
@@ -632,7 +634,7 @@ probe for borrowed text without converting unsupported values.
 On .NET 8 and later, request `DateOnly` or `TimeOnly` explicitly through
 `GetFieldValue<T>` or `RowsAs<T>`. Inferred Excel date/time columns remain
 `DateTime`, so moving between target frameworks does not silently change the
-reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
+reader schema. Set `ExcelReaderOptions.MappingErrorValuePolicy` to
 `DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
@@ -656,7 +658,7 @@ per-column culture, date formats and converters through
 [`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
 These controls apply to sequential, asynchronous and parallel projections.
 
-`ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
+`ExcelReaderOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
@@ -672,9 +674,9 @@ returned in source order:
 using OfficeIMO.Data;
 using OfficeIMO.Excel;
 
-using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
     "sales.xlsx",
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         SheetName = "Data",
         A1Range = "A1:D50001",
         InferSchema = true
@@ -804,9 +806,9 @@ without click behavior.
 
 ```csharp
 const long packageBudget = 2L * 1024 * 1024 * 1024;
-using var document = ExcelDocument.OpenFileBacked(
+using var document = ExcelDocument.Load(
     "large-report.xlsx",
-    new ExcelLoadOptions { MaxInputBytes = packageBudget },
+    new ExcelLoadOptions { FileBacked = true, MaxInputBytes = packageBudget },
     cancellationToken);
 
 document["Data"].CellValue(2, 2, "Updated");
@@ -1499,7 +1501,7 @@ diagnostics verified after save and reopen. Circular caches from Excel are
 preserved as input evidence rather than treated as a numeric cycle solution.
 
 For bounded row-memory XLSX exports, set `RequireStreaming = true` in
-`ExcelTabularWriteOptions`. With `WriteDataReader`, also set
+`ExcelWriterOptions`. With `WriteDataReader`, also set
 `UseSharedStrings = false` and `AutoFit = false`; tables require headers.
 With `WriteRows`, turn off tables and automatic sizing. Incompatible options
 are rejected before source rows are consumed or destination bytes are written.
@@ -1569,7 +1571,7 @@ Use workflow preflight when an application needs to decide whether a workbook is
 
 ### Package and VBA signatures
 
-`InspectSignatures()` and `InspectPackageSignatures(...)` remain provider-free. Pass an optional security provider only when creating a package signature or validating its cryptography, package digests, certificate chain, and revocation. OPC timestamp elements are reported as structural evidence; this shared result surface does not claim timestamp-token validation:
+`InspectSignatures()` and `OfficeDocument.Inspect(path, options).PackageSignatures` remain provider-free. Pass an optional security provider only when creating a package signature or validating its cryptography, package digests, certificate chain, and revocation. OPC timestamp elements are reported as structural evidence; this shared result surface does not claim timestamp-token validation:
 
 ```csharp
 using OfficeIMO.Security;
@@ -1580,7 +1582,7 @@ OfficePackageSignatureValidationReport validation =
     ExcelDocument.ValidatePackageSignatures("report.xlsx", security);
 ```
 
-`InspectVbaSignatures(...)`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the managed bounded VBA core shared with Word and PowerPoint. It creates and validates legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb` on every supported platform through an explicit `IOfficeSecurityProvider`. A registered Microsoft Office SIP is an optional Windows differential check, not a signing dependency. Sign the VBA project before applying an OPC package signature.
+`OfficeDocument.Inspect(path, options).VbaSignatures`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the managed bounded VBA core shared with Word and PowerPoint. It creates and validates legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb` on every supported platform through an explicit `IOfficeSecurityProvider`. A registered Microsoft Office SIP is an optional Windows differential check, not a signing dependency. Sign the VBA project before applying an OPC package signature.
 
 ### DataTable and JSON exchange
 
@@ -1719,7 +1721,7 @@ ExcelDocument.WriteRows(
         .Write(row.Name)
         .Write(row.Created)
         .Write(row.Active),
-    new ExcelTabularWriteOptions {
+    new ExcelWriterOptions {
         SheetName = "Data",
         IncludeCellReferences = false,
         UseSharedStrings = false
@@ -1748,7 +1750,7 @@ overload does not support `CreateTable` or `AutoFit`; add those features through
 the editable workbook API when they are required.
 
 `WriteRows` and `WriteRowsAsync` use inline strings when options are omitted.
-Pass `new ExcelTabularWriteOptions { UseSharedStrings = true }` to deduplicate
+Pass `new ExcelWriterOptions { UseSharedStrings = true }` to deduplicate
 text in a workbook shared-string table. Both methods still consume the source
 once, including with `RequireStreaming = true`; memory for shared strings grows
 with the distinct text values. Pass `UseSharedStrings = false` for inline text
@@ -1757,7 +1759,7 @@ when supplying other options.
 Declare styles before writing when rows or columns need default formatting:
 
 ```csharp
-var options = new ExcelTabularWriteOptions {
+var options = new ExcelWriterOptions {
     RequireStreaming = true,
     UseSharedStrings = false,
     Styles = new Dictionary<string, ExcelStyleDefinition> {
@@ -1961,7 +1963,9 @@ chart.SaveAsSvg("revenue-chart.svg");
 
 ## Content provenance
 
-`ExcelDocument.InspectProvenance("input.xlsx")` reports C2PA and AI-specific IPTC metadata in the workbook and its supported embedded images. `ExcelDocument.RemoveProvenance("input.xlsx", "clean.xlsx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+Add the `OfficeIMO` front-door package for the shared inspection entry point.
+
+`OfficeIMO.OfficeDocument.Inspect("input.xlsx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!` reports C2PA and AI-specific IPTC metadata in the workbook and its supported embedded images. `ExcelDocument.RemoveProvenance("input.xlsx", "clean.xlsx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
 When the workbook is already in memory, inspect its encoded package bytes directly. This overload validates the package and inspects supported provenance without accessing the filesystem:
 
@@ -1970,18 +1974,19 @@ using OfficeIMO.Excel;
 using OfficeIMO.Provenance;
 
 static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
-    ExcelDocument.InspectProvenance(packageBytes, "upload.xlsx");
+    OfficeIMO.OfficeDocument.Inspect(new MemoryStream(packageBytes), "upload.xlsx",
+        new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!;
 ```
 
 ## Concealed-content inspection and cleanup
 
-`ExcelDocument.InspectContentSafety(...)` reports hidden sheets/rows/columns, zero geometry, tiny or transparent text, `;;;` hidden display formats, resolved low contrast, comments, hidden defined names, drawing runs/fields and ancestor groups, drawing alternative text, and Unicode evidence across XLSX/XLSM/XLSB and supported legacy XLS input. `ExcelDocument.RemoveSelectedContent(...)` clears only reviewed current payloads, isolates shared-string edits per referencing cell, and writes the original physical format. Conditional-format rendering is diagnosed rather than guessed; signed legacy XLS cleanup fails closed.
+`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports hidden sheets/rows/columns, zero geometry, tiny or transparent text, `;;;` hidden display formats, resolved low contrast, comments, hidden defined names, drawing runs/fields and ancestor groups, drawing alternative text, and Unicode evidence across XLSX/XLSM/XLSB and supported legacy XLS input. `ExcelDocument.RemoveSelectedContent(...)` clears only reviewed current payloads, isolates shared-string edits per referencing cell, and writes the original physical format. Conditional-format rendering is diagnosed rather than guessed; signed legacy XLS cleanup fails closed.
 
 ## Adjacent packages
 
 | Package | Use it for |
 | --- | --- |
-| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Excel to PDF export through `OfficeIMO.Pdf`, plus PDF table import to Excel. |
+| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Excel to PDF export through `OfficeIMO.Pdf`. PDF table reconstruction lives in `OfficeIMO.Pdf.Excel`. |
 | [OfficeIMO.Excel.GoogleSheets](../OfficeIMO.Excel.GoogleSheets/README.md) | Planning and exporting Excel content to Google Sheets. |
 | [OfficeIMO.Excel.Benchmarks](../OfficeIMO.Excel.Benchmarks/README.md) | Benchmark harness for Excel workloads. |
 

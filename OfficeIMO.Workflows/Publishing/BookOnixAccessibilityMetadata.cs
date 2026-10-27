@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Publisher assertions from ONIX list 196; these are not inferred from individual EPUB elements.</summary>

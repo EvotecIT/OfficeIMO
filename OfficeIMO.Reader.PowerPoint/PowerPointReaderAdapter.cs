@@ -49,32 +49,12 @@ internal static class PowerPointReaderAdapter {
         }
     }
 
-    private static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) {
-        PowerPointLoadOptions loadOptions = CreateLoadOptions(options, path);
-        try {
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, loadOptions, cancellationToken));
-        } catch (Exception exception) when (ShouldRetryEncrypted(exception, options)) {
-            try {
-                return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.LoadEncrypted(path, options.OpenPassword!, loadOptions, cancellationToken));
-            } catch (CryptographicException) {
-                throw;
-            }
-        }
-    }
+    private static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) =>
+        OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, CreateLoadOptions(options, path), cancellationToken));
 
     private static PowerPointPresentation Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (stream.CanSeek) stream.Position = 0;
-        PowerPointLoadOptions loadOptions = CreateLoadOptions(options, sourceName);
-        try {
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, loadOptions, cancellationToken));
-        } catch (Exception exception) when (stream.CanSeek && ShouldRetryEncrypted(exception, options)) {
-            stream.Position = 0;
-            try {
-                return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.LoadEncrypted(stream, options.OpenPassword!, loadOptions, cancellationToken));
-            } catch (CryptographicException) {
-                throw;
-            }
-        }
+        return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, CreateLoadOptions(options, sourceName), cancellationToken));
     }
 
     internal static PowerPointLoadOptions CreateLoadOptions(ReaderOptions options, string? sourceName) {
@@ -91,11 +71,10 @@ internal static class PowerPointReaderAdapter {
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null,
             PackageSecurity = OpenXmlReaderAdmission.Policy(options, maxInputBytes, requirePolicy: true),
-            LegacyPptImportOptions = new LegacyPptImportOptions {
-                MaxInputBytes = legacyMaxInputBytes > int.MaxValue ? int.MaxValue : checked((int)legacyMaxInputBytes),
-                Password = options.OpenPassword,
-                ReportUnsupportedContent = true
-            }
+            MaxInputBytes = maxInputBytes,
+            MaxLegacyInputBytes = legacyMaxInputBytes > int.MaxValue ? int.MaxValue : checked((int)legacyMaxInputBytes),
+            Password = options.OpenPassword,
+            ReportUnsupportedContent = true
         };
     }
 
@@ -106,10 +85,7 @@ internal static class PowerPointReaderAdapter {
             string.Equals(format.Extension, extension, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool ShouldRetryEncrypted(Exception exception, ReaderOptions options) =>
-        OpenXmlReaderAdmission.CanRetryEncrypted(exception, options);
-
-    internal static OfficeDocumentReadResult Project(PowerPointPresentation presentation, string sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
+internal static OfficeDocumentReadResult Project(PowerPointPresentation presentation, string sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(presentation);
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectPowerPoint(
             presentation.OpenXmlDocument, sourceName, readerOptions, options.IncludeNotes,

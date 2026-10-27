@@ -111,7 +111,7 @@ public sealed class ScanTextExtractionTests {
             var engine = new DelegateOcrEngine("quick-text", (_, _) => Task.FromResult(new OcrResult {
                 Provider = "fixture", Language = "eng", Spans = [Word("Copy this", 20), Word("Discard", 60)]
             }));
-            return PdfDocument.Load(source).PrepareSearchableOcrAsync(engine, options.Pdf, token);
+            return PdfDocument.Load(new System.IO.MemoryStream(source)).PrepareSearchableOcrAsync(engine, options.Pdf, token);
         }
         private static OcrTextSpan Word(string text, double y) => new() {
             Text = text, Confidence = .95, Level = OcrTextSpanLevel.Word, CoordinateUnit = OcrCoordinateUnit.Points,

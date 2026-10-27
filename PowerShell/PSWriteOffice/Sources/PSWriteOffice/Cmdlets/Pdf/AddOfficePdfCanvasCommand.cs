@@ -51,7 +51,7 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
     public double Opacity { get; set; } = 1D;
 
     /// <summary>Configures native generated-PDF rendering options for canvas content, including embedded fonts and text shaping.</summary>
-    /// <remarks>The callback receives a <see cref="PdfOptions"/> instance. Page geometry, margins, and encryption remain controlled by the stamping operation.</remarks>
+    /// <remarks>The callback receives a <see cref="PdfCreateOptions"/> instance. Page geometry, margins, and encryption remain controlled by the stamping operation.</remarks>
     [Parameter]
     public ScriptBlock? ConfigureRendering { get; set; }
 
@@ -75,9 +75,9 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
 
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
         var document = PdfDocument.Load(PdfCommandUtilities.ResolvePath(this, Path), readOptions);
-        PdfOptions? renderingOptions = null;
+        PdfCreateOptions? renderingOptions = null;
         if (ConfigureRendering is not null) {
-            renderingOptions = new PdfOptions();
+            renderingOptions = new PdfCreateOptions();
             _ = ConfigureRendering.Invoke(renderingOptions);
         }
 
@@ -99,7 +99,7 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
             options,
             readOptions);
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SheetComposer_ExplainsHardExcelColumnBoundaryForObjectRows() {
-            (string Key, object? Value)[] entries = Enumerable.Range(0, A1.MaxColumns + 1)
+            (string Key, object? Value)[] entries = Enumerable.Range(0, ExcelA1.MaxColumns + 1)
                 .Select(index => ("Column" + index, (object?)index))
                 .ToArray();
             var rows = new[] { new ReadOnlyDictionaryRow(entries) };

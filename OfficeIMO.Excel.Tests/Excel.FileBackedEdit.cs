@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
             Assert.False(loaded.UsesFileBackedPackage);
-            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
+            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
             Assert.Equal("after", value!.Text);
         }
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
+            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
             Assert.Equal("2", value!.Text);
         }
 

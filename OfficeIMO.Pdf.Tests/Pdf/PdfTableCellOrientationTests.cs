@@ -11,10 +11,10 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Exact_spacing_retains_overlapping_ink_at_the_physical_cell_edge(bool inColumn, int rotation) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ColumnWidthPoints = new List<double?> { 20 };
         style.FixedRowHeights = new List<double?> { 100 };
@@ -28,7 +28,7 @@ public sealed class PdfTableCellOrientationTests {
         var document = PdfDocument.Create(options);
         if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
         else document.Table(cells, style: style);
-        byte[] bytes = document.ToBytes();
+        byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());
         Assert.Contains(page.Letters, letter => letter.Value == "I");
@@ -46,10 +46,10 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Automatic_turned_columns_reserve_each_authored_paragraph_line_box(bool inColumn, int rotation) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true; style.AutoFitUnspecifiedWidthToContent = true;
         style.FixedRowHeights = new List<double?> { 100 };
@@ -64,7 +64,7 @@ public sealed class PdfTableCellOrientationTests {
         var document = PdfDocument.Create(options);
         if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
         else document.Table(cells, style: style);
-        byte[] bytes = document.ToBytes();
+        byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("ABCDEFGH", string.Concat(page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));
@@ -78,10 +78,10 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Automatic_columns_measure_turned_text_on_the_cross_axis(bool inColumn, int rotation) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true;
         style.AutoFitUnspecifiedWidthToContent = true;
@@ -93,7 +93,7 @@ public sealed class PdfTableCellOrientationTests {
         var document = PdfDocument.Create(options);
         if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
         else document.Table(cells, style: style);
-        byte[] bytes = document.ToBytes();
+        byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var link = Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("Link"));
         Assert.InRange(link.X2 - link.X1, 9, 20);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -109,10 +109,10 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Turned_content_is_consumed_once_when_a_horizontal_neighbor_continues(bool inColumn, int rotation) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = 2; style.CellPaddingY = 2;
         style.ColumnWidthPoints = new List<double?> { 60, null };
@@ -146,9 +146,9 @@ public sealed class PdfTableCellOrientationTests {
     }
 
     private static double GetShrunkTurnedFontSize(string surface) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.FontSize = 12;
         style.ShrinkTextToFit = true;
         style.ColumnWidthPoints = new List<double?> { 100 };
@@ -176,10 +176,10 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData("column", 90)]
     [InlineData("canvas", 90)]
     public void Turned_cell_text_survives_cell_copies_and_each_rendering_surface(string surface, int rotation) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ColumnWidthPoints = new List<double?> { 100 };
         style.FixedRowHeights = new List<double?> { 80 };

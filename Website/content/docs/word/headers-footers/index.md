@@ -171,5 +171,5 @@ headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
 var footerParagraph = document.Footer.Default.AddParagraph();
 footerParagraph.Text = "Printed: " + DateTime.Now.ToString("yyyy-MM-dd");
 footerParagraph.FontSize = 8;
-footerParagraph.Color = OfficeIMO.Drawing.OfficeColor.Gray;
+footerParagraph.Color = OfficeIMO.OfficeColor.Gray;
 ```

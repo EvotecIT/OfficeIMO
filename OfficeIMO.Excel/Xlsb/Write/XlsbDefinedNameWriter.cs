@@ -239,10 +239,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             bounds = default;
             reason = null;
             string normalized = reference.Replace("$", string.Empty).Trim();
-            if (A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (ExcelA1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return TryCreateBounds(firstRow, firstColumn, lastRow, lastColumn, out bounds, out reason);
             }
-            (int row, int column) = A1.ParseCellRef(normalized);
+            (int row, int column) = ExcelA1.ParseCellRef(normalized);
             if (row > 0 && column > 0) {
                 return TryCreateBounds(row, column, row, column, out bounds, out reason);
             }
@@ -254,8 +254,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return TryCreateBounds(firstRow, 1, lastRow, 16_384, out bounds, out reason);
             }
             if (parts.Length == 2) {
-                firstColumn = A1.ColumnLettersToIndex(parts[0]);
-                lastColumn = A1.ColumnLettersToIndex(parts[1]);
+                firstColumn = ExcelA1.ColumnLettersToIndex(parts[0]);
+                lastColumn = ExcelA1.ColumnLettersToIndex(parts[1]);
                 if (firstColumn > 0 && lastColumn > 0) {
                     return TryCreateBounds(1, firstColumn, 1_048_576, lastColumn, out bounds, out reason);
                 }

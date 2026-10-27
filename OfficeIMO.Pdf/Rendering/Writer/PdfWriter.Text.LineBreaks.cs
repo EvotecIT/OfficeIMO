@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
 
     private static System.Collections.Generic.List<PdfTextTokenChunk>? TryBuildSoftLineBreakTokenChunks(
         string token,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         Func<string, double> measure,
         double firstMaxWidth,
         double subsequentMaxWidth) {
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
         return chunks.Count > 1 || allowSingleChunk ? chunks : null;
     }
 
-    private static int[] GetValidSoftLineBreakpoints(string token, PdfOptions? options) {
+    private static int[] GetValidSoftLineBreakpoints(string token, PdfCreateOptions? options) {
         Func<string, IReadOnlyList<int>>? callback = options?.TextLineBreakCallbackSnapshot;
         if (callback == null || string.IsNullOrEmpty(token)) {
             return Array.Empty<int>();
@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
 
     // Largest prefix ending at a UAX #14 opportunity (or a hyphenation point, which adds a hyphen)
     // that fits the space left on the line.
-    private static bool TrySplitTokenAtLineEnd(string token, double available, PdfOptions? options, Func<string, double> measure,
+    private static bool TrySplitTokenAtLineEnd(string token, double available, PdfCreateOptions? options, Func<string, double> measure,
         out string head, out double headWidth, out int consumed) {
         head = string.Empty;
         headWidth = 0D;

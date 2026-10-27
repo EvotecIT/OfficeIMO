@@ -63,7 +63,7 @@ internal static class MarkdownInlineToAsciiDocConverter {
     private static string RenderInlineFallback(IMarkdownInline inline) {
         var sequence = new InlineSequence { AutoSpacing = false };
         sequence.AddRaw(inline);
-        return MarkdownDoc.Create().Add(new ParagraphBlock(sequence)).ToMarkdown();
+        return MarkdownDocument.Create().Add(new ParagraphBlock(sequence)).ToMarkdown();
     }
 
     private static string EscapeText(string value) {

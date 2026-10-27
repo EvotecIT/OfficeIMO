@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Tests {
                 else row.Elements<Cell>().First().Append(payload);
             }
 
-            using DbDataReader reader = document.CreateDataReader(new ExcelReadOptions { UseCachedFormulaResult = false });
+            using DbDataReader reader = document.CreateDataReader(new ExcelReaderOptions { UseCachedFormulaResult = false });
             Assert.Equal(1, reader.FieldCount);
             Assert.Equal("Number", reader.GetName(0));
             Assert.True(reader.Read());
@@ -78,8 +78,8 @@ namespace OfficeIMO.Excel.Tests {
             worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Last().Append(CreateSdkOwnershipCell(kind));
 
             Action open = () => {
-                using var reader = document.CreateDataReader(new ExcelReadOptions { UseCachedFormulaResult = false });
-            };
+                using var reader = document.CreateDataReader(new ExcelReaderOptions { UseCachedFormulaResult = false });
+ _ = reader.FieldCount;             };
             if (kind == "formula") Assert.Throws<NotSupportedException>(open);
             else Assert.Throws<InvalidDataException>(open);
         }

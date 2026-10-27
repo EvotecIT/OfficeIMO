@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
 
                 Assert.Equal(2, snapshot.Worksheets.Count);
 
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Summary");
 
                 var numericCell = Assert.Single(summarySheet.Cells, c => c.Row == 2 && c.Column == 1);
@@ -678,7 +678,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -800,7 +800,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -857,7 +857,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -910,7 +910,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 Assert.Equal(2, dataSheet.Validations.Count);
                 Assert.Contains(dataSheet.Validations, validation =>
@@ -989,7 +989,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 var validation = Assert.Single(dataSheet.Validations);
                 Assert.Equal("date", validation.Type);
@@ -1050,7 +1050,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 var validation = Assert.Single(dataSheet.Validations);
                 Assert.Equal("textlength", validation.Type);

@@ -86,7 +86,7 @@ public partial class Word {
         WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
         story.AddParagraph("BETA").Bold = true;
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -96,7 +96,7 @@ public partial class Word {
         Assert.Equal(alphaStart.StartBaseLine.Y, betaStart.StartBaseLine.Y, 3);
         Assert.DoesNotContain("Bold", alphaStart.FontName, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Bold", betaStart.FontName, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
     [Theory]
@@ -117,16 +117,16 @@ public partial class Word {
         alpha._paragraph.ParagraphProperties!.Append(new W.Shading { Fill = "eeeeee", Val = W.ShadingPatternValues.Clear });
         if (cell == null) story.AddParagraph("BETA");
         else cell.AddParagraph("BETA");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" &&
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported" &&
             warning.Source == (tableDepth > 0 ? "table cell" : "header/footer"));
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.NotEqual(letters.First(letter => letter.Value == "A").StartBaseLine.Y,
             letters.First(letter => letter.Value == "B").StartBaseLine.Y);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
     [Theory]
@@ -168,7 +168,7 @@ public partial class Word {
         WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
         story.AddParagraph("BETA").FontSize = sameSize ? 12 : 14;
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -178,6 +178,6 @@ public partial class Word {
         Assert.Equal(12D, alphaStart.FontSize, 3);
         Assert.Equal(sameSize ? 12D : 14D, betaStart.FontSize, 3);
         Assert.Contains("ALPHABETA", pdf.GetPage(1).Text);
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 }

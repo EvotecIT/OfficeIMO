@@ -30,7 +30,7 @@ public class PdfSecurityEditorTests {
 
     [Fact]
     public void DecryptRequiresOwnerPasswordAndProducesReadablePlaintext() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Meta(title: "Owner-authorized source")
             .Paragraph(paragraph => paragraph.Text("Owner-only decryption proof"))
             .ToBytes();
@@ -55,7 +55,7 @@ public class PdfSecurityEditorTests {
 
     [Fact]
     public void ReencryptChangesPasswordAlgorithmAndPermissions() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("old-open", "old-owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("old-open", "old-owner"))
             .Paragraph(paragraph => paragraph.Text("Re-encryption proof"))
             .ToBytes();
         var replacement = new PdfStandardEncryptionOptions("new-open") {

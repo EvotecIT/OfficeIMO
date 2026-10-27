@@ -16,7 +16,7 @@ public class PdfPreflightScalingBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             IncludePageLabels = FeatureRich,
             IncludeXmpMetadata = FeatureRich,
             ViewerPreferences = FeatureRich

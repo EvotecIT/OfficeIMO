@@ -33,9 +33,9 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         Assert.Equal(smartArt.LeftPoints, group.LeftPoints, 3);
         Assert.Equal(smartArt.WidthPoints, group.WidthPoints, 3);
 
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-smartart");
-        Assert.Contains("Validate", PdfReadDocument.Open(result.ToBytes()).Pages[slideIndex].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Validate", PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[slideIndex].ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,9 +46,9 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
 
         smartArt.SetNodeText(0, "Explore");
         Assert.True(smartArt.TryCreateCachedDrawing(out _, out string? reason), reason);
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-smartart");
-        Assert.Contains("Explore", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Explore", PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -85,10 +85,10 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
             labels.Select(item => (item.LeftPoints, item.TopPoints, item.WidthPoints, item.HeightPoints)));
 
         // Resolve fonts explicitly: neither case depends on fonts installed on the test host.
-        var pdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        var pdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         if (embeddedFont) pdfOptions.UseFontFamily(new PdfEmbeddedFontFamily("SmartArtFixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
-        PdfDocumentConversionResult result = reopened.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        PdfDocumentConversionResult result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             PdfOptions = pdfOptions,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
@@ -139,7 +139,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write)) data.Save(stream);
 
         Assert.False(smartArt.TryCreateCachedDrawing(out _, out _));
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-smartart");
     }
 }

@@ -39,11 +39,11 @@ public sealed class ClearOfficeExcelCommentCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 cell address to match.</summary>
+    /// <summary>ExcelA1 cell address to match.</summary>
     [Parameter]
     public string? Address { get; set; }
 
-    /// <summary>A1 cell or range to match.</summary>
+    /// <summary>ExcelA1 cell or range to match.</summary>
     [Parameter]
     public string? Range { get; set; }
 

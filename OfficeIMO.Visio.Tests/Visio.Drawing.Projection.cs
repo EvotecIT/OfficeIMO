@@ -28,7 +28,7 @@ public sealed class VisioDrawingProjectionTests {
             Assert.Equal(0.144, projected.Value[1].Height, 9);
             Assert.Empty(projected.Value[1].Elements);
             PdfDocumentConversionResult conversion = candidate.ToPdfDocumentResult(DiagramOptions());
-            PdfReadDocument pdf = PdfReadDocument.Open(conversion.ToBytes());
+            PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
             Assert.Equal(3, pdf.Pages.Count);
             Assert.Equal((216D, 144D), pdf.Pages[0].GetPageSize());
             Assert.Equal((144D, 216D), pdf.Pages[2].GetPageSize());
@@ -52,9 +52,9 @@ public sealed class VisioDrawingProjectionTests {
         VisioShape printOnly = page.AddRectangle(3, 2, 1, 1, "Print only"); printOnly.LayerNames.Add(print.Name);
         VisioConnector connector = page.AddConnector("route", child, printOnly, ConnectorKind.Straight);
         connector.Label = "Independent route";
-        string PrintText(VisioLayerRenderMode mode) => PdfReadDocument.Open(document.ToPdfBytes(new VisioToPdfOptions {
+        string PrintText(VisioLayerRenderMode mode) => PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { LayerMode = mode }
-        })).ExtractText();
+        }))).ExtractText();
         Assert.Contains("Visible child", PrintText(VisioLayerRenderMode.Visible));
         Assert.DoesNotContain("Print only", PrintText(VisioLayerRenderMode.Visible));
         Assert.Contains("Independent route", PrintText(VisioLayerRenderMode.Visible));
@@ -115,7 +115,7 @@ public sealed class VisioDrawingProjectionTests {
             byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf"));
             foreach (string family in new[] { "Yandex Sans Text", "Monaco", "Arial" }) options.DrawingOptions.Fonts.Add(family, font);
             PdfDocumentConversionResult conversion = candidate.ToPdfDocumentResult(options);
-            PdfReadDocument pdf = PdfReadDocument.Open(conversion.ToBytes());
+            PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
             Assert.Equal(candidate.Pages.Count, pdf.Pages.Count);
             Assert.Contains(text, NormalizeText(pdf.ExtractText()), StringComparison.OrdinalIgnoreCase);
             Assert.Contains(conversion.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_TEXT_LAYOUT");
@@ -128,7 +128,7 @@ public sealed class VisioDrawingProjectionTests {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "angularjs-simple-scope.vdx")).Value;
         byte[] before = document.ToLegacyXmlResult().Value;
         var conversion = document.ToPdfDocumentResult(DiagramOptions());
-        PdfExtractedImage image = Assert.Single(PdfReadDocument.Open(conversion.ToBytes()).Pages.SelectMany(page => page.GetImages()));
+        PdfExtractedImage image = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).Pages.SelectMany(page => page.GetImages()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster));
         Assert.Equal((113, 155), (raster!.Width, raster.Height));
         Assert.Contains(conversion.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.None);
@@ -161,7 +161,7 @@ public sealed class VisioDrawingProjectionTests {
         foreach (VisioDocument document in Reopened(source)) {
             byte[] before = document.ToLegacyXmlResult().Value;
             var result = document.ToPdfDocumentResult(DiagramOptions());
-            Assert.Contains("Fit me fully", NormalizeText(PdfReadDocument.Open(result.ToBytes()).ExtractText()));
+            Assert.Contains("Fit me fully", NormalizeText(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText()));
             Assert.Contains(result.FidelityDiagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
                 item.LossKind == OfficeConversionLossKind.Omission && item.Location!.StartsWith("page:1:Fitting:shape:"));
             Assert.Equal(before, document.ToLegacyXmlResult().Value);

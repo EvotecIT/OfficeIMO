@@ -34,8 +34,8 @@ namespace OfficeIMO.Word {
     /// Captures persisted DrawingML geometry and anchoring evidence. Values describe package markup,
     /// not a claim about Word's final rendered coordinates after pagination and compatibility layout.
     /// </summary>
-    public sealed class WordDrawingLayoutSnapshot {
-        internal WordDrawingLayoutSnapshot(
+    public sealed class WordDrawingLayoutInfo {
+        internal WordDrawingLayoutInfo(
             WordDrawingPlacementKind placement,
             string name,
             double widthPoints,
@@ -111,9 +111,9 @@ namespace OfficeIMO.Word {
     internal static class WordDrawingLayoutReader {
         private const double EmusPerPoint = 12700D;
 
-        internal static bool TryRead(WordDrawing? drawing, out WordDrawingLayoutSnapshot snapshot) {
+        internal static bool TryRead(WordDrawing? drawing, out WordDrawingLayoutInfo snapshot) {
             if (drawing?.Inline is DW.Inline inline && inline.Extent?.Cx?.Value is long inlineWidth && inline.Extent.Cy?.Value is long inlineHeight) {
-                snapshot = new WordDrawingLayoutSnapshot(
+                snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Inline,
                     inline.DocProperties?.Name?.Value ?? string.Empty,
                     inlineWidth / EmusPerPoint,
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word {
                 double? verticalOffset = usesSimplePosition
                     ? ReadCoordinatePoints(anchor.SimplePosition?.Y?.Value)
                     : ReadOffsetPoints(anchor.VerticalPosition?.PositionOffset?.Text);
-                snapshot = new WordDrawingLayoutSnapshot(
+                snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Anchored,
                     anchor.GetFirstChild<DW.DocProperties>()?.Name?.Value ?? string.Empty,
                     anchorWidth / EmusPerPoint,

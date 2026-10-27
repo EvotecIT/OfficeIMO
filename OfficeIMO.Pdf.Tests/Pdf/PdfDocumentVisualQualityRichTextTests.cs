@@ -42,7 +42,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RichParagraph_FontSize_AppliesOnlyToScopedRuns() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFontSize = 11
             })
             .Paragraph(p => p
@@ -123,7 +123,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RichTextCell_RendersScopedRunStyles() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFontSize = 11
             })
             .Table(new[] {
@@ -199,7 +199,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RichText_RendersSuperscriptAndSubscriptWithTextRise() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFontSize = 14
             })
             .Paragraph(p => p

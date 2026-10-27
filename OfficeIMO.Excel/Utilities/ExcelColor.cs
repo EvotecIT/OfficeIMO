@@ -1,4 +1,4 @@
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelColor {

@@ -33,16 +33,16 @@ public partial class Word {
         document.Settings.FontFamily = sourceFamily;
         document.Settings.FontSize = 18;
         document.AddParagraph("BODY");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-        else options.PdfOptions = new PdfOptions();
+        else options.PdfOptions = new PdfCreateOptions();
         string registeredFamily = sourceFamily.StartsWith("Named Source", StringComparison.Ordinal) ? "Named Source" : sourceFamily;
         options.PdfOptions!.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(registeredFamily,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
         if (bodyOverride == 1) options.PdfOptions.DefaultFont = PdfStandardFont.Courier;
         if (bodyOverride == 2) options.FontFamily = "Courier New";
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("BODY", pdf.GetPage(1).Text);
         Assert.All(pdf.GetPage(1).Letters, letter => {
             Assert.Contains(bodyOverride == 0 ? registeredFamily.Replace(" ", string.Empty) + "-Regular" : "Courier", letter.FontName, StringComparison.Ordinal);
@@ -66,14 +66,14 @@ public partial class Word {
         document.AddParagraph("BODY");
         var profile = new OfficeRenderingProfile("named-profile", new OfficeFontFaceCollection()
             .Add("Arial", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }.UseRenderingProfile(profile);
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }.UseRenderingProfile(profile);
         if (overlay) options.UseRenderingProfile(new OfficeRenderingProfile("fontless-overlay"), OfficeRenderingProfileApplyMode.Overlay);
         if (explicitBody) options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
         options.PdfOptions!.HeaderFontFamily = "Arial";
         options.PdfOptions.ShowHeader = true;
         options.PdfOptions.HeaderFormat = "HEADER";
-        using var original = PdfPigDocument.Open(document.ToPdfBytes(options));
-        using var cloned = PdfPigDocument.Open(document.ToPdfBytes(options.Clone()));
+        using var original = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var cloned = PdfPigDocument.Open(document.ToPdf(options.Clone()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string expected = explicitBody ? "Courier" : matchedBody ? "Arial-Regular" : "Times";
         var body = Assert.Single(cloned.GetPage(1).GetWords(), word => word.Text == "BODY").Letters;
         Assert.All(body, letter => {
@@ -94,19 +94,19 @@ public partial class Word {
         document.Settings.FontFamily = "Times New Roman";
         document.Settings.FontSize = 18;
         document.AddParagraph("BODY");
-        WordToPdfOptions options = CreateNamedPresentationOptions(profile);
+        WordPdfExportOptions options = CreateNamedPresentationOptions(profile);
         options.PdfOptions!.RegisterFontFamily(PdfStandardFont.Helvetica,
             new PdfEmbeddedFontFamily("Body Slot", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        using var configured = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var configured = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(configured.GetPage(1).Letters, letter => Assert.Contains("BodySlot-Regular", letter.FontName, StringComparison.Ordinal));
         options.PdfOptions.ClearEmbeddedStandardFonts();
-        using var discovered = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var discovered = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(discovered.GetPage(1).Letters, letter => {
             Assert.Contains("Times", letter.FontName, StringComparison.Ordinal);
             Assert.Equal(18D, letter.PointSize, 3);
         });
         options.PdfOptions.ClearNamedFontFamilies();
-        using var cleared = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var cleared = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(discovered.GetPage(1).Letters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.StartBaseLine)),
             cleared.GetPage(1).Letters.Select(letter => (letter.Value, letter.FontName, letter.PointSize, letter.StartBaseLine)));
     }

@@ -15,7 +15,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
     internal static byte[] Generate(InvoiceComparisonScenario scenario) {
         Invoice invoice = scenario.Invoice;
         PdfDocument document = PdfDocument.Create(pdf => pdf.Page(page => {
-            page.Size(PageSizes.A4).Margin(42D);
+            page.Size(PdfPageSizes.A4).Margin(42D);
             page.DefaultTextStyle(style => style.FontSize(9.5D).Color(Navy));
             page.Content(content => content.Column(column => {
                 column.Item().Row(row => row

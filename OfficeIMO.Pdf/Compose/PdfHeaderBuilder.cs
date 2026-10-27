@@ -4,9 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Header builder (alignment, text, page number tokens).</summary>
 public sealed partial class PdfHeaderBuilder {
-    private readonly PdfOptions _opts;
+    private readonly PdfCreateOptions _opts;
     private readonly PdfDocument _doc;
-    internal PdfHeaderBuilder(PdfDocument doc, PdfOptions opts) { _doc = doc; _opts = opts; }
+    internal PdfHeaderBuilder(PdfDocument doc, PdfCreateOptions opts) { _doc = doc; _opts = opts; }
     /// <summary>Sets header alignment to the left.</summary>
     public PdfHeaderBuilder AlignLeft() { _opts.HeaderAlign = PdfAlign.Left; return this; }
     /// <summary>Sets header alignment to the center.</summary>
@@ -33,7 +33,7 @@ public sealed partial class PdfHeaderBuilder {
         return this;
     }
     /// <summary>Renders independently styled left, center, and right header zones on one line.</summary>
-    public PdfHeaderBuilder StyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+    public PdfHeaderBuilder StyledZones(System.Action<PdfHeaderTextBuilder>? left, System.Action<PdfHeaderTextBuilder>? center, System.Action<PdfHeaderTextBuilder>? right) {
         _opts.SetHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
         return this;
     }
@@ -43,7 +43,7 @@ public sealed partial class PdfHeaderBuilder {
         return this;
     }
     /// <summary>Renders independently styled page-1-only header zones.</summary>
-    public PdfHeaderBuilder FirstPageStyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+    public PdfHeaderBuilder FirstPageStyledZones(System.Action<PdfHeaderTextBuilder>? left, System.Action<PdfHeaderTextBuilder>? center, System.Action<PdfHeaderTextBuilder>? right) {
         _opts.SetFirstPageHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
         return this;
     }
@@ -53,15 +53,15 @@ public sealed partial class PdfHeaderBuilder {
         return this;
     }
     /// <summary>Renders independently styled even-page-only header zones.</summary>
-    public PdfHeaderBuilder EvenPagesStyledZones(System.Action<HeaderTextBuilder>? left, System.Action<HeaderTextBuilder>? center, System.Action<HeaderTextBuilder>? right) {
+    public PdfHeaderBuilder EvenPagesStyledZones(System.Action<PdfHeaderTextBuilder>? left, System.Action<PdfHeaderTextBuilder>? center, System.Action<PdfHeaderTextBuilder>? right) {
         _opts.SetEvenPageHeaderZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
         return this;
     }
 
-    private static System.Collections.Generic.List<FooterSegment>? BuildZone(System.Action<HeaderTextBuilder>? build) {
+    private static System.Collections.Generic.List<PdfFooterSegment>? BuildZone(System.Action<PdfHeaderTextBuilder>? build) {
         if (build == null) return null;
-        var segments = new System.Collections.Generic.List<FooterSegment>();
-        build(new HeaderTextBuilder(segments));
+        var segments = new System.Collections.Generic.List<PdfFooterSegment>();
+        build(new PdfHeaderTextBuilder(segments));
         return segments;
     }
 
@@ -158,11 +158,11 @@ public sealed partial class PdfHeaderBuilder {
 
     /// <summary>Builds a custom header from text and page tokens.</summary>
     /// <param name="build">Delegate to compose header segments.</param>
-    public PdfHeaderBuilder Text(System.Action<HeaderTextBuilder> build) {
+    public PdfHeaderBuilder Text(System.Action<PdfHeaderTextBuilder> build) {
         Guard.NotNull(build, nameof(build));
         var segments = _opts.ResetHeaderSegmentsForCompose();
         _opts.ClearHeaderZonesForCompose();
-        var builder = new HeaderTextBuilder(segments);
+        var builder = new PdfHeaderTextBuilder(segments);
         build(builder);
         return this;
     }
@@ -179,11 +179,11 @@ public sealed partial class PdfHeaderBuilder {
 
     /// <summary>Builds a page-1-only header from text and page tokens.</summary>
     /// <param name="build">Delegate to compose first-page header segments.</param>
-    public PdfHeaderBuilder FirstPageText(System.Action<HeaderTextBuilder> build) {
+    public PdfHeaderBuilder FirstPageText(System.Action<PdfHeaderTextBuilder> build) {
         Guard.NotNull(build, nameof(build));
         var segments = _opts.ResetFirstPageHeaderSegmentsForCompose();
         _opts.ClearFirstPageHeaderZonesForCompose();
-        var builder = new HeaderTextBuilder(segments);
+        var builder = new PdfHeaderTextBuilder(segments);
         build(builder);
         return this;
     }
@@ -200,11 +200,11 @@ public sealed partial class PdfHeaderBuilder {
 
     /// <summary>Builds an even-page-only header from text and page tokens.</summary>
     /// <param name="build">Delegate to compose even-page header segments.</param>
-    public PdfHeaderBuilder EvenPagesText(System.Action<HeaderTextBuilder> build) {
+    public PdfHeaderBuilder EvenPagesText(System.Action<PdfHeaderTextBuilder> build) {
         Guard.NotNull(build, nameof(build));
         var segments = _opts.ResetEvenPageHeaderSegmentsForCompose();
         _opts.ClearEvenPageHeaderZonesForCompose();
-        var builder = new HeaderTextBuilder(segments);
+        var builder = new PdfHeaderTextBuilder(segments);
         build(builder);
         return this;
     }

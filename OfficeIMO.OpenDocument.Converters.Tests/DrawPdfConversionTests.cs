@@ -25,7 +25,7 @@ public sealed class DrawPdfConversionTests {
         OdgDocument loaded = flat ? OdgDocument.LoadFlatXml(input) : OdgDocument.Load(input);
         var conversion = loaded.ToPdfDocumentResult();
         byte[] bytes = conversion.ToBytes();
-        PdfReadDocument read = PdfReadDocument.Open(bytes);
+        PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal(3, read.Pages.Count);
         Assert.Equal((360D, 220D), read.Pages[0].GetPageSize());
         Assert.Equal((220D, 360D), read.Pages[1].GetPageSize());
@@ -46,8 +46,8 @@ public sealed class DrawPdfConversionTests {
         OdgPage page = source.AddPage();
         page.Shapes.AddTextBox(new OdfRect(OdfLength.Points(20), OdfLength.Points(20), OdfLength.Points(150), OdfLength.Points(50)), "ScreenOnly").Layer = "screen";
         page.Shapes.AddTextBox(new OdfRect(OdfLength.Points(20), OdfLength.Points(80), OdfLength.Points(150), OdfLength.Points(50)), "PrintOnly").Layer = "print";
-        string printed = PdfReadDocument.Open(source.ToPdfBytes()).ExtractText();
-        string screened = PdfReadDocument.Open(source.ToPdfBytes(new() { ForPrint = false })).ExtractText();
+        string printed = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfBytes())).ExtractText();
+        string screened = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfBytes(new() { ForPrint = false }))).ExtractText();
         Assert.Contains("PrintOnly", printed); Assert.DoesNotContain("ScreenOnly", printed);
         Assert.Contains("ScreenOnly", screened); Assert.DoesNotContain("PrintOnly", screened);
     }
@@ -81,7 +81,7 @@ public sealed class DrawPdfConversionTests {
     public async Task SaveLifecyclePreservesSourceAndRefreshesPdfStageWarnings() {
         OdgDocument source = CreateDrawing();
         string xml = source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
-        var settings = new OdgToPdfOptions { PdfOptions = new PdfOptions { PageSize = PageSizes.Letter } };
+        var settings = new OdgToPdfOptions { PdfOptions = new PdfCreateOptions { PageSize = PdfPageSizes.Letter } };
         var conversion = source.ToPdfDocumentResult(settings);
         // A caller may add PDF-native content before saving; its save-time diagnostics must stay linked.
         var vertical = new OfficeDrawing(100, 100).AddVerticalText("Vertical", 0, 0, 100, 100);
@@ -94,7 +94,7 @@ public sealed class DrawPdfConversionTests {
         Assert.Contains(conversion.FidelityDiagnostics, d => d.Source.StartsWith("OfficeIMO.OpenDocument:"));
         Assert.Contains(conversion.Warnings, w => w.Code == "vertical-text-stacked-fallback");
         Assert.Equal(xml, source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
-        Assert.Equal(PageSizes.Letter, settings.PdfOptions.PageSize);
+        Assert.Equal(PdfPageSizes.Letter, settings.PdfOptions.PageSize);
         Assert.True(output.CanWrite);
     }
 
@@ -110,7 +110,7 @@ public sealed class DrawPdfConversionTests {
         Assert.Contains(projected.Report.Mappings, m => m.Feature == "document-metadata" && m.Status == OdfConversionMappingStatus.Skipped);
         Assert.Contains(projected.Report.Mappings, m => m.Feature == "page:1:First/shape:ImageCaption:text" && m.Status == OdfConversionMappingStatus.Approximated);
         var conversion = source.ToPdfDocumentResult();
-        Assert.Contains("ImageCaptionMarker", PdfReadDocument.Open(conversion.ToBytes()).ExtractText());
+        Assert.Contains("ImageCaptionMarker", PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText());
         Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "page:1:First/shape:ImageCaption:image-text");
         Assert.Contains(conversion.FidelityDiagnostics, d => d.Location == "document-metadata" && d.LossKind == OfficeConversionLossKind.Omission);
     }
@@ -135,7 +135,7 @@ public sealed class DrawPdfConversionTests {
         Assert.True(loaded.Validate().IsValid);
         string before = loaded.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
         var conversion = loaded.ToPdfDocumentResult();
-        Assert.Equal(3, PdfReadDocument.Open(conversion.ToBytes()).Pages.Count);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).Pages.Count);
         Assert.Equal(before, loaded.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
         Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "document-metadata");
     }

@@ -219,9 +219,9 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         return context.Options.Base64Images switch {
-            HtmlBase64ImageHandling.Include => true,
-            HtmlBase64ImageHandling.Skip => false,
-            HtmlBase64ImageHandling.SaveToFile => dataUri.TryDecodeBytes(out _),
+            MarkdownHtmlBase64ImageHandling.Include => true,
+            MarkdownHtmlBase64ImageHandling.Skip => false,
+            MarkdownHtmlBase64ImageHandling.SaveToFile => dataUri.TryDecodeBytes(out _),
             _ => throw new ArgumentOutOfRangeException(nameof(context.Options.Base64Images), context.Options.Base64Images, "Unknown base64 image handling mode.")
         };
     }
@@ -426,7 +426,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string EncodeSavedSrcSetSource(string originalSource, string source, ConversionContext context) {
-        if (context.Options.Base64Images != HtmlBase64ImageHandling.SaveToFile
+        if (context.Options.Base64Images != MarkdownHtmlBase64ImageHandling.SaveToFile
             || !IsBase64ImageDataUri(originalSource)
             || string.Equals(originalSource, source, StringComparison.Ordinal)) {
             return source;

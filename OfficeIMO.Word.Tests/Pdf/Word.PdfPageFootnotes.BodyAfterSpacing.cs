@@ -36,7 +36,7 @@ public partial class WordPdfPageFootnoteTests {
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string stylesBefore = main.StyleDefinitionsPart.Styles.OuterXml;
 
-        var result = source.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var result = source.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         using var pdf = PdfPigDocument.Open(actual);
         using var native = PdfPigDocument.Open(reference);

@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -33,8 +34,10 @@ public sealed class GetOfficePdfPreflightCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        WriteObject(PdfDocument.Preflight(
-            PdfCommandUtilities.ResolvePath(this, Path),
-            PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent)));
+        WriteObject(OfficeDocument.Inspect(PdfCommandUtilities.ResolvePath(this, Path),
+            new OfficeInspectOptions {
+                IncludeContent = false,
+                PdfPreflight = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent) ?? new PdfLoadOptions()
+            }).PdfPreflight);
     }
 }

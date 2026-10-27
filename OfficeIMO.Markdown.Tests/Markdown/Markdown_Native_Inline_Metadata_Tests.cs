@@ -7,7 +7,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
     public void GenericAttributes_Inline_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -43,7 +43,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
     public void GenericAttributes_Inline_Metadata_Uses_TabExpanded_Columns() {
         const string markdown = "See [x](u){#id\t.wide} now\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -311,7 +311,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     [Fact]
     public void CjkFriendlyEmphasis_Strong_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "これは**強調？**です\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             CjkFriendlyEmphasis = true,
             PreserveTrivia = true
         };
@@ -609,7 +609,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
 
     [Fact]
     public void Soft_Line_As_Hard_Line_Break_Does_Not_Create_Fake_Marker_Metadata() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.SoftLineBreaksAsHardLineBreaks = true;
 
         var native = MarkdownNativeDocument.Parse("Alpha\nbravo\n", options);
@@ -626,7 +626,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     public void Autolink_Metadata_Preserves_Target_And_Angle_Markers_For_Edits_And_Snapshots() {
         const string markdown = "Go <https://example.com/docs> and mailto:user@example.com\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
         var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
         Assert.Equal(2, links.Length);
@@ -670,7 +670,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     public void Bare_Ftp_And_Tel_Autolink_Metadata_Preserves_Source_Targets() {
         const string markdown = "See ftp://example.com/file.txt and tel:+123\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
         var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
         Assert.Equal(2, links.Length);
@@ -700,7 +700,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     public void Footnote_Reference_Metadata_Preserves_Label_And_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "See [^note]\n\n[^note]: Body\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
         var footnote = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
         var label = Assert.Single(footnote.Metadata, metadata => metadata.Name == "label");
@@ -795,7 +795,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     public void Reference_Link_Metadata_Preserves_Inline_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "See [docs][hero], [api][], and [guide]\n\n[hero]: https://example.com/docs \"Docs\"\n[api]: /api\n[guide]: /guide\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
         var links = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Link).ToArray();
         Assert.Equal(3, links.Length);
@@ -915,7 +915,7 @@ public class Markdown_Native_Inline_Metadata_Tests {
     public void Reference_Image_Metadata_Preserves_Inline_Delimiter_Markers_For_Edits_And_Snapshots() {
         const string markdown = "Look ![Alt][img] and ![Icon]\n\n[img]: img.png \"Img\"\n[Icon]: icon.png\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
         var images = paragraph.InlineRuns.Where(inline => inline.Kind == MarkdownNativeInlineKind.Image).ToArray();
         Assert.Equal(2, images.Length);

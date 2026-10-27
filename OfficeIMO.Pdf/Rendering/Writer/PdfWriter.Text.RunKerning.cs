@@ -8,12 +8,12 @@ internal static partial class PdfWriter {
     private sealed class RichRunKerning {
         private const long MaximumKerningWork = 1_000_000;
         private long _work;
-        private readonly PdfOptions? _options;
+        private readonly PdfCreateOptions? _options;
         private Dictionary<RichSeg, PdfTextShowCommand>? _commands;
         private Dictionary<(PdfStandardFont, PdfNamedFontFace?), RunKerningFont?>? _fonts;
         private Dictionary<(RichSeg, RichSeg, int), double>? _adjustments;
 
-        public RichRunKerning(PdfOptions? options) => _options = options;
+        public RichRunKerning(PdfCreateOptions? options) => _options = options;
 
         private void SpendWork(long amount) {
             // Charge before scanning/copying a compatible span or positioning its glyphs.
@@ -210,7 +210,7 @@ internal static partial class PdfWriter {
         public int Scale(int value) => checked((int)Math.Round(value * 1000D / Reader.UnitsPerEm, MidpointRounding.AwayFromZero));
     }
 
-    private static RichSeg CreateRunKerningProbe(string text, PdfTextRun run, PdfStandardFont baseFont, double fontSize, PdfOptions? options) {
+    private static RichSeg CreateRunKerningProbe(string text, PdfTextRun run, PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options) {
         PdfNamedFontFace? named = options != null && options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace face) ? face : null;
         return new RichSeg(text, run.Bold, run.Italic, false, false, null, null, null, null, null,
             ResolveFontForRun(run, baseFont), run.FontSize ?? fontSize, run.Baseline, 0D, namedFont: named,

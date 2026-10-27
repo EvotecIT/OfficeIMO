@@ -40,7 +40,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableBlock_SnapshotsRowsStyleAndLinksIntoReadOnlyModel() {
         var body = new[] { "Original", (string)null! };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderWidth = 2;
         style.CellPaddingX = 7;
         style.RowSeparatorColor = new PdfColor(0.11, 0.22, 0.33);
@@ -111,7 +111,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_DefaultTableStyleAppliesToFollowingTablesAndSnapshotsInput() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -121,7 +121,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.CellPaddingX = 22;
 
         byte[] bytes = PdfDocument.Create(options)
@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_ExplicitTableStyleOverridesDefaultTableStyle() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -154,9 +154,9 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         };
-        var defaultStyle = TableStyles.Minimal();
+        var defaultStyle = PdfTableStyles.Minimal();
         defaultStyle.CellPaddingX = 24;
-        var explicitStyle = TableStyles.Minimal();
+        var explicitStyle = PdfTableStyles.Minimal();
         explicitStyle.CellPaddingX = 2;
 
         byte[] bytes = PdfDocument.Create(options)

@@ -165,10 +165,6 @@ public static partial class OfficeDrawingSvgExporter {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset;
-        double lineHeightFactor = OfficeDrawingTextLayout.ResolveLineHeightFactor(text.LineHeight, fontSize);
-        double minimumFontSize = Math.Min(6D, fontSize);
-        Func<string?, double, double> measure = (value, size) =>
-            textMetrics.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
         double contentX = text.X + text.Padding.Left;
         double contentY = text.Y + text.Padding.Top;
         double contentWidth = text.Width - text.Padding.Horizontal;
@@ -177,39 +173,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        OfficeTextBlockLayout layout = text.StackedText
-            ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
-                text.RasterText,
-                fontSize,
-                contentWidth,
-                contentHeight,
-                lineHeightFactor,
-                minimumFontSize,
-                measure,
-                text.ShrinkToFit,
-                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
-            : text.ShrinkToFit && text.WrapText
-            ? OfficeTextLayoutEngine.FitWrappedTextCore(
-                text.RasterText,
-                fontSize,
-                contentWidth,
-                contentHeight,
-                lineHeightFactor,
-                minimumFontSize,
-                measure,
-                text.ParagraphIndent,
-                (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
-            : OfficeTextLayoutEngine.LayoutTextBlock(
-                text.RasterText,
-                fontSize,
-                contentWidth,
-                contentHeight,
-                lineHeightFactor,
-                minimumFontSize,
-                measure,
-                wrap: text.WrapText,
-                shrinkToFit: text.ShrinkToFit,
-                paragraphIndent: text.ParagraphIndent);
+        OfficeTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithRasterMetrics(text, contentWidth, contentHeight, textMetrics);
         sb.AppendSvgStyledTextBlockWithFace(
             layout,
             text.Font.Face,

@@ -14,7 +14,7 @@ internal static class XmlTableSmoke {
         if (sheet.CellAt(1, 1).GetValue<string>() != "00127" || sheet.CellAt(1, 2).GetValue<double>() != 12.5 || !sheet.CellAt(1, 3).GetValue<bool>())
             throw new InvalidOperationException("XML table scalar types did not survive NativeAOT import.");
         XElement row = XElement.Parse(sheet.ToXml("A1:D1", options: options,
-            readOptions: new ExcelReadOptions { TreatDatesUsingNumberFormat = true })).Element("Row")!;
+            readOptions: new ExcelReaderOptions { TreatDatesUsingNumberFormat = true })).Element("Row")!;
         if (row.Element("date")?.Value != "2026-10-19T12:30:00")
             throw new InvalidOperationException("XML table date did not survive NativeAOT export.");
     }

@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
         double sceneBaseline = image.Y + image.Height + 16D;
         Assert.InRange(Math.Abs(savedBaseline - sceneBaseline), 0D, 0.0005D / 0.75D);
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var page = pdf.GetPage(1);
         var first = page.Letters.First(letter => letter.Value == "H");
         double pdfBaselineCss = (page.Height - first.StartBaseLine.Y) / 0.75D;

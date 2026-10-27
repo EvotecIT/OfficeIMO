@@ -4,7 +4,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Previews only references in the first legal visual fragment used by a preceding keep chain.</summary>
         private IEnumerable<RichSeg> GetFirstTableFootnoteSegments(TableBlock table) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0 || !ValidateTableFootnotePlacement(table, style, columns))
                 return Enumerable.Empty<RichSeg>();

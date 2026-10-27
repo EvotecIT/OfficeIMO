@@ -8,11 +8,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out _, out int firstColumn, out _, out _)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out _, out int firstColumn, out _, out _)) {
                 return null;
             }
 
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions = workbookSheet.GetColumnDefinitions(cancellationToken);
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions = workbookSheet.GetColumnDefinitions(cancellationToken);
             if (columnDefinitions.Count == 0) {
                 return null;
             }
@@ -32,9 +32,9 @@ namespace OfficeIMO.Excel.Pdf {
             return hasCustomWidth ? new ColumnLayoutData(weights, totalWidth * 5.25D) : null;
         }
 
-        private static double GetWorksheetColumnWidth(IReadOnlyList<ExcelColumnSnapshot> columnDefinitions, int columnIndex, out bool customWidth) {
+        private static double GetWorksheetColumnWidth(IReadOnlyList<ExcelColumnInfo> columnDefinitions, int columnIndex, out bool customWidth) {
             for (int i = columnDefinitions.Count - 1; i >= 0; i--) {
-                ExcelColumnSnapshot definition = columnDefinitions[i];
+                ExcelColumnInfo definition = columnDefinitions[i];
                 if (columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex) {
                     customWidth = definition.CustomWidth && definition.Width.HasValue && definition.Width.Value > 0D;
                     return customWidth ? definition.Width!.Value : 8.43D;
@@ -50,11 +50,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out int firstRow, out _, out _, out _)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out int firstRow, out _, out _, out _)) {
                 return null;
             }
 
-            IReadOnlyList<ExcelRowSnapshot> rowDefinitions = workbookSheet.GetRowDefinitions();
+            IReadOnlyList<ExcelRowInfo> rowDefinitions = workbookSheet.GetRowDefinitions();
             if (rowDefinitions.Count == 0) {
                 return null;
             }
@@ -72,9 +72,9 @@ namespace OfficeIMO.Excel.Pdf {
             return hasCustomHeight ? new RowLayoutData(minHeights) : null;
         }
 
-        private static double? GetWorksheetRowHeight(IReadOnlyList<ExcelRowSnapshot> rowDefinitions, int rowIndex) {
+        private static double? GetWorksheetRowHeight(IReadOnlyList<ExcelRowInfo> rowDefinitions, int rowIndex) {
             for (int i = rowDefinitions.Count - 1; i >= 0; i--) {
-                ExcelRowSnapshot definition = rowDefinitions[i];
+                ExcelRowInfo definition = rowDefinitions[i];
                 if (definition.Index == rowIndex) {
                     return definition.CustomHeight && definition.Height.HasValue && definition.Height.Value > 0D
                         ? definition.Height.Value
@@ -90,12 +90,12 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return null;
             }
 
             var layout = new MergeLayoutData(rowCount, columnCount);
-            foreach (ExcelMergedRangeSnapshot mergedRange in workbookSheet.GetMergedRanges()) {
+            foreach (ExcelMergedRangeInfo mergedRange in workbookSheet.GetMergedRanges()) {
                 if (mergedRange.StartRow < firstRow ||
                     mergedRange.StartColumn < firstColumn ||
                     mergedRange.EndRow > lastRow ||

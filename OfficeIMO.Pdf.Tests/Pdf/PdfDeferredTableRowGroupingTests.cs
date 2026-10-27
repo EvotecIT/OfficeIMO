@@ -43,7 +43,7 @@ public class PdfDeferredTableRowGroupingTests {
             MinimumBodyRowsOnFirstPage = mode == "last" ? 0 : 2,
             MinimumBodyRowsOnLastPage = mode == "first" ? 0 : 2
         };
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 320, PageHeight = roles ? 160 : 120,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
         });

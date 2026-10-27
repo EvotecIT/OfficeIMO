@@ -70,7 +70,7 @@ public class ExcelNumericXmlReadBenchmarks {
                 ExcelDocument.WriteRows(output,
                     ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
                     static (writer, row) => writer.Write(row.Id).Write(row.Amount),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = Coordinates != "ImplicitRowsAndCells", UseSharedStrings = false });
+                    new ExcelWriterOptions { IncludeCellReferences = Coordinates != "ImplicitRowsAndCells", UseSharedStrings = false });
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
                 const string name = "xl/worksheets/sheet1.xml";
@@ -103,7 +103,7 @@ public class ExcelNumericXmlReadBenchmarks {
     }
 
     private long ReadCore(bool validate) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             NumericAsDecimal = NumericAsDecimal,
             InferDataTableColumnTypes = InferDataTableColumnTypes,
             EnableWorksheetPrefetch = EnableWorksheetPrefetch
@@ -113,7 +113,7 @@ public class ExcelNumericXmlReadBenchmarks {
         if (Api == "DataReader" || Api == "TypedDataReader") {
             if (_readRowCount != RowCount)
                 throw new InvalidOperationException("DataReader benchmarks select every data row.");
-            using var reader = ExcelDocument.OpenDataReader(_path, options);
+            using var reader = ExcelDocument.OpenReader(_path, options);
             if (reader.FieldCount != 2 || reader.GetName(0) != Headers[0] || reader.GetName(1) != Headers[1]) {
                 throw new InvalidDataException("Reader headers differ.");
             }

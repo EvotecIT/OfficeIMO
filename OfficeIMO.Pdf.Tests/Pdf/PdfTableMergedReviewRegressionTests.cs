@@ -157,7 +157,7 @@ public partial class PdfDocumentVisualQualityTests {
                 }).Content(inner => inner.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))))));
         } else AddTable(document, rows, style, false);
         using CancellationTokenSource cancellation = new(TimeSpan.FromSeconds(5));
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(cancellation.Token));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(cancellationToken: cancellation.Token));
         foreach (string token in tallTokens.Concat(keptTokens))
             Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == token);
         // Closing padding makes this paragraph taller than the final usable frame,
@@ -213,7 +213,7 @@ public partial class PdfDocumentVisualQualityTests {
         string[] neighbors = Enumerable.Range(1, 8).Select(n => $"N{n}").ToArray();
         PdfTableStyle style = Style();
         style.MinimumBodyRowsOnFirstPage = 0;
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 460, PageHeight = 140, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
         }).Columns(content => {

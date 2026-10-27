@@ -27,7 +27,7 @@ public partial class Word {
         table._tableProperties!.TableLook = new TableLook { FirstRow = true, NoHorizontalBand = true, NoVerticalBand = true };
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Body";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable result = Assert.Single(restored.Tables);
         Assert.Equal("FFFF00", result.Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Equal(string.Empty, result.Rows[1].Cells[0].ShadingFillColorHex);
@@ -48,7 +48,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = "MissingGridChild" };
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Fallback";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell cell = Assert.Single(restored.Tables).Rows[0].Cells[0];
         Assert.Equal(240, Assert.Single(cell.Paragraphs).LineSpacing);
         Assert.Equal(0, cell.Paragraphs[0].LineSpacingAfter);
@@ -77,7 +77,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = "ModifiedGridChild" };
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Source grid";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell cell = Assert.Single(restored.Tables).Rows[0].Cells[0];
         WordParagraph paragraph = Assert.Single(cell.Paragraphs);
         Assert.Equal(180, paragraph.LineSpacingAfter);
@@ -114,7 +114,7 @@ public partial class Word {
             }
             body.PrependChild(new SdtBlock(new SdtProperties(new SdtAlias { Val = "Boundary tables" }), content));
         }
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         LegacyDocDocument model = LegacyDocDocument.Load(bytes);
         var point = Assert.Single(model.Bookmarks, b => b.Name == "TrailingPoint");
         int previousEnd = "First\a\a".Length;

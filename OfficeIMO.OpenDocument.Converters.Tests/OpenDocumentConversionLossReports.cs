@@ -49,7 +49,7 @@ public sealed class OpenDocumentConversionLossReportTests {
             }
 
             using ExcelDocument source = ExcelDocument.Load(filePath);
-            ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+            ExcelWorkbookInfo snapshot = source.Inspect();
             OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
 
             Assert.Equal(1, snapshot.ChartPartCount);
@@ -101,7 +101,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
 
-        ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+        ExcelWorkbookInfo snapshot = source.Inspect();
         Assert.Equal(1, snapshot.ChartPartCount);
         Assert.Equal(1, snapshot.PivotTablePartCount);
         Assert.True(snapshot.HasCharts);
@@ -135,7 +135,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         byte[] bytes;
         using (ExcelDocument created = ExcelDocument.Create()) {
             created.AddWorksheet("Data").CellValue(1, 1, 1d);
-            bytes = created.ToBytes(format);
+            bytes = created.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
         }
 
         using ExcelDocument source = ExcelDocument.Load(new MemoryStream(bytes, writable: false));
@@ -160,7 +160,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\";1;0)";
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;
-        ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells
+        ExcelCellInfo reverseFormula = roundTrip.Inspect().Worksheets.Single().Cells
             .Single(cell => cell.Row == 1 && cell.Column == 3);
         Assert.Equal("IF(A1=\"[.B2]\",1,0)", reverseFormula.Formula);
     }
@@ -180,7 +180,7 @@ public sealed class OpenDocumentConversionLossReportTests {
             target.GetSheet("Data")!.Cell(0, 0).Formula);
         OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
         using ExcelDocument roundTrip = reverse.Value;
-        ExcelCellSnapshot formula = roundTrip.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
+        ExcelCellInfo formula = roundTrip.Inspect().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
         Assert.Equal("SUM('Other'!A1,'Other Sheet'!B2:C3)", formula.Formula);
     }
 
@@ -234,7 +234,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
 
-        ExcelCellSnapshot formula = target.CreateInspectionSnapshot().Worksheets.Single().Cells
+        ExcelCellInfo formula = target.Inspect().Worksheets.Single().Cells
             .Single(cell => cell.Row == 1 && cell.Column == 2);
         Assert.Equal("IF(A1>0,\"yes;still\",\"no\")", formula.Formula);
     }
@@ -389,8 +389,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
 
-        WordRunSnapshot link = target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
-            .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Relative").Runs.Single();
+        WordRunInfo link = target.Inspect().Sections.SelectMany(section => section.Elements)
+            .OfType<WordParagraphInfo>().Single(paragraph => paragraph.Text == "Relative").Runs.Single();
         Assert.Equal("docs/page.html", link.HyperlinkUri);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
@@ -480,7 +480,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         });
         using ExcelDocument target = conversion.Value;
 
-        Assert.Equal(2, target.CreateInspectionSnapshot().Worksheets.Count);
+        Assert.Equal(2, target.Inspect().Worksheets.Count);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "worksheets" && mapping.Count == 2);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits" && mapping.Status == OdfConversionMappingStatus.Skipped);
     }
@@ -493,7 +493,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelWorkbookSnapshot snapshot = target.CreateInspectionSnapshot();
+        ExcelWorkbookInfo snapshot = target.Inspect();
 
         Assert.Empty(target.ValidateDocument());
         Assert.False(snapshot.Worksheets[0].Hidden);

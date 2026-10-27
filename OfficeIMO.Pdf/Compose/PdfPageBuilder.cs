@@ -7,9 +7,9 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfPageBuilder {
     private readonly PdfDocument _doc;
-    private readonly PdfOptions _options;
-    internal PdfOptions Options => _options;
-    internal PdfPageBuilder(PdfDocument doc, PdfOptions options) { _doc = doc; _options = options; }
+    private readonly PdfCreateOptions _options;
+    internal PdfCreateOptions Options => _options;
+    internal PdfPageBuilder(PdfDocument doc, PdfCreateOptions options) { _doc = doc; _options = options; }
 
     /// <summary>Sets or clears the parity required at the start of a later page group. Optionally uses the continuing page number before this group's numbering restart.</summary>
     public PdfPageBuilder StartOnPageParity(PdfPageParity? parity, bool useContinuingPageNumber = false) {
@@ -18,8 +18,8 @@ public sealed class PdfPageBuilder {
         return this;
     }
 
-    /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
-    public PdfPageBuilder Size(PageSize size) {
+    /// <summary>Sets page size using a predefined <see cref="PdfPageSize"/>.</summary>
+    public PdfPageBuilder Size(PdfPageSize size) {
         Guard.Positive(size.Width, nameof(size));
         Guard.Positive(size.Height, nameof(size));
         Options.PageSize = size;
@@ -35,7 +35,7 @@ public sealed class PdfPageBuilder {
     }
     /// <summary>Sets page orientation while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Orientation(OfficePageOrientation orientation) {
-        var oriented = new PageSize(Options.PageWidth, Options.PageHeight).WithOrientation(orientation);
+        var oriented = new PdfPageSize(Options.PageWidth, Options.PageHeight).WithOrientation(orientation);
         Options.PageWidth = oriented.Width;
         Options.PageHeight = oriented.Height;
         return this;
@@ -247,7 +247,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets page margins from a reusable margin value.</summary>
-    public PdfPageBuilder Margin(PageMargins margins) {
+    public PdfPageBuilder Margin(PdfPageMargins margins) {
         Options.Margins = margins;
         return this;
     }
@@ -318,7 +318,7 @@ public sealed class PdfPageBuilder {
     /// <summary>Configures the default table style for page tables that do not provide an explicit style.</summary>
     public PdfPageBuilder DefaultTableStyle(PdfTableStyle style) { Guard.NotNull(style, nameof(style)); Options.DefaultTableStyle = style; return this; }
     /// <summary>Configures the default table style for the page from a supported Word table style name.</summary>
-    public PdfPageBuilder DefaultTableStyle(string wordTableStyleName) { Options.DefaultTableStyle = TableStyles.FromWordTableStyle(wordTableStyleName); return this; }
+    public PdfPageBuilder DefaultTableStyle(string wordTableStyleName) { Options.DefaultTableStyle = PdfTableStyles.FromWordTableStyle(wordTableStyleName); return this; }
     /// <summary>Configures the default style for a built-in heading level on the page.</summary>
     public PdfPageBuilder DefaultHeadingStyle(int level, PdfHeadingStyle style) { Guard.NotNull(style, nameof(style)); Options.SetDefaultHeadingStyle(level, style); return this; }
     /// <summary>Configures the default style for page bullet and numbered lists.</summary>

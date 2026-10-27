@@ -37,7 +37,7 @@ public sealed class StudioWorkflowPublicationTests {
                     await tab.Document.DuplicateSelectedCommand.ExecuteAsync(null);
                     var conversion = tab.Document.ConversionWorkbench;
                     conversion.SelectedRoute = conversion.Routes.Single(route => route.Route.Id == "html-pdf");
-                    conversion.SelectedConflict = conversion.ConflictPolicies.Single(policy => policy.Value == OfficeWorkflowConflictPolicy.Replace);
+                    conversion.SelectedConflict = conversion.ConflictPolicies.Single(policy => policy.Value == OfficePublicationPolicy.Replace);
                     conversion.OutputFolder = alias;
                     await conversion.AddFilesCommand.ExecuteAsync(null);
                     await conversion.RunQueueCommand.ExecuteAsync(null);
@@ -49,11 +49,11 @@ public sealed class StudioWorkflowPublicationTests {
                     Assert.False(host.CanPublishDirectory(root));
                     Assert.True(host.CanPublishDirectory(Path.Combine(root, "other")));
 
-                    conversion.SelectedConflict = conversion.ConflictPolicies.Single(policy => policy.Value == OfficeWorkflowConflictPolicy.Rename);
+                    conversion.SelectedConflict = conversion.ConflictPolicies.Single(policy => policy.Value == OfficePublicationPolicy.Rename);
                     await conversion.RetryFailedCommand.ExecuteAsync(null);
                     Assert.Equal("Completed", Assert.Single(conversion.Jobs).Status);
                     Assert.Equal(original, File.ReadAllBytes(output));
-                    Assert.Equal(1, PdfDocument.Load(File.ReadAllBytes(Path.Combine(destinationFolder, "document (1).pdf"))).Inspect().PageCount);
+                    Assert.Equal(1, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Path.Combine(destinationFolder, "document (1).pdf")))).Inspect().PageCount);
                 }
                 return true;
             }, CancellationToken.None);

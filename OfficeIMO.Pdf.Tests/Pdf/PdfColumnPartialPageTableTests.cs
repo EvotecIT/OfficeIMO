@@ -74,7 +74,7 @@ public sealed class PdfColumnPartialPageTableTests {
         var style = TableStyle();
         style.RowMinHeights = new List<double?> { 310 };
         style.KeepTogether = keepTable;
-        var options = new PdfOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
+        var options = new PdfCreateOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
             MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, MaxGeneratedPages = 3 };
         var document = PdfDocument.Create(options).Container(content => {
             content.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
@@ -103,7 +103,7 @@ public sealed class PdfColumnPartialPageTableTests {
     [Fact]
     public void Columns_TableThatFitsThePaddedPhysicalPageStillAdvancesAndRendersOnce() {
         var style = TableStyle(); style.RowMinHeights = new List<double?> { 290 }; style.KeepTogether = true;
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfOptions { PageWidth = 500, PageHeight = 400,
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
             MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, MaxGeneratedPages = 3 })
             .Container(outer => outer.Panel(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
@@ -124,7 +124,7 @@ public sealed class PdfColumnPartialPageTableTests {
         return RenderTable(new[] { new[] { cell } }, style);
     }
     private static byte[] RenderTable(PdfTableCell[][] rows, PdfTableStyle style) =>
-        PdfDocument.Create(new PdfOptions { PageWidth=500, PageHeight=400, MarginLeft=40, MarginRight=40,
+        PdfDocument.Create(new PdfCreateOptions { PageWidth=500, PageHeight=400, MarginLeft=40, MarginRight=40,
             MarginTop=40, MarginBottom=40, DefaultFontSize=12 })
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))), style: ParagraphStyle())
             .Columns(content => content.Table(rows, style: style),

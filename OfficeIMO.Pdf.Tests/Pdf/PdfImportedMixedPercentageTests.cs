@@ -95,7 +95,7 @@ public class PdfImportedMixedPercentageTests {
     }
 
     private static (double First, double Second) RenderWidths(PdfTableStyle style) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 340D, PageHeight = 200D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
         };

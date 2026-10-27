@@ -5,9 +5,9 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static IReadOnlyList<GoogleSheetsTableColumn> BuildTableColumns(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table) {
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table) {
             var columns = new List<GoogleSheetsTableColumn>();
             foreach (var tableColumn in table.Columns) {
                 var absoluteColumn = table.StartColumn + tableColumn.Index - 1;
@@ -24,8 +24,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string? ResolveTableFooterColorArgb(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table) {
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table) {
             if (!table.TotalsRowShown) {
                 return null;
             }
@@ -41,8 +41,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string? ResolveTableHeaderColorArgb(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table) {
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table) {
             if (!table.HasHeaderRow) {
                 return null;
             }
@@ -52,8 +52,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string? ResolveTableFirstBandColorArgb(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table) {
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table) {
             var firstDataRow = GetFirstDataRowIndex(table);
             if (!firstDataRow.HasValue) {
                 return null;
@@ -64,8 +64,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string? ResolveTableSecondBandColorArgb(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table) {
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table) {
             var firstDataRow = GetFirstDataRowIndex(table);
             var lastDataRow = GetLastDataRowIndex(table);
             if (!firstDataRow.HasValue || !lastDataRow.HasValue) {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return colors.Count > 0 ? colors[0] : null;
         }
 
-        private static int? GetFirstDataRowIndex(ExcelTableSnapshot table) {
+        private static int? GetFirstDataRowIndex(ExcelTableInspectionInfo table) {
             var startRow = table.HasHeaderRow ? table.StartRow + 1 : table.StartRow;
             var lastDataRow = GetLastDataRowIndex(table);
             if (!lastDataRow.HasValue || startRow > lastDataRow.Value) {
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return startRow;
         }
 
-        private static int? GetLastDataRowIndex(ExcelTableSnapshot table) {
+        private static int? GetLastDataRowIndex(ExcelTableInspectionInfo table) {
             var endRow = table.TotalsRowShown ? table.EndRow - 1 : table.EndRow;
             if (endRow < table.StartRow) {
                 return null;
@@ -101,8 +101,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static List<string> GetTableRowFillColors(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table,
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table,
             int rowIndex) {
             return worksheet.Cells
                 .Where(cell => cell.Row == rowIndex
@@ -118,9 +118,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string InferTableColumnType(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table,
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table,
             int absoluteColumn) {
             var validationRule = BuildTableColumnValidationRule(workbookSnapshot, worksheet, table, absoluteColumn);
             if (validationRule != null) {
@@ -202,9 +202,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsDataValidationRule? BuildTableColumnValidationRule(
-            ExcelWorkbookSnapshot workbookSnapshot,
-            ExcelWorksheetSnapshot worksheet,
-            ExcelTableSnapshot table,
+            ExcelWorkbookInfo workbookSnapshot,
+            ExcelWorksheetInfo worksheet,
+            ExcelTableInspectionInfo table,
             int absoluteColumn) {
             var validation = FindMatchingListValidation(worksheet, table, absoluteColumn);
             if (validation == null) {

@@ -88,8 +88,8 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
         FileStream? lease = null;
         try {
             lease = OpenLease(Path.Combine(directory, ".lease"));
-            string hash = Convert.ToHexString(SHA256.HashData(bytes));
-            string id = Path.GetFileName(directory)[Prefix.Length..];
+            string hash = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes));
+            string id = Path.GetFileName(directory).Substring(Prefix.Length);
             var record = new Metadata(1, id, name, destination, bytes.LongLength, hash, DateTimeOffset.UtcNow);
             byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(record, RecoveryJsonContext.Default.Metadata);
             if (metadata.Length > MaximumMetadataBytes) throw new InvalidDataException("The recovery metadata exceeds its size limit.");
@@ -175,7 +175,7 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
         const string temporaryPrefix = ".officeimo-";
         const string temporarySuffix = ".tmp";
         return name.StartsWith(temporaryPrefix, StringComparison.Ordinal) && name.EndsWith(temporarySuffix, StringComparison.Ordinal) &&
-            Guid.TryParseExact(name[temporaryPrefix.Length..^temporarySuffix.Length], "N", out _);
+            Guid.TryParseExact(name.Substring(temporaryPrefix.Length, name.Length - temporaryPrefix.Length - temporarySuffix.Length), "N", out _);
     }
 
     private static IEnumerable<string> GetCommitTargets(string directory) =>
@@ -185,7 +185,7 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
         .Any(target => string.Equals(path, OfficeFileCommitClaim.CreatePath(target), StringComparison.Ordinal));
 
     private OfficeWorkflowOutputRecovery? ReadRecord(string directory) {
-        string id = Path.GetFileName(directory)[Prefix.Length..];
+        string id = Path.GetFileName(directory).Substring(Prefix.Length);
         if (!Guid.TryParseExact(id, "N", out _)) return null;
         string metadataPath = Path.Combine(directory, "record.json");
         if (!File.Exists(metadataPath)) return null;
@@ -201,11 +201,11 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
 
     private static bool IsRecordDirectory(string directory) {
         string name = Path.GetFileName(directory);
-        return name.StartsWith(Prefix, StringComparison.Ordinal) && Guid.TryParseExact(name[Prefix.Length..], "N", out _);
+        return name.StartsWith(Prefix, StringComparison.Ordinal) && Guid.TryParseExact(name.Substring(Prefix.Length), "N", out _);
     }
 
     private string ValidateRecordDirectory(OfficeWorkflowOutputRecovery record) {
-        ArgumentNullException.ThrowIfNull(record);
+        if (record == null) throw new ArgumentNullException(nameof(record));
         if (!Guid.TryParseExact(record.Id, "N", out _)) throw new ArgumentException("The recovery identifier is invalid.", nameof(record));
         string directory = Path.Combine(DirectoryPath, Prefix + record.Id);
         EnsureRegularDirectory(directory);
@@ -233,9 +233,17 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
     }
     private static FileStream OpenLease(string path) {
         if (File.Exists(path)) EnsureRegularFile(path);
+#if NET8_0_OR_GREATER
         var options = new FileStreamOptions { Mode = FileMode.OpenOrCreate, Access = FileAccess.ReadWrite, Share = FileShare.None, BufferSize = 1 };
-        if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        if (!OfficeRuntimeCompatibility.IsWindows) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
         return new FileStream(path, options);
+#else
+        if (!File.Exists(path)) {
+            try { return OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(path, 1, FileOptions.None); }
+            catch (IOException) when (File.Exists(path)) { }
+        }
+        return new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, 1);
+#endif
     }
 
     private sealed record Metadata(int Version, string Id, string Name, string Destination, long Length, string Sha256, DateTimeOffset CreatedUtc);

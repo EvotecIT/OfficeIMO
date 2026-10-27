@@ -9,7 +9,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaks_GeneratedPreflightKeepsSourceOffsetsWithAndWithoutFallbacks(bool fallback) {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (fallback) {
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'V');
             options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "IdentifierFont");
@@ -40,7 +40,7 @@ public sealed class PdfOptionalBreakLinkTests {
         string? path = cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(path);
         byte[] font = System.IO.File.ReadAllBytes(path!);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (named) { options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("IdentifierFont", font)); }
         else { options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "IdentifierFont"); }
         var run = new PdfTextRun("AV\u200BAV", fontFamily: named ? "IdentifierFont" : null);
@@ -57,7 +57,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(true)]
     public void OptionalBreakOnlyLink_KeepsVisibleSiblingAndDestination(bool namedDestination) {
         const string uri = "https://example.test/identifier";
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseTextFallbacks());
         document.Paragraph(paragraph => {
@@ -91,7 +91,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreakOnlyLink_DoesNotCreateAnOrphanStructure(bool visibleSibling) {
-        var document = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers });
+        var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers });
         document.Paragraph(paragraph => {
             paragraph.Text("Before ");
             paragraph.Link("\u200B", "https://example.test/empty");
@@ -118,7 +118,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [Fact]
     public void TableOfContents_IdentifierWithOptionalBreaks_KeepsFinalPageAndPositiveLinkAreas() {
         const string display = "Mx12.\u200Blong-\u200Blabel.\u200Bexample.\u200Btest";
-        byte[] bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .TableOfContents(new PdfTableOfContentsOptions {
                 Entries = new[] { new PdfTableOfContentsEntry(display, "details") },
                 PageNumberFormatter = page => "page-" + page

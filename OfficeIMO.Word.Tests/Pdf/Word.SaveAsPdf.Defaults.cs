@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void SaveAsPdf_DefaultsEmbedDocumentFontsWithoutAllowingArbitraryResourceReads() {
-            var options = new WordToPdfOptions();
+            var options = new WordPdfExportOptions();
 
             Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
             Assert.True(options.ResourcePolicy.AllowDocumentFontEmbedding);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SaveAsPdf_InvalidRenderingProfileDoesNotCreatePdfOptions() {
-            var options = new WordToPdfOptions();
+            var options = new WordPdfExportOptions();
 
             Assert.Throws<ArgumentNullException>(
                 () => options.UseRenderingProfile(null!));
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     DefaultOrientation = OfficePageOrientation.Landscape,
                     DefaultPageSize = WordPageSize.A4
                 });

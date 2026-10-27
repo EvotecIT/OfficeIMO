@@ -24,7 +24,7 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
     /// <summary>Source heading block.</summary>
     public HeadingBlock Heading { get; }
 
-    /// <summary>Heading level, where 1 is H1.</summary>
+    /// <summary>Heading level, where 1 is MarkdownH1.</summary>
     public int Level { get; }
 
     /// <summary>Plain-text heading content.</summary>
@@ -144,7 +144,7 @@ public sealed class MarkdownNativeListItem {
     /// <summary>AST-backed native inline projection for the lead content.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 
-    /// <summary>Paragraph-level native projections owned by this list item.</summary>
+    /// <summary>MarkdownParagraph-level native projections owned by this list item.</summary>
     public IReadOnlyList<MarkdownNativeListItemParagraph> Paragraphs { get; }
 
     /// <summary>Additional paragraph inline nodes owned by this list item.</summary>
@@ -247,7 +247,7 @@ public sealed class MarkdownNativeListItemParagraph {
     /// <summary>Syntax node that produced this list-item paragraph when available.</summary>
     public MarkdownSyntaxNode? SyntaxNode { get; }
 
-    /// <summary>Paragraph source span in the normalized markdown text when available.</summary>
+    /// <summary>MarkdownParagraph source span in the normalized markdown text when available.</summary>
     public MarkdownSourceSpan? SourceSpan { get; }
 
     /// <summary>Plain-text paragraph content.</summary>

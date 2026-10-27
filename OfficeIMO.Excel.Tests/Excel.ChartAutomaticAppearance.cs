@@ -23,7 +23,7 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         using ExcelDocument document = ExcelDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.xlsx"));
         ExcelChart chart = document.Sheets.Single(sheet => sheet.Name == "Chart" + number).Charts.Single();
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
 
         var fills = new List<string>();
         if (snapshot.ChartType is ExcelChartType.Pie or ExcelChartType.Doughnut) {
@@ -41,12 +41,12 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         using ExcelDocument document = ExcelDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.xlsx"));
         int stock = ReadReference().Single(chart => chart.Title == "Stock high-low-close").Number;
         Assert.True(document.Sheets.Single(sheet => sheet.Name == "Chart" + stock).Charts.Single()
-            .TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            .TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.True(snapshot.Layout!.ShowHighLowLines);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
 
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "WorksheetChart");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "worksheet-chart");
         Assert.Contains(result.Warnings, warning => warning.Code == "chart-approximation" &&
             warning.Message.Contains("high-low lines", StringComparison.Ordinal));
     }
@@ -57,7 +57,7 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         // wider than its anchor used to paint over the legend labels.
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "Excel", "exploded-slices.xlsx");
         using ExcelDocument document = ExcelDocument.Load(path);
-        byte[] pdf = document.ToPdfDocumentResult().ToBytes();
+        byte[] pdf = document.ConvertToPdfWithEvidence().ToBytes();
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);

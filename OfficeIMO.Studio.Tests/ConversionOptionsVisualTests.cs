@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -31,7 +32,7 @@ public sealed class ConversionOptionsVisualTests {
             await queue.AddFilesCommand.ExecuteAsync(null);
             var job = Assert.Single(queue.Jobs);
             job.PageRanges = "2";
-            job.WordMode = PdfWordImportMode.VisualPages;
+            job.WordMode = WordPdfImportMode.VisualPages;
             job.RasterDpi = 72;
             var view = new ConversionWorkbenchView { DataContext = model };
             var window = new Window { Width = width, Height = height, Content = view };

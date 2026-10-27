@@ -41,7 +41,7 @@ _ = new HtmlCapabilityGalleryManifest(
     roundTripScore: null,
     resourceManifest: null);
 
-WordToHtmlOptions word = WordToHtmlOptions.CreateDocumentRoundTripProfile();
+WordHtmlExportOptions word = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
 word.DocumentOutput = output.Clone();
 word.Profile = OfficeHtmlConversionProfile.WordDocumentRoundTrip;
 ExcelHtmlSaveOptions excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();

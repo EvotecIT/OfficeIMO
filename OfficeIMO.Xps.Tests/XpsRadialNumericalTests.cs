@@ -44,7 +44,7 @@ public sealed class XpsRadialNumericalTests {
         var document = Create(format, spread, small);
         document = XpsDocument.Load(document.Save());
         var native = OfficeDrawingRasterRenderer.Render(document.Pages[0].ToDrawing(), background: OfficeColor.White);
-        var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
         var readback = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
         var point = small ? (102, 105) : (100, 80);
         foreach (var image in new[] { native, readback }) {

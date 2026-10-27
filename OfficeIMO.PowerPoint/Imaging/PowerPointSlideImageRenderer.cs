@@ -52,7 +52,9 @@ namespace OfficeIMO.PowerPoint {
                 double widthPoints = widthEmus.HasValue
                     ? widthEmus.Value / 12700D
                     : 1D;
-                target.StrokeWidth = mapping.MapStrokeWidth(widthPoints);
+                // Group extents scale shape coordinates; the existing slide export contract
+                // retains authored outline widths for shapes and connectors.
+                target.StrokeWidth = widthPoints;
                 A.PresetLineDashValues? dash = localOutline?
                     .GetFirstChild<A.PresetDash>()?.Val?.Value;
                 if (!dash.HasValue
@@ -501,10 +503,10 @@ namespace OfficeIMO.PowerPoint {
             List<OfficeImageExportDiagnostic> diagnostics,
             PowerPointShape shape,
             string message,
-            OfficeConversionLossKind lossKind = OfficeConversionLossKind.Omission) {
+            OfficeConversionLossKind lossKind = OfficeConversionLossKind.Omission, string? diagnosticCode = null) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
-                PowerPointImageExportDiagnosticCodes.UnsupportedShape,
+                diagnosticCode ?? PowerPointImageExportDiagnosticCodes.UnsupportedShape,
                 message,
                 DescribeShape(shape),
                 lossKind));

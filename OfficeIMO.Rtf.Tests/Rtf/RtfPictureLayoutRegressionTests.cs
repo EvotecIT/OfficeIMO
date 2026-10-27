@@ -101,7 +101,7 @@ public class RtfPictureLayoutRegressionTests {
     public void Pdf_Handles_Cropping_And_Padding_And_Rejects_Empty_Visible_Areas() {
         foreach (bool padding in new[] { false, true }) {
             RtfDocument document = CreatePicture(padding);
-            var result = document.ToPdfDocumentResult();
+            var result = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is "ImageCropPaddingFlattened" or "ImageCropDecodeFailed" or "ImageLayoutInvalid");
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.Value.ToBytes());
             Assert.Single(pdf.GetPage(1).GetImages());
@@ -117,7 +117,7 @@ public class RtfPictureLayoutRegressionTests {
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
         Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.Diagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
-        Assert.Contains(invalid.ToPdfDocumentResult().Warnings, item => item.Code == "ImageLayoutInvalid");
+        Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
         Assert.Contains(invalid.ToWordDocumentResult().Report.Diagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }
 }

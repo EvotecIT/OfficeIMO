@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? LeftColor {
+        public OfficeIMO.OfficeColor? LeftColor {
             get => LeftColorHex == null || string.Equals(LeftColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(LeftColorHex);
             set => LeftColorHex = value?.ToRgbHex();
         }
@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? RightColor {
+        public OfficeIMO.OfficeColor? RightColor {
             get => RightColorHex == null || string.Equals(RightColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(RightColorHex);
             set => RightColorHex = value?.ToRgbHex();
         }
@@ -283,7 +283,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? TopColor {
+        public OfficeIMO.OfficeColor? TopColor {
             get => TopColorHex == null || string.Equals(TopColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(TopColorHex);
             set => TopColorHex = value?.ToRgbHex();
         }
@@ -383,7 +383,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? BottomColor {
+        public OfficeIMO.OfficeColor? BottomColor {
             get => BottomColorHex == null || string.Equals(BottomColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(BottomColorHex);
             set => BottomColorHex = value?.ToRgbHex();
         }

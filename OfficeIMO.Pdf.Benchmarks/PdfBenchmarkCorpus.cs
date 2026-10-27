@@ -28,7 +28,7 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateDocument(PdfObjectSerializationMode objectSerializationMode) {
         byte[] image = CreateImage();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
             DefaultFontSize = 10,
             FileVersion = objectSerializationMode == PdfObjectSerializationMode.ForwardOnly
@@ -83,7 +83,7 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateHarfBuzzDocument() {
         byte[] fontData = CarlitoRegular.Value;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
             DefaultFontSize = 10,
             FileVersion = PdfFileVersion.Pdf17,

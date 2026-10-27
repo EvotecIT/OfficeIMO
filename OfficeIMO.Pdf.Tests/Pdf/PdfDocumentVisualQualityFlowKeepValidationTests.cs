@@ -17,7 +17,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Paragraph_ExactLineRejectsAdvanceTallerThanContentArea(bool columns) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300, PageHeight = 300,
             MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72
         };
@@ -31,7 +31,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_KeepTogetherRejectsContentTallerThanContentArea() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,
@@ -55,7 +55,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void List_KeepTogetherRejectsContentTallerThanContentArea() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,
@@ -78,7 +78,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_SplitsContentTallerThanContentAreaWhenAllowed() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,

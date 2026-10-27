@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
                     Math.Min(_rowContentStarts!.Length, _rowContentEnds!.Length));
                 if (required <= currentCapacity) return;
 
-                int nextCapacity = Math.Min(A1.MaxRows, checked(currentCapacity * 2));
+                int nextCapacity = Math.Min(ExcelA1.MaxRows, checked(currentCapacity * 2));
                 GrowRowArray(ref _rowIndexes, nextCapacity, _rowCount);
                 GrowRowArray(ref _rowContentStarts, nextCapacity, _rowCount);
                 GrowRowArray(ref _rowContentEnds, nextCapacity, _rowCount);

@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
         Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? svgDrawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         Assert.Empty(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(pdf));
         OfficeDrawing pdfDrawing = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
 
@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:40px 20px;margin:0}body{margin:0}img{display:block;width:40px;height:20px}</style>" +
             "<img src='data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg)) + "'>";
         var options = new HtmlToPdfOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfPageImageRenderer.RenderPage(pdf));
         Assert.Equal(OfficeColor.Red, image.GetPixel(18, 8));
         Assert.Equal(OfficeColor.White, image.GetPixel(8, 8));
@@ -133,7 +133,7 @@ public sealed partial class HtmlRenderingTests {
             File.WriteAllText(Path.Combine(output, "source.svg"), source);
             File.WriteAllText(Path.Combine(output, "source.html"), html);
             File.WriteAllText(Path.Combine(output, "drawing.svg"), OfficeDrawingSvgExporter.ToSvg(drawing!));
-            File.WriteAllBytes(Path.Combine(output, "composition.pdf"), document.ToPdfBytes(options));
+            File.WriteAllBytes(Path.Combine(output, "composition.pdf"), (document.ToPdf(options)).ToBytes());
             File.WriteAllBytes(Path.Combine(output, "composition.png"), png.Bytes);
             File.WriteAllBytes(Path.Combine(output, "drawing.png"), OfficeDrawingRasterRenderer.ToPng(drawing!, 1D, OfficeColor.White));
             File.WriteAllText(Path.Combine(output, "diagnostics.json"), System.Text.Json.JsonSerializer.Serialize(png.Diagnostics));

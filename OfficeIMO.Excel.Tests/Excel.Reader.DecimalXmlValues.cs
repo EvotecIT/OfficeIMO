@@ -33,7 +33,7 @@ public partial class Excel {
             // UTF-16 exercises the streaming XML fallback also used beyond the indexed reader's size limit.
             byte[] bytes = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray();
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", bytes);
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 NumericAsDecimal = true,
                 UseCachedFormulaResult = useCachedFormulaResult,
                 InferDataTableColumnTypes = false
@@ -43,7 +43,7 @@ public partial class Excel {
                 useCachedFormulaResult ? (object)3m : "1+2", string.Empty, "not-a-number", 12.5m
             };
 
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 Assert.Equal(headers.Length, reader.FieldCount);
                 Assert.True(reader.Read());
                 Assert.Equal(165258.24m, reader.GetDecimal(0));

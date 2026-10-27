@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 20) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-TABLESTYLES-SHORT",
+                    "xls-biff-tablestyles-short",
                     "The TableStyles record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 20) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-TABLESTYLE-SHORT",
+                    "xls-biff-tablestyle-short",
                     "The TableStyle record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 24) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-TABLESTYLEELEMENT-SHORT",
+                    "xls-biff-tablestyleelement-short",
                     "The TableStyleElement record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (offset + byteCount > record.Payload.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-TABLESTYLE-STRING-TRUNCATED",
+                    "xls-biff-tablestyle-string-truncated",
                     $"The {fieldName} extends beyond the end of the table style record.",
                     recordOffset: record.Offset,
                     recordType: record.Type));

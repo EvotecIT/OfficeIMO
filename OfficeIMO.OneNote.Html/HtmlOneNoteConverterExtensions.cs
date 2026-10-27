@@ -67,7 +67,7 @@ public static partial class HtmlOneNoteConverterExtensions {
             if (string.IsNullOrWhiteSpace(href)) continue;
             result.AddImportDiagnostic(new HtmlDiagnostic(
                 ComponentName,
-                "HtmlStylesheetLinkSkipped",
+                global::OfficeIMO.OfficeDiagnosticCodes.HtmlStylesheetLinkSkipped,
                 "An applicable HTML stylesheet link was not loaded by the semantic OneNote importer.",
                 HtmlDiagnosticSeverity.Warning,
                 source: href,

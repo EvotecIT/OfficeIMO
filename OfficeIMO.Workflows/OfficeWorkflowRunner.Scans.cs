@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
@@ -9,7 +10,7 @@ public sealed partial class OfficeWorkflowRunner {
         var settings = request.ScanCleanup ?? throw new InvalidOperationException("Scan settings are missing.");
         byte[] input = ReadInput(request.InputPath, request.Limits, token);
         if (settings.ExpectedSourceSha256 != null && !string.Equals(settings.ExpectedSourceSha256,
-            System.Convert.ToHexString(SHA256.HashData(input)), StringComparison.OrdinalIgnoreCase))
+            OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(input)), StringComparison.OrdinalIgnoreCase))
             throw new IOException("The source changed since scan review. Preview the current source before saving.");
         PdfDocument source = PdfDocument.Load(input, request.PdfLoadOptions);
         int pageCount = source.Inspect(request.PdfLoadOptions, token).PageCount;

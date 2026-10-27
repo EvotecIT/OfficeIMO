@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.SlicerPartCount);
                 Assert.Equal(1, snapshot.TimelinePartCount);
                 Assert.True(snapshot.HasSlicers);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("OrderDateNoPivot", timelineWithoutPivot.SourceName);
                 Assert.Null(timelineWithoutPivot.PivotTableName);
 
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.SlicerPartCount);
                 Assert.Equal(1, snapshot.TimelinePartCount);
                 Assert.Equal(2, snapshot.SlicerBindingMetadataPartCount);
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
                 var worksheetPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.Single();
                 Assert.Equal("Value", GetCellValue(document._spreadSheetDocument, worksheetPart, "A1"));
 
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.SlicerPartCount);
                 Assert.Equal(1, snapshot.TimelinePartCount);
             }
@@ -191,8 +191,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                ExcelWorksheetSnapshot worksheet = Assert.Single(snapshot.Worksheets);
+                ExcelWorkbookInfo snapshot = document.Inspect();
+                ExcelWorksheetInfo worksheet = Assert.Single(snapshot.Worksheets);
                 Assert.Equal("Data", worksheet.Name);
             }
         }
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.ConnectionPartCount);
                 Assert.Equal(1, snapshot.QueryTablePartCount);
                 Assert.True(snapshot.HasConnections);
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(0, snapshot.SlicerPartCount);
                 Assert.Equal(0, snapshot.TimelinePartCount);
                 Assert.False(snapshot.HasSlicers);
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             Assert.Empty(inspected.GetWorkbookSlicerCaches());
             Assert.Empty(inspected.GetWorkbookTimelineCaches());
-            ExcelWorkbookSnapshot snapshot = inspected.CreateInspectionSnapshot();
+            ExcelWorkbookInfo snapshot = inspected.Inspect();
             Assert.Equal(0, snapshot.SlicerBindingMetadataPartCount);
             Assert.Equal(0, snapshot.TimelineBindingMetadataPartCount);
             ExcelFeatureFinding customXml = Assert.Single(inspected.InspectFeatures().FindFeatures("Custom XML parts"));
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument inspected = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             Assert.Equal("Region", Assert.Single(inspected.GetWorkbookSlicerCaches()).Name);
             Assert.Empty(inspected.GetWorkbookTimelineCaches());
-            Assert.Equal(1, inspected.CreateInspectionSnapshot().SlicerBindingMetadataPartCount);
+            Assert.Equal(1, inspected.Inspect().SlicerBindingMetadataPartCount);
         }
 
         private static void WriteExtendedPart(ExtendedPart part, string xml) {

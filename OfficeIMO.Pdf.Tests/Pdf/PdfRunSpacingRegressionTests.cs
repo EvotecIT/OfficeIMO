@@ -14,7 +14,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(PdfTabLeaderStyle.Hyphens, "-", 50D, 1D)]
     [InlineData(PdfTabLeaderStyle.Underscores, "_", 150D, 1D)]
     public void TabLeadersUseTheRunGlyphWidthAndTracking(PdfTabLeaderStyle leader, string glyph, double scale, double tracking) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(tracking)
@@ -36,7 +36,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(100D, -3.336D, 1, false)]
     [InlineData(100D, -4D, 2, true)]
     public void CondensedRunWithSpaces_PreservesSignedSeparatorAdvances(double scaling, double spacing, int separatorCount, bool preserveWhitespace) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PreserveTextWhitespace = preserveWhitespace;
         var run = new PdfTextRun("MMMM" + new string(' ', separatorCount) + "MMMM", fontSize: 12D)
             .WithHorizontalTextScaling(scaling).WithCharacterSpacing(spacing);
@@ -77,7 +77,7 @@ public sealed class PdfRunSpacingRegressionTests {
 
     [Fact]
     public void ScaledDecimalTabs_AlignDifferentNumericPrefixes() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D, SpacingAfter = 0D };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
@@ -94,7 +94,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void WordOnlyUnderline_UsesStyledGlyphAdvances(bool embedded) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (embedded) {
             string? font = PdfComplianceTestFonts.FindBundledTrueTypeFont();
             Assert.NotNull(font);
@@ -119,7 +119,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void WordAcrossFormattingRuns_MovesTogetherWhenItFitsANewLine(bool scaled, bool table) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PageWidth = 100D; options.MarginLeft = options.MarginRight = 20D;
         var first = new PdfTextRun(scaled ? "XXXXXXXXXXX ALP" : "XXX ALP", fontSize: 12D);
         var last = new PdfTextRun("HA", fontSize: 12D, color: PdfColor.FromRgb(0, 0, 255));
@@ -138,7 +138,7 @@ public sealed class PdfRunSpacingRegressionTests {
         Assert.Equal(new[] { scaled ? "XXXXXXXXXXX" : "XXX", "ALPHA" }, lines);
     }
 
-    private static PdfOptions Options() => new PdfOptions {
+    private static PdfCreateOptions Options() => new PdfCreateOptions {
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D,
         MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
     };

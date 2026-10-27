@@ -25,8 +25,8 @@ public sealed class PowerPointNativeTextBoundaryTests {
         cell.PaddingTopPoints = cell.PaddingBottomPoints = 0;
         cell.Paragraphs[0].LineSpacingMultiplier = .75D;
         cell.Paragraphs[0].Runs[0].Bold = rich;
-        var result = presentation.ToPdfDocumentResult();
-        var span = Assert.Single(PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetTextSpans(),
+        var result = presentation.ConvertToPdfWithEvidence();
+        var span = Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].GetTextSpans(),
             span => span.Text.Contains("gypsy", StringComparison.Ordinal));
         Assert.True(span.IsVisible);
         Assert.Equal(24D, span.FontSize);
@@ -49,7 +49,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
             paragraph.LineSpacingMultiplier = .75D;
             paragraph.Runs[0].Bold = rich;
         }
-        var result = presentation.ToPdfDocumentResult();
+        var result = presentation.ConvertToPdfWithEvidence();
         var warning = Assert.Single(result.Warnings, warning => warning.Code == "text-box-overflow");
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.Overflow, warning.LayoutDiagnostic!.Kind);
         Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
@@ -65,14 +65,14 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("TALL", 20, 20, 150, 10);
         box.FontSize = 32;
         box.Paragraphs[0].Runs[0].Underline = rich;
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         var warning = Assert.Single(result.Warnings, warning => warning.Code == "text-box-overflow");
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.Overflow, warning.LayoutDiagnostic!.Kind);
         Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
-        var span = Assert.Single(PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetTextSpans(),
+        var span = Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].GetTextSpans(),
             span => span.Text.Contains("TALL", StringComparison.Ordinal));
         Assert.True(span.IsVisible);
         Assert.Equal(32D, span.FontSize);
@@ -88,7 +88,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         cell.FontSize = 12;
         cell.Text = "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu TAIL";
         cell.Paragraphs[0].SetBullet('*');
-        var result = presentation.ToPdfDocumentResult();
+        var result = presentation.ConvertToPdfWithEvidence();
         var spans = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetTextSpans();
         string text = string.Concat(spans.Select(span => span.Text));
         Assert.Contains("VISIBLE", text);
@@ -119,7 +119,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
             if (flow == "alignment") next.Alignment = PowerPointTextAlignment.Right;
             else box.Paragraphs[0].SetSpaceAfterPoints(4);
         }
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions().UseRenderingProfile(profile));
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions().UseRenderingProfile(profile));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
         string pdfText = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("VISIBLE", pdfText);
@@ -147,7 +147,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("VISIBLE alpha beta gamma delta epsilon TAIL", 20, 20, 90, 23);
         box.FontSize = 12;
         box.Paragraphs[0].Runs[0].Underline = rich;
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() });
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("VISIBLE", text);
@@ -173,9 +173,9 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointTextBox authored = slide.AddTextBoxPoints("AUTHORED", 20, 120, 220, 50);
         authored.FontName = "Courier";
         authored.FontSize = 12;
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             FontFamily = "serif", ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;
         string text = string.Concat(letters.Select(letter => letter.Value));

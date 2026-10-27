@@ -5,7 +5,10 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling Word to HTML conversion.
     /// </summary>
-    public class WordToHtmlOptions {
+    public class WordHtmlExportOptions {
+        /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
+        public bool FailOnLoss { get; set; }
+
         private WordHtmlExportProfile _exportProfile = WordHtmlExportProfile.SemanticDocument;
         private OfficeHtmlDocumentOptions _documentOutput = new() {
             Title = null,
@@ -18,8 +21,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Creates a readable semantic-document export with shared OfficeIMO document styling.
         /// </summary>
-        public static WordToHtmlOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.SemanticDocument,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -37,8 +40,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Creates a trusted editable round-trip export with document structure and private review metadata enabled.
         /// </summary>
-        public static WordToHtmlOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.DocumentRoundTrip,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -63,8 +66,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Creates a print-oriented review export with section, header, footer, and generated print styling.
         /// </summary>
-        public static WordToHtmlOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.PrintReview,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -304,8 +307,9 @@ namespace OfficeIMO.Word.Html {
 
         internal OfficeIMO.Html.HtmlDiagnosticReport ConversionReport { get; } = new OfficeIMO.Html.HtmlDiagnosticReport();
 
-        internal WordToHtmlOptions CloneForConversion() {
-            var clone = new WordToHtmlOptions {
+        internal WordHtmlExportOptions CloneForConversion() {
+            var clone = new WordHtmlExportOptions {
+                FailOnLoss = FailOnLoss,
                 ExportProfile = ExportProfile,
                 DocumentOutput = DocumentOutput.Clone(),
                 TrackedChangePolicy = TrackedChangePolicy,

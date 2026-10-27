@@ -19,7 +19,7 @@ public sealed class StudioSourceIdentityTests {
             string source = Path.Combine(root, "source.pdf");
             CreatePdf(source);
             if (operation == "decrypt") File.WriteAllBytes(source,
-                PdfDocument.Load(File.ReadAllBytes(source)).Security.Encrypt(
+                PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source))).Security.Encrypt(
                     new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
             byte[] original = File.ReadAllBytes(source);
             string outputFolder = Directory.CreateDirectory(Path.Combine(root, "output")).FullName;
@@ -83,7 +83,7 @@ public sealed class StudioSourceIdentityTests {
             string copy = Path.Combine(root, "my-edits.pdf");
             await workspace.SaveAsync(copy, CancellationToken.None);
             Assert.False(workspace.IsDirty);
-            Assert.Equal(2, PdfDocument.Load(File.ReadAllBytes(copy)).Inspect().PageCount);
+            Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(copy))).Inspect().PageCount);
             await workspace.SaveAsync(null, CancellationToken.None);
             Assert.False(workspace.IsDirty);
         } finally { Directory.Delete(root, true); }
@@ -100,7 +100,7 @@ public sealed class StudioSourceIdentityTests {
             await workspace.DuplicateAsync([1], CancellationToken.None);
             await workspace.SaveAsync(null, CancellationToken.None);
             Assert.NotNull(new FileInfo(alias).LinkTarget);
-            Assert.Equal(2, PdfDocument.Load(File.ReadAllBytes(source)).Inspect().PageCount);
+            Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source))).Inspect().PageCount);
             Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(alias));
         } finally { Directory.Delete(root, true); }
     }
@@ -114,7 +114,7 @@ public sealed class StudioSourceIdentityTests {
             string source = Path.Combine(root, "source.pdf"), alias = Path.Combine(root, "alias.pdf");
             CreatePdf(source);
             byte[] plain = File.ReadAllBytes(source);
-            byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf;
+            byte[] encrypted = PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf;
             File.WriteAllBytes(source, encrypted);
             Alias(source, alias, hardLink);
             using var workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,

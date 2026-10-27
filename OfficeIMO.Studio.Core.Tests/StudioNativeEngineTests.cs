@@ -141,7 +141,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Printing_follows_the_document_permissions(string password, bool allowed) {
         string path = Path.Combine(_root, "no-print.pdf");
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents };
-        File.WriteAllBytes(path, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidths(300))).Security.Encrypt(encryption).Pdf);
+        File.WriteAllBytes(path, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(CreatePagesOfWidths(300)))).Security.Encrypt(encryption).Pdf);
 
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, password, default);
         Assert.Equal(allowed, (await document.GetInfoAsync(default)).CanPrint);
@@ -170,7 +170,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
         string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
         string locked = Path.Combine(_root, "locked.pdf");
-        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500)))
+        File.WriteAllBytes(locked, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500))))
             .Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
 
         var missing = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
@@ -203,7 +203,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string target = CreatePagesOfWidths(300);
         string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
         string locked = Path.Combine(_root, "locked.pdf");
-        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
+        File.WriteAllBytes(locked, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(plain))).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, byte*, nint, byte**, byte**, int> import = &StudioNativeExports.DocumentImportPagesJson;
         delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
@@ -555,7 +555,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.InRange(ink.Bounds.Y, 50D, 60D);
         Assert.InRange(ink.Bounds.X + ink.Bounds.Width, 200D, 210D);
         Assert.InRange(ink.Bounds.Y + ink.Bounds.Height, 80D, 90D);
-        PdfAnnotation saved = Assert.Single(PdfDocument.Load(await SavedBytesAsync(document)).Annotations.GetForEditing());
+        PdfAnnotation saved = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(await SavedBytesAsync(document))).Annotations.GetForEditing());
         Assert.Equal(6D, saved.BorderWidth);
         Assert.Equal(0.5D, saved.Opacity);
         Assert.True(saved.HasNormalAppearance);
@@ -840,7 +840,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.Equal(route, result.Route);
             Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
             using StudioNativeDocument converted = await StudioNativeDocument.OpenAsync(output, null, default);
-            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(output)).ExtractText());
+            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).ExtractText());
         }
     }
 

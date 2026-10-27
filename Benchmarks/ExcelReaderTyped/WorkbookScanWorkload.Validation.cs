@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             ExcelReaderOptions? options = null, bool borrowedUtf8 = false) {
             using MemoryStream stream = new MemoryStream(_bytes, writable: false);
             using IExcelWorkbook workbook = OpenPeer(stream, options);
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(_bytes,
-                new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 });
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenReader(_bytes,
+                new ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
             using MemoryStream sylvanStream = new MemoryStream(_bytes, writable: false);
             using Sylvan.Data.Excel.ExcelDataReader sylvan = OpenSylvan(sylvanStream);
             int count = 0;

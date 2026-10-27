@@ -192,14 +192,14 @@ public sealed class PdfRunningContentTests {
         }
     }
 
-    private static PdfOptions Options(long memoryLimit = 1024 * 1024) => new() {
+    private static PdfCreateOptions Options(long memoryLimit = 1024 * 1024) => new() {
         PageWidth = 240, PageHeight = 320, MarginTop = 32, MarginBottom = 32,
         MarginLeft = 24, MarginRight = 24, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 11, PageContentMemoryLimitBytes = memoryLimit
     };
 
     private static PdfTableStyle TableStyle(double height) {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ColumnWidthPoints = new List<double?> { 100 };
         style.FixedRowHeights = new List<double?> { height };
@@ -315,7 +315,7 @@ public sealed class PdfRunningContentTests {
     public void Story_only_embedded_glyphs_reach_font_subsets_and_unicode_maps(bool namedFamily) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf"));
         var family = new PdfEmbeddedFontFamily("Story Font", font);
-        PdfOptions options = Options(0);
+        PdfCreateOptions options = Options(0);
         if (namedFamily) options.RegisterNamedFontFamily(family);
         else options.UseFontFamily(family);
         var document = PdfDocument.Create(options);

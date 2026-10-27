@@ -33,8 +33,8 @@ public sealed class ExcelChartRadialLayoutTests {
             document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
                 new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Status", new[] { 1d }, null, color: OfficeColor.Parse("#FF0000")) }), 1, 1)
                 .SetRadialLayout(new OfficeChartRadialLayout(doughnutHolePercent: hole));
-            byte[] pdf = document.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false });
-            var pages = OfficeIMO.Pdf.PdfDocument.Load(pdf).Render.Pages(options:
+            byte[] pdf = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            var pages = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                 new OfficeIMO.Pdf.PdfPageRenderOptions { Dpi = 72, MaxPages = 8, ContinueOnError = false });
             int count = 0;
             foreach (var page in pages) {
@@ -63,7 +63,7 @@ public sealed class ExcelChartRadialLayoutTests {
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         ExcelChart chart = reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts.Single();
         chart.UpdateData(new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Status", new[] { 8d, 2d }) }));
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(135, snapshot.RadialLayout.FirstSliceAngleDegrees);
         Assert.Equal(kind == OfficeChartKind.Doughnut ? 75 : 50, snapshot.RadialLayout.DoughnutHolePercent);
         Assert.Empty(reopened.ValidateDocument());

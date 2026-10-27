@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static void MarkPageRichTextFont(LayoutResult.Page page, PdfOptions options,
+    private static void MarkPageRichTextFont(LayoutResult.Page page, PdfCreateOptions options,
         PdfStandardFont font, PdfNamedFontFace? namedFont) {
         if (namedFont.HasValue) page.UsedNamedFonts.Add(namedFont.Value);
         else {

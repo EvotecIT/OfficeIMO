@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>
         public double? DifferentialFontSize { get; set; }
         /// <summary>Gets or sets the rule's differential format border, when present.</summary>
-        public ExcelCellBorderSnapshot? DifferentialBorder { get; set; }
+        public ExcelCellBorderInfo? DifferentialBorder { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
         /// <summary>

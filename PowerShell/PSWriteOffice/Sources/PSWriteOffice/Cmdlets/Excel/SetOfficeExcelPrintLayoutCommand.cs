@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Apply a report print layout.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Report' { Set-OfficeExcelPrintLayout -Preset Report -PrintArea A1:H40 }</code>
+///   <code>ExcelSheet 'Report' { Set-OfficeExcelPrintLayout -Preset Report -PrintArea ExcelA1:H40 }</code>
 ///   <para>Applies landscape orientation, narrow margins, one-page-wide scaling, and repeated header row.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelPrintLayout", DefaultParameterSetName = ParameterSetContext, SupportsShouldProcess = true)]
@@ -43,7 +43,7 @@ public sealed class SetOfficeExcelPrintLayoutCommand : PSCmdlet {
     [Parameter]
     public ExcelPrintLayoutPreset Preset { get; set; } = ExcelPrintLayoutPreset.Report;
 
-    /// <summary>Optional print area in A1 notation.</summary>
+    /// <summary>Optional print area in ExcelA1 notation.</summary>
     [Parameter]
     public string? PrintArea { get; set; }
 

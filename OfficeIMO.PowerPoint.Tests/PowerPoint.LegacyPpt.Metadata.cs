@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Connector from summary to picture", connector.Description);
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(source, presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(source, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedSummary = saved.Slides[0].Shapes.Single(shape =>
                 shape.Text == "Summary");
             Assert.Equal(originalSummary.Bounds.Left + 10, savedSummary.Bounds.Left);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation reopened = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             AssertShapeMetadata(reopened.Slides[0].Shapes, editedName,
                 editedDescription);
             Assert.Equal(2, reopened.Package.UserEdits.Count);
@@ -198,8 +198,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptShape reopened = Assert.Single(
-                LegacyPptPresentation.Load(presentation.ToBytes(
-                        PowerPointFileFormat.Ppt)).Slides[0].Shapes,
+                LegacyPptPresentation.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides[0].Shapes,
                 shape => shape.Kind == LegacyPptShapeKind.Picture);
             Assert.Equal("Four Colors", reopened.Metadata.Name);
             Assert.Null(reopened.Metadata.Description);
@@ -232,7 +231,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation reopened = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster reopenedMaster = Assert.Single(reopened.Masters,
                 master => master.MasterId == originalMaster.MasterId);
             AssertShapeMetadata(reopenedMaster.Shapes,
@@ -287,7 +286,7 @@ namespace OfficeIMO.Tests {
                     source.AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptSlide binary = Assert.Single(
@@ -330,7 +329,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport titlePreflight =
                 source.AnalyzeLegacyPptWrite();
             Assert.Contains(titlePreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-ACCESSIBILITY-METADATA"
+                finding.Code == "ppt-write-accessibility-metadata"
                 && finding.Description.Contains("titles",
                     StringComparison.OrdinalIgnoreCase));
 
@@ -339,7 +338,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport decorativePreflight =
                 source.AnalyzeLegacyPptWrite();
             Assert.Contains(decorativePreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-ACCESSIBILITY-METADATA"
+                finding.Code == "ppt-write-accessibility-metadata"
                 && finding.Description.Contains("decorative",
                     StringComparison.OrdinalIgnoreCase));
         }

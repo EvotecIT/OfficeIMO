@@ -105,7 +105,7 @@ public class PdfDocumentBulletListTests {
             LeftIndent = 14,
             Color = PdfColor.FromRgb(10, 20, 30)
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultListStyle = style
         };
 
@@ -116,7 +116,7 @@ public class PdfDocumentBulletListTests {
         PdfListStyle readback = options.DefaultListStyle!;
         readback.FontSize = 8;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(13, options.DefaultListStyle!.FontSize);
         Assert.Equal(14, options.DefaultListStyle.LeftIndent);
@@ -338,7 +338,7 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void Bullets_RespectAlignmentOptions() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         var doc = PdfDocument.Create(options);
         doc.Bullets(new[] { "Left aligned" }, PdfAlign.Left);
         doc.Bullets(new[] { "Centered bullet" }, PdfAlign.Center);
@@ -412,7 +412,7 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void DefaultListStyle_AppliesFontColorIndentAndSpacingToFollowingLists() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -478,7 +478,7 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void Bullets_SplitLongItemsAcrossPagesWithoutCrossingBottomMargin() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,
@@ -503,7 +503,7 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void Numbered_SplitLongItemsAcrossPagesWithoutCrossingBottomMargin() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,
@@ -528,7 +528,7 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void Bullets_WithIndentWiderThanContent_DoesNotShiftBulletPastMargin() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 110,
             MarginLeft = 50,
             MarginRight = 50,
@@ -557,7 +557,7 @@ public class PdfDocumentBulletListTests {
         Assert.True(textX > bulletX);
     }
 
-    private static void AssertListTextStaysAboveBottomMargin(PdfPigDocument pdf, PdfOptions options) {
+    private static void AssertListTextStaysAboveBottomMargin(PdfPigDocument pdf, PdfCreateOptions options) {
         for (int pageNumber = 1; pageNumber <= pdf.NumberOfPages; pageNumber++) {
             var page = pdf.GetPage(pageNumber);
             double bottomMost = page.Letters

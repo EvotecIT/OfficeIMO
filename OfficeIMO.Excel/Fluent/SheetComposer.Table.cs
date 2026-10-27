@@ -18,15 +18,15 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
-            int maximumDataRows = A1.MaxRows - _row;
+            int maximumDataRows = ExcelA1.MaxRows - _row;
             Func<int, string?> maxRowsGuidance = requiredRows => requiredRows > maximumDataRows
-                ? $"Split the data across multiple worksheets; this table has room for at most {maximumDataRows} data rows after its title and header, and Excel's {A1.MaxRows}-row worksheet limit cannot be overridden."
+                ? $"Split the data across multiple worksheets; this table has room for at most {maximumDataRows} data rows after its title and header, and Excel's {ExcelA1.MaxRows}-row worksheet limit cannot be overridden."
                 : null;
             opts.MaxRows = System.Math.Min(opts.MaxRows, maximumDataRows);
-            Func<int, string?> maxColumnsGuidance = requiredColumns => requiredColumns > A1.MaxColumns
-                ? $"Select fewer columns or split the data across multiple worksheets; Excel's {A1.MaxColumns}-column worksheet limit cannot be overridden."
+            Func<int, string?> maxColumnsGuidance = requiredColumns => requiredColumns > ExcelA1.MaxColumns
+                ? $"Select fewer columns or split the data across multiple worksheets; Excel's {ExcelA1.MaxColumns}-column worksheet limit cannot be overridden."
                 : null;
-            opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
+            opts.MaxColumns = System.Math.Min(opts.MaxColumns, ExcelA1.MaxColumns);
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(

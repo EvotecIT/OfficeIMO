@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");
             var columns = new Columns(new Column {
-                Min = (uint)A1.MaxColumns,
-                Max = (uint)A1.MaxColumns,
+                Min = (uint)ExcelA1.MaxColumns,
+                Max = (uint)ExcelA1.MaxColumns,
                 Width = 12D,
                 CustomWidth = true,
             });
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => sheet.PlanInsertColumns(1));
 
             Column column = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Column>());
-            Assert.Equal((uint)A1.MaxColumns, column.Max!.Value);
+            Assert.Equal((uint)ExcelA1.MaxColumns, column.Max!.Value);
         }
 
         [Fact]

@@ -17,20 +17,22 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly LegacyBiffSource _workbookStream;
         private readonly IReadOnlyList<SheetInfo> _sheets;
         private readonly IReadOnlyList<string> _tableNames;
-        private readonly IReadOnlyList<string> _sharedStrings;
-        private readonly ExcelSerialDateStyle[] _dateStyles;
-        private readonly bool _uses1904DateSystem;
+        private IReadOnlyList<string>? _sharedStrings;
+        private readonly ExcelReaderOptions _globalOptions;
+        private ExcelSerialDateStyle[]? _dateStyles;
+        private bool _uses1904DateSystem;
         private bool _disposed;
 
-        private LegacyXlsTabularWorkbook(LegacyBiffSource workbookStream, ExcelReadOptions options) {
+        private LegacyXlsTabularWorkbook(LegacyBiffSource workbookStream, ExcelReaderOptions options) {
             _workbookStream = workbookStream;
-            ParseGlobals(
-                workbookStream,
-                options,
-                out _sheets,
-                out _sharedStrings,
-                out _dateStyles,
-                out _uses1904DateSystem);
+            _globalOptions = options.WithCancellationToken(options.CancellationToken);
+            int offset = 0;
+            if (!TryReadRecord(workbookStream, ref offset, out RecordSlice header) ||
+                header.Type != (ushort)BiffRecordType.Bof || header.Length < 4 ||
+                workbookStream.ReadUInt16(header.PayloadOffset) != Biff8Version ||
+                workbookStream.ReadUInt16(header.PayloadOffset + 2) != 0x0005)
+                throw new LegacyXlsFastPathNotSupportedException("The direct XLS reader supports BIFF8 workbook streams.");
+            _sheets = ParseSheetNames(workbookStream, options, options.CancellationToken);
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
         }
 
@@ -38,7 +40,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         internal static LegacyXlsTabularWorkbook Open(
             string path,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         internal static LegacyXlsTabularWorkbook Open(
             byte[] bytes,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -66,7 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         internal static IReadOnlyList<string> ReadSheetNames(
             string path,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -95,7 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static LegacyXlsTabularWorkbook Open(
             Stream source,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken) {
             try {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -121,7 +123,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         internal DbDataReader OpenTable(
             string tableName,
             bool hasHeaderRow,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
             ThrowIfDisposed();
             int sheetIndex = -1;
@@ -135,13 +137,18 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw new KeyNotFoundException($"Worksheet '{tableName}' was not found.");
             }
 
+            if (_sharedStrings == null) {
+                ParseGlobals(_workbookStream, _globalOptions.WithCancellationToken(cancellationToken),
+                    out _, out IReadOnlyList<string> strings, out ExcelSerialDateStyle[] styles, out bool uses1904);
+                _sharedStrings = strings; _dateStyles = styles; _uses1904DateSystem = uses1904;
+            }
             SheetInfo sheet = _sheets[sheetIndex];
             return new LegacyXlsTabularDataReader(
                 _workbookStream,
                 sheet.StreamOffset,
                 sheet.StreamEndOffset,
                 _sharedStrings,
-                _dateStyles,
+                _dateStyles!,
                 _uses1904DateSystem,
                 hasHeaderRow,
                 options,
@@ -160,7 +167,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static Stream OpenWorkbookStream(
             Stream source,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken) {
             if (!source.CanRead || !source.CanSeek) {
                 throw new ArgumentException("The XLS fast path requires a readable seekable stream.", nameof(source));
@@ -197,7 +204,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static void ParseGlobals(
             LegacyBiffSource bytes,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             out IReadOnlyList<SheetInfo> sheets,
             out IReadOnlyList<string> sharedStrings,
             out ExcelSerialDateStyle[] dateStyles,
@@ -291,7 +298,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static IReadOnlyList<SheetInfo> ParseSheetNames(
             LegacyBiffSource bytes,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken) {
             var boundSheetRecords = new List<RecordSlice>();
             int offset = 0;
@@ -418,7 +425,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             LegacyBiffSource bytes,
             RecordSlice first,
             ref int offset,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             var payloads = new List<byte[]> { CopyPayload(bytes, first) };
             int lookahead = offset;

@@ -14,15 +14,15 @@ public sealed class HtmlPrintFittingBudgetTests {
         var source = HtmlConversionDocument.Parse("<body style='text-decoration:overline 3px;text-decoration-skip-ink:none'><span style='display:none'>"
             + new string('x', 65536) + "</span></body>");
         var options = new HtmlToPdfOptions { MaxLayoutOperations = 300, AutoFitWidePrintContent = false };
-        byte[] control = asyncPath ? await source.ToPdfBytesAsync(options) : source.ToPdfBytes(options);
+        byte[] control = asyncPath ? (await source.ToPdfAsync(options)).Value.ToBytes() : (source.ToPdf(options)).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(control, 0, 4));
 
         // Each individual scan fits this limit. Width fitting and layout together
         // must consume one operation ledger rather than restarting the budget.
         options.AutoFitWidePrintContent = true;
         HtmlDomLimitException error = asyncPath
-            ? await Assert.ThrowsAsync<HtmlDomLimitException>(() => source.ToPdfBytesAsync(options))
-            : Assert.Throws<HtmlDomLimitException>(() => source.ToPdfBytes(options));
+            ? await Assert.ThrowsAsync<HtmlDomLimitException>(() => source.ToPdfAsync(options))
+            : Assert.Throws<HtmlDomLimitException>(() => (source.ToPdf(options)).ToBytes());
         Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, error.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), error.LimitSource);
         Assert.Contains("text decoration", error.Message);

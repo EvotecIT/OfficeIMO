@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
@@ -77,7 +78,7 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
 
     [Fact]
     public void TaggedTableProjectionDoesNotInheritUntaggedRunsFromCustomMergedWords() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
@@ -93,7 +94,7 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
         PdfUnderstandingPipelineOptions pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.WordGrouping = new BaselineMergedWordGroupingStage();
 
-        PdfDocumentReadResult read = PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfDocumentReadResult read = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Structured,
             Pipeline = pipeline
         });
@@ -108,9 +109,9 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
         Assert.All(
             tagged.SourceLines.SelectMany(static line => line.Words).SelectMany(static word => word.SourceRuns),
             static run => Assert.True(run.MarkedContentId.HasValue));
-        using OfficeIMO.Word.WordDocument word = read.ToWordDocument();
+        using OfficeIMO.Word.WordDocument word = (read.ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-        foreach (string text in new[] { read.Text, read.ToMarkdown(), read.ToHtml(), package.MainDocumentPart!.Document!.InnerText }) {
+        foreach (string text in new[] { read.Text, read.ExtractMarkdown(), read.ToHtml(), package.MainDocumentPart!.Document!.InnerText }) {
             foreach (string value in new[] { "Code", "Value", "Outside header", "Outside value" }) {
                 Assert.Single(System.Text.RegularExpressions.Regex.Matches(text,
                     System.Text.RegularExpressions.Regex.Escape(value)).Cast<System.Text.RegularExpressions.Match>());
@@ -213,7 +214,7 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
             sourceLines,
             sourceRuns,
             0.99D,
-            new[] { new PdfInferenceEvidence("table.tagged-structure", "Tagged test table.", 0.99D) },
+            new[] { new PdfInferenceEvidence("table-tagged-structure", "Tagged test table.", 0.99D) },
             static _ => { },
             static () => { });
 

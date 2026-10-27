@@ -36,7 +36,7 @@ public sealed class SetOfficeExcelNamedRangeCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0)]
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Range in A1 notation.</summary>
+    /// <summary>Range in ExcelA1 notation.</summary>
     [Parameter(Mandatory = true, Position = 1)]
     public string Range { get; set; } = string.Empty;
 

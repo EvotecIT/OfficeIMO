@@ -31,19 +31,19 @@ public sealed class ProjectReportWorkflowTests {
         var start = project.Settings.StartDate!.Value.Date;
         var view = project.CreateView(schedule, new ProjectViewOptions {
             Kind = ProjectViewKind.TaskUsage, Timescale = ProjectViewTimescale.Day,
-            Start = start, Finish = start.AddDays(A1.MaxColumns - 1),
-            MaxBuckets = A1.MaxColumns, MaxCells = A1.MaxColumns
+            Start = start, Finish = start.AddDays(ExcelA1.MaxColumns - 1),
+            MaxBuckets = ExcelA1.MaxColumns, MaxCells = ExcelA1.MaxColumns
         });
-        Assert.Equal(A1.MaxColumns - 1, view.Buckets.Count);
+        Assert.Equal(ExcelA1.MaxColumns - 1, view.Buckets.Count);
         Assert.Throws<InvalidOperationException>(() => ProjectReportWorkflow.CreateExcel(view));
     }
 
     [Fact]
     public void MappedTableExportRejectsRowsBeyondTheExcelWorksheetLimit() {
         var error = Assert.Throws<InvalidOperationException>(() =>
-            ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows, 1, "Tasks"));
+            ProjectDataWorkflow.ValidateExcelGrid(ExcelA1.MaxRows, 1, "Tasks"));
         Assert.Contains("row worksheet limit", error.Message, StringComparison.Ordinal);
-        ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows - 1, A1.MaxColumns, "Tasks");
+        ProjectDataWorkflow.ValidateExcelGrid(ExcelA1.MaxRows - 1, ExcelA1.MaxColumns, "Tasks");
     }
 
     [Fact]

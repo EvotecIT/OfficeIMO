@@ -54,7 +54,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TextWatermark_ValidatesAndClonesOptions() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TextWatermark = new PdfTextWatermark("Original") {
                 Opacity = 0.2,
                 RotationAngle = -20,
@@ -116,7 +116,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ImageWatermark_FirstAndEvenVariantsUseMatchingPageVariant() {
         byte[] image = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DifferentFirstPageHeaderFooter = true,
             DifferentOddAndEvenPagesHeaderFooter = true,
             ImageWatermark = new PdfImageWatermark(image, width: 20, height: 20) {
@@ -149,7 +149,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void WatermarkVariants_DoNotEnableHeaderFooterVariantsByThemselves() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ShowHeader = true,
             HeaderFormat = "DEFAULT HEADER",
             FirstPageTextWatermark = new PdfTextWatermark("FIRST") {
@@ -175,7 +175,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
         byte[] image = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DifferentFirstPageHeaderFooter = true,
             DifferentOddAndEvenPagesHeaderFooter = true,
             TextWatermark = new PdfTextWatermark("GLOBAL") {
@@ -236,7 +236,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void WatermarkSuppression_DoesNotEnableHeaderFooterVariantsByItself() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ShowHeader = true,
             HeaderFormat = "DEFAULT HEADER",
             TextWatermark = new PdfTextWatermark("GLOBAL") {
@@ -268,7 +268,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ImageWatermark = new PdfImageWatermark(image, width: 20, height: 10) {
                 Opacity = 0.25,
                 RotationAngle = -15

@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (resolved.RequireDocumentTitle && string.IsNullOrWhiteSpace(BuiltinDocumentProperties.Title)) {
                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                    "Accessibility.MissingDocumentTitle",
+                    "accessibility-missing-document-title",
                     "The presentation package does not define a document title."));
             }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
                     SlideSize.HeightPoints);
                 if (resolved.RequireSlideTitles && string.IsNullOrWhiteSpace(slideTitle)) {
                     findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                        "Accessibility.MissingSlideTitle", "The slide does not expose a recognizable title.", slideIndex));
+                        "accessibility-missing-slide-title", "The slide does not expose a recognizable title.", slideIndex));
                 }
 
                 var shapeInfos = new List<PowerPointAccessibilityShapeInfo>(shapes.Count);
@@ -74,22 +74,22 @@ namespace OfficeIMO.PowerPoint {
             if (shape.Decorative) return;
             bool informativeVisual = IsInformativeVisual(shape);
             if (informativeVisual && options.RequireShapeTitles && string.IsNullOrWhiteSpace(shape.Title)) {
-                findings.Add(ShapeFinding(options.Profile, "Accessibility.MissingShapeTitle",
+                findings.Add(ShapeFinding(options.Profile, "accessibility-missing-shape-title",
                     "The informative visual does not define a concise accessibility title.", slideIndex, shape));
             }
             if (informativeVisual && options.RequireAlternativeText && string.IsNullOrWhiteSpace(shape.Description)) {
                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                    "Accessibility.MissingAlternativeText",
+                    "accessibility-missing-alternative-text",
                     "The informative visual is neither decorative nor described with alternative text.",
                     slideIndex, shape.Id, shape.Name));
             }
             if (options.RequireLanguage && HasVisibleText(shape) && string.IsNullOrWhiteSpace(shape.Language)) {
-                findings.Add(ShapeFinding(options.Profile, "Accessibility.MissingLanguage",
+                findings.Add(ShapeFinding(options.Profile, "accessibility-missing-language",
                     "The text-bearing shape does not define an explicit language tag.", slideIndex, shape));
             }
             if (options.RequireTableHeaders && shape is PowerPointTable table && !table.HeaderRow) {
                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                    "Accessibility.MissingTableHeader",
+                    "accessibility-missing-table-header",
                     "The table does not mark its first row as a header row.", slideIndex, shape.Id, shape.Name));
             }
             if (options.CheckMeaningfulLinks && shape is PowerPointTextBox textBox) {
@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
                     string label = string.Concat(runs.Skip(index).Take(end - index).Select(item => item.Text));
                     if (!PowerPointTextRun.IsMeaningfulLinkLabel(label)) {
                         findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                            "Accessibility.UnclearLinkLabel",
+                            "accessibility-unclear-link-label",
                             "Hyperlink text must describe its destination without surrounding context.",
                             slideIndex, shape.Id, shape.Name));
                     }
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                         for (int runIndex = index; runIndex < end; runIndex++) {
                             if (string.IsNullOrWhiteSpace(runs[runIndex].HyperlinkTooltip)) {
                                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Warning,
-                                    "Accessibility.MissingLinkTooltip",
+                                    "accessibility-missing-link-tooltip",
                                     "Strict policy recommends an accessible hyperlink tooltip.",
                                     slideIndex, shape.Id, shape.Name));
                             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
                     double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background.Value);
                     if (measured + 0.000001D < required) {
                         findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                            "Accessibility.LowContrast",
+                            "accessibility-low-contrast",
                             "Text contrast is " + measured.ToString("0.##", CultureInfo.InvariantCulture) +
                             ":1; the selected policy requires at least " +
                             required.ToString("0.##", CultureInfo.InvariantCulture) + ":1.",
@@ -183,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
                     double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background.Value);
                     if (measured + 0.000001D < required) {
                         findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
-                            "Accessibility.LowContrast", "Text does not meet the selected contrast policy.",
+                            "accessibility-low-contrast", "Text does not meet the selected contrast policy.",
                             slideIndex, textBox.Id, textBox.Name, measured, required));
                     }
                 }
@@ -198,7 +198,7 @@ namespace OfficeIMO.PowerPoint {
             findings.Add(new PowerPointAccessibilityFinding(
                 options.Profile == PowerPointAccessibilityPolicyProfile.Strict
                     ? PowerPointAccessibilitySeverity.Error : PowerPointAccessibilitySeverity.Warning,
-                "Accessibility.ChartColorOnlyMeaning",
+                "accessibility-chart-color-only-meaning",
                 "The multi-series chart lacks a data summary, so series meaning may depend on color alone.",
                 slideIndex, chart.Id, chart.Name));
         }

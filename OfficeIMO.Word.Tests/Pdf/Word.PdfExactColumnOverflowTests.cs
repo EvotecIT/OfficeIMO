@@ -56,10 +56,10 @@ public partial class Word {
         paragraph._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = widowControl };
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(260, 300), Margins = new PageMargins(30, 72, 30, 72)
-        });
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 300), Margins = new PdfPageMargins(30, 72, 30, 72)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml);
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(pages, pdf.NumberOfPages);
@@ -108,10 +108,10 @@ public partial class Word {
             after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(260, 300), Margins = new PageMargins(30, 72, 30, 72)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 300), Margins = new PdfPageMargins(30, 72, 30, 72)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("A", Assert.Single(pdf.GetPage(1).Letters).Value);
         var letters = pdf.GetPage(2).Letters;

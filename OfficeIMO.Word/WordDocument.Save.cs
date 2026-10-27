@@ -66,12 +66,19 @@ namespace OfficeIMO.Word {
             string? resolvedPath = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             string target = resolvedPath
                 ?? throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or save to a writable stream.");
-            if (IsLegacyDocPath(target)) {
-                SaveLegacyDocFile(target, options: options);
+            if (ResolveSavePassword(options) is string password) {
+                if (IsLegacyDocPath(target)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                SaveEncrypted(target, password, options);
+                _loadedPassword = password;
                 return;
             }
-
+            if (IsLegacyDocPath(target)) {
+                SaveLegacyDocFile(target, options: options);
+                _loadedPassword = null;
+                return;
+            }
             SaveOpenXmlFile(target, updateFilePath: true, options);
+            _loadedPassword = null;
         }
 
         /// <summary>
@@ -80,7 +87,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Destination path.</param>
         /// <param name="password">Password used to encrypt the document package.</param>
         /// <param name="saveOptions">Optional save policy settings.</param>
-        public void SaveEncrypted(string filePath, string password, WordSaveOptions? saveOptions = null) {
+        internal void SaveEncrypted(string filePath, string password, WordSaveOptions? saveOptions = null) {
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (string.IsNullOrWhiteSpace(filePath)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(filePath));
@@ -88,7 +95,7 @@ namespace OfficeIMO.Word {
             string target = filePath;
             EnsureDestinationFileWritable(target);
 
-            byte[] packageBytes = ToBytes(WordFileFormat.Docx, saveOptions);
+            byte[] packageBytes = ToWordBytes(WordFileFormat.Docx, saveOptions);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageBytes, password);
             OfficeFileCommit.WriteAllBytes(target, encryptedBytes);
             FilePath = target;
@@ -99,7 +106,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="destination">Writable stream receiving the encrypted document.</param>
         /// <param name="password">Password used to encrypt the document package.</param>
-        public void SaveEncrypted(Stream destination, string password) {
+        internal void SaveEncrypted(Stream destination, string password) {
             SaveEncrypted(destination, password, saveOptions: null);
         }
 
@@ -109,10 +116,10 @@ namespace OfficeIMO.Word {
         /// <param name="destination">Writable stream receiving the encrypted document.</param>
         /// <param name="password">Password used to encrypt the document package.</param>
         /// <param name="saveOptions">Optional save policy settings.</param>
-        public void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
+        internal void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            byte[] packageBytes = ToBytes(WordFileFormat.Docx, saveOptions);
+            byte[] packageBytes = ToWordBytes(WordFileFormat.Docx, saveOptions);
             OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
 
@@ -170,6 +177,11 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
+            if (ResolveSavePassword(options) is string password) {
+                if (IsLegacyDocPath(filePath)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                OfficeFileCommit.WriteAllBytes(filePath, OfficeEncryption.EncryptPackage(ToWordBytes(WordFileFormat.Docx, options), password));
+                return;
+            }
             if (IsLegacyDocPath(filePath)) {
                 SaveLegacyDocFile(filePath, updateFilePath: false, options);
                 return;
@@ -206,6 +218,10 @@ namespace OfficeIMO.Word {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = CreatePathBytesAfterPreflight(filePath, options);
+            if (ResolveSavePassword(options) is string password) {
+                if (IsLegacyDocPath(filePath)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                bytes = OfficeEncryption.EncryptPackage(bytes, password);
+            }
             await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -213,12 +229,10 @@ namespace OfficeIMO.Word {
         /// <summary>Encodes the document in the selected physical format.</summary>
         /// <param name="format">DOCX or legacy DOC output.</param>
         /// <param name="options">Optional save policy settings.</param>
-        public byte[] ToBytes(WordFileFormat format = WordFileFormat.Docx, WordSaveOptions? options = null) =>
+        internal byte[] ToBytes(WordFileFormat format, WordSaveOptions? options = null) =>
             ToWordBytes(format, options);
 
-        /// <summary>Encodes the document in a new writable memory stream positioned at the beginning.</summary>
-        public MemoryStream ToStream(WordFileFormat format = WordFileFormat.Docx, WordSaveOptions? options = null) =>
-            new MemoryStream(ToBytes(format, options));
+
 
         private byte[] ToWordBytes(WordFileFormat format, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
@@ -268,8 +282,14 @@ namespace OfficeIMO.Word {
             string target = resolvedPath
                 ?? throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or save to a writable stream.");
             byte[] bytes = CreatePathBytesAfterPreflight(target, options);
+            string? outputPassword = ResolveSavePassword(options);
+            if (outputPassword != null) {
+                if (IsLegacyDocPath(target)) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                bytes = OfficeEncryption.EncryptPackage(bytes, outputPassword);
+            }
             await OfficeFileCommit.WriteAllBytesAsync(target, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
             FilePath = target;
+            _loadedPassword = outputPassword;
         }
 
         /// <summary>
@@ -331,14 +351,14 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional save behaviors, including stream physical format selection and signed-document policy.</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream, WordSaveOptions? options) {
-            Save(outputStream, WordFileFormat.Docx, options);
+            Save(outputStream, options?.Format ?? WordFileFormat.Docx, options);
         }
 
         /// <summary>Saves the document to a stream in the explicitly selected physical format.</summary>
         /// <param name="outputStream">Writable stream that receives the document content.</param>
         /// <param name="format">Physical DOCX or DOC format.</param>
         /// <param name="options">Optional save policy settings.</param>
-        public void Save(Stream outputStream, WordFileFormat format, WordSaveOptions? options = null) {
+        internal void Save(Stream outputStream, WordFileFormat format, WordSaveOptions? options = null) {
             if (outputStream == null) {
                 throw new ArgumentNullException(nameof(outputStream));
             }
@@ -349,6 +369,11 @@ namespace OfficeIMO.Word {
 
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            }
+            if (ResolveSavePassword(options) is string password) {
+                if (format != WordFileFormat.Docx) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                SaveEncrypted(outputStream, password, options);
+                return;
             }
             EnsureSignedDocumentSaveAllowed(options, "Save");
             PreSaving();
@@ -374,7 +399,7 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional save policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(Stream outputStream, WordSaveOptions? options, CancellationToken cancellationToken = default) {
-            return SaveAsync(outputStream, WordFileFormat.Docx, options, cancellationToken);
+            return SaveAsync(outputStream, options?.Format ?? WordFileFormat.Docx, options, cancellationToken);
         }
 
         /// <summary>Asynchronously saves the document to a stream in the selected physical format.</summary>
@@ -382,7 +407,7 @@ namespace OfficeIMO.Word {
         /// <param name="format">Physical DOCX or DOC format.</param>
         /// <param name="options">Optional save policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task SaveAsync(
+        internal async Task SaveAsync(
             Stream outputStream,
             WordFileFormat format,
             WordSaveOptions? options = null,
@@ -402,6 +427,10 @@ namespace OfficeIMO.Word {
                 bytes = CreateOpenXmlBytesAfterSave();
             }
 
+            if (ResolveSavePassword(options) is string password) {
+                if (format != WordFileFormat.Docx) throw new NotSupportedException("Password-protected DOC output is not supported.");
+                bytes = OfficeEncryption.EncryptPackage(bytes, password);
+            }
             await OfficeStreamWriter.WriteAllBytesAsync(outputStream, bytes, cancellationToken).ConfigureAwait(false);
         }
 
@@ -451,11 +480,9 @@ namespace OfficeIMO.Word {
                 return CreateLegacyRuntimeOpenXmlBytesAfterSave(filePath);
             }
             if (_ownedPackageStream != null) {
-#if NETFRAMEWORK
-                return CreateClonedPackageSnapshot(filePath);
-#else
-                return CreateOwnedPackageSnapshot(filePath);
-#endif
+                return OfficeRuntime.IsNetFramework
+                    ? CreateClonedPackageSnapshot(filePath)
+                    : CreateOwnedPackageSnapshot(filePath);
             }
             return CreateClonedPackageSnapshot(filePath);
         }

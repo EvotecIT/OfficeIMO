@@ -46,10 +46,10 @@ namespace OfficeIMO.Examples.Word.Converters {
             
             // Save as PDF
             string outputPath = Path.Combine(folderPath, "SaveAsPdf.pdf");
-            doc.SaveAsPdf(outputPath, new WordToPdfOptions {
+            doc.SaveAsPdf(outputPath, new WordPdfExportOptions {
                 Orientation = OfficePageOrientation.Portrait,
-                PageSize = OfficeIMO.Pdf.PageSizes.A4,
-                Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
+                PageSize = OfficeIMO.Pdf.PdfPageSizes.A4,
+                Margins = OfficeIMO.Pdf.PdfPageMargins.FromCentimeters(
                     left: 1,
                     top: 3,
                     right: 2,

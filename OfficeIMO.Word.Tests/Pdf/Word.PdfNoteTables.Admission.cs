@@ -53,14 +53,14 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         OpenXmlCompositeElement notes = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string original = notes.OuterXml;
-        WordToPdfOptions options = FootnoteDiagnosticOptions();
-        if (profile is "footer" or "caption") options.PdfOptions = new PdfOptions {
+        WordPdfExportOptions options = FootnoteDiagnosticOptions();
+        if (profile is "footer" or "caption") options.PdfOptions = new PdfCreateOptions {
             DefaultTableStyle = new PdfTableStyle {
                 FooterRowCount = profile == "footer" ? 2 : 0,
                 Caption = profile == "caption" ? "Configured table caption" : null
             }
         };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -68,10 +68,10 @@ public partial class Word {
             foreach (string token in new[] { "INITIALNOTE", "MERGEDANCHOR", "AFTERMERGE", "TOPRIGHT", "MIDRIGHT", "BOTTOMRIGHT" })
                 Assert.Single(Regex.Matches(text, token));
             Assert.Single(result.Warnings, warning => warning.Code == (endnote
-                ? "NativeEndnoteContinuationApproximated" : "NativeFootnotePlacementApproximated"));
-            if (endnote) Assert.Contains(result.Warnings, warning => warning.Code == "NativeEndnoteContentApproximated");
+                ? "native-endnote-continuation-approximated" : "native-footnote-placement-approximated"));
+            if (endnote) Assert.Contains(result.Warnings, warning => warning.Code == "native-endnote-content-approximated");
             if (profile == "image" && !endnote)
-                Assert.Contains(result.Warnings, warning => warning.Code == "NativeFootnoteContentOmitted");
+                Assert.Contains(result.Warnings, warning => warning.Code == "native-footnote-content-omitted");
             Assert.True(result.HasLoss);
             Assert.Equal(original, notes.OuterXml);
         }
@@ -91,9 +91,9 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         OpenXmlCompositeElement notes = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string original = notes.OuterXml;
-        WordToPdfOptions options = FootnoteDiagnosticOptions();
-        options.PdfOptions = new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        WordPdfExportOptions options = FootnoteDiagnosticOptions();
+        options.PdfOptions = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -101,7 +101,7 @@ public partial class Word {
             foreach (string token in new[] { "MERGEDANCHOR", "AFTERMERGE", "TOPRIGHT", "MIDRIGHT", "BOTTOMRIGHT" })
                 Assert.Single(Regex.Matches(text, token));
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-                "NativeFootnotePlacementApproximated" or "NativeEndnoteContinuationApproximated" or "NativeEndnoteContentApproximated");
+                "native-footnote-placement-approximated" or "native-endnote-continuation-approximated" or "native-endnote-content-approximated");
             PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
             Assert.Contains(tagged.StructureElements, element => element.StructureType == "Table");
             Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "TH");
@@ -122,11 +122,11 @@ public partial class Word {
         Assert.Empty(source.ValidateDocument());
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string original = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Contains("INITIALNOTE", string.Concat(pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
-        Assert.Single(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
-        Assert.Contains(result.Warnings, warning => warning.Code == "NativeNoteFlowSeparatorOmitted");
+        Assert.Single(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-note-flow-separator-omitted");
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.FootnotesPart.Footnotes.OuterXml);
     }
 

@@ -21,8 +21,8 @@ internal static partial class PdfWriter {
         string value,
         double fontSize,
         PdfFormFieldStyle? style,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -94,8 +94,8 @@ internal static partial class PdfWriter {
         double width,
         double height,
         FormFieldAnnotation field,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         out IReadOnlyList<(string Name, int Id)> fontResources,
         out IReadOnlyList<PdfFormFieldOption> options,
         out IReadOnlyList<string> selectedValues,
@@ -193,8 +193,8 @@ internal static partial class PdfWriter {
         double fontSize,
         PdfFormFieldStyle effectiveStyle,
         PdfFormFieldTextAlignment alignment,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
         List<List<RichSeg>> lines = BuildWrappedFormAppearanceLines(
@@ -230,8 +230,8 @@ internal static partial class PdfWriter {
         string displayValue,
         double fontSize,
         PdfFormFieldStyle effectiveStyle,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         int cellCount = effectiveStyle.MaxLength!.Value;
         double cellWidth = width / cellCount;
@@ -265,8 +265,8 @@ internal static partial class PdfWriter {
         double baseline,
         PdfFormFieldStyle effectiveStyle,
         PdfFormFieldTextAlignment alignment,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(line, fontSize, effectiveStyle, formOptions);
         EnsureCanWriteFormAppearanceLine(segments, formOptions);
@@ -283,7 +283,7 @@ internal static partial class PdfWriter {
             fontResources);
     }
 
-    private static IReadOnlyList<RichSeg> BuildFormAppearanceSegments(string text, double fontSize, PdfFormFieldStyle effectiveStyle, PdfOptions formOptions) {
+    private static IReadOnlyList<RichSeg> BuildFormAppearanceSegments(string text, double fontSize, PdfFormFieldStyle effectiveStyle, PdfCreateOptions formOptions) {
         List<List<RichSeg>> wrapped = BuildWrappedFormAppearanceLines(
             text,
             Math.Max(1D, 1000000D),
@@ -302,7 +302,7 @@ internal static partial class PdfWriter {
         double fontSize,
         double lineHeight,
         PdfFormFieldStyle effectiveStyle,
-        PdfOptions formOptions) {
+        PdfCreateOptions formOptions) {
         if (availableTextWidth <= 0.001D) {
             int lineCount = SplitFormTextFieldAppearanceLines(text).Length;
             var emptyLines = new List<List<RichSeg>>(lineCount);
@@ -327,7 +327,7 @@ internal static partial class PdfWriter {
             formOptions).Lines;
     }
 
-    private static void EnsureCanWriteFormAppearanceLine(IReadOnlyList<RichSeg> line, PdfOptions formOptions) {
+    private static void EnsureCanWriteFormAppearanceLine(IReadOnlyList<RichSeg> line, PdfCreateOptions formOptions) {
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
             if (segment.LeadingSpace && !CanEncodeAppearanceText(" ", segment.Font, formOptions)) {
@@ -349,8 +349,8 @@ internal static partial class PdfWriter {
         double x,
         double y,
         PdfColor defaultTextColor,
-        PdfOptions formOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions formOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         double xCursor = 0D;
         for (int index = 0; index < line.Count; index++) {
@@ -392,7 +392,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static PdfFormFieldTextAlignment ResolveFormFieldTextAppearanceAlignment(PdfFormFieldStyle effectiveStyle, PdfOptions formOptions) =>
+    private static PdfFormFieldTextAlignment ResolveFormFieldTextAppearanceAlignment(PdfFormFieldStyle effectiveStyle, PdfCreateOptions formOptions) =>
         effectiveStyle.TextAlignment ?? formOptions.AcroFormDefaultTextAlignmentSnapshot ?? PdfFormFieldTextAlignment.Left;
 
     private static double CalculateFormFieldAppearanceAlignedTextX(double availableTextWidth, double measuredTextWidth, PdfFormFieldTextAlignment alignment) {

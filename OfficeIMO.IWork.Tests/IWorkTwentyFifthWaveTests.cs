@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkCellKind.Error, cachedFormula ? sourceCell.ValueKind : sourceCell.Kind);
         Assert.Equal("#ERROR", cachedFormula ? sourceCell.CachedDisplayText : sourceCell.DisplayText);
-        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Text, snapshot!.Kind);
         Assert.Equal("#ERROR", snapshot.Text);
 
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.True(Assert.Single(reopened.Sheets).TryGetCellValueSnapshot(
-            1, 1, out ExcelCellValueSnapshot? persisted));
+            1, 1, out ExcelNativeCellValueInfo? persisted));
         Assert.Equal(ExcelCellValueKind.Text, persisted!.Kind);
         Assert.Equal("#ERROR", persisted.Text);
     }

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void LinkAnnotations_RenderForParagraphHeadingAndTableCells() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11
             })
@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ImageLink_RendersAnnotationFromFinalImagePlacement() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 30,
@@ -90,7 +90,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnImageLink_RendersLinkAnnotation() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -121,7 +121,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ShapeLink_RendersAnnotationFromFinalShapePlacement() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 30,
@@ -151,7 +151,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ConvenienceVectorLink_RendersAnnotationFromFinalPlacement() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 30,
@@ -180,7 +180,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ComposeConvenienceVectorLinks_RenderLinkAnnotations() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -215,7 +215,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void DrawingLink_RendersAnnotationFromFinalDrawingPlacement() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 30,
@@ -246,7 +246,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnConvenienceVectorLinks_RenderLinkAnnotations() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -285,7 +285,7 @@ public partial class PdfDocumentVisualQualityTests {
         var drawing = new OfficeDrawing(24, 18)
             .AddShape(OfficeShape.Rectangle(24, 18), 0, 0);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -321,7 +321,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void WrappedHeadingLink_RendersAnnotationForEachVisualLine() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -353,7 +353,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeadingLink_AlignsAnnotationWithRightAlignedText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 180,
             MarginLeft = 30,
@@ -389,7 +389,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeadingLink_RendersLinkAnnotation() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11
             })
@@ -414,7 +414,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTableWithLinks_RendersTableCellLinkAnnotations() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11
             })
@@ -454,7 +454,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Tables_DeclareRichCellRunFontsBeforeRendering() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11
             })
@@ -547,7 +547,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Bookmark_RendersNamedDestinationNameTreeAndInspectorReadsIt() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -585,7 +585,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void BookmarkLink_RendersGoToAnnotationAndInspectorReadsTarget() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -630,7 +630,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnBookmark_RendersNamedDestinationAtColumnFlowPosition() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 180,
                 MarginLeft = 30,
@@ -661,7 +661,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnBookmarkOnly_RendersZeroHeightNamedDestination() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 180,
                 MarginLeft = 30,

@@ -6,10 +6,10 @@ namespace OfficeIMO.Rtf.Markdown;
 /// <summary>Controls semantic conversion from an OfficeIMO RTF document into Markdown.</summary>
 public sealed class RtfToMarkdownOptions {
     /// <summary>Markdown writer options used when rendering the resulting Markdown document.</summary>
-    public MarkdownWriteOptions? MarkdownWriteOptions { get; set; }
+    public MarkdownSaveOptions? MarkdownWriteOptions { get; set; }
 
     /// <summary>Markdown reader options used when building inline Markdown sequences.</summary>
-    public MarkdownReaderOptions? InlineReaderOptions { get; set; }
+    public MarkdownLoadOptions? InlineReaderOptions { get; set; }
 
     /// <summary>Includes RTF hidden text in generated Markdown.</summary>
     public bool IncludeHiddenText { get; set; }

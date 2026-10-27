@@ -28,7 +28,7 @@ public sealed class PdfClippedDrawingGroupTests {
                 contentOffsetX: -12D,
                 contentOffsetY: -3D);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
@@ -52,7 +52,7 @@ public sealed class PdfClippedDrawingGroupTests {
         var drawing = new OfficeDrawing(160D, 100D)
             .AddClippedDrawing(child, 0D, 0D, OfficeClipPath.Rectangle(40D, 30D));
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
         using PdfPigDocument parsed = PdfPigDocument.Open(new MemoryStream(pdf));
@@ -79,7 +79,7 @@ public sealed class PdfClippedDrawingGroupTests {
         Assert.Equal(4D, logicalGroup.ActualTextAnchorX);
         Assert.Equal(15D, logicalGroup.ActualTextAnchorY);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(clone)
             .ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
@@ -113,7 +113,7 @@ public sealed class PdfClippedDrawingGroupTests {
         }, fillRule);
         var drawing = new OfficeDrawing(80D, 50D).AddClippedDrawing(child, 10D, 5D, clip);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
 

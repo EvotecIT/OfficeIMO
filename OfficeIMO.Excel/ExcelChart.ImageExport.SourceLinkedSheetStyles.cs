@@ -70,9 +70,9 @@ public sealed partial class ExcelChart {
                 if (reference == null) {
                     if (previousColumn >= 16384) return null;
                     previousColumn++;
-                    reference = A1.ColumnIndexToLetters(previousColumn) + rowIndex.ToString(CultureInfo.InvariantCulture);
+                    reference = ExcelA1.ColumnIndexToLetters(previousColumn) + rowIndex.ToString(CultureInfo.InvariantCulture);
                 } else {
-                    if (!A1.TryParseCellReferenceFast(reference, out int cellRow, out int column) ||
+                    if (!ExcelA1.TryParseCellReferenceFast(reference, out int cellRow, out int column) ||
                         cellRow != rowIndex || column < 1 || column > 16384) return null;
                     previousColumn = column;
                 }

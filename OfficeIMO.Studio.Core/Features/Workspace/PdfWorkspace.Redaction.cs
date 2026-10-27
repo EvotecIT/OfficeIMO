@@ -60,7 +60,7 @@ internal sealed partial class PdfWorkspace {
                     .Where(finding => finding.Severity == PdfDiagnosticSeverity.Error)
                     .Select(finding => finding.Message)));
             }
-            PdfDocumentReadResult logical = snapshot.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+            PdfDocumentReadResult logical = snapshot.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
             return plan.Areas.Select(area => {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfLogicalPage page = logical.Pages.Single(candidate => candidate.PageNumber == area.PageNumber);

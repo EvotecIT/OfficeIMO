@@ -18,11 +18,11 @@ public class PowerPointSaveAsPdfSecurityTests {
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            var options = new PowerPointToPdfOptions {
+            var options = new PowerPointPdfExportOptions {
                 MaxGroupShapeDepth = 0
             };
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "group-depth-limit");
             Assert.Equal("Slide 1", warning.Source);
@@ -44,14 +44,14 @@ public class PowerPointSaveAsPdfSecurityTests {
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 1,
                 MaxGroupShapeDepth = 0
             });
 
             Assert.Contains(result.Warnings, warning =>
-                warning.Message.Contains(nameof(PowerPointToPdfOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
+                warning.Message.Contains(nameof(PowerPointPdfExportOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

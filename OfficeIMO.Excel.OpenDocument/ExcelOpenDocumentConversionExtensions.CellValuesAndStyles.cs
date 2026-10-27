@@ -63,7 +63,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             char.IsDigit(lexical[length - 2]) && char.IsDigit(lexical[length - 1]);
     }
 
-    private static void ApplyExcelStyle(OdsDocument document, OdsCell target, ExcelCellStyleSnapshot style,
+    private static void ApplyExcelStyle(OdsDocument document, OdsCell target, ExcelCellStyleInfo style,
         IDictionary<uint, string> dataStyles, ref int unsupported) {
         target.Bold = style.Bold;
         target.Italic = style.Italic;
@@ -130,7 +130,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                  token.Value.IndexOf("d", StringComparison.OrdinalIgnoreCase) >= 0));
 
     private static bool HasUnsupportedNumberFormatProjection(
-        ExcelCellStyleSnapshot style,
+        ExcelCellStyleInfo style,
         SpreadsheetNumberFormatSyntax format,
         bool timeOnly) {
         if (style.IsDateLike) {
@@ -167,7 +167,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return hasPlaceholder && mandatoryIntegerDigits != 1;
     }
 
-    private static bool HasUnsupportedExcelStyle(ExcelCellStyleSnapshot style) {
+    private static bool HasUnsupportedExcelStyle(ExcelCellStyleInfo style) {
         bool nonSolidPattern = !string.IsNullOrWhiteSpace(style.FillPatternType) &&
             !string.Equals(style.FillPatternType, "none", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(style.FillPatternType, "solid", StringComparison.OrdinalIgnoreCase);

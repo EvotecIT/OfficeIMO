@@ -71,31 +71,31 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 5");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //var section2 = document.AddSection(WordSectionBreakType.NextPage);
                 var section2 = document.AddSection();
@@ -125,24 +125,24 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 7");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 

@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 .Sheet("Data", sheet => sheet.Cell("'Other'!A1", "Wrong sheet")));
 
             Assert.Contains("current worksheet", exception.Message, StringComparison.Ordinal);
-            Assert.Empty(document.CreateInspectionSnapshot().Worksheets.Single().Cells);
+            Assert.Empty(document.Inspect().Worksheets.Single().Cells);
         }
 
         [Fact]

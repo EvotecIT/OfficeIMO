@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>
     /// Default installed multilingual family candidates used by document converters for CJK,
     /// Arabic, and other non-Latin generated PDF text.
@@ -17,14 +17,14 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="features">Fallback groups to enable. The default enables document, monospace, symbol, and emoji fallbacks.</param>
     /// <returns>The current options for fluent chaining.</returns>
-    public PdfOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
+    public PdfCreateOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
         return UseTextFallbacks(
             features,
             new[] { PdfStandardFont.TimesRoman },
             allowSystemFontEmbedding: true);
     }
 
-    internal PdfOptions UseTextFallbacks(
+    internal PdfCreateOptions UseTextFallbacks(
         PdfTextFallbackFeatures features,
         IEnumerable<PdfStandardFont> reservedFontSlots,
         bool allowSystemFontEmbedding,
@@ -204,7 +204,7 @@ public sealed partial class PdfOptions {
     /// <param name="familyNames">System font family candidates, for example <c>Segoe UI Emoji, Noto Emoji, DejaVu Sans</c>.</param>
     /// <param name="maxFallbackFonts">Maximum number of installed fallback font families to register.</param>
     /// <returns>The current options for fluent chaining.</returns>
-    public PdfOptions UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
+    public PdfCreateOptions UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
         TryRegisterEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts);
         return this;
     }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_Roundtrip_Tests {
         [Fact]
         public void Reader_Roundtrips_Basic_Document() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .FrontMatter(new { title = "Doc", tags = new [] { "a", "b" }, published = true })
                 .H1("Doc")
                 .P("Intro paragraph with a link to docs.")
@@ -20,12 +20,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                     .Item("Callouts and TOC")
                     .ItemTask("Works offline", true))
                 .Image("https://example.com/logo.png", alt: "Logo", title: "Example").Caption("Our logo")
-                .Table(t => t.Headers("Col1", "Col2").Row("A", "1").Row("B", "2").Align(ColumnAlignment.Left, ColumnAlignment.Right))
+                .Table(t => t.Headers("Col1", "Col2").Row("A", "1").Row("B", "2").Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right))
                 .Callout("info", "Heads up", "Early access APIs may change.")
                 .Dl(d => d.Item("Term", "Definition"));
 
             var text = md.ToMarkdown();
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(text);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(text);
 
             // Basic block shape assertions
             Assert.True(parsed.Blocks.Count >= 7);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var table = parsed.Blocks.OfType<TableBlock>().FirstOrDefault();
             Assert.NotNull(table);
             Assert.Equal(new [] { "Col1", "Col2" }, table!.Headers);
-            Assert.Equal(new [] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
+            Assert.Equal(new [] { MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right }, table.Alignments);
 
             // Validate list kinds: unordered with a task item
             var ul = parsed.Blocks.OfType<UnorderedListBlock>().FirstOrDefault();
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void MarkdownWriter_Renders_Unordered_Task_List_Markers_And_Roundtrips_State() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Ul(ul => ul
                     .ItemTask("Open")
                     .ItemTask("Done", true)
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("- [x] Done", markdown, StringComparison.Ordinal);
             Assert.Contains("- Plain", markdown, StringComparison.Ordinal);
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
             var list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Collection(
@@ -101,12 +101,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var table = new TableBlock();
             table.Headers.Add("Name|Title");
             table.Headers.Add("Path \\ Server");
-            table.Alignments.Add(ColumnAlignment.Left);
-            table.Alignments.Add(ColumnAlignment.Right);
+            table.Alignments.Add(MarkdownColumnAlignment.Left);
+            table.Alignments.Add(MarkdownColumnAlignment.Right);
             table.Rows.Add(new[] { "Cell | one", "C: \\ Share" });
             table.Rows.Add(new[] { "Only first cell" });
 
-            var doc = MarkdownDoc.Create().Add(table);
+            var doc = MarkdownDocument.Create().Add(table);
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
 
@@ -116,11 +116,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                                     "| Only first cell |  |";
             Assert.Equal(expected, markdown.TrimEnd());
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
             var parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Equal(new[] { "Name|Title", "Path \\ Server" }, parsedTable.Headers);
-            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, parsedTable.Alignments);
+            Assert.Equal(new[] { MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right }, parsedTable.Alignments);
             Assert.Equal("Cell | one", InlinePlainText.Extract(parsedTable.RowInlines[0][0]));
             Assert.Equal("C: \\ Share", InlinePlainText.Extract(parsedTable.RowInlines[0][1]));
             Assert.Equal("Only first cell", InlinePlainText.Extract(parsedTable.RowInlines[1][0]));
@@ -130,12 +130,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Reader_Roundtrips_Linked_Image_Block() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"))
                 .Caption("Our linked logo");
 
             var text = md.ToMarkdown();
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(text);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(text);
 
             var img = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
             Assert.Equal("https://example.com/logo.png", img.Path);
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Document_Add_Treats_FrontMatter_As_Document_Header_Block() {
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .Add(FrontMatterBlock.FromObject(new { title = "Doc", published = true }))
                 .H1("Doc");
 
@@ -174,7 +174,7 @@ tags: [a, b]
 # Heading
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader!);
 
             Assert.Equal(frontMatter.Entries, parsed.FrontMatterEntries);
@@ -260,7 +260,7 @@ layout:
     draft: false
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
 
             Assert.NotNull(frontMatter.RawYaml);
@@ -270,7 +270,7 @@ layout:
                 "---\n" + NormalizeMarkdown(expectedRawYaml) + "\n---",
                 frontMatter.Render().Replace("\r\n", "\n"));
 
-            var html = parsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, AutoHeadingIdentifiers = false }).Replace("\r\n", "\n");
+            var html = parsed.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, AutoHeadingIdentifiers = false, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment }).Replace("\r\n", "\n");
             Assert.Equal("<h1>Demo</h1>", html.Trim());
 
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
@@ -290,7 +290,7 @@ title: Doc
 Paragraph
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
 
             Assert.Collection(
                 parsed.TopLevelBlocks,
@@ -334,7 +334,7 @@ title: Doc
 Paragraph
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
 
             Assert.Equal(
@@ -372,7 +372,7 @@ Paragraph
 > - quoted
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var items = parsed.DescendantListItems().ToArray();
 
             Assert.Equal(3, items.Length);
@@ -395,7 +395,7 @@ Paragraph
 | A | B |
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
 
             Assert.Equal(
@@ -423,7 +423,7 @@ Paragraph
 | Alpha | Intro<br><br>> Quoted<br><br>- first<br>- second |
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
             Assert.Collection(table.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
@@ -436,7 +436,7 @@ Paragraph
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("Intro<br><br>> Quoted<br><br>- first<br>- second", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
             Assert.Collection(reparsedTable.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
@@ -455,7 +455,7 @@ Paragraph
 | Alpha | Intro<br><br>```text<br>code line 1<br>code line 2<br>``` |
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
             Assert.Collection(table.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
@@ -469,7 +469,7 @@ Paragraph
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("```text<br>code line 1<br>code line 2<br>```", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
             Assert.Collection(reparsedTable.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
@@ -489,7 +489,7 @@ Paragraph
 | ## Important | - first |
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
             Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
             Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][1].ChildBlocks));
@@ -497,7 +497,7 @@ Paragraph
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("| ## Important | - first |", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
             Assert.IsType<HeadingBlock>(Assert.Single(reparsedTable.RowCells[0][0].ChildBlocks));
             Assert.IsType<UnorderedListBlock>(Assert.Single(reparsedTable.RowCells[0][1].ChildBlocks));
@@ -506,7 +506,7 @@ Paragraph
         [Fact]
         public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_PreserveTrivia_Is_Enabled() {
             const string markdown = "# Title\r\n\r\nParagraph one\rSecond para";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
 
@@ -528,7 +528,7 @@ Paragraph
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal("roundtrip-preserve-trivia-required", diagnostic.Id);
             Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, diagnostic.OriginalSourceFailureReason);
             Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
         }
@@ -536,7 +536,7 @@ Paragraph
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Fallback_When_DocumentTransforms_Changed_Result() {
             const string markdown = "previous shutdown was unexpected### Reason";
-            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
@@ -546,7 +546,7 @@ Paragraph
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(result.TransformDiagnostics[0].AffectedSourceSpan, diagnostic.SourceSpan);
             Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
             Assert.NotEqual(result.OriginalMarkdown, roundtrip.Markdown);
@@ -554,7 +554,7 @@ Paragraph
 
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Transform_RelatedSourceSpans_When_UnchangedWrite_Falls_Back() {
-            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
 
@@ -568,7 +568,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
             Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
             Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
@@ -576,7 +576,7 @@ beta
 
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Transform_PreciseNodeSourceSpan_When_UnchangedWrite_Falls_Back() {
-            var options = MarkdownReaderOptions.CreatePortableProfile();
+            var options = MarkdownLoadOptions.CreatePortableProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
                 NormalizeTightStrongBoundaries = true
@@ -588,14 +588,14 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.SourceSpan);
             Assert.Equal("Prefix **bold** suffix", roundtrip.Markdown.Trim());
         }
 
         [Fact]
         public void MarkdownRoundtripWriter_Reports_NestedTransform_PreciseNodeSourceSpan_When_UnchangedWrite_Falls_Back() {
-            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
                 NormalizeTightColonSpacing = true
@@ -610,7 +610,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.SourceSpan);
             Assert.Equal(
                 NormalizeMarkdown("""
@@ -623,7 +623,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Preserves_Unchanged_OriginalMarkdown_When_NoOpTransform_Ran() {
             const string markdown = "# Title\r\n\r\nBody\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             options.DocumentTransforms.Add(new NoOpTransform());
@@ -642,7 +642,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdit_To_OriginalMarkdown_When_PreserveTrivia_Is_Enabled() {
             const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
@@ -660,7 +660,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdit_To_OriginalMarkdown_When_NoOpTransform_Ran() {
             const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             options.DocumentTransforms.Add(new NoOpTransform());
@@ -679,7 +679,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdits_To_Multiline_Setext_Heading_Tokens() {
             const string markdown = "Foo *bar\r\nbaz*\r\n====\r\n\r\nBody\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -706,7 +706,7 @@ beta
         [Fact]
         public void MarkdownNativeDocument_Applies_Shuffled_SourceEdits_To_OriginalMarkdown() {
             const string markdown = "# Old **Title**\r\n\r\nSee [docs](old.md \"Old title\") and `code`.\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -740,7 +740,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal("roundtrip-preserve-trivia-required", diagnostic.Id);
             Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal("# New Title\n\nBody\n", roundtrip.Markdown);
         }
@@ -748,7 +748,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Transform_SourceSpan_When_SourceEdits_Fallback_To_NormalizedMarkdown() {
             const string markdown = "previous shutdown was unexpected### Reason";
-            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
@@ -761,14 +761,14 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(affectedSourceSpan, diagnostic.SourceSpan);
             Assert.Equal("Updated", roundtrip.Markdown);
         }
 
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Transform_RelatedSourceSpans_When_SourceEdit_Falls_Back() {
-            var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
@@ -783,7 +783,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.document-transformed", diagnostic.Id);
+            Assert.Equal("roundtrip-document-transformed", diagnostic.Id);
             Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
             Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
             Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
@@ -793,7 +793,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Fallback_When_SourceEdit_Cannot_Map_To_OriginalMarkdown() {
             const string markdown = "# Ol\u200Bd\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true,
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeZeroWidthSpacingArtifacts = true
@@ -808,7 +808,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+            Assert.Equal("roundtrip-original-source-slice-unavailable", diagnostic.Id);
             Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent, diagnostic.OriginalSourceFailureReason);
             Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal("# New\n", roundtrip.Markdown);
@@ -817,7 +817,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Fallback_For_Overlapping_SourceEdits() {
             const string markdown = "# Old **Title**\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
@@ -829,7 +829,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.overlapping-edits", diagnostic.Id);
+            Assert.Equal("roundtrip-overlapping-edits", diagnostic.Id);
             Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal(markdown, roundtrip.Markdown);
         }
@@ -837,7 +837,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Both_SourceSpans_For_Overlapping_SourceEdits() {
             const string markdown = "# Old **Title**\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -851,7 +851,7 @@ beta
 
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
-            Assert.Equal("roundtrip.overlapping-edits", diagnostic.Id);
+            Assert.Equal("roundtrip-overlapping-edits", diagnostic.Id);
             Assert.Equal(strongEdit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal(new[] { headingEdit.SourceSpan, strongEdit.SourceSpan }, diagnostic.RelatedSourceSpans.ToArray());
             Assert.Equal(markdown, roundtrip.Markdown);
@@ -860,7 +860,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Applies_Nested_Inline_SourceEdit_To_OriginalMarkdown() {
             const string markdown = "Start **bold and _em_** end\r\n";
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 PreserveTrivia = true
             };
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
@@ -887,7 +887,7 @@ beta
 ## Repeat
 """;
 
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var headings = parsed.DescendantHeadings().ToArray();
 
             Assert.Equal(new[] { "Title", "Repeat", "Repeat" }, headings.Select(h => h.Text).ToArray());
@@ -931,7 +931,7 @@ beta
         }
 
         private sealed class NoOpTransform : IMarkdownDocumentTransform {
-            public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => document;
+            public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) => document;
         }
 
         private static string NormalizeMarkdown(string markdown) {
@@ -942,8 +942,8 @@ beta
         }
 
         private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
-            public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-                var transformed = MarkdownDoc.Create();
+            public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+                var transformed = MarkdownDocument.Create();
                 foreach (var block in document.Blocks) {
                     if (block is ParagraphBlock paragraph) {
                         transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));

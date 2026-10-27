@@ -17,5 +17,5 @@ public sealed class ReaderExcelOptions {
     public int ChunkRows { get; set; } = 200;
 
     /// <summary>Optional low-level Excel read policy.</summary>
-    public ExcelReadOptions? ReadOptions { get; set; }
+    public ExcelReaderOptions? ReadOptions { get; set; }
 }

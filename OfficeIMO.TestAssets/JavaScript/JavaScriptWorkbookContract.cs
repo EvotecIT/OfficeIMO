@@ -37,7 +37,7 @@ internal static class JavaScriptWorkbookContract {
             Require(decodedNames[sheetIndex] == expectedName, "Decoded sheet name differs: " + decodedNames[sheetIndex]);
             string wireName = wireSheets[sheetIndex++].Name!.Value!;
             foreach (JsonProperty expected in sheet.GetProperty("expected").EnumerateObject()) {
-                using var data = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using var data = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     SheetName = wireName, A1Range = expected.Name + ":" + expected.Name, HasHeaderRow = false
                 });
                 Require(data.Read(), "Expected cell is absent: " + expected.Name);

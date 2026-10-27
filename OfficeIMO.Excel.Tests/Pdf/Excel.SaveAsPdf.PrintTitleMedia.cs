@@ -24,10 +24,10 @@ public partial class Excel {
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
         sheet.AddManualColumnPageBreak(2);
 
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Column3", pdf.GetPage(1).Text);
@@ -52,10 +52,10 @@ public partial class Excel {
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1);
         sheet.AddManualColumnPageBreak(10);
 
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(800, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(800, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         PdfCore.PdfImagePlacement[] images = PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes).OrderBy(image => image.X).ToArray();

@@ -15,11 +15,11 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         try {
             File.WriteAllText(path,
                 "div{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new HtmlToWordOptions();
+            var options = new WordHtmlImportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
-                "<div>Element styled anchor</div>").ToWordDocumentResult(options);
+                "<div>Element styled anchor</div>").ConvertToWordWithEvidence(options);
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
@@ -56,12 +56,12 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
     [InlineData(OfficePageOrientation.Landscape)]
     public void ContinuousWordProjectionUsesConfiguredPageWidth(OfficePageOrientation orientation) {
         const string html = "<div style='position:absolute;right:0;top:0;width:96px;height:40px'>A5 anchor</div>";
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             DefaultPageSize = WordPageSize.A5,
             DefaultOrientation = orientation
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument word = result.Value;
 
         double widthTwips = orientation == OfficePageOrientation.Landscape

@@ -25,14 +25,14 @@ public sealed class WordChartDoughnutTests {
                 Assert.Throws<NotSupportedException>(() => chart.AddPie("Invalid", 1));
                 Assert.Throws<NotSupportedException>(() => chart.AddPie3D("Invalid", 1));
                 chart.AddDoughnut("Fail", 1);
-                Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+                Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
                 Assert.Equal(WordChartSnapshotKind.Doughnut, snapshot.ChartKind);
                 Assert.Equal(new[] { "Pass", "Unknown", "Fail" }, snapshot.Data.Categories);
                 Assert.Equal(new double[] { 8, 2, 1 }, snapshot.Data.Series[0].Values);
                 Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
                 Assert.Empty(document.ValidateDocument());
-                var options = new WordToPdfOptions { IncludePageNumbers = false };
-                byte[] pdf = document.ToPdfBytes(options);
+                var options = new WordPdfExportOptions { IncludePageNumbers = false };
+                byte[] pdf = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
                 var page = Assert.Single(OfficeIMO.Pdf.PdfDocument.Load(pdf).Render.Pages(options:
                     new OfficeIMO.Pdf.PdfPageRenderOptions { Dpi = 72, MaxPages = 1, ContinueOnError = false }));
                 Assert.True(OfficePngReader.TryDecode(page.Bytes!, out OfficeRasterImage? raster));
@@ -41,11 +41,11 @@ public sealed class WordChartDoughnutTests {
                     for (int x = 0; x < raster.Width; x++)
                         if (raster.GetPixel(x, y).Equals(OfficeColor.Parse("#168A56"))) greenPixels++;
                 Assert.True(greenPixels > 100, "Expected the native doughnut slice in rendered PDF.");
-                Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+                Assert.DoesNotContain(options.Warnings, warning => warning.Code == "native-body-chart-unsupported");
                 document.Save();
             }
             using WordDocument final = WordDocument.Load(path);
-            Assert.True(final.Charts.Single().TryGetSnapshot(out WordChartSnapshot persisted));
+            Assert.True(final.Charts.Single().TryGetSnapshot(out WordChartInfo persisted));
             Assert.Equal(new double[] { 8, 2, 1 }, persisted.Data.Series[0].Values);
             Assert.Empty(final.ValidateDocument());
         } finally { if (File.Exists(path)) File.Delete(path); }
@@ -59,7 +59,7 @@ public sealed class WordChartDoughnutTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => chart.AddDoughnut("Invalid", -1));
         chart.AddPie("Pass", 1);
         Assert.Throws<NotSupportedException>(() => chart.AddDoughnut("Fail", 1));
-        Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
         Assert.Equal(new[] { "Pass" }, snapshot.Data.Categories);
     }
 }

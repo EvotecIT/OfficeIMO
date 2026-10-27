@@ -26,7 +26,7 @@ public sealed class HtmlFontTrackingTests {
         var options = new HtmlToPdfOptions();
         options.PdfOptions.CompressContentStreams = false;
         options.PdfOptions.TextShapingMode = shapingMode;
-        byte[] pdf = source.ToPdfBytes(options);
+        byte[] pdf = (source.ToPdf(options)).ToBytes();
         using var independent = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var letters = independent.GetPage(1).Letters.ToArray();
         Assert.Equal(new[] { "A", "B" }, letters.Select(letter => letter.Value));

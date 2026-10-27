@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -10,7 +11,7 @@ namespace OfficeIMO.Tests;
 public partial class Word {
     [Fact]
     public void PdfTables_SaveAsWord_ImportsDetectedTablesAsWordTables() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -35,13 +36,13 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        PdfWordConversionResult result = LoadTables(pdf).ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        PdfWordConversionResult result = LoadTables(pdf).ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
         using (result.Value) {
             result.Value.Save(document);
         }
         Assert.True(result.Report.HasLoss);
         Assert.Contains(result.Report.Warnings, warning =>
-            warning.Code == "PdfEditableLayoutReconstructed" &&
+            warning.Code == "pdf-editable-layout-reconstructed" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
 
@@ -64,7 +65,7 @@ public partial class Word {
 
     [Fact]
     public void PdfTables_SaveAsWord_AppliesRowCapsAndKeepsDocumentValidWhenEmpty() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -87,14 +88,14 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        PdfToWordOptions tablesOnly = PdfToWordOptions.CreateTablesOnly();
+        WordPdfImportOptions tablesOnly = WordPdfImportOptions.CreateTablesOnly();
         tablesOnly.MaxTableRows = 2;
-        PdfWordConversionResult result = LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)).ToWordDocumentResult(tablesOnly);
+        PdfWordConversionResult result = LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)).ConvertToWordWithEvidence(tablesOnly);
         using (result.Value) {
             result.Value.Save(document);
         }
         Assert.True(result.Report.HasLoss);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PdfTableTruncated");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "pdf-table-truncated");
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
 
         using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false)) {
@@ -107,15 +108,15 @@ public partial class Word {
         }
 
         using var emptyDocument = new MemoryStream();
-        PdfToWordOptions emptyOptions = PdfToWordOptions.CreateTablesOnly();
+        WordPdfImportOptions emptyOptions = WordPdfImportOptions.CreateTablesOnly();
         emptyOptions.EmptyDocumentMessage = "Nothing tabular was detected.";
-        PdfWordConversionResult emptyResult = LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)).ToWordDocumentResult(emptyOptions);
+        PdfWordConversionResult emptyResult = LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)).ConvertToWordWithEvidence(emptyOptions);
         using (emptyResult.Value) {
             emptyResult.Value.Save(emptyDocument);
         }
         Assert.True(emptyResult.Report.HasLoss);
         Assert.Contains(emptyResult.Report.Warnings, warning =>
-            warning.Code == "PdfTextContentNotImported" &&
+            warning.Code == "pdf-text-content-not-imported" &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         using WordprocessingDocument emptyPackage = WordprocessingDocument.Open(new MemoryStream(emptyDocument.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(emptyPackage).ToList());

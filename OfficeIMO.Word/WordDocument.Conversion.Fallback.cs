@@ -41,7 +41,7 @@ public partial class WordDocument {
                 or OfficeCompatibilityMode.PreservationOnly;
             if (!permitsVisualFallback) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.Unsupported",
+                    "word-legacy-writer-unsupported",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
@@ -53,22 +53,15 @@ public partial class WordDocument {
 
             IReadOnlyList<OfficeImageExportResult> pages;
             try {
-                pages = document.ExportImages(
-                    OfficeImageExportFormat.Png,
-                    new WordImageExportOptions {
-                        BackgroundColor = OfficeColor.White,
-                        Policy = new OfficeImageExportPolicy {
-                            RequireNoOmissions = true,
-                            RequireNoFailures = true
-                        }
-                    });
+                pages = (options.VisualFallbackRenderer ?? throw new NotSupportedException(
+                    "Visual DOC fallback requires the Word PDF adapter through OfficeConverter."))(document);
             } catch (OfficeImageExportPolicyException renderException) {
                 string codes = string.Join(", ", renderException.Diagnostics
                     .Select(item => item.Code)
                     .Distinct(StringComparer.Ordinal)
                     .Take(8));
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.VisualFallbackUnavailable",
+                    "word-legacy-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     $"Native DOC output is unsupported and the visual fallback has renderer omissions ({codes}). Native writer: {exception.Message}",
@@ -80,7 +73,7 @@ public partial class WordDocument {
 
             if (pages.Count == 0) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.VisualFallbackUnavailable",
+                    "word-legacy-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     "Native DOC output is unsupported and the visual fallback did not render any pages. Native writer: " + exception.Message,
@@ -91,7 +84,7 @@ public partial class WordDocument {
             }
 
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "Word.LegacyWriter.VisualFallback",
+                "word-legacy-writer-visual-fallback",
                 OfficeConversionDiagnosticCategory.DataLoss,
                 OfficeConversionDiagnosticSeverity.Warning,
                 $"The editable document is represented by {pages.Count} static page image(s) because native DOC writing rejected part of the source model. {exception.Message}",
@@ -195,7 +188,7 @@ public partial class WordDocument {
         bool embedded,
         bool hasMacros) {
         diagnostics.Add(new OfficeConversionDiagnostic(
-            embedded ? "Word.SourceCarrier.Embedded" : "Word.SourceCarrier.NotEmbedded",
+            embedded ? "word-source-carrier-embedded" : "word-source-carrier-not-embedded",
             OfficeConversionDiagnosticCategory.DataLoss,
             OfficeConversionDiagnosticSeverity.Warning,
             embedded

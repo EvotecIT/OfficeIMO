@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Controls how Word page breaks are represented when exporting to Markdown.
     /// </summary>
-    public enum MarkdownPageBreakMode {
+    public enum WordMarkdownPageBreakMode {
         /// <summary>
         /// Emit an OfficeIMO semantic fenced block that can be parsed back into a Word page break.
         /// </summary>

@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
                     ("ZeroRows", "G1", "#CALC!"), ("ZeroColumns", "G1", "#CALC!"),
                     ("NegativeRows", "G1", "#VALUE!"), ("NegativeColumns", "G1", "#VALUE!")
                 }) {
-                    var (row, column) = A1.ParseCellRef(address);
+                    var (row, column) = ExcelA1.ParseCellRef(address);
                     Assert.True(document[name].TryGetCellText(row, column, out var actual), name);
                     Assert.Equal(expected, actual);
                 }

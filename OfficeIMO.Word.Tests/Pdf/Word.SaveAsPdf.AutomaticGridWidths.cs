@@ -15,7 +15,7 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "WidthMarker0 " +
             string.Join(" ", Enumerable.Repeat("wrapped cell text", 12));
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToList();
         Assert.Single(words, word => word.Text == "WidthMarker0");
@@ -34,7 +34,7 @@ public partial class Word {
                 string.Join(" ", Enumerable.Repeat("wrapped cell text", 12));
 
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToList();
         var left = Assert.Single(words, word => word.Text == "WidthMarker0");
         var right = Assert.Single(words, word => word.Text == "WidthMarker1");
@@ -57,7 +57,7 @@ public partial class Word {
         cell.WidthType = widthType;
         cell.Paragraphs[0].Text = "WidthMarker0 " + new string('W', characterCount);
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(characterCount, letters.Count(letter => letter.Value == "W") - 1);
@@ -80,7 +80,7 @@ public partial class Word {
         else if (indent == "right") paragraph.IndentationAfterPoints = 36;
         else paragraph.IndentationFirstLinePoints = 36;
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(40, letters.Count(letter => letter.Value == "W"));
         Assert.Equal(2, letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count());
@@ -98,10 +98,10 @@ public partial class Word {
         if (styledRuns) cell.Paragraphs[0].AddText(text.Substring(27)).Bold = true;
 
         // This narrow-width fixture pins Base-14 line counts, independently of host fonts.
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(text, string.Concat(letters.Select(letter => letter.Value)));
         Assert.True(letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count() >= 4);
@@ -131,7 +131,7 @@ public partial class Word {
         cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
         table.GridColumnWidth = new List<int> { 1600, 3200 };
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToList();
         double gap = Assert.Single(words, word => word.Text == "Span1").BoundingBox.Left -
             Assert.Single(words, word => word.Text == "Span0").BoundingBox.Left;
@@ -149,10 +149,10 @@ public partial class Word {
         paragraph.LineSpacingRule = minimumSpacing ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
         paragraph.LineSpacing = 240;
         var options = CreateAutomaticGridFallbackFontOptions();
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var letters = page.Letters.Where(letter => letter.Value == "東" || letter.Value == "京").ToList();
         Assert.Equal(48, letters.Count);
@@ -179,10 +179,10 @@ public partial class Word {
         paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
         paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = CreateAutomaticGridFallbackFontOptions(),
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "東" || letter.Value == "京").ToList();
         Assert.Equal(6, letters.Count);
         double[] baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().OrderByDescending(value => value).ToArray();
@@ -191,8 +191,8 @@ public partial class Word {
             Assert.Equal(19.2D * spacing / 240D, baselines[index - 1] - baselines[index], 3);
     }
 
-    private static OfficeIMO.Pdf.PdfOptions CreateAutomaticGridFallbackFontOptions() {
-        var options = new OfficeIMO.Pdf.PdfOptions();
+    private static OfficeIMO.Pdf.PdfCreateOptions CreateAutomaticGridFallbackFontOptions() {
+        var options = new OfficeIMO.Pdf.PdfCreateOptions();
         options.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
         options.RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(new[] {
             new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Tall CJK",

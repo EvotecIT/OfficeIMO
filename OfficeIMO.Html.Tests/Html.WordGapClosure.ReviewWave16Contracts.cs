@@ -16,7 +16,7 @@ public partial class HtmlWordGapClosure {
             <div style="{style}"><table><tr><td>Cell</td></tr></table></div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         OpenXmlElement[] blocks = document.OpenXmlDocument.MainDocumentPart!.Document.Body!
             .ChildElements
             .Where(element => element is Paragraph or Table)
@@ -32,11 +32,11 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void HtmlToWord_StrictCssAcceptsTransparentInlineBackground() {
         const string html = """<p><span style="background-color:transparent">Clear</span></p>""";
-        var options = new HtmlToWordOptions {
-            UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error,
+        var options = new WordHtmlImportOptions {
+            UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument(options);
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord(options);
         WordParagraph run = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Clear");
 
         Assert.Equal(string.Empty, run.RunShadingFillColorHex);
@@ -50,7 +50,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Nested");
 
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
@@ -62,7 +62,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_NumberedHeadingKeepsInlinePlaceholderContent() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
+        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("Intro<h1>Heading</h1>"), options);
 

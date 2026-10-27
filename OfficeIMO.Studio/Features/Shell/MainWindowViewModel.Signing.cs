@@ -17,7 +17,7 @@ public sealed partial class MainWindowViewModel {
 
     /// <summary>Uses the document engine's installed-font policy for embedded signature text.</summary>
     private static PdfEmbeddedFont LoadSigningAppearanceFont() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (!options.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true))
             throw new InvalidOperationException("Visible signature text requires an installed embeddable TrueType font.");
         return options.EmbeddedFonts[options.DefaultFont];

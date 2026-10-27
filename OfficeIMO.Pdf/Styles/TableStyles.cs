@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Friendly presets for common table appearances.
 /// </summary>
-public static class TableStyles {
+public static class PdfTableStyles {
     private static readonly string[] CanonicalWordStyleNameValues = {
         "TableNormal",
         "TableGrid",

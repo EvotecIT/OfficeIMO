@@ -48,7 +48,7 @@ public static class ExcelHostExtensions
         if (!string.IsNullOrWhiteSpace(address))
         {
             var trimmedAddress = address!.Trim();
-            var (rowIndex, columnIndex) = A1.ParseCellRef(trimmedAddress);
+            var (rowIndex, columnIndex) = ExcelA1.ParseCellRef(trimmedAddress);
             if (rowIndex <= 0 || columnIndex <= 0)
             {
                 throw new ArgumentException($"Address '{address}' is not a valid A1 reference.", nameof(address));
@@ -72,7 +72,7 @@ public static class ExcelHostExtensions
     {
         if (!string.IsNullOrWhiteSpace(columnName))
         {
-            var index = A1.ColumnLettersToIndex(columnName!.Trim());
+            var index = ExcelA1.ColumnLettersToIndex(columnName!.Trim());
             if (index <= 0)
             {
                 throw new ArgumentException($"ColumnName '{columnName}' is not a valid column reference.", nameof(columnName));

@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.Text;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
@@ -38,7 +39,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void LoadPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 36,
@@ -152,20 +153,20 @@ public partial class PdfDocumentReadResultTests {
         PdfDocumentReadResult full = PdfDocumentReadResult.Load(BuildThreePageLabelPdf(labelOnlyThirdPage: true));
         Assert.Equal(2, Assert.Single(full.PageLabels).StartPageIndex);
 
-        PdfToPowerPointOptions firstOptions = PdfToPowerPointOptions.CreateEditableTables();
-        firstOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) };
-        PdfPowerPointConversionResult first = full.ToPowerPointPresentationResult(firstOptions);
+        PowerPointPdfImportOptions firstOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        firstOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
+        PdfPowerPointConversionResult first = full.ConvertToPowerPointWithEvidence(firstOptions);
         using (first.Value) {
             Assert.Equal(0, first.Report.SourceScope!.PageLabelCount);
-            Assert.DoesNotContain(first.Warnings, static warning => warning.Code == "PdfPageLabelsNotReconstructed");
+            Assert.DoesNotContain(first.Warnings, static warning => warning.Code == "pdf-page-labels-not-reconstructed");
         }
 
-        PdfToPowerPointOptions thirdOptions = PdfToPowerPointOptions.CreateEditableTables();
-        thirdOptions.ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(3) };
-        PdfPowerPointConversionResult third = full.ToPowerPointPresentationResult(thirdOptions);
+        PowerPointPdfImportOptions thirdOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        thirdOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(3) };
+        PdfPowerPointConversionResult third = full.ConvertToPowerPointWithEvidence(thirdOptions);
         using (third.Value) {
             Assert.Equal(1, third.Report.SourceScope!.PageLabelCount);
-            Assert.Contains(third.Warnings, static warning => warning.Code == "PdfPageLabelsNotReconstructed" &&
+            Assert.Contains(third.Warnings, static warning => warning.Code == "pdf-page-labels-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }

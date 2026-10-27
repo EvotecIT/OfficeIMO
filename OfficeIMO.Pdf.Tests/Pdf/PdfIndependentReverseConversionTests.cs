@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -59,13 +61,13 @@ public sealed class PdfIndependentReverseConversionTests {
         for (int row = 0; row < fixture.Table.Length; row++) Assert.Equal(fixture.Table[row], table.Rows[row]);
 
         // The independently authored labels establish the first row as headers.
-        var options = new PdfTablesToExcelOptions { UseFirstRowAsHeader = true };
+        var options = new ExcelPdfImportOptions { UseFirstRowAsHeader = true };
         if (route == "xlsx") AssertExcelCells(source, fixture.Table, options);
         else AssertOdsCells(source, fixture.Table, options);
     }
 
     private static string ReadWordText(PdfDocumentReadResult source) {
-        using OfficeIMO.Word.WordDocument document = source.ToWordDocument();
+        using OfficeIMO.Word.WordDocument document = (source.ConvertToWordWithEvidence()).Value;
         using var bytes = new MemoryStream(document.ToBytes());
         using WordprocessingDocument reopened = WordprocessingDocument.Open(bytes, false);
         W.Body body = Assert.IsType<W.Body>(reopened.MainDocumentPart?.Document?.Body);
@@ -98,9 +100,12 @@ public sealed class PdfIndependentReverseConversionTests {
         return string.Join(" ", reopened.Paragraphs.Select(paragraph => paragraph.Text));
     }
 
-    private static void AssertExcelCells(PdfDocumentReadResult source, string[][] expected, PdfTablesToExcelOptions options) {
+    private static void AssertExcelCells(PdfDocumentReadResult source, string[][] expected, ExcelPdfImportOptions options) {
         using var bytes = new MemoryStream();
-        PdfExcelTableImportReport report = source.SaveTablesAsExcel(bytes, options).RequireSuccess().Report!;
+        var conversion = source.ConvertToExcelWithEvidence(options);
+        using var convertedWorkbook = conversion.Value;
+        convertedWorkbook.Save(bytes);
+        PdfExcelTableImportReport report = conversion.Report;
         Assert.Equal(expected.Length - 1, Assert.Single(report.Entries).RowCount);
         Assert.True(report.HasOmittedPageContent); // The page title and closing prose are outside this table-only route.
         bytes.Position = 0;
@@ -130,7 +135,7 @@ public sealed class PdfIndependentReverseConversionTests {
         }
     }
 
-    private static void AssertOdsCells(PdfDocumentReadResult source, string[][] expected, PdfTablesToExcelOptions options) {
+    private static void AssertOdsCells(PdfDocumentReadResult source, string[][] expected, ExcelPdfImportOptions options) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
         Assert.Equal(expected.Length - 1, Assert.Single(result.Report.PdfReport.Entries).RowCount);
         Assert.True(result.Report.PdfReport.HasOmittedPageContent);

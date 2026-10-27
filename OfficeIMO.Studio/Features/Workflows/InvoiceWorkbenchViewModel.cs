@@ -17,7 +17,7 @@ public sealed partial class InvoiceWorkbenchViewModel : ObservableObject, IDispo
     private readonly IOfficeInvoiceWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
     private readonly StudioStorageAccess? _storage;
-    private readonly IOfficeWorkflowPublicationGuard? _guard;
+    private readonly IOfficePublicationGuard? _guard;
     private readonly StudioJobHistory? _jobs;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
     private CancellationTokenSource? _cancellation;
@@ -30,7 +30,7 @@ public sealed partial class InvoiceWorkbenchViewModel : ObservableObject, IDispo
 
     internal InvoiceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInvoice,
         Func<CancellationToken, Task<string?>> pickFolder, IOfficeInvoiceWorkflowRunner? runner,
-        IStudioLocalizer? localizer, StudioStorageAccess? storage = null, IOfficeWorkflowPublicationGuard? guard = null,
+        IStudioLocalizer? localizer, StudioStorageAccess? storage = null, IOfficePublicationGuard? guard = null,
         StudioJobHistory? jobs = null, Func<string, CancellationToken, Task>? openOutput = null,
         Func<CancellationToken, Task<string?>>? pickFont = null) {
         _pickInvoice = pickInvoice; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner();

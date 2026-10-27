@@ -131,9 +131,9 @@ public partial class Html {
 
     [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
-        string markdown = HtmlConversionDocument
+        string markdown = (HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")
-            .ToMarkdown();
+            .ToMarkdown()).ToMarkdown();
 
         Assert.Contains("9. First", markdown, StringComparison.Ordinal);
         Assert.Contains("12. Second", markdown, StringComparison.Ordinal);
@@ -144,10 +144,10 @@ public partial class Html {
     public void HtmlPreparedDocumentApis_ProduceArtifactsAcrossConversionTargets() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
 
-        string markdown = source.ToMarkdown();
-        MarkdownDoc markdownDocument = source.ToMarkdownDocument();
+        string markdown = source.ToMarkdown().ToMarkdown();
+        MarkdownDocument markdownDocument = source.ToMarkdown();
         RtfDocument rtfDocument = source.ToRtfDocument();
-        using WordDocument wordDocument = source.ToWordDocumentResult().RequireValue();
+        using WordDocument wordDocument = source.ConvertToWordWithEvidence().RequireValue();
 
         Assert.Contains("Hello", markdown, StringComparison.Ordinal);
         Assert.NotNull(markdownDocument);
@@ -172,7 +172,7 @@ public partial class Html {
         HtmlTextConversionResult oneNoteHtml = oneNoteSection.ToHtmlDocumentResult();
         Assert.Contains("Hello", oneNoteHtml.RequireValue(), StringComparison.Ordinal);
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ToPdfDocumentResult();
+        OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ConvertToPdfWithEvidence();
         OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png);
         Assert.NotEmpty(pdf.ToBytes());
         Assert.NotEmpty(image.Bytes);
@@ -187,8 +187,8 @@ public partial class Html {
     public void HtmlTargetCapabilityContracts_AdvertisePublicCompiledApis() {
         var publicApis = new Dictionary<HtmlConversionTarget, ApiSurface> {
             [HtmlConversionTarget.Word] = new(
-                typeof(WordHtmlConverterExtensions), "ToWordDocument", "ToWordDocumentResult",
-                typeof(WordHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(WordHtmlConverterExtensions), "ToWord", "ToWord",
+                typeof(WordHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Excel] = new(
                 typeof(HtmlExcelConverterExtensions), "ToExcelDocument", "ToExcelDocumentResult",
                 typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
@@ -199,14 +199,14 @@ public partial class Html {
                 typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",
                 typeof(OneNoteHtmlConverterExtensions), "ToHtmlDocument", "ToHtmlDocumentResult"),
             [HtmlConversionTarget.Markdown] = new(
-                typeof(HtmlMarkdownConverterExtensions), "ToMarkdownDocument", "ToMarkdownDocumentResult",
-                typeof(MarkdownDoc), "ToHtmlDocument", null),
+                typeof(HtmlMarkdownConverterExtensions), "ToMarkdown", "ToMarkdown",
+                typeof(MarkdownDocument), "ToHtml", null),
             [HtmlConversionTarget.Rtf] = new(
                 typeof(HtmlRtfConverterExtensions), "ToRtfDocument", "ToRtfDocumentResult",
                 typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.Pdf] = new(
-                typeof(HtmlPdfConverterExtensions), "ToPdfDocument", "ToPdfDocumentResult",
-                typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlPdfConverterExtensions), "ToPdf", "ToPdf",
+                typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Image] = new(
                 typeof(HtmlImageExportExtensions), "ToPng", "ExportImage", null, null, null),
             [HtmlConversionTarget.Reader] = new(

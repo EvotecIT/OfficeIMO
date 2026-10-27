@@ -22,7 +22,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(await reader.ReadAsync(CancellationToken.None));
             Assert.Equal("Alpha", reader.GetString(0));
             Assert.False(await reader.ReadAsync(CancellationToken.None));
@@ -33,7 +33,7 @@ public partial class Excel {
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => reader.ReadAsync(cancellation.Token));
         } finally {
             File.Delete(path);
@@ -60,9 +60,9 @@ public partial class Excel {
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     InferSchema = true,
                     SchemaSampleRows = 512,
                     CellValueConverter = _ => {
@@ -72,7 +72,7 @@ public partial class Excel {
                 });
 
             Volatile.Write(ref cancelDuringNextSheet, true);
-            await Assert.ThrowsAsync<OperationCanceledException>(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => reader.NextResultAsync(cancellation.Token));
         } finally {
             File.Delete(path);
@@ -96,7 +96,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(await reader.NextResultAsync(perCallCancellation.Token));
             perCallCancellation.Cancel();
 
@@ -122,9 +122,9 @@ public partial class Excel {
 
         using var cancellation = new CancellationTokenSource();
         bool cancelDuringRead = false;
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             workbook,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = false,
                 CellValueConverter = _ => {
                     if (Volatile.Read(ref cancelDuringRead)) cancellation.Cancel();
@@ -153,9 +153,9 @@ public partial class Excel {
 
         int callerThread = Environment.CurrentManagedThreadId;
         int converterThread = 0;
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             workbook,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = false,
                 CellValueConverter = value => {
                     Volatile.Write(ref converterThread, Environment.CurrentManagedThreadId);

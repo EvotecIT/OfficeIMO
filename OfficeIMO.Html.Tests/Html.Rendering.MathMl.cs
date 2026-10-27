@@ -101,13 +101,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText above = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Above");
         HtmlRenderText below = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Below");
         string svg = source.ToSvg(options);
-        byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (source.ToPdf(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
-        });
+        })).ToBytes();
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(120D, drawing.Width, 3);

@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CharacterJustificationKeepsShapedLigaturesAsSingleDistributionUnits() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn");
-        PdfOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Ligature Font",
+        PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Ligature Font",
             font));
         options.TextShapingMode = PdfTextShapingMode.OpenTypeLigatures;
         PdfGlyphRun shaped = PdfTrueTypeFontProgram.Parse(font, "Ligature Font").ShapeText("fifi",
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void CharacterJustificationAddsPagePointTrackingWithoutChangingAuthoredScalingAndSpacing() {
-        PdfOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Spacing Font",
+        PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Spacing Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 'D')));
         var runs = new[] { new PdfTextRun("AB").WithHorizontalTextScaling(150).WithCharacterSpacing(2),
             new PdfTextRun("CD").WithHorizontalTextScaling(75) };
@@ -174,16 +174,16 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(rectangle.X + rectangle.W < letters[1].StartBaseLine.X);
     }
 
-    private static PdfOptions JustificationPolicyOptions() => new() {
+    private static PdfCreateOptions JustificationPolicyOptions() => new() {
         PageWidth = 300, PageHeight = 220, MarginLeft = 30, MarginRight = 30,
         MarginTop = 30, MarginBottom = 30, DefaultFontSize = 12, CompressContentStreams = false
     };
     private static PdfParagraphStyle CharacterJustificationPolicy() => new() {
         JustificationMode = PdfJustificationMode.Characters, JustifyExplicitLineBreaks = true, JustifyLastLine = true
     };
-    private static byte[] RenderJustificationPolicyRuns(PdfOptions options, PdfTextRun[] runs, bool distributed) =>
+    private static byte[] RenderJustificationPolicyRuns(PdfCreateOptions options, PdfTextRun[] runs, bool distributed) =>
         PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(runs), distributed ? PdfAlign.Justify : PdfAlign.Left,
-            style: distributed ? CharacterJustificationPolicy() : new PdfParagraphStyle()).ToBytes();
+            style: distributed ? CharacterJustificationPolicy() : new PdfParagraphStyle()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     private static Letter[] ReadJustificationPolicyLetters(byte[] bytes) {
         using var pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();

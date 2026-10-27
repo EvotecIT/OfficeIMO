@@ -47,7 +47,7 @@ internal static partial class PdfWriter {
             OfficeTransform diagnosticTurn = clockwise
                 ? new OfficeTransform(0D, -1D, 1D, 0D, frame.Left, frame.Top)
                 : new OfficeTransform(0D, 1D, -1D, 0D, frame.Left + frame.Width, frame.Top - frame.Height);
-            ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + row + "," + column + "]", paragraph,
+            ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + row + "," + column + "]", paragraph,
                 lines, heights, firstBaseline, fontSize, leading, left, width,
                 new TableCellContentFrame(clipX, clipBottom + inkClip.Width, inkClip.Height, inkClip.Width),
                 alignments: alignments, offsets: offsets, widths: widths, baselineFont: font,

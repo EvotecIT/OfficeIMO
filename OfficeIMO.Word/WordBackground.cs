@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document.</param>
         /// <param name="color">Initial color.</param>
-        public WordBackground(WordDocument document, OfficeIMO.Drawing.OfficeColor color) {
+        public WordBackground(WordDocument document, OfficeIMO.OfficeColor color) {
             _document = document;
 
             DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToRgbHex() };
@@ -68,11 +68,11 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
-        /// Sets the background color using a <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         /// <param name="color">Color value.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetColor(OfficeIMO.Drawing.OfficeColor color) {
+        public WordBackground SetColor(OfficeIMO.OfficeColor color) {
             this.Color = color.ToRgbHex();
             return this;
         }

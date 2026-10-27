@@ -210,7 +210,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeStrokeDashStyle.Dash, border.Shape.StrokeDashStyle);
         Assert.Equal(OfficeColor.Red, border.Shape.StrokeColor);
@@ -229,7 +229,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("StrokePdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -332,7 +332,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(23D, sideBackground.Width, 3);
         Assert.Equal(40D, mixedBackground.Width, 3);
@@ -369,7 +369,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px groove red)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(outline:2px ridge red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(outline-offset:20%)"));
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeColor dark = OfficeColorTransforms.Shade(OfficeColor.Gray, 0.55D);
         OfficeColor light = OfficeColorTransforms.Tint(OfficeColor.Gray, 0.55D);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.Equal(8, groove.Count);
         Assert.Equal(8, ridge.Count);
@@ -449,7 +449,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, shapes.Count);
@@ -468,7 +468,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(20, 1));
         Assert.Contains("RoundedPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -497,7 +497,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(shapes.Count >= 2);
         Assert.All(shapes, shape => Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind));
@@ -506,7 +506,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.Contains("PathPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px 2px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:12px / 4px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px 2px)"));
@@ -581,7 +581,7 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
@@ -599,6 +599,6 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

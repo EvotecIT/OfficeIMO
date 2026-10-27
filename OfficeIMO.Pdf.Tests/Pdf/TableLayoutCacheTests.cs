@@ -189,11 +189,11 @@ namespace OfficeIMO.Tests.Pdf {
                 paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
                 paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
 
-                using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+                using var pdf = PdfPigDocument.Open((document.ToPdf(new WordPdfExportOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica",
                     ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-                }));
+                })).ToBytes());
                 var page = Assert.Single(pdf.GetPages());
                 Assert.Equal("AB", string.Concat(page.Letters.Select(letter => letter.Value)));
                 var first = Assert.Single(page.Letters, letter => letter.Value == "A");

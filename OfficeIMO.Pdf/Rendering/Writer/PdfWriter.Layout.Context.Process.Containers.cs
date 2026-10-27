@@ -141,9 +141,9 @@ internal static partial class PdfWriter {
             if (style.AnchoredCanvas is { } anchoredCanvas) RenderParagraphCanvas(anchoredCanvas, y);
             if (style.TopPadding > 0) RecordFlowPlacement(y);
             else ResolveFloatingBookmarks(y);
-            PdfOptions parentOptions = currentOpts;
+            PdfCreateOptions parentOptions = currentOpts;
             double parentYStart = yStart;
-            PdfOptions pageOptions = currentPage!.Options;
+            PdfCreateOptions pageOptions = currentPage!.Options;
             parentWidth = width;
             frame = ResolveContainerFrame(container, style, currentOpts.MarginLeft, parentWidth);
             outerX = frame.X;
@@ -295,8 +295,8 @@ internal static partial class PdfWriter {
             public double? TableContentBottom;
             public double ConsumedClosingPadding { get; set; }
             public bool MoveTrailingSeparatorToNextFrame { get; set; }
-            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
-                PdfOptions parentOptions, PdfOptions nestedOptions, ContainerBlock? container = null) {
+            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfCreateOptions pageOptions,
+                PdfCreateOptions parentOptions, PdfCreateOptions nestedOptions, ContainerBlock? container = null) {
                 Style = style;
                 Container = container;
                 OuterX = outerX;
@@ -310,9 +310,9 @@ internal static partial class PdfWriter {
             public ContainerBlock? Container { get; }
             public double OuterX { get; set; }
             public double OuterWidth { get; set; }
-            public PdfOptions PageOptions { get; set; }
-            public PdfOptions ParentOptions { get; set; }
-            public PdfOptions NestedOptions { get; set; }
+            public PdfCreateOptions PageOptions { get; set; }
+            public PdfCreateOptions ParentOptions { get; set; }
+            public PdfCreateOptions NestedOptions { get; set; }
             public int InsertionIndex { get; set; }
             public double FragmentTop { get; set; }
             public bool IsContinuation { get; set; }

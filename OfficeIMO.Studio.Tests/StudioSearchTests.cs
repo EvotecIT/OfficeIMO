@@ -25,7 +25,7 @@ public sealed class StudioSearchTests {
             string[] words = Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D3")).ToArray();
             byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(400D, 600D)
                 .Content(content => content.Text(string.Join(" ", words))))).ToBytes();
-            PdfDocument sourceDocument = PdfDocument.Load(pdf);
+            PdfDocument sourceDocument = PdfDocument.Load(new System.IO.MemoryStream(pdf));
             string query = Enumerable.Range(0, words.Length - 1)
                 .Select(index => words[index] + " " + words[index + 1])
                 .First(candidate => sourceDocument.Text.Find(candidate).Any(hit => hit.VisualLineBounds.Count == 2));

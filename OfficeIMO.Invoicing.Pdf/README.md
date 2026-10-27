@@ -32,7 +32,7 @@ var contract = new InvoiceXmlOptions(
 var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL", "en-GB");
 var snapshot = PdfInvoiceDocument.Create(invoice, contract, layout);
 byte[] font = File.ReadAllBytes("invoice-font.ttf");
-var options = new PdfOptions()
+var options = new PdfCreateOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
     .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
 File.WriteAllBytes("invoice.xml", snapshot.ToXmlBytes());
@@ -60,7 +60,7 @@ The modern theme is opt-in; existing layouts keep their established appearance.
 Approval blocks are printed identity and date fields. They are not PDF digital
 signatures and do not provide cryptographic proof. For a visible PDF without the
 CII attachment, such as a presentation-only comparison, call
-`ToPresentationPdfBytes`. Presentation-only rendering rejects `PdfOptions` already configured for Factur-X/ZUGFeRD so it cannot silently retain an unrelated electronic-invoice attachment. Use `ToPdfBytes` for the hybrid Factur-X/ZUGFeRD output.
+`ToPresentationPdfBytes`. Presentation-only rendering rejects `PdfCreateOptions` already configured for Factur-X/ZUGFeRD so it cannot silently retain an unrelated electronic-invoice attachment. Use `ToPdfBytes` for the hybrid Factur-X/ZUGFeRD output.
 
 Later edits to `invoice` cannot change the snapshot. `ToInvoice()` returns an
 independent editable model. Reuse the captured `Release` and `Profile` when
@@ -145,7 +145,7 @@ columns and existing spacing.
 managed Arabic joining and bidirectional shaping provider unless the caller supplies
 a different shaping provider. For portable, repeatable output, pass embedded
 fonts that cover the actual scripts through
-`PdfOptions.RegisterEmbeddedFontFallbacks`; system font discovery is suitable only
+`PdfCreateOptions.RegisterEmbeddedFontFallbacks`; system font discovery is suitable only
 when the deployment owns and verifies the installed families. Long descriptions
 flow across pages instead of being truncated.
 

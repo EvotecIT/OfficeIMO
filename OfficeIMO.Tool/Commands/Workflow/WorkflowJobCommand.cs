@@ -45,37 +45,30 @@ internal static class WorkflowJobCommand {
         if (string.IsNullOrWhiteSpace(path)) throw new WorkflowUsageException("Specify a saved job file.");
         string fullPath = Path.GetFullPath(path);
         if (command == "report") {
-            var report = OfficeConversionJobRunReportSerializer.ReadFile(fullPath);
-            await output.WriteLineAsync(OfficeConversionJobRunReportSerializer.Serialize(report)).ConfigureAwait(false);
+            var report = OfficeBatchReport.Load(fullPath);
+            await output.WriteLineAsync(report.ToJson()).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }
-        string baseDirectory = Path.GetDirectoryName(fullPath)!;
-        OfficeConversionJob job = OfficeConversionJobSerializer.ReadFile(fullPath);
-        var runner = IWorkWorkflow.CreateRunner();
+        OfficeBatchOptions job = OfficeBatchOptions.Load(fullPath);
+        OfficeWorkflow.RegisterConversions();
+        IWorkWorkflow.RegisterConversions();
         if (command == "plan") {
-            OfficeConversionJobPlan plan = await OfficeConversionJobRunner.PlanAsync(job, baseDirectory, runner,
-                cancellationToken: token).ConfigureAwait(false);
-            await output.WriteLineAsync(JsonSerializer.Serialize(plan, WorkflowJobJsonContext.Default.OfficeConversionJobPlan)).ConfigureAwait(false);
+            OfficeBatchPlan plan = await OfficeConverter.PlanAsync(job, cancellationToken: token).ConfigureAwait(false);
+            await output.WriteLineAsync(JsonSerializer.Serialize(plan, WorkflowJobJsonContext.Default.OfficeBatchPlan)).ConfigureAwait(false);
             return plan.CanRun ? (int)OfficeImoToolExitCode.Success : (int)OfficeImoToolExitCode.OperationFailed;
         }
         if (retryFailed) job.RetryFailed = true;
         var progress = new WorkflowBatchOutput(output, error, format ?? "json");
-        var runtime = new OfficeConversionJobRuntimeOptions { ResolveEnvironmentVariable = Environment.GetEnvironmentVariable };
-        OfficeConversionJobRunReport? recorded = null;
-        OfficeConversionBatchResult result;
-        if (reportPath == null) {
-            result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner, runtime, progress, token).ConfigureAwait(false);
-        } else {
-            recorded = await OfficeConversionJobRunner.RunRecordedAsync(job, fullPath, Path.GetFullPath(reportPath), runner,
-                runtime, progress, token, allowEmpty: allowEmpty).ConfigureAwait(false);
-            result = recorded.Batch?.Summary ?? throw new InvalidOperationException("The run report has no conversion result.");
-        }
-        progress.Complete(result, allowEmpty, recorded?.RecordingError);
-        return recorded?.RecordingError == null ? WorkflowBatchCommand.ExitCode(result, allowEmpty) : (int)OfficeImoToolExitCode.OperationFailed;
+        job.ResolveEnvironmentVariable = Environment.GetEnvironmentVariable;
+        job.AllowEmpty |= allowEmpty;
+        job.ReportPath = reportPath == null ? null : Path.GetFullPath(reportPath);
+        OfficeBatchReport result = await OfficeConverter.ConvertAsync(job, progress, token).ConfigureAwait(false);
+        progress.Complete(result, allowEmpty, result.RecordingError);
+        return result.RecordingError == null ? WorkflowBatchCommand.ExitCode(result, allowEmpty) : (int)OfficeImoToolExitCode.OperationFailed;
     }
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true,
     GenerationMode = JsonSourceGenerationMode.Serialization)]
-[JsonSerializable(typeof(OfficeConversionJobPlan))]
+[JsonSerializable(typeof(OfficeBatchPlan))]
 internal partial class WorkflowJobJsonContext : JsonSerializerContext { }

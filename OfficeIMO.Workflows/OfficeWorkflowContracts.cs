@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Workflows;
@@ -32,28 +33,6 @@ public enum OfficeWorkflowOperation {
     AnalyzeWordImages,
     /// <summary>Optimize embedded Word media and publish a separate Word or PDF copy.</summary>
     OptimizeWordImages
-}
-
-/// <summary>Controls how an existing output path is handled.</summary>
-public enum OfficeWorkflowConflictPolicy {
-    /// <summary>Fail before publishing when the destination exists.</summary>
-    Fail,
-    /// <summary>Atomically replace the destination after the staged artifact is validated.</summary>
-    Replace,
-    /// <summary>Publish to the first available numbered file name.</summary>
-    Rename
-}
-
-/// <summary>Named cross-format output intent.</summary>
-public enum OfficeWorkflowOutputProfile {
-    /// <summary>Preserve authored content and visual features where supported.</summary>
-    Faithful,
-    /// <summary>Prefer smaller output while retaining useful document structure.</summary>
-    Lightweight,
-    /// <summary>Prefer page setup and output intended for printing.</summary>
-    PrintReady,
-    /// <summary>Prefer text and tables over decorative visual content.</summary>
-    TextOnly
 }
 
 /// <summary>Terminal state of one workflow request.</summary>
@@ -94,29 +73,6 @@ public enum OfficeWorkflowDiagnosticSeverity {
     Error
 }
 
-/// <summary>Shared resource limits for one local document workflow.</summary>
-public sealed class OfficeWorkflowLimits {
-    /// <summary>Maximum primary or comparison input size.</summary>
-    public long MaximumInputBytes { get; set; } = 256L * 1024L * 1024L;
-
-    /// <summary>Maximum generated artifact size.</summary>
-    public long MaximumOutputBytes { get; set; } = 512L * 1024L * 1024L;
-
-    /// <summary>Maximum characters in each XML part read by built-in Open XML, Draw and Visio conversions, or in a complete legacy Visio XML source. Default: 10 MiB.</summary>
-    public long MaximumXmlCharactersInPart { get; set; } = 10L * 1024L * 1024L;
-
-    internal OfficeWorkflowLimits CloneAndValidate() {
-        if (MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputBytes));
-        if (MaximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumOutputBytes));
-        if (MaximumXmlCharactersInPart <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumXmlCharactersInPart));
-        return new OfficeWorkflowLimits {
-            MaximumInputBytes = MaximumInputBytes,
-            MaximumOutputBytes = MaximumOutputBytes,
-            MaximumXmlCharactersInPart = MaximumXmlCharactersInPart
-        };
-    }
-}
-
 /// <summary>One immutable structured workflow diagnostic.</summary>
 public sealed class OfficeWorkflowDiagnostic {
     /// <summary>Creates a workflow diagnostic.</summary>
@@ -126,14 +82,14 @@ public sealed class OfficeWorkflowDiagnostic {
         OfficeWorkflowDiagnosticSeverity severity = OfficeWorkflowDiagnosticSeverity.Information,
         string? stage = null,
         IReadOnlyDictionary<string, string>? details = null) {
-        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code cannot be empty.", nameof(code));
-        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Diagnostic message cannot be empty.", nameof(message));
+        if ((code == null || string.IsNullOrWhiteSpace(code))) throw new ArgumentException("Diagnostic code cannot be empty.", nameof(code));
+        if ((message == null || string.IsNullOrWhiteSpace(message))) throw new ArgumentException("Diagnostic message cannot be empty.", nameof(message));
         Code = code;
         Message = message;
         Severity = severity;
         Stage = stage;
         Details = new ReadOnlyDictionary<string, string>(
-            new Dictionary<string, string>(details ?? new Dictionary<string, string>(), StringComparer.Ordinal));
+            (details ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
 
     /// <summary>Stable machine-readable code.</summary>
@@ -155,8 +111,8 @@ public sealed class OfficeWorkflowProgress {
         RequestId = requestId;
         Stage = stage;
         Message = message;
-        Fraction = Math.Clamp(fraction, 0D, 1D);
-        OverallFraction = Math.Clamp(overallFraction ?? fraction, 0D, 1D);
+        Fraction = Math.Min(1D, Math.Max(0D, fraction));
+        OverallFraction = Math.Min(1D, Math.Max(0D, overallFraction ?? fraction));
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -212,9 +168,9 @@ public sealed class OfficeWorkflowRequest {
     public string? ConversionRouteId { get; set; }
 
     /// <summary>Optional route-specific settings, independently copied and validated before asynchronous execution.</summary>
-    public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
+    public OfficeConversionOptions? ConversionOptions { get; set; }
     /// <summary>Adapter-owned conversion settings, validated and independently copied by the selected registration before execution.</summary>
-    public IOfficeWorkflowConversionSettings? RegisteredConversionSettings { get; set; }
+    public IOfficeConversionSettings? RegisteredConversionSettings { get; set; }
     /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
     public OfficeScanCleanupOptions? ScanCleanup { get; set; }
 
@@ -228,13 +184,13 @@ public sealed class OfficeWorkflowRequest {
     public OfficeWorkflowStreamOutput? OutputStream { get; set; }
 
     /// <summary>Conflict behavior used when publishing an artifact.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Rename;
 
     /// <summary>Optional live application ownership check for final publication candidates.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Cross-format output intent.</summary>
-    public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
+    public OfficeConversionProfile OutputProfile { get; set; } = OfficeConversionProfile.Faithful;
 
     /// <summary>Optional PDF password. It is used only while executing and is never copied to results or reports.</summary>
     public string? PdfPassword { get; set; }
@@ -261,13 +217,17 @@ public sealed class OfficeWorkflowRequest {
     public OfficeIMO.Pdf.IPdfSignatureCryptographyProvider? OutputSignatureValidator { get; set; }
 
     /// <summary>Shared request resource limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
 }
 
 /// <summary>Runs typed local OfficeIMO document workflows for desktop, command-line, and service hosts.</summary>
 public interface IOfficeWorkflowRunner {
     /// <summary>Executable routes of this runner. Implementations with opt-in adapters override this view.</summary>
+#if NET8_0_OR_GREATER
     IReadOnlyList<OfficeWorkflowRoute> ConversionRoutes => OfficeWorkflowCatalog.ExecutableRoutes;
+#else
+    IReadOnlyList<OfficeWorkflowRoute> ConversionRoutes { get; }
+#endif
 
     /// <summary>Runs one workflow request.</summary>
     Task<OfficeWorkflowResult> RunAsync(
@@ -284,12 +244,7 @@ public interface IOfficeWorkflowRunner {
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Runs incremental conversion selection with optional durable completion and publication checkpoints.
-    /// The default implementation uses this runner's single-request execution contract.</summary>
-    Task<OfficeConversionBatchResult> RunBatchAsync(OfficeConversionBatchRequest request,
-        IProgress<OfficeConversionBatchItemResult>? progress = null, CancellationToken cancellationToken = default,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) =>
-        OfficeConversionBatchExecutor.RunAsync(this, request, progress, cancellationToken, publicationGuard);
+
 }
 
 /// <summary>One supported conversion route projected from the canonical OfficeIMO capability catalog.</summary>
@@ -359,10 +314,10 @@ public sealed class OfficeWorkflowRoute {
     /// <summary>Whether the route can apply verified lossless PDF output compression.</summary>
     public bool SupportsPdfCompression => CanExecute && Id.EndsWith("-pdf", StringComparison.Ordinal);
     /// <summary>Output profiles honored by this local route.</summary>
-    public IReadOnlyList<OfficeWorkflowOutputProfile> SupportedOutputProfiles =>
+    public IReadOnlyList<OfficeConversionProfile> SupportedOutputProfiles =>
         Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : FaithfulOutputProfile;
-    private static readonly IReadOnlyList<OfficeWorkflowOutputProfile> AllOutputProfiles = Array.AsReadOnly(Enum.GetValues<OfficeWorkflowOutputProfile>());
-    private static readonly IReadOnlyList<OfficeWorkflowOutputProfile> FaithfulOutputProfile = Array.AsReadOnly(new[] { OfficeWorkflowOutputProfile.Faithful });
+    private static readonly IReadOnlyList<OfficeConversionProfile> AllOutputProfiles = Array.AsReadOnly(EnumCompat.GetValues<OfficeConversionProfile>());
+    private static readonly IReadOnlyList<OfficeConversionProfile> FaithfulOutputProfile = Array.AsReadOnly(new[] { OfficeConversionProfile.Faithful });
     /// <summary>User-facing route label.</summary>
     public string Label => Source + " to " + Target;
 }
@@ -407,8 +362,9 @@ public static class OfficeWorkflowCatalog {
     public static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, IReadOnlyList<OfficeWorkflowRoute> routes) {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
-        // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).
-        if (source == ".txt" && target == ".pdf") return routes.FirstOrDefault(route => route.Id == "txt-pdf");
+        string? preferred = OfficeConversionCapabilityCatalog.PreferredRouteId(source, target);
+        if (preferred != null && routes.FirstOrDefault(route => route.Id == preferred && route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase)) is { } defaultRoute)
+            return defaultRoute;
         OfficeWorkflowRoute? match = null;
         foreach (OfficeWorkflowRoute route in routes) {
             if (!route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase) ||
@@ -426,7 +382,7 @@ public static class OfficeWorkflowCatalog {
     }
 
     private static string NormalizeExtension(string extension) {
-        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extension cannot be empty.", nameof(extension));
+        if ((extension == null || string.IsNullOrWhiteSpace(extension))) throw new ArgumentException("Extension cannot be empty.", nameof(extension));
         string value = extension.Trim();
         return (value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value).ToLowerInvariant();
     }

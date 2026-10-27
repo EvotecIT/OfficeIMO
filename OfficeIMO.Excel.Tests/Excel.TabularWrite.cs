@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             using var reader = source.CreateDataReader();
             using var output = new MemoryStream();
             Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataReader(output, reader,
-                new ExcelTabularWriteOptions { RequireStreaming = true, UseSharedStrings = sharedStrings, AutoFit = autoFit, CreateTable = table, IncludeHeaders = headers }));
+                new ExcelWriterOptions { RequireStreaming = true, UseSharedStrings = sharedStrings, AutoFit = autoFit, CreateTable = table, IncludeHeaders = headers }));
             Assert.Equal(0, output.Length);
             Assert.True(reader.Read());
             Assert.Equal(42, reader.GetInt32(0));
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             static IEnumerable<int> Source() { yield return FailIfEnumerated(); }
             using var output = new MemoryStream();
             Assert.Throws<ArgumentException>(() => ExcelDocument.WriteRows(output, Source(), new[] { "Value" },
-                (writer, value) => writer.Write(value), new ExcelTabularWriteOptions { RequireStreaming = true, CreateTable = true }));
+                (writer, value) => writer.Write(value), new ExcelWriterOptions { RequireStreaming = true, CreateTable = true }));
             Assert.Equal(0, output.Length);
         }
 
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 expected,
                 ["When"],
                 static (writer, value) => writer.Write(value),
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     DateSystem = dateSystem,
                     IncludeCellReferences = false,
                     UseSharedStrings = false
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
@@ -287,16 +287,16 @@ namespace OfficeIMO.Tests {
                 ExcelDocument.WriteDataReader(
                     sourcePackage,
                     sourceReader,
-                    new ExcelTabularWriteOptions {
+                    new ExcelWriterOptions {
                         IncludeCellReferences = false,
                         UseSharedStrings = false
                     });
             }
             sourcePackage.Position = 0;
 
-            using ExcelWorkbookDataReader providerReader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader providerReader = ExcelDocument.OpenReader(
                 sourcePackage,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetName = "Data",
                     InferSchema = true
                 });
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 countingReader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 countingReader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     IncludeCellReferences = false,
                     UseSharedStrings = false
                 });
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
                 output,
                 reader,
-                new ExcelTabularWriteOptions { IncludeHeaders = false });
+                new ExcelWriterOptions { IncludeHeaders = false });
 
             Assert.Equal(string.Empty, result.Range);
             Assert.Equal(0, result.RowCount);
@@ -390,7 +390,7 @@ namespace OfficeIMO.Tests {
                     .Write(row.Name)
                     .Write(row.Created)
                     .Write(row.Active),
-                new ExcelTabularWriteOptions { IncludeCellReferences = false, UseSharedStrings = false });
+                new ExcelWriterOptions { IncludeCellReferences = false, UseSharedStrings = false });
 
             Assert.Equal("A1:D3", result.Range);
             using var reader = ExcelDocumentReader.Open(new MemoryStream(output.ToArray(), writable: false));
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
                 StreamRows(),
                 ["Id"],
                 static (writer, row) => writer.Write(row),
-                new ExcelTabularWriteOptions { CreateTable = true },
+                new ExcelWriterOptions { CreateTable = true },
                 cts.Token));
 
             Assert.Equal(1, advances);
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
                 StreamRows(),
                 ["Value"],
                 static (writer, value) => writer.Write(value),
-                new ExcelTabularWriteOptions { CreateTable = true }));
+                new ExcelWriterOptions { CreateTable = true }));
 
             Assert.Contains("maximum worksheet row count", exception.Message, StringComparison.Ordinal);
             Assert.Equal(1_048_576, advances);
@@ -518,7 +518,7 @@ namespace OfficeIMO.Tests {
                         .Write(row.Created)
                         .Write(row.Active);
                 },
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Async Rows",
                     IncludeCellReferences = false,
                     UseSharedStrings = false
@@ -566,7 +566,7 @@ namespace OfficeIMO.Tests {
             int advances = 0;
             bool disposed = false;
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() => ExcelDocument.WriteRowsAsync(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.WriteRowsAsync(
                 output,
                 StreamRows(),
                 ["Id"],
@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
                 EmptyRows(),
                 ["Id"],
                 static (writer, row) => writer.Write(row.Id),
-                new ExcelTabularWriteOptions { CreateTable = true }));
+                new ExcelWriterOptions { CreateTable = true }));
 
             static async IAsyncEnumerable<TabularWriteRow> EmptyRows() {
                 await Task.CompletedTask;
@@ -618,7 +618,7 @@ namespace OfficeIMO.Tests {
                 EmptyRows(),
                 ["Id"],
                 static (writer, row) => writer.Write(row.Id),
-                new ExcelTabularWriteOptions { IncludeHeaders = false });
+                new ExcelWriterOptions { IncludeHeaders = false });
 
             Assert.Equal(string.Empty, result.Range);
             Assert.Equal(0, result.RowCount);
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WriteRows_DefaultOptionsObjectUsesSharedStringsAndPreservesSettings() {
             using var output = new MemoryStream();
-            var options = new ExcelTabularWriteOptions {
+            var options = new ExcelWriterOptions {
                 SheetName = "Configured Rows",
                 CreateTable = true,
                 TableName = "ConfiguredRows"
@@ -671,7 +671,7 @@ namespace OfficeIMO.Tests {
                 new[] { new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true) },
                 ["Id", "Name"],
                 static (writer, row) => writer.Write(row.Id),
-                new ExcelTabularWriteOptions { UseSharedStrings = false }));
+                new ExcelWriterOptions { UseSharedStrings = false }));
         }
 
         [Fact]
@@ -683,7 +683,7 @@ namespace OfficeIMO.Tests {
                 new[] { new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true) },
                 ["Id"],
                 static (writer, row) => writer.Write(row.Id).Write(row.Name),
-                new ExcelTabularWriteOptions { UseSharedStrings = false }));
+                new ExcelWriterOptions { UseSharedStrings = false }));
 
             Assert.Contains("more than 1 cells", exception.Message, StringComparison.Ordinal);
         }

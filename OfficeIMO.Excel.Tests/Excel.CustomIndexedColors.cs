@@ -25,7 +25,7 @@ public sealed class ExcelCustomIndexedColorTests {
             new RgbColor { Rgb = "FF445566" }, new RgbColor { Rgb = "FF778899" }));
 
         AssertPaletteStyle(sheet.GetCellStyle(1, 1));
-        AssertPaletteStyle(Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Worksheets).Cells).Style!);
+        AssertPaletteStyle(Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells).Style!);
         AssertPaletteStyle(Assert.Single(sheet.Range("A1").CreateVisualSnapshot().Cells).Style);
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -50,7 +50,7 @@ public sealed class ExcelCustomIndexedColorTests {
         Assert.Equal("FF000000", ExcelThemeColorResolver.Resolve(new Color { Indexed = 0U }, workbook));
     }
 
-    private static void AssertPaletteStyle(ExcelCellStyleSnapshot style) {
+    private static void AssertPaletteStyle(ExcelCellStyleInfo style) {
         Assert.Equal("FF112233", style.FontColorArgb);
         Assert.Equal("FF445566", style.FillColorArgb);
         Assert.Equal("FF778899", style.Border!.Bottom!.ColorArgb);

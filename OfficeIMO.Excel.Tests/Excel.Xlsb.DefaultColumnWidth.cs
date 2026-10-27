@@ -38,7 +38,7 @@ public partial class Excel {
         sheet.SetDefaultRowHeight(15D);
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.BaseColumnWidth = baseWidth;
 
-        byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var stream = new MemoryStream(ReadZipEntry(package, "xl/worksheets/sheet1.bin"));
         XlsbRecord format = Assert.Single(XlsbRecordReader.ReadAll(stream), record => record.Type == 485);
 
@@ -59,7 +59,7 @@ public partial class Excel {
         sheet.SetDefaultRowHeight(15D);
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth = width;
 
-        byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var stream = new MemoryStream(ReadZipEntry(package, "xl/worksheets/sheet1.bin"));
         XlsbRecord format = Assert.Single(XlsbRecordReader.ReadAll(stream), record => record.Type == 485);
         uint expected = checked((uint)Math.Floor(width * 256D));

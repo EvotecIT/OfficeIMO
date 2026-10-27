@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return A1.CellReference(1, 1) + ":" + A1.CellReference(rows, columnCount);
+            return ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(rows, columnCount);
         }
     }
 }

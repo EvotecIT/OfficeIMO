@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 0
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = pageWidth,
                 PageHeight = 220,
                 MarginLeft = margin,
@@ -74,7 +74,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 0
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 170,
                 MarginLeft = 24,
@@ -115,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Repeat("TooTallRowContent", 80));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 220,
                     PageHeight = 120,
                     MarginLeft = 20,
@@ -174,7 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HorizontalRule_RejectsHeightExceedingContentArea() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 220,
                     PageHeight = 140,
                     MarginLeft = 20,
@@ -240,7 +240,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Paragraph default tab stop width must be a positive finite value.", tabStopException.Message, StringComparison.Ordinal);
 
         var firstLineWidthException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 160,
                     MarginLeft = 20,
                     MarginRight = 20
@@ -253,7 +253,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Paragraph first line indent must leave a positive text width.", firstLineWidthException.Message, StringComparison.Ordinal);
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     PageWidth = 120,
                     MarginLeft = 20,
                     MarginRight = 20

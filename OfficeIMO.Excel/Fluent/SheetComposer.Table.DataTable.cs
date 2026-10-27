@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.Fluent {
             if (configuredMaxColumns <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxColumns), "MaxColumns must be greater than zero.");
             }
-            options.MaxColumns = Math.Min(options.MaxColumns, A1.MaxColumns);
+            options.MaxColumns = Math.Min(options.MaxColumns, ExcelA1.MaxColumns);
 
             var sourceColumnNames = table.Columns
                 .Cast<DataColumn>()
@@ -94,9 +94,9 @@ namespace OfficeIMO.Excel.Fluent {
 
             int headerRow = checked(_row + (string.IsNullOrWhiteSpace(title) ? 0 : 1));
             int lastRow = checked(headerRow + table.Rows.Count);
-            if (lastRow > A1.MaxRows) {
+            if (lastRow > ExcelA1.MaxRows) {
                 throw new InvalidDataException(
-                    $"TableFrom(DataTable) requires rows {headerRow} through {lastRow}, exceeding Excel's {A1.MaxRows}-row worksheet limit. "
+                    $"TableFrom(DataTable) requires rows {headerRow} through {lastRow}, exceeding Excel's {ExcelA1.MaxRows}-row worksheet limit. "
                     + "Split the data across multiple worksheets or start the table earlier; Excel's worksheet row limit cannot be overridden.");
             }
 
@@ -389,8 +389,8 @@ namespace OfficeIMO.Excel.Fluent {
                 + "Use the exact column casing by specifying the exact full column name and casing in the projection rule.");
 
         private static void EnsureDataTableColumnLimit(int requiredColumns, int configuredMaxColumns) {
-            if (requiredColumns <= configuredMaxColumns && requiredColumns <= A1.MaxColumns) return;
-            if (requiredColumns > A1.MaxColumns) {
+            if (requiredColumns <= configuredMaxColumns && requiredColumns <= ExcelA1.MaxColumns) return;
+            if (requiredColumns > ExcelA1.MaxColumns) {
                 throw CreateExcelColumnLimitException(requiredColumns);
             }
 
@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel.Fluent {
 
         private static InvalidDataException CreateExcelColumnLimitException(int requiredColumns) =>
             new InvalidDataException(
-                $"TableFrom(DataTable) requires at least {requiredColumns} columns, exceeding Excel's {A1.MaxColumns}-column worksheet limit. "
+                $"TableFrom(DataTable) requires at least {requiredColumns} columns, exceeding Excel's {ExcelA1.MaxColumns}-column worksheet limit. "
                 + "Select fewer columns or split the data across multiple worksheets; Excel's worksheet column limit cannot be overridden.");
     }
 }

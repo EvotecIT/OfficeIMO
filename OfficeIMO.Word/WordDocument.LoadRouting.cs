@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
                 case OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation:
                     throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not a Word document. Load it with OfficeIMO.PowerPoint.PowerPointPresentation.");
                 case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
-                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use WordDocument.LoadEncrypted and provide its password.");
+                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use WordDocument.Load with WordLoadOptions.Password.");
                 case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
                     throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
                 default:

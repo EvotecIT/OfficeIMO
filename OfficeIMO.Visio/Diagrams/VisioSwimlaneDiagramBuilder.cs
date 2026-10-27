@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.Visio.Stencils;
 
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>

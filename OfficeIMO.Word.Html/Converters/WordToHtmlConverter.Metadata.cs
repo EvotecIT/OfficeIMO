@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Html {
             WordDocument document,
             IDocument htmlDoc,
             IElement head,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (!options.EmitDocumentShell) {
                 if (options.IncludeDefaultCss) {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordToHtmlOptions options) {
+        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordHtmlExportOptions options) {
             var language = options.Language ?? document.Settings.Language;
             if (!string.IsNullOrWhiteSpace(language)) {
                 SetOutputAttribute(

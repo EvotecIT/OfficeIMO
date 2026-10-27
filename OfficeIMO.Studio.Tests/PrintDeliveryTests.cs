@@ -22,7 +22,7 @@ public sealed class PrintDeliveryTests {
             using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
             await model.RefreshPrintersCommand.ExecuteAsync(null);
             model.Pages = "1";
-            model.SelectedPaper = new("Small fixture", new PageSize(100, 120));
+            model.SelectedPaper = new("Small fixture", new PdfPageSize(100, 120));
             model.PrintDpi = 72;
             await model.BuildPreviewCommand.ExecuteAsync(null);
             Assert.True(model.CanPrint, model.Status);

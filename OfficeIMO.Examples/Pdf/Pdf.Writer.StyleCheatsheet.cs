@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Underline(false).Text("ul off"))
                 .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
                 .Paragraph(p => p.Text("Center aligned line"), PdfAlign.Center)
-                .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfOptions {
+                .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

@@ -3,15 +3,15 @@ namespace OfficeIMO.Markdown.Pdf;
 /// <summary>Registers Markdown fenced-block semantics understood by the PDF adapter.</summary>
 public static class MarkdownPdfSemanticBlocks {
     /// <summary>Creates Markdown reader options with the PDF visual fenced-block mappings registered.</summary>
-    public static MarkdownReaderOptions CreateReaderOptions(
-        MarkdownReaderOptions.MarkdownDialectProfile profile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
-        MarkdownReaderOptions options = MarkdownReaderOptions.CreateProfile(profile);
+    public static MarkdownLoadOptions CreateReaderOptions(
+        MarkdownLoadOptions.MarkdownDialectProfile profile = MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO) {
+        MarkdownLoadOptions options = MarkdownLoadOptions.CreateProfile(profile);
         ConfigureReaderOptions(options);
         return options;
     }
 
     /// <summary>Registers the PDF visual fenced-block mappings on existing reader options.</summary>
-    public static void ConfigureReaderOptions(MarkdownReaderOptions options) {
+    public static void ConfigureReaderOptions(MarkdownLoadOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "OfficeIMO Markdown PDF visual fences",

@@ -23,10 +23,10 @@ public partial class Word {
         if (previousSize == 0) borders.BetweenBorder!.Remove();
         else { borders.BetweenBorder!.Size = previousSize; borders.BetweenBorder.Space = previousSpace; }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 312), Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 312), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double before = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Before").Letters[0].StartBaseLine.Y;
         var page = pdf.GetPage(2);
         double second = Assert.Single(page.GetWords(), word => word.Text == "Second01").Letters[0].StartBaseLine.Y;
@@ -49,10 +49,10 @@ public partial class Word {
     [InlineData(WordCompatibilityMode.Word2013)]
     public void SaveAsPdf_ParagraphBorderGroupContinuationDoesNotRepeatTheSeparator(WordCompatibilityMode mode) {
         using WordDocument document = CreateParagraphBorderGroupFrameDocument(mode, 30, 3);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 300), Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(2);
         Assert.StartsWith("First", page.GetWords().First().Text);
         double before = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Before").Letters[0].StartBaseLine.Y;
@@ -76,10 +76,10 @@ public partial class Word {
             paragraph.Append(new W.BookmarkEnd { Id = "1" });
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 312), Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
-        }));
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 312), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         double before = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Before").Letters[0].StartBaseLine.Y;
         var secondPage = pdf.GetPage(2);

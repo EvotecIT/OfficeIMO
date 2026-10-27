@@ -102,7 +102,7 @@ public sealed class MainWindowViewModelTests {
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page
             .Size(600D, 800D)
             .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text")))))).ToBytes();
-        byte[] annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Rectangle = [40D, 50D, 60D, 70D],
             Contents = "Original",
@@ -114,7 +114,7 @@ public sealed class MainWindowViewModelTests {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await viewModel.OpenDocumentAsync(path);
             viewModel.ShowEditModeCommand.Execute(null);
-            int objectNumber = Assert.Single(PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            int objectNumber = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(annotated)).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
             viewModel.Pages[0].SelectObject(CreateAnnotationSelection(objectNumber));
             Assert.True(viewModel.HasSelectedAnnotation);
             viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Redact);
@@ -138,7 +138,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
-        byte[] annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Rectangle = [40D, 50D, 60D, 70D],
             Contents = "Original",
@@ -149,7 +149,7 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await viewModel.OpenDocumentAsync(path);
-            int objectNumber = Assert.Single(PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            int objectNumber = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(annotated)).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
             viewModel.Pages[0].SelectObject(CreateAnnotationSelection(objectNumber));
             viewModel.SelectedAnnotationContents = "Edited contents";
             viewModel.SelectedAnnotationAuthor = "Edited author";
@@ -226,7 +226,7 @@ public sealed class MainWindowViewModelTests {
         string fixture = GetFixturePath();
         byte[] original = await File.ReadAllBytesAsync(fixture);
         await services.Recovery.WriteAsync(fixture, PdfWorkspaceRecoveryStore.Fingerprint(original),
-            PdfDocument.Load(original).Pages.Rotate(90).ToBytes(), 1, CancellationToken.None);
+            PdfDocument.Load(new System.IO.MemoryStream(original)).Pages.Rotate(90).ToBytes(), 1, CancellationToken.None);
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
         await viewModel.OpenDocumentAsync(fixture);
         viewModel.ShowEditModeCommand.Execute(null);
@@ -246,7 +246,7 @@ public sealed class MainWindowViewModelTests {
         string path = Path.Combine(root, "certified-form.pdf");
         byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.TextField("Customer.Name", value: "Before"))))).ToBytes();
-        PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+        PdfExternalSignaturePreparation preparation = PdfDocument.Load(new System.IO.MemoryStream(unsigned)).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAndSignatures,
             FieldName = "Certification",
@@ -273,7 +273,7 @@ public sealed class MainWindowViewModelTests {
         string path = Path.Combine(root, "protected.pdf");
         byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Prompted content")))))).ToBytes();
-        await File.WriteAllBytesAsync(path, PdfDocument.Load(plain).Security.Encrypt(
+        await File.WriteAllBytesAsync(path, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(
             new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
         var attempts = new List<bool>();
 

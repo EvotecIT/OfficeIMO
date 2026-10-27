@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             Assert.False(preflight.CanWrite);
             LegacyPptWriteFinding finding = Assert.Single(
                 preflight.Findings,
-                item => item.Code == "PPT-WRITE-RICH-TEXT");
+                item => item.Code == "ppt-write-rich-text");
             Assert.Contains("no lossless classic binary PowerPoint mapping",
                 finding.Description, StringComparison.Ordinal);
         }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation sourceLegacy = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 lineBreak.RunProperties.Italic = true;
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(
                 editedBytes);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(imported.Slides[0].SlidePart.Slide!
                     .Descendants<A.Break>()).Remove();
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(
                 removedBytes);

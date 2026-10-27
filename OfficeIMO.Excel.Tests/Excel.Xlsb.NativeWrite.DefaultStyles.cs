@@ -24,14 +24,13 @@ namespace OfficeIMO.Tests {
                     ("Text", static value => value));
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb,
-                new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
 
             if (multipleSheets) Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             else Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             AssertNativeDefaultStyle(workbook);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal("Text", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal("value", reader.GetString(0));
@@ -54,7 +53,7 @@ namespace OfficeIMO.Tests {
 
             byte[] workbook = destination.ToArray();
             AssertNativeDefaultStyle(workbook);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal("Text", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal("Zażółć 🚀", reader.GetString(0));

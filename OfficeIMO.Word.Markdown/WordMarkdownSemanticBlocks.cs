@@ -27,9 +27,9 @@ public static class WordMarkdownSemanticBlocks {
     /// <summary>
     /// Creates reader options with the Word header/footer semantic fenced-block extensions registered.
     /// </summary>
-    public static MarkdownReaderOptions CreateReaderOptions(
-        MarkdownReaderOptions.MarkdownDialectProfile profile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
-        var options = MarkdownReaderOptions.CreateProfile(profile);
+    public static MarkdownLoadOptions CreateReaderOptions(
+        MarkdownLoadOptions.MarkdownDialectProfile profile = MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO) {
+        var options = MarkdownLoadOptions.CreateProfile(profile);
         ConfigureReaderOptions(options);
         return options;
     }
@@ -37,7 +37,7 @@ public static class WordMarkdownSemanticBlocks {
     /// <summary>
     /// Registers Word header/footer fenced-block extensions on an existing reader options instance.
     /// </summary>
-    public static void ConfigureReaderOptions(MarkdownReaderOptions options) {
+    public static void ConfigureReaderOptions(MarkdownLoadOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -62,7 +62,7 @@ public static class WordMarkdownSemanticBlocks {
     }
 
     private static void AddExtensionIfMissing(
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         string language,
         string semanticKind,
         string name) {

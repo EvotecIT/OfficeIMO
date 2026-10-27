@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>

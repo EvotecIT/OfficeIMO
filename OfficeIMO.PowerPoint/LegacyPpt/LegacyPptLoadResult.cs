@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var diagnostics = new List<OfficeConversionFidelityDiagnostic>(ImportReport.FidelityDiagnostics);
             if (ProjectionException != null) {
                 diagnostics.Insert(0, new OfficeConversionFidelityDiagnostic(
-                    "PPT-PROJECTION-FAILED",
+                    "ppt-projection-failed",
                     ProjectionException.Message,
                     OfficeConversionLossKind.Failure,
                     "OfficeIMO.PowerPoint.LegacyPpt.Projection",

@@ -36,7 +36,7 @@ public partial class Word {
             paragraph._paragraph.Append(new SimpleField(result) { Instruction = instruction });
         }
 
-        byte[] native = source.ToBytes(WordFileFormat.Doc);
+        byte[] native = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(native, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];
@@ -60,7 +60,7 @@ public partial class Word {
 
         field.Instruction = " SECTIONPAGES \\* Arabic ";
         display.GetFirstChild<Text>()!.Text = "3";
-        using WordDocument edited = WordDocument.Load(new MemoryStream(imported.ToBytes(WordFileFormat.Doc)));
+        using WordDocument edited = WordDocument.Load(new MemoryStream(imported.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         SimpleField editedField = Assert.Single(GetSectionPagesStoryRoot(edited, story).Descendants<SimpleField>());
         Assert.Equal(" SECTIONPAGES \\* Arabic ", editedField.Instruction!.Value);
         Assert.Equal("3", editedField.InnerText);
@@ -72,7 +72,7 @@ public partial class Word {
     public void LegacyDoc_SectionPagesTypedAuthoringRemainsGettable(bool advanced) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph().AddField(WordFieldType.SectionPages, WordFieldFormat.Roman, advanced: advanced);
-        using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordField field = Assert.Single(imported.Paragraphs, p => p.Field != null).Field!;
         Assert.Equal(WordFieldType.SectionPages, field.FieldType);
         Assert.Contains(WordFieldFormat.Roman, field.FieldFormat);

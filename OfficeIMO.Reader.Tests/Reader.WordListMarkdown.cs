@@ -29,7 +29,7 @@ public sealed class ReaderWordListMarkdownTests {
         Assert.Equal(ordered ? 12 : (int?)null, block.ListIndex);
         OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(page));
         Assert.Equal(markdown, Assert.Single(transported.GetPageMarkdown(new OfficeDocumentPageMarkdownOptions { IncludePageMarkers = false })).Markdown);
-        IMarkdownBlock parsed = Assert.Single(MarkdownReader.Parse(markdown).Blocks);
+        IMarkdownBlock parsed = Assert.Single(MarkdownDocument.Parse(markdown).Blocks);
         if (ordered) Assert.Equal(12, Assert.IsType<OrderedListBlock>(parsed).Start);
         else Assert.IsType<UnorderedListBlock>(parsed);
     }

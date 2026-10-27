@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using BenchmarkDotNet.Attributes;
 using DocumentFormat.OpenXml.Packaging;
 using System.Net;
@@ -64,7 +66,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToPptx() {
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult(PowerPointPdfImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);
@@ -87,7 +89,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToOdp() {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
-        return logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent()).Value.ToBytes().Length;
+        return logical.ToOdpPresentationResult(PowerPointPdfImportOptions.CreateEditableContent()).Value.ToBytes().Length;
     }
 
     [Benchmark]
@@ -118,7 +120,7 @@ public class PdfReverseConversionBenchmarks {
             PdfBenchmarkValidation.ValidateTableScenarioContent(GetSpreadsheetText(package), _scenario, Producer + " " + Scale + " XLSX");
         }
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult(PowerPointPdfImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);
@@ -134,7 +136,7 @@ public class PdfReverseConversionBenchmarks {
         OdsDocument odsDocument = OdsDocument.Load(new MemoryStream(ods));
         if (odsDocument.Sheets.Count == 0) throw new InvalidOperationException("ODS reverse conversion did not produce a sheet.");
         PdfBenchmarkValidation.ValidateTableScenarioContent(ReadOpenDocumentText(ods), _scenario, Producer + " " + Scale + " ODS");
-        byte[] odp = logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent()).Value.ToBytes();
+        byte[] odp = logical.ToOdpPresentationResult(PowerPointPdfImportOptions.CreateEditableContent()).Value.ToBytes();
         OdpPresentation odpDocument = OdpPresentation.Load(new MemoryStream(odp));
         if (odpDocument.Slides.Count != _scenario.PageCount) throw new InvalidOperationException($"ODP reverse conversion produced {odpDocument.Slides.Count} of {_scenario.PageCount} slides.");
         ValidateContent(ReadOpenDocumentText(odp), "ODP");

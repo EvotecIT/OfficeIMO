@@ -21,7 +21,7 @@ public partial class Word {
         WordParagraph second = document.AddParagraph("Second");
         second.LineSpacingBeforePoints = 6;
         second.PageBreakBeforeOverride = !pageBreakBefore;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph boundary = Assert.Single(loaded.Paragraphs, paragraph => string.IsNullOrEmpty(paragraph.Text));
         Assert.Same(boundary._paragraph, loaded.Sections[0]._sectionProperties.Parent?.Parent);
         Assert.Equal(3, loaded._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Count());

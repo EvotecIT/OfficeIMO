@@ -45,7 +45,7 @@ public sealed class WordChartIndependentProducerTests {
         Assert.True(CountColour(actual!, "#445566") > 50);
         Assert.Equal(nativeXml, chart.ChartPart.ChartSpace.OuterXml);
 
-        using var package = document.ToStream();
+        using var package = new System.IO.MemoryStream(document.ToBytes());
         using WordDocument reopened = WordDocument.Load(package);
         Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out var second));
         Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, second.Data.Series[0].PointStyles![1]!.Hatch);
@@ -71,7 +71,7 @@ public sealed class WordChartIndependentProducerTests {
         Assert.Contains(drawing.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.UnsupportedAppearance);
         var exported = document.ExportImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
-        Assert.Contains(exported.Diagnostics, item => item.Code == "NativeBodyChartQuality"
+        Assert.Contains(exported.Diagnostics, item => item.Code == "chart-quality"
             && item.Message.Contains("UnsupportedAppearance", StringComparison.Ordinal));
         Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
         OfficeColor nativeFill = OfficeColor.Parse("#004586");
@@ -86,7 +86,7 @@ public sealed class WordChartIndependentProducerTests {
         Assert.NotNull(chart.ChartPart.ChartSpace.Descendants<C.AreaChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>());
 
-        using var package = document.ToStream();
+        using var package = new System.IO.MemoryStream(document.ToBytes());
         using WordDocument reopened = WordDocument.Load(package);
         Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out var second));
         Assert.Equal(4, second.Data.Series[0].PointStyles!.Count);

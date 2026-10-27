@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static void ValidateUriActionLinks(IReadOnlyList<LayoutResult.Page> pages, PdfOptions options) {
+    private static void ValidateUriActionLinks(IReadOnlyList<LayoutResult.Page> pages, PdfCreateOptions options) {
         bool hasCatalogUriBase = !string.IsNullOrWhiteSpace(options.CatalogUriBaseSnapshot);
         foreach (var page in pages) {
             foreach (var annotation in page.Annotations) {

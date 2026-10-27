@@ -32,14 +32,14 @@ public sealed class PdfRunningContentImageOwnershipTests {
     [InlineData(true)]
     public void Dynamic_story_image_payloads_are_shared_across_pages_and_variants(bool footer) {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
-        var document = PdfDocument.Create(new PdfOptions { PageWidth = 240, PageHeight = 320,
+        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = 240, PageHeight = 320,
             MarginTop = 40, MarginBottom = 40, MarginLeft = 24, MarginRight = 24,
             PageContentMemoryLimitBytes = 0 });
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context) => content => {
             // New input arrays deliberately miss the source-array prepared-image cache.
             var cell = new PdfTableCell($"{context.PageNumber}/{context.DocumentPages}",
                 images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), 12, 12) });
-            var style = TableStyles.Minimal(); style.HeaderRowCount = 0;
+            var style = PdfTableStyles.Minimal(); style.HeaderRowCount = 0;
             content.Table(new[] { new[] { cell } }, style: style);
         };
         if (footer) document.Footer(builder => builder.Content(Compose, 18).FirstPageContent(Compose, 18).EvenPagesContent(Compose, 18));

@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
             AllowSystemFontFallback = false
         };
         options.Fonts.Add("ScopedMath", ManagedTextShapingTestAssets.CreateFont('x', '2'));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         Assert.Contains("(x)/(2)", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         OfficeDrawing reopened = PdfCore.PdfPageImageRenderer.RenderPage(pdf);
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
             AllowSystemFontFallback = false
         };
         options.Fonts.Add("ScopedMath", ManagedTextShapingTestAssets.CreateFont('x', '2'));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfCore.PdfPageImageRenderer.RenderPage(pdf), scale: 4D);
         var groups = new List<(int Left, int Right, int Rows)>();
         bool active = false;
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
             AllowSystemFontFallback = false
         };
         pdfOptions.Fonts.Add("ScopedMath", ManagedTextShapingTestAssets.CreateFont('x', '2'));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(PdfCore.PdfPageImageRenderer.RenderPage(pdf), scale: 4D);
         OfficeRasterImage nativeRaster = OfficeDrawingRasterRenderer.Render(math.Drawing, scale: 3D);
         int expected = CountBlackInk(nativeRaster), actual = CountBlackInk(pdfRaster);

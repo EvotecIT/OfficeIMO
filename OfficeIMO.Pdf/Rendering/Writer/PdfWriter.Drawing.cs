@@ -992,7 +992,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfOptions opts) {
+    private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfCreateOptions opts) {
         var effective = color ?? opts.DefaultTextColor;
         PdfStandardFont font = ResolveFontFromResourceName(fontRes, ChooseNormal(opts.DefaultFont));
         new ContentStreamBuilder(sb)
@@ -1004,7 +1004,7 @@ internal static partial class PdfWriter {
             .EndText();
     }
 
-    private static void WriteClippedCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfOptions opts, double clipX, double clipY, double clipWidth, double clipHeight) {
+    private static void WriteClippedCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfCreateOptions opts, double clipX, double clipY, double clipWidth, double clipHeight) {
         new ContentStreamBuilder(sb)
             .SaveState()
             .Rectangle(clipX, clipY, clipWidth, clipHeight)

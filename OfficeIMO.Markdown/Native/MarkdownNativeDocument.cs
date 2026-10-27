@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed partial class MarkdownNativeDocument {
     private MarkdownNativeDocument(
-        MarkdownParseResult parseResult,
+        MarkdownParseInfo parseResult,
         string sourceMarkdown,
         MarkdownNativeDocumentSourceKind sourceKind,
         IReadOnlyList<MarkdownNativeBlock> blocks,
@@ -24,10 +24,10 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     /// <summary>Underlying parse result, including original/final syntax trees and diagnostics.</summary>
-    public MarkdownParseResult ParseResult { get; }
+    public MarkdownParseInfo ParseResult { get; }
 
     /// <summary>Parsed OfficeIMO markdown document.</summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDocument Document { get; }
 
     /// <summary>Original syntax tree produced before document transforms were applied.</summary>
     public MarkdownSyntaxNode SyntaxTree { get; }
@@ -62,7 +62,7 @@ public sealed partial class MarkdownNativeDocument {
     /// <summary>
     /// Parses markdown into the typed object model, syntax tree, diagnostics, and native block projection.
     /// </summary>
-    public static MarkdownNativeDocument Parse(string markdown, MarkdownReaderOptions? options = null) {
+    public static MarkdownNativeDocument Parse(string markdown, MarkdownLoadOptions? options = null) {
         markdown ??= string.Empty;
         var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
         return FromParseResult(parseResult, sourceMarkdown: null, MarkdownNativeDocumentSourceKind.ReaderInput);
@@ -72,7 +72,7 @@ public sealed partial class MarkdownNativeDocument {
     /// Builds a native projection from an existing syntax-backed parse result.
     /// </summary>
     public static MarkdownNativeDocument FromParseResult(
-        MarkdownParseResult parseResult,
+        MarkdownParseInfo parseResult,
         string? sourceMarkdown = null,
         MarkdownNativeDocumentSourceKind sourceKind = MarkdownNativeDocumentSourceKind.ReaderInput) {
         if (parseResult == null) {
@@ -218,7 +218,7 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     /// <summary>Creates a UI-safe snapshot of this document without parser object references.</summary>
-    public MarkdownNativeDocumentSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromDocument(this);
+    public MarkdownNativeDocumentInfo ToSnapshot() => MarkdownNativeSnapshotFactory.FromDocument(this);
 
     /// <summary>
     /// Emits the original markdown when this native document was parsed with trivia preservation and no transforms changed it.

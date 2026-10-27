@@ -17,13 +17,13 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             var result = ExcelDocument.WriteRows(output, input, ["Text", "Number"],
                 static (writer, value) => writer.WriteUtf8(value).Write(42),
-                new ExcelTabularWriteOptions { UseSharedStrings = sharedStrings, RequireStreaming = true });
+                new ExcelWriterOptions { UseSharedStrings = sharedStrings, RequireStreaming = true });
             Assert.Equal(text.Length, result.RowCount);
             using (var package = SpreadsheetDocument.Open(output, false)) {
                 Assert.Empty(new OpenXmlValidator().Validate(package));
                 Assert.Equal(sharedStrings, package.WorkbookPart!.SharedStringTablePart != null);
             }
-            using var reader = ExcelDocument.OpenDataReader(output.ToArray(), new ExcelReadOptions { HasHeaderRow = true });
+            using var reader = ExcelDocument.OpenReader(output.ToArray(), new ExcelReaderOptions { HasHeaderRow = true });
             for (int row = 0; row < text.Length; row++) {
                 Assert.True(reader.Read());
                 Assert.Equal(text[row].Replace("\0", "").Replace("\u0001", ""), reader.GetString(0));
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => writer.WriteUtf8(value));
                 writer.WriteUtf8("valid"u8);
             });
-            using var reader = ExcelDocument.OpenDataReader(output.ToArray(), new ExcelReadOptions { HasHeaderRow = true });
+            using var reader = ExcelDocument.OpenReader(output.ToArray(), new ExcelReaderOptions { HasHeaderRow = true });
             Assert.True(reader.Read());
             Assert.Equal("valid", reader.GetString(0));
             Assert.False(reader.Read());

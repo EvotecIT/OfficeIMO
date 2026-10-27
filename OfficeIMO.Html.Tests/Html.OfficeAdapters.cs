@@ -220,7 +220,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(9, importedImage.OffsetXPixels);
         Assert.Equal(11, importedImage.OffsetYPixels);
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
-        Assert.True(importedChart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(importedChart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(1, snapshot.RowIndex);
         Assert.Equal(5, snapshot.ColumnIndex);
         Assert.Equal(280, snapshot.WidthPixels);
@@ -437,8 +437,8 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_ReportsTruncationWhenRetainedWindowContainsNoUsedCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Sparse");
-        sheet.CellValue(1, A1.MaxColumns, "Far column");
-        sheet.CellValue(A1.MaxRows, 1, "Far row");
+        sheet.CellValue(1, ExcelA1.MaxColumns, "Far column");
+        sheet.CellValue(ExcelA1.MaxRows, 1, "Far row");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -576,7 +576,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
         Assert.Equal("SUM(A1:A2)", snapshot.RawValue);
     }
@@ -605,12 +605,12 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 2, out ExcelCellValueSnapshot? textSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 2, out ExcelNativeCellValueInfo? textSnapshot));
         Assert.Equal(ExcelCellValueKind.Text, textSnapshot!.Kind);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 2, out ExcelCellValueSnapshot? numberSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 2, out ExcelNativeCellValueInfo? numberSnapshot));
         Assert.Equal(ExcelCellValueKind.Number, numberSnapshot!.Kind);
         Assert.Equal("123.45", numberSnapshot.RawValue);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? boolSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? boolSnapshot));
         Assert.Equal(ExcelCellValueKind.Boolean, boolSnapshot!.Kind);
         Assert.Equal("1", boolSnapshot.RawValue);
     }
@@ -632,7 +632,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Error, snapshot!.Kind);
         Assert.Equal("#DIV/0!", snapshot.RawValue);
     }
@@ -695,7 +695,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         ExcelSheet importedSheet = Assert.Single(persisted.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Text, snapshot!.Kind);
         Assert.Equal(value, snapshot.Text);
     }
@@ -744,7 +744,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
@@ -771,7 +771,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
         Assert.Equal(new[] { 10D, 20D, 30D }, snapshot.Data.Series[0].Values);
         Assert.Equal(new[] { 4D, 5D }, snapshot.Data.Series[1].XValues);
@@ -794,7 +794,7 @@ public partial class HtmlOfficeAdapters {
         dataSheet.CellValue(range.SeriesStartRow, range.SeriesStartColumn, 30D);
         dataSheet.CellValue(range.SeriesStartRow + 1, range.SeriesStartColumn, 40D);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 3D, 4D }, series.XValues);
         Assert.Equal(new[] { 30D, 40D }, series.Values);
@@ -822,7 +822,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Combo").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Collection(
             snapshot.Data.Series,
             series => Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType),

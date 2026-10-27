@@ -11,7 +11,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_InlineCodeStaysInTheSurroundingContainerParagraph() {
         const string html = """<div>before<code>x</code>after</div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph before = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "before");
         WordParagraph code = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "x");
         WordParagraph after = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "after");
@@ -29,7 +29,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph blended = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Blended");
 
@@ -63,7 +63,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_ContainerSpacingAppliesOncePerPhysicalParagraph() {
         const string html = """<div style="margin-left:10px"><p>a<strong>b</strong></p></div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph firstRun = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "a");
         WordParagraph secondRun = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "b");
 
@@ -77,7 +77,7 @@ public partial class HtmlWordGapClosure {
             <div style="color:red;border:1px solid"><span style="color:blue">Text</span></div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Text");
 
         Assert.Equal("FF0000", paragraph.Borders.LeftColorHex);

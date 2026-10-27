@@ -76,7 +76,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 20, 20);
         shape.Transform = OfficeTransform.RotateDegrees(30, 40, 20);
         shape.ClipPath = OfficeClipPath.Rectangle(80, 40);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 200, PageHeight = 400, MarginTop = 100, MarginBottom = 100,
             MarginLeft = 20, MarginRight = 20
         }).Compose(compose => compose.Page(page => {
@@ -99,7 +99,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true, true)]
     public void RunningMarkerClippingReportsPaintBeyondThePageButHonorsTheShapeClip(bool footer, bool clipped) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0, FooterOffsetY = 0
         }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
@@ -113,9 +113,9 @@ public sealed class PdfDrawingLineMarkerTests {
             if (footer) page.Footer(content => content.Shape(shape));
             else page.Header(content => content.Shape(shape));
             page.Content(content => content.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        var warnings = report.Warnings.Where(warning => warning.Code == "HeaderFooterPageBoundsClipped").ToArray();
+        var warnings = report.Warnings.Where(warning => warning.Code == "header-footer-page-bounds-clipped").ToArray();
         if (clipped) Assert.Empty(warnings);
         else {
             var warning = Assert.Single(warnings);
@@ -131,7 +131,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true)]
     public void RunningGradientArrowReportsPhysicalPageClipping(bool radial) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 2;
@@ -141,9 +141,9 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 60, 30);
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped" && w.Source == "Header");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped" && w.Source == "Header");
         Assert.True(report.HasLoss);
     }
 
@@ -154,7 +154,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true, true)]
     public void RunningPaintBoundsUseTheEffectiveRadialGradient(bool radialVisible, bool marker) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var linear = OfficeLinearGradient.Horizontal(radialVisible ? OfficeColor.Transparent : OfficeColor.Red,
             radialVisible ? OfficeColor.Transparent : OfficeColor.Blue);
@@ -173,16 +173,16 @@ public sealed class PdfDrawingLineMarkerTests {
         }
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        Assert.Equal(radialVisible, report.Warnings.Any(w => w.Code == "HeaderFooterPageBoundsClipped"));
+        Assert.Equal(radialVisible, report.Warnings.Any(w => w.Code == "header-footer-page-bounds-clipped"));
         Assert.Equal(radialVisible, report.HasLoss);
     }
 
     [Fact]
     public void RunningGradientArrowReportsDefaultRoundCapClipping() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 31, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 4; shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
@@ -190,9 +190,9 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 60, 30);
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped" && w.Source == "Header");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped" && w.Source == "Header");
     }
 
     [Theory]
@@ -200,7 +200,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true)]
     public void FreeformMarkerClipRetainsOnlyPaintInsideThePage(bool gradient) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, FooterOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 30, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 2;
@@ -214,22 +214,22 @@ public sealed class PdfDrawingLineMarkerTests {
             page.Footer(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
         })).ToBytes();
         Assert.NotEmpty(bytes);
-        Assert.DoesNotContain(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.DoesNotContain(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
         Assert.False(report.HasLoss);
     }
 
     [Fact]
     public void RunningGradientShaftReportsPhysicalPageClipping() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 1, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 4; shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -241,16 +241,16 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeWidth = 2; shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
         shape.ClipPath = OfficeClipPath.Path(commands);
         var report = new PdfConversionReport();
-        var options = new PdfOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
-        })).ToBytes();
+        })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
-        var warning = Assert.Single(report.Warnings, w => w.Code == "HeaderFooterPaintBoundsUnmeasured");
+        var warning = Assert.Single(report.Warnings, w => w.Code == "header-footer-paint-bounds-unmeasured");
         Assert.Equal(OfficeConversionLossKind.Unassessed, warning.LossKind);
         Assert.Null(warning.LayoutDiagnostic);
-        Assert.DoesNotContain(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.DoesNotContain(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
         Assert.True(report.HasLoss);
     }
 
@@ -303,7 +303,7 @@ public sealed class PdfDrawingLineMarkerTests {
             new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
         else shape.StrokeGradient = new OfficeLinearGradient(0, 0, 1, 1,
             new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 1000, PageHeight = 1000,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 1000, PageHeight = 1000,
             MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
         Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
@@ -318,7 +318,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 1;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 1, 1);
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 1, 1);
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 1000, PageHeight = 1000,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 1000, PageHeight = 1000,
             MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
         string text = OfficeIMO.Tests.Pdf.PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains(" c", text);
@@ -336,7 +336,7 @@ public sealed class PdfDrawingLineMarkerTests {
             new OfficeGradientStop(0, OfficeColor.Transparent),
             new OfficeGradientStop(1, new OfficeColor(0, 0, 255, 128)));
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, shaft ? 2 : 40, shaft ? 2 : 40);
-        var options = new PdfOptions { PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
+        var options = new PdfCreateOptions { PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30 };
         byte[] bytes = PdfDocument.Create(options).Shape(shape, linkUri: "https://example.test/marker").ToBytes();
         PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);

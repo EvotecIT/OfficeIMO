@@ -20,7 +20,7 @@ internal abstract class LegacyWordAdapterBase : ILegacyWordAdapter {
         if (string.IsNullOrWhiteSpace(text)) throw new InvalidDataException($"{profileId} did not contain recoverable bounded text.");
         var model = new LegacyWordModel { Quality = OfficeLegacyImportQuality.Salvage };
         AddParagraphs(model, text, limits, cancellationToken);
-        model.Findings.Add(Loss("LEGACY_WORD_SALVAGE", "Structure", limitation));
+        model.Findings.Add(Loss("legacy-word-salvage", "Structure", limitation));
         return model;
     }
 

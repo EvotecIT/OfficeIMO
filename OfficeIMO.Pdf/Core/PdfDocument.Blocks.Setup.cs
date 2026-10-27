@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Updates the generated document settings owned by this document.</summary>
-    internal void ConfigureSettings(System.Action<PdfOptions> configure) {
+    internal void ConfigureSettings(System.Action<PdfCreateOptions> configure) {
         Guard.NotNull(configure, nameof(configure));
         EnsureGeneratedDocument();
         configure(_options);
@@ -70,14 +70,14 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets the document-wide default page size used by top-level flow and composed pages.</summary>
-    internal PdfDocument Size(PageSize size) {
+    internal PdfDocument Size(PdfPageSize size) {
         _options.PageSize = size;
         return this;
     }
 
     /// <summary>Sets the document-wide default page size in points.</summary>
     internal PdfDocument Size(double width, double height) {
-        _options.PageSize = new PageSize(width, height);
+        _options.PageSize = new PdfPageSize(width, height);
         return this;
     }
 
@@ -218,19 +218,19 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets uniform document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double all) {
-        _options.Margins = PageMargins.Uniform(all);
+        _options.Margins = PdfPageMargins.Uniform(all);
         return this;
     }
 
     /// <summary>Sets document-wide default page margins from a reusable margin value.</summary>
-    internal PdfDocument Margin(PageMargins margins) {
+    internal PdfDocument Margin(PdfPageMargins margins) {
         _options.Margins = margins;
         return this;
     }
 
     /// <summary>Sets document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double left, double top, double right, double bottom) {
-        _options.Margins = new PageMargins(left, top, right, bottom);
+        _options.Margins = new PdfPageMargins(left, top, right, bottom);
         return this;
     }
 
@@ -674,7 +674,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets the document-wide default table style from a supported Word table style name.</summary>
     internal PdfDocument DefaultTableStyle(string wordTableStyleName) {
-        _options.DefaultTableStyle = TableStyles.FromWordTableStyle(wordTableStyleName);
+        _options.DefaultTableStyle = PdfTableStyles.FromWordTableStyle(wordTableStyleName);
         return this;
     }
 

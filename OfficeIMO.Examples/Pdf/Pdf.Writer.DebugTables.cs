@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowTableColumnGuides = true
             };
 
-            var opts = new PdfOptions { Debug = debug };
+            var opts = new PdfCreateOptions { Debug = debug };
 
             var styleBase = new PdfTableStyle {
                 HeaderFill = PdfColor.LightGray,

@@ -82,7 +82,7 @@ public sealed class GetOfficeDocumentVisualCommand : OfficeDocumentReaderCommand
     [Parameter]
     public string? ExcelSheetName { get; set; }
 
-    /// <summary>Optional Excel A1 range to read.</summary>
+    /// <summary>Optional Excel ExcelA1 range to read.</summary>
     [Parameter]
     public string? ExcelA1Range { get; set; }
 

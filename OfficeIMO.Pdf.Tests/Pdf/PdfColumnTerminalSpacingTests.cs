@@ -29,7 +29,7 @@ public sealed class PdfColumnTerminalSpacingTests {
     [Fact]
     public void Columns_TerminalSpacingFollowsTheLastOccupiedColumnBeforeAnExplicitEmptyColumn() {
         var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfOptions { PageWidth = 500, PageHeight = 400,
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
             MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 })
             .Columns(content => {
                 content.Paragraph(p => p.Text("Column001\nColumn002"), style: style);
@@ -42,7 +42,7 @@ public sealed class PdfColumnTerminalSpacingTests {
 
     private static PdfDocument Render(PdfMultiColumnOptions options) {
         var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
-        return PdfDocument.Create(new PdfOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
+        return PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
             MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 })
             .Columns(content => content.Paragraph(p => p.Text("Column001\nColumn002\nColumn003\nColumn004"), style: style), options)
             .Paragraph(p => p.Text("AfterColumns"), style: style);

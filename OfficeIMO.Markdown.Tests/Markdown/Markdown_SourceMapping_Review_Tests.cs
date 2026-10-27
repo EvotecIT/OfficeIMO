@@ -40,7 +40,7 @@ public sealed class Markdown_SourceMapping_Review_Tests {
     [Fact]
     public void DetailsSummary_Inlines_Are_SourceBacked() {
         const string markdown = "<details><summary>[docs](url)</summary>\nbody\n</details>";
-        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownLoadOptions {
             PreserveTrivia = true
         });
 
@@ -54,7 +54,7 @@ public sealed class Markdown_SourceMapping_Review_Tests {
 
     [Fact]
     public void InlineGenericAttributes_Do_Not_Extend_Native_Content_SourceSpan() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
         var native = MarkdownNativeDocument.Parse("**hot**{#id}\n", options);
@@ -72,10 +72,10 @@ public sealed class Markdown_SourceMapping_Review_Tests {
     public void UnterminatedHtmlComment_Does_Not_Expose_Synthetic_Marker_SourceFields() {
         const string markdown = "<!-- unfinished";
 
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownLoadOptions {
             PreserveTrivia = true
         });
-        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownLoadOptions {
             PreserveTrivia = true
         });
 

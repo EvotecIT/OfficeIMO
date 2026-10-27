@@ -91,6 +91,11 @@ namespace OfficeIMO.Word {
             if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) {
                 throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
             }
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied._persistenceMode = resolved.PersistenceMode;
+                return copied;
+            }
             return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
         }
 
@@ -100,6 +105,12 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(string filePath, WordCreateOptions? options = null) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             WordCreateOptions resolved = options ?? new WordCreateOptions();
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied.FilePath = filePath;
+                copied._persistenceMode = resolved.PersistenceMode;
+                return copied;
+            }
             var documentType = GetDocumentType(filePath);
             var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode);
             return word;
@@ -108,7 +119,7 @@ namespace OfficeIMO.Word {
         /// <summary>Creates an editable detached document from a template without writing or associating the source.</summary>
         /// <param name="templatePath">Existing Word package to copy into memory.</param>
         /// <returns>A document that requires an explicit destination when saved.</returns>
-        public static WordDocument CreateFromTemplate(string templatePath) {
+        internal static WordDocument CreateFromTemplate(string templatePath) {
             if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
             using var source = File.OpenRead(templatePath);
             return Load(source, new WordLoadOptions {
@@ -319,6 +330,12 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(Stream stream, WordCreateOptions? options = null) {
             OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
             WordCreateOptions resolved = options ?? new WordCreateOptions();
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied.OriginalStream = stream;
+                copied._persistenceMode = resolved.PersistenceMode;
+                return copied;
+            }
             var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
             return word;
         }
@@ -408,6 +425,8 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, WordLoadOptions? options = null) {
+            if (options?.Password is string password)
+                return AssociateEncryptedDocument(LoadEncrypted(filePath, password, options), filePath, password, options: options);
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -430,7 +449,7 @@ namespace OfficeIMO.Word {
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
+                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
                 }
 
                 MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -476,13 +495,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
+        /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
+        internal static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
-            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
+            resolved = resolved.Snapshot();
+            resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -502,14 +523,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="stream">Readable stream containing the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
+        /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
+        internal static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
-            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
+            resolved = resolved.Snapshot();
+            resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
 
             byte[] encryptedBytes = ReadSourceBytes(stream, resolved);
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
@@ -518,11 +541,6 @@ namespace OfficeIMO.Word {
             return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
-        private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
-            if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {
-                throw new NotSupportedException("SaveOnDispose is not supported for encrypted Word sources. Use SaveEncrypted to persist encrypted changes.");
-            }
-        }
 
         /// <summary>
         /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
@@ -533,6 +551,14 @@ namespace OfficeIMO.Word {
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, WordLoadOptions? options = null, CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) {
+                return await Task.Run(() => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WordDocument loaded = AssociateEncryptedDocument(LoadEncrypted(filePath, password, options), filePath, password, options: options);
+                    if (cancellationToken.IsCancellationRequested) { loaded.Dispose(); cancellationToken.ThrowIfCancellationRequested(); }
+                    return loaded;
+                }, cancellationToken).ConfigureAwait(false);
+            }
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -553,7 +579,7 @@ namespace OfficeIMO.Word {
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
+                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
             }
 
             MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -631,7 +657,9 @@ namespace OfficeIMO.Word {
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
-            LoadFromStream(stream, options, captureSourcePackageSecurity: true);
+            options?.Password is string password
+                ? AssociateEncryptedDocument(LoadEncrypted(stream, password, options), null, password, options?.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options)
+                : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
             bool captureSourcePackageSecurity) {
@@ -653,7 +681,7 @@ namespace OfficeIMO.Word {
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions());
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             }
 

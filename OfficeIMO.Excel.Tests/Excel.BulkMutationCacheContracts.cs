@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var reopened = ExcelDocument.Load(stream)) {
-                ExcelCellStyleSnapshot applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
+                ExcelCellStyleInfo applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
                 Assert.True(applied.Italic);
                 Assert.False(applied.Bold);
             }
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             }
             using var reopened = ExcelDocument.Load(stream);
             for (int row = 1; row <= 20; row++) {
-                ExcelCellStyleSnapshot style = reopened.Sheets[0].CellAt(row, 1).GetStyle();
+                ExcelCellStyleInfo style = reopened.Sheets[0].CellAt(row, 1).GetStyle();
                 Assert.True(style.Bold);
                 Assert.True(style.Italic);
                 Assert.True(style.WrapText);
@@ -266,12 +266,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 45292D);
             sheet.CellValue(2, 1, "Value");
             sheet.FormatCell(1, 1, "yyyy-mm-dd");
-            var rawOptions = new ExcelReadOptions { TreatDatesUsingNumberFormat = false };
+            var rawOptions = new ExcelReaderOptions { TreatDatesUsingNumberFormat = false };
             Assert.Equal(1, sheet.GetHeaderMap(rawOptions)["45292"]);
             Assert.False(sheet.GetHeaderMap().ContainsKey("45292"));
             Assert.Equal(1, sheet.GetHeaderMap(rawOptions)["45292"]);
             string converted = "Converted";
-            var converterOptions = new ExcelReadOptions {
+            var converterOptions = new ExcelReaderOptions {
                 CellValueConverter = _ => new ExcelCellValue(converted)
             };
             Assert.Equal(1, sheet.GetHeaderMap(converterOptions)["Converted"]);
@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
             Assert.Throws<OperationCanceledException>(() => {
-                sheet.GetHeaderMap(new ExcelReadOptions { CancellationToken = cancellation.Token });
+                sheet.GetHeaderMap(new ExcelReaderOptions { CancellationToken = cancellation.Token });
             });
         }
 

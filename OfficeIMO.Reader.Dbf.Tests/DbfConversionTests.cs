@@ -42,7 +42,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             using DbfDataReader reader = DbfDataReader.Open(DbfReaderTests.Fixture(profile + ".dbf"));
             using MemoryStream output = new MemoryStream();
             ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(output, reader,
-                new ExcelTabularWriteOptions { UseSharedStrings = buffered, RequireStreaming = !buffered });
+                new ExcelWriterOptions { UseSharedStrings = buffered, RequireStreaming = !buffered });
             Assert.Equal(2, result.RowCount);
             Assert.False(reader.IsClosed);
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(output, false)) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
                 Assert.Equal(profile == "vfp" ? 42m : 1234.50m, decimal.Parse(cells[1].CellValue!.Text, CultureInfo.InvariantCulture));
             }
             output.Position = 0;
-            using ExcelWorkbookDataReader reopened = ExcelDocument.OpenDataReader(output);
+            using ExcelWorkbookDataReader reopened = ExcelDocument.OpenReader(output);
             Assert.True(reopened.Read());
             Assert.Equal(profile == "vfp" ? "Café" : "Café £", reopened.GetString(0));
             if (profile == "vfp") {
@@ -80,7 +80,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             dataSet.Tables.Add(table);
             ExcelDocument.WriteDataSet(output, dataSet);
             output.Position = 0;
-            using ExcelWorkbookDataReader reopened = ExcelDocument.OpenDataReader(output);
+            using ExcelWorkbookDataReader reopened = ExcelDocument.OpenReader(output);
             Assert.True(reopened.Read());
             Assert.Equal("AP8B", reopened.GetString(0));
         }

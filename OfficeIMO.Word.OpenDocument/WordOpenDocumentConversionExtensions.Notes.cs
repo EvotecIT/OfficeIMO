@@ -144,7 +144,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal readonly SortedSet<long> ProcessedEndnoteIds = new();
     }
 
-    private static void CopyWordNotes(WordRunSnapshot run, OdtParagraph target, NoteMappingStats notes) {
+    private static void CopyWordNotes(WordRunInfo run, OdtParagraph target, NoteMappingStats notes) {
         if (run.Footnote != null) {
             notes.SeenWordFootnotes++;
             CopyWordNote(run.Footnote.Paragraphs, run.Footnote.ReferenceId, OdtNoteKind.Footnote, target, notes);
@@ -202,7 +202,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         return hasFormatting;
     }
 
-    private static bool HasAmbiguousWordNotePosition(WordRunSnapshot run) =>
+    private static bool HasAmbiguousWordNotePosition(WordRunInfo run) =>
         run.Text.Length > 0 || run.PositionedImages.Count > 0 || run.NonTextBreaks?.Count > 0 ||
         run.IsHyperlink || (run.Footnote != null && run.Endnote != null);
 
@@ -215,7 +215,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         paragraph.UnderlineStyle.HasValue || paragraph.UnderlineType.HasValue ||
         paragraph.LineThroughStyle.HasValue || paragraph.LineThroughType.HasValue;
 
-    private static void CopyWordNote(IReadOnlyList<WordParagraphSnapshot> paragraphs, long? referenceId, OdtNoteKind kind,
+    private static void CopyWordNote(IReadOnlyList<WordParagraphInfo> paragraphs, long? referenceId, OdtNoteKind kind,
         OdtParagraph target, NoteMappingStats notes) {
         if (referenceId.HasValue && !(kind == OdtNoteKind.Footnote
             ? notes.ProcessedFootnoteIds : notes.ProcessedEndnoteIds).Add(referenceId.Value)) {
@@ -247,14 +247,14 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static string VisibleWordNoteText(WordParagraphSnapshot paragraph) {
+    private static string VisibleWordNoteText(WordParagraphInfo paragraph) {
         if (paragraph.InlineFields.Count == 0) return paragraph.Text;
         var text = new System.Text.StringBuilder();
-        WordInlineFieldSnapshot[] fields = paragraph.InlineFields.OrderBy(field => field.RunIndex).ToArray();
+        WordInlineFieldInfo[] fields = paragraph.InlineFields.OrderBy(field => field.RunIndex).ToArray();
         int fieldIndex = 0;
         for (int runIndex = 0; runIndex <= paragraph.Runs.Count; runIndex++) {
             while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
-                WordInlineFieldSnapshot field = fields[fieldIndex++];
+                WordInlineFieldInfo field = fields[fieldIndex++];
                 if (!field.IsHiddenInstructionContent) text.Append(field.ResultText);
             }
             if (runIndex < paragraph.Runs.Count) text.Append(paragraph.Runs[runIndex].Text);
@@ -314,7 +314,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             run.RunProperties?.GetFirstChild<W.RunStyle>() != null) == true;
     }
 
-    private static bool HasNonPlainWordNoteContent(WordParagraphSnapshot paragraph, OdtNoteKind kind) =>
+    private static bool HasNonPlainWordNoteContent(WordParagraphInfo paragraph, OdtNoteKind kind) =>
         HasNonDefaultWordNoteStyle(paragraph, kind) ||
         paragraph.Runs.Any(run => run.NonTextBreaks?.Values.Any(kind => kind != WordBreakType.TextWrapping) == true ||
             run.Text.Length > 0 && (
@@ -334,7 +334,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan ||
         paragraph.PageBreakBefore || paragraph.BookmarkName != null;
 
-    private static bool HasNonDefaultWordNoteStyle(WordParagraphSnapshot paragraph, OdtNoteKind kind) {
+    private static bool HasNonDefaultWordNoteStyle(WordParagraphInfo paragraph, OdtNoteKind kind) {
         string defaultId = kind == OdtNoteKind.Footnote ? "FootnoteText" : "EndnoteText";
         if (!string.IsNullOrWhiteSpace(paragraph.StyleId))
             return !string.Equals(paragraph.StyleId, defaultId, StringComparison.OrdinalIgnoreCase);

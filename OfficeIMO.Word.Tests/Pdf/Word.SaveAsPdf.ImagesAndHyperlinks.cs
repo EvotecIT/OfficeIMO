@@ -53,10 +53,10 @@ public partial class Word {
             right.AddImage(imagePath, 48, 48);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(300, 260),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 260),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
             });
         }
 
@@ -84,7 +84,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -97,7 +97,7 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
@@ -115,7 +115,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -129,7 +129,7 @@ public partial class Word {
         ReplaceFirstMainDocumentImagePart(docPath, CreateCorruptInterlacedPng());
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            var result = document.ToPdfDocumentResult(options);
+            var result = document.ConvertToPdfWithEvidence(options);
             result.Save(pdfPath);
             Assert.Contains(result.Warnings, warning =>
                 warning.Code == "NativeBodyImageUnsupported" &&
@@ -147,7 +147,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -158,11 +158,11 @@ public partial class Word {
             picture.AddPictureControl(imagePath, 48, 48, "Logo", "LogoTag");
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body paragraph");
 
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
@@ -185,7 +185,7 @@ public partial class Word {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text("Visible")),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
@@ -202,7 +202,7 @@ public partial class Word {
             WordTextBox textBox = cellParagraph.AddTextBox("Image box", WordImageTextWrapping.Square);
             Paragraph inner = textBox.Content!.Descendants<Paragraph>().First();
             new WordParagraph(document, inner).AddImage(imagePath, 24, 24);
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         Assert.Contains("/Subtype /Image", PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)));
@@ -225,7 +225,7 @@ public partial class Word {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text("Visible")),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         Assert.DoesNotContain("/Subtype /Image", PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)));
@@ -237,7 +237,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -253,11 +253,11 @@ public partial class Word {
             paragraph.AddPictureControl(imagePath, 48, 48, "Cell Logo", "CellLogo");
 
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
+            warning.Code == "native-body-content-control-unsupported" &&
             warning.Source == "body table");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
@@ -278,8 +278,8 @@ public partial class Word {
         paragraph.AddPictureControl(imagePath, 32, 32, "First", "First");
         paragraph.AddPictureControl(imagePath, 32, 32, "Second", "Second");
 
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
-            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
     }
 
     [Fact]
@@ -291,8 +291,8 @@ public partial class Word {
         paragraph.AddImage(imagePath, 32, 32);
         paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
 
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
-            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
     }
 
     [Fact]
@@ -305,8 +305,8 @@ public partial class Word {
         paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
         document.AddParagraph("Body");
 
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
-            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public partial class Word {
         deletedRun.Remove();
         paragraph._paragraph!.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(deletedRun));
 
-        document.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 });
+        document.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 });
     }
 
     private static void ReplaceFirstMainDocumentImagePart(string docPath, byte[] bytes) {

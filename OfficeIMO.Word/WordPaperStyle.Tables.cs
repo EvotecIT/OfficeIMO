@@ -21,7 +21,7 @@ public sealed partial class WordPaperStyle {
         table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil, bottomStyle: WordBorderStyle.Nil,
             leftStyle: WordBorderStyle.Nil, rightStyle: WordBorderStyle.Nil,
             insideHStyle: WordBorderStyle.Single, insideHSize: RuleSize,
-            insideHColor: OfficeIMO.Drawing.OfficeColor.ParseHex(Border), insideVStyle: WordBorderStyle.Nil);
+            insideHColor: OfficeIMO.OfficeColor.ParseHex(Border), insideVStyle: WordBorderStyle.Nil);
         table.StyleDetails.MarginDefaultTopWidth = TableCellVerticalPadding;
         table.StyleDetails.MarginDefaultBottomWidth = TableCellVerticalPadding;
         table.StyleDetails.MarginDefaultLeftWidth = TableCellHorizontalPadding;

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;

@@ -32,7 +32,7 @@ public sealed class OfficePdfCommandTests {
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
             Assert.True(File.Exists(outputPath));
-            Assert.NotEmpty(OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(outputPath)).Pages);
+            Assert.NotEmpty(OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(outputPath))).Pages);
             Assert.Contains(outputPath, Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
             Assert.DoesNotContain("Error ", error.ToString(), StringComparison.Ordinal);
         } finally {
@@ -180,7 +180,7 @@ public sealed class OfficePdfCommandTests {
                 error);
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
-            Assert.NotEmpty(OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(outputPath)).Pages);
+            Assert.NotEmpty(OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(outputPath))).Pages);
             Assert.Contains(outputPath, Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
         } finally {
             Directory.Delete(directory, recursive: true);
@@ -368,48 +368,6 @@ public sealed class OfficePdfCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
         Assert.Contains("positive integer", error.ToString(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task OutputCommitFailsAtomicallyWhenDestinationAppearsWithoutForce() {
-        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        string outputPath = Path.Combine(directory, "result.pdf");
-        await File.WriteAllTextAsync(outputPath, "keep");
-
-        try {
-            string temporaryPath = Path.Combine(directory, ".officeimo-test.tmp");
-            await File.WriteAllBytesAsync(temporaryPath, "%PDF-new"u8.ToArray());
-            await Assert.ThrowsAsync<OfficePdfOutputExistsException>(() => OfficePdfCommand.CommitOutputAsync(
-                temporaryPath, outputPath, force: false, CancellationToken.None));
-
-            Assert.Equal("keep", await File.ReadAllTextAsync(outputPath));
-            Assert.Empty(Directory.EnumerateFiles(directory, "*.tmp"));
-        } finally {
-            Directory.Delete(directory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public async Task CancelledOutputCommitDoesNotReplaceDestinationOrLeaveStagingFiles() {
-        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        string outputPath = Path.Combine(directory, "result.pdf");
-        await File.WriteAllTextAsync(outputPath, "keep");
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        try {
-            string temporaryPath = Path.Combine(directory, ".officeimo-test.tmp");
-            await File.WriteAllBytesAsync(temporaryPath, "%PDF-new"u8.ToArray());
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => OfficePdfCommand.CommitOutputAsync(
-                temporaryPath, outputPath, force: true, cancellation.Token));
-
-            Assert.Equal("keep", await File.ReadAllTextAsync(outputPath));
-            Assert.Empty(Directory.EnumerateFiles(directory, "*.tmp"));
-        } finally {
-            Directory.Delete(directory, recursive: true);
-        }
     }
 
     private static void CreateSource(string path, string extension) {

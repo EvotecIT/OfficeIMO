@@ -61,6 +61,9 @@ namespace OfficeIMO.Access {
         /// <inheritdoc />
         public override bool IsDBNull(int ordinal) { Column(ordinal); return _cursor.IsNull(ordinal); }
         /// <inheritdoc />
+#if NET8_0_OR_GREATER
+        [return: System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
+#endif
         public override Type GetFieldType(int ordinal) => Column(ordinal).HasOpaqueTextValues ? typeof(AccessOpaqueValue) : Column(ordinal).DataType switch {
             AccessDataType.AutoNumber or AccessDataType.Int32 => typeof(int),
             AccessDataType.ShortText or AccessDataType.LongText => typeof(string), AccessDataType.Currency => typeof(decimal),

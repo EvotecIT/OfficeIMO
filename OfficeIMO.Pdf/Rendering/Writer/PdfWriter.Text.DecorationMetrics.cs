@@ -6,14 +6,14 @@ internal static partial class PdfWriter {
     internal sealed record TextDecorationMeasurement(double Position, double Thickness);
 
     /// <summary>Measures an explicit strike band with the same selected font face and baseline as text painting.</summary>
-    internal static TextDecorationMeasurement? MeasureStrikethrough(PdfTextRun run, PdfOptions options,
+    internal static TextDecorationMeasurement? MeasureStrikethrough(PdfTextRun run, PdfCreateOptions options,
         double pointsPerPixel) => MeasureFontDecoration(run, options, pointsPerPixel, underline: false);
 
     /// <summary>Measures an explicit underline band with the same selected font face and baseline as text painting.</summary>
-    internal static TextDecorationMeasurement? MeasureUnderline(PdfTextRun run, PdfOptions options,
+    internal static TextDecorationMeasurement? MeasureUnderline(PdfTextRun run, PdfCreateOptions options,
         double pointsPerPixel) => MeasureFontDecoration(run, options, pointsPerPixel, underline: true);
 
-    private static TextDecorationMeasurement? MeasureFontDecoration(PdfTextRun run, PdfOptions options,
+    private static TextDecorationMeasurement? MeasureFontDecoration(PdfTextRun run, PdfCreateOptions options,
         double pointsPerPixel, bool underline) {
         PdfStandardFont font = ResolveFontForRun(run, ChooseNormal(options.DefaultFont));
         PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic,
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
     }
 
     private static OfficeOpenTypeDecorationMetrics? ResolveFontDecorationMetrics(
-        PdfStandardFont font, PdfNamedFontFace? namedFont, PdfOptions options) {
+        PdfStandardFont font, PdfNamedFontFace? namedFont, PdfCreateOptions options) {
         if (namedFont.HasValue) {
             if (options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? namedTrueType) && namedTrueType != null)
                 return namedTrueType.DecorationMetrics;

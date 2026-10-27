@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Tests {

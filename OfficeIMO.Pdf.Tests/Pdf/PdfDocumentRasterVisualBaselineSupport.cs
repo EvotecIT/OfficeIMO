@@ -8,7 +8,7 @@ using OfficeIMO.Tests;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
-    private static PdfDocument CreateVisualBaselineDocument(PdfOptions options) {
+    private static PdfDocument CreateVisualBaselineDocument(PdfCreateOptions options) {
         return PdfDocument.Create(options);
     }
 

@@ -17,13 +17,13 @@ public partial class Excel {
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Rejects_Invalid_Options() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelToPdfOptions { HeaderRowCount = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelToPdfOptions { MaxRowsPerSheet = 0 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfExportOptions { HeaderRowCount = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfExportOptions { MaxRowsPerSheet = 0 });
     }
 
     [Fact]
     public void SaveAsPdf_ExcelShapingOnlyProfileAllowsWorkbookFontDiscoveryUntilCallerConfiguresFonts() {
-        var options = new ExcelToPdfOptions()
+        var options = new ExcelPdfExportOptions()
             .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
@@ -37,18 +37,18 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Reports_Unsupported_Export_Features() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfUnsupportedFeatureWarnings.xlsx");
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
             MaxRowsPerSheet = 2,
-            PageSize = new PdfCore.PageSize(460, 320),
-            Margins = PdfCore.PageMargins.Uniform(24)
+            PageSize = new PdfCore.PdfPageSize(460, 320),
+            Margins = PdfCore.PdfPageMargins.Uniform(24)
         };
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
         PdfCore.PdfSaveResult saveResult;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Warnings")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Warnings" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Name");
             sheet.Cell(1, 2, "Value");
@@ -70,10 +70,10 @@ public partial class Excel {
 
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
             using var output = new MemoryStream();
-            saveResult = document.SaveAsPdfResult(output, options);
+            saveResult = document.ConvertToPdfWithEvidence(options).Save(output);
         }
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
@@ -87,12 +87,12 @@ public partial class Excel {
             Assert.DoesNotContain("Unsupported Bubble Chart", text);
         }
 
-        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
-        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");
-        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetChart" && warning.Message.Contains("could not be read", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-header-footer-formatting");
+        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-rows");
+        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-chart" && warning.Message.Contains("could not be read", StringComparison.Ordinal));
         Assert.True(saveResult.Succeeded);
-        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
-        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");
-        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetChart");
+        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-header-footer-formatting");
+        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-rows");
+        Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "worksheet-chart");
     }
 }

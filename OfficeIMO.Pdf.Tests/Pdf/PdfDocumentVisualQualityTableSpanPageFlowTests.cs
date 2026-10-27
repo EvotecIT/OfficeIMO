@@ -11,7 +11,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false, 2)]
     [InlineData(true, 2)]
     public void Table_MergedTailSurvivesTheLastNeighbourRowSplitting(bool inRowColumn, double cellSpacing) {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = style.CellPaddingY = 0;
         style.MinRowHeight = 0;
@@ -23,7 +23,7 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell(string.Join("\n", Enumerable.Range(1, 8).Select(n => $"LongNeighbour{n}"))) },
             new[] { PdfTableCell.TextCell("AfterSpan"), PdfTableCell.TextCell("AfterNeighbour") }
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
         });
@@ -52,7 +52,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, 12)]
     [InlineData(true, 18)]
     public void Table_MergedTextAndPaintContinueWithinEachPage(bool inRowColumn, int tokenCount) {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.CellPaddingX = style.CellPaddingY = 0;
         style.MinRowHeight = 0;
@@ -64,7 +64,7 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell("Neighbour1") },
             new[] { PdfTableCell.TextCell("Neighbour2") }
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
         });

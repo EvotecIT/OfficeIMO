@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
             int nextIndex = index + 1;
             while (nextIndex < blocks.Count && IsNonVisualFlowMarker(blocks[nextIndex])) nextIndex++;
             if (nextIndex >= blocks.Count || blocks[nextIndex] is not ContainerBlock next) return false;
-            PdfOptions savedOptions = currentOpts;
+            PdfCreateOptions savedOptions = currentOpts;
             double savedY = y, savedWidth = width;
             activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);
             try {

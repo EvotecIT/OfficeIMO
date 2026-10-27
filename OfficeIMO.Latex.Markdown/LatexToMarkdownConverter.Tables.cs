@@ -38,7 +38,7 @@ internal static partial class LatexToMarkdownConverter {
             foreach (LatexTableCell sourceCell in source.Rows[rowIndex].Cells) {
                 context.CheckCancellation();
                 InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(context, sourceCell.Span, diagnostics);
-                string markdown = MarkdownDoc.Create().Add(new ParagraphBlock(inlines)).ToMarkdown().Trim();
+                string markdown = MarkdownDocument.Create().Add(new ParagraphBlock(inlines)).ToMarkdown().Trim();
                 values.Add(markdown);
                 cells.Add(new TableCell(new IMarkdownBlock[] { new ParagraphBlock(inlines) }));
             }
@@ -69,15 +69,15 @@ internal static partial class LatexToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         string specification = source.ColumnSpecification;
         bool rules = false, unsupported = false;
-        var alignments = new List<ColumnAlignment>();
+        var alignments = new List<MarkdownColumnAlignment>();
         for (int index = 0; index < specification.Length; index++) {
             if ((index & 1023) == 0) context.CheckCancellation();
             char column = specification[index];
             if (char.IsWhiteSpace(column)) continue;
             if (column == '|') { rules = true; continue; }
-            if (column == 'l') alignments.Add(ColumnAlignment.Left);
-            else if (column == 'c') alignments.Add(ColumnAlignment.Center);
-            else if (column == 'r') alignments.Add(ColumnAlignment.Right);
+            if (column == 'l') alignments.Add(MarkdownColumnAlignment.Left);
+            else if (column == 'c') alignments.Add(MarkdownColumnAlignment.Center);
+            else if (column == 'r') alignments.Add(MarkdownColumnAlignment.Right);
             else { unsupported = true; break; }
         }
         if (!unsupported) target.Alignments.AddRange(alignments);

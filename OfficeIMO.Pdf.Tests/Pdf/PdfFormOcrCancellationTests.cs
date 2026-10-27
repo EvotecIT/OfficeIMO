@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData("owner", 2)]
         [InlineData("open", 3)]
         public async Task ModernAuthenticationCancellationStopsFileKeyDecryption(string password, int completedHashes) {
-            byte[] original = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            byte[] original = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256
             })).TextField("Name", width: 180, height: 24).ToBytes();
             using var cancellation = new CancellationTokenSource();
@@ -137,11 +137,11 @@ namespace OfficeIMO.Tests.Pdf {
         public void Aes256GenerationCancellationStopsPermissionsEncryption() {
             using var cancellation = new CancellationTokenSource();
             var provider = new CancellationTrackingAesProvider(cancellation.Token) { CancelOnOwnerFileKeyEncryption = cancellation };
-            var source = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            var source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256, AesCryptographyProvider = provider
             })).TextField("Name", width: 180, height: 24);
 
-            var exception = Assert.ThrowsAny<OperationCanceledException>(() => source.ToBytes(cancellation.Token));
+            var exception = Assert.ThrowsAny<OperationCanceledException>(() => source.ToBytes(cancellationToken: cancellation.Token));
 
             Assert.Equal(2, provider.FileKeyEncryptions);
             Assert.Equal(cancellation.Token, exception.CancellationToken);
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests.Pdf {
         private static async Task<(PdfDocument Source, byte[] Bytes, PdfFormOcrReview Review)> CreateReviewAsync(
             CancellationTrackingAesProvider provider, bool encrypted) {
             byte[] original = CreatePdfBytes(encrypted);
-            var source = PdfDocument.Load(original, new PdfLoadOptions {
+            var source = PdfDocument.Load(new System.IO.MemoryStream(original), new PdfLoadOptions {
                 Password = encrypted ? "owner" : null, AesCryptographyProvider = provider
             });
             // The canonical planner prefers an available append-only form update for authenticated encrypted input.
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         private static byte[] CreatePdfBytes(bool encrypted) {
-            var options = new PdfOptions();
+            var options = new PdfCreateOptions();
             if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
             });

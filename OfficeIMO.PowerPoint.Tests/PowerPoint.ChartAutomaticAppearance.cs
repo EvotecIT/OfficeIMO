@@ -52,7 +52,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Pdf.Tests", "Pdf", "ReferenceBaselines",
             "native-powerpoint-dense-layout.pptx");
         using PowerPointPresentation presentation = PowerPointPresentation.Load(path);
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-chart");
         PowerPointChart chart = presentation.Slides.SelectMany(slide => slide.Charts).Single();
@@ -131,7 +131,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) { Position = 0 },
             new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) { Position = 100000 })), 0);
 
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "unsupported-chart");
         Assert.Contains("'Values' uses a series fill, line or effect", warning.Message, StringComparison.Ordinal);
@@ -140,10 +140,10 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [Fact]
     public void MicrosoftAdvancedChartFamiliesRenderAndReportFlatProjections() {
         using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code is "unsupported-chart" or "unsupported-smartart");
-        string[] projected = result.Warnings.Where(warning => warning.Code == "chart-projected")
+        string[] projected = result.Warnings.Where(warning => warning.Code == "chart-flattened")
             .Select(warning => warning.Message.Split(' ')[2]).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         Assert.Equal(new[] { "area3DChart", "bar3DChart", "line3DChart", "ofPieChart", "pie3DChart", "surface3DChart", "surfaceChart" },
             projected);

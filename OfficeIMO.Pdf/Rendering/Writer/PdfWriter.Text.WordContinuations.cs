@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static (double Width, double FontSize, IReadOnlyList<RichSeg>? Parts, bool HasKerning)[] MeasureRichWordContinuations(
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont,
-        double fontSize, PdfOptions? options) {
+        double fontSize, PdfCreateOptions? options) {
         if (runs.Count < 2) return System.Array.Empty<(double Width, double FontSize, IReadOnlyList<RichSeg>? Parts, bool HasKerning)>();
         var continuations = new (double Width, double FontSize, IReadOnlyList<RichSeg>? Parts, bool HasKerning)[runs.Count];
         var prefixes = new List<RichSeg>();

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
             const string windowsPath = @"C:\Reports\Images\OfficeIMO.png";
             string markdown = $"![Local]({windowsPath})";
 
-            var document = global::OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var document = global::OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             var image = Assert.IsType<global::OfficeIMO.Markdown.ImageBlock>(Assert.Single(document.Blocks));
 
             Assert.Equal(windowsPath, image.Path);
 
-            var blocked = global::OfficeIMO.Markdown.MarkdownReader.Parse(markdown, new global::OfficeIMO.Markdown.MarkdownReaderOptions {
+            var blocked = global::OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, new global::OfficeIMO.Markdown.MarkdownLoadOptions {
                 DisallowFileUrls = true
             });
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             string md = $"![Local]({imagePath}){{width=40 height=30}}\n" +
                         $"![Remote]({remoteUrl}){{width=50 height=20}}";
             var warnings = new List<string>();
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 RemoteImageResolver = uri => uri.AbsoluteUri == remoteUrl ? File.ReadAllBytes(imagePath) : null,
                 OnWarning = warnings.Add
@@ -44,17 +44,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWord_Result_Reports_Unresolved_Remote_Images() {
-            global::OfficeIMO.Markdown.MarkdownDoc markdown = global::OfficeIMO.Markdown.MarkdownReader.Parse(
+            global::OfficeIMO.Markdown.MarkdownDocument markdown = global::OfficeIMO.Markdown.MarkdownDocument.Parse(
                 "![Remote](https://images.example.test/logo.png)");
 
-            MarkdownToWordResult result = markdown.ToWordDocumentResult();
+            MarkdownToWordResult result = markdown.ConvertToWordWithEvidence();
             using WordDocument document = result.Value;
 
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
             Assert.Single(document.HyperLinks);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "MarkdownToWordWarning" &&
+                diagnostic.Code == "markdown-to-word-warning" &&
                 diagnostic.Message.Contains("RemoteImageResolver", StringComparison.Ordinal));
             Assert.Throws<WordMarkdownConversionException>(() => result.RequireNoLoss());
         }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_UsesNaturalSizeWhenNoHints() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath})";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true
             });
 
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
             source.AddParagraph().AddImage(imagePath, description: "Logo");
             source.AddParagraph("After");
 
-            string markdown = source.ToMarkdown(new WordToMarkdownOptions());
-            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument();
+            string markdown = ((source.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
+            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord();
 
             Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
             Assert.Single(restored.Images);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             var warnings = new List<string>();
             const string markdown = "![Too large](data:image/png;base64,AAAA)";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions {
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions {
                 MaxDataUriImageBytes = 1,
                 OnWarning = warnings.Add
             });
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             var warnings = new List<string>();
             const string markdown = "![Bad image](data:image/png;base64,AAAA)";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions {
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions {
                 OnWarning = warnings.Add
             });
 
@@ -125,11 +125,11 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"Before ![Logo]({imagePath}) after";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true
             });
 
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+            string roundTrip = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 
             Assert.Single(doc.Images);
             Assert.Contains("Before", roundTrip, StringComparison.Ordinal);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_FitsImageToPageContentWidthWhenEnabled() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 FitImagesToPageContentWidth = true,
                 ImageLayout = {
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_FitsInlineListImagesToIndentedContextWidth() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"- ![Local]({imagePath}){{width=1200 height=300}}";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 FitImagesToContextWidth = true,
                 ImageLayout = {
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_AppliesConfiguredImageMaxWidthPixels() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 MaxImageWidthPixels = 480
             });
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_AppliesConfiguredImageMaxWidthPercentOfContent() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 DefaultPageSize = WordPageSize.Letter,
                 MaxImageWidthPercentOfContent = 50,
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_AppliesConfiguredImageMaxHeightPixels() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 MaxImageHeightPixels = 100
             });
@@ -222,9 +222,9 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_EmitsImageLayoutDiagnosticsWhenScaled() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
-            var diagnostics = new List<MarkdownImageLayoutDiagnostic>();
+            var diagnostics = new List<WordMarkdownImageLayoutDiagnostic>();
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions {
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
                 MaxImageWidthPixels = 480,
                 OnImageLayoutDiagnostic = diagnostics.Add
@@ -240,14 +240,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWord_FitImagesToPageContentWidth_ForcesPageMode() {
-            var options = new MarkdownToWordOptions();
+            var options = new WordMarkdownImportOptions();
             options.FitImagesToContextWidth = true;
 
             options.FitImagesToPageContentWidth = true;
 
             Assert.True(options.FitImagesToPageContentWidth);
             Assert.False(options.FitImagesToContextWidth);
-            Assert.Equal(MarkdownImageFitMode.PageContentWidth, options.ImageLayout.FitMode);
+            Assert.Equal(WordMarkdownImageFitMode.PageContentWidth, options.ImageLayout.FitMode);
         }
 
         [Fact]
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph().AddImage(imagePath);
             doc.Images[0].Description = "Sample";
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 
             Assert.Contains("![Sample]", markdown);
         }

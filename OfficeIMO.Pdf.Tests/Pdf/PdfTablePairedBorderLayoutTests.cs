@@ -115,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
             style.AllowRowBreakAcrossPages = true;
             rows[0][0] = string.Join("\n", Enumerable.Range(0, 12).Select(index => $"gyp{index:D2}"));
         }
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = surface == "columns" ? 520 : 320, PageHeight = surface == "fragment" ? 110 : 220, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30, CompressContentStreams = false
         });

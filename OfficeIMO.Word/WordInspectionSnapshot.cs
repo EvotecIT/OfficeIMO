@@ -1,8 +1,8 @@
 
 namespace OfficeIMO.Word {
     /// <summary>Detached structural and metadata snapshot of a Word document.</summary>
-    public sealed class WordDocumentSnapshot {
-        private readonly List<WordSectionSnapshot> _sections = new List<WordSectionSnapshot>();
+    public sealed class WordDocumentInfo {
+        private readonly List<WordSectionInfo> _sections = new List<WordSectionInfo>();
 
         /// <summary>Gets the file path currently associated with the document, when one exists.</summary>
         public string? FilePath { get; internal set; }
@@ -15,17 +15,17 @@ namespace OfficeIMO.Word {
         /// <summary>Gets document keywords from core properties.</summary>
         public string? Keywords { get; internal set; }
         /// <summary>Gets sections in document order.</summary>
-        public IReadOnlyList<WordSectionSnapshot> Sections => _sections;
+        public IReadOnlyList<WordSectionInfo> Sections => _sections;
 
-        internal void AddSection(WordSectionSnapshot section) {
+        internal void AddSection(WordSectionInfo section) {
             if (section == null) throw new ArgumentNullException(nameof(section));
             _sections.Add(section);
         }
     }
 
     /// <summary>Page setup, headers, footers, and body elements for one Word section.</summary>
-    public sealed class WordSectionSnapshot {
-        private readonly List<WordBlockSnapshot> _elements = new List<WordBlockSnapshot>();
+    public sealed class WordSectionInfo {
+        private readonly List<WordBlockInfo> _elements = new List<WordBlockInfo>();
 
         /// <summary>Gets the zero-based section index.</summary>
         public int Index { get; internal set; }
@@ -80,30 +80,30 @@ namespace OfficeIMO.Word {
         /// <summary>Whether this section explicitly references an even-page footer.</summary>
         public bool HasExplicitEvenFooter { get; internal set; }
         /// <summary>Gets the default header snapshot.</summary>
-        public WordHeaderFooterSnapshot? DefaultHeader { get; internal set; }
+        public WordHeaderFooterInfo? DefaultHeader { get; internal set; }
         /// <summary>Gets the default footer snapshot.</summary>
-        public WordHeaderFooterSnapshot? DefaultFooter { get; internal set; }
+        public WordHeaderFooterInfo? DefaultFooter { get; internal set; }
         /// <summary>Gets the first-page header snapshot.</summary>
-        public WordHeaderFooterSnapshot? FirstHeader { get; internal set; }
+        public WordHeaderFooterInfo? FirstHeader { get; internal set; }
         /// <summary>Gets the first-page footer snapshot.</summary>
-        public WordHeaderFooterSnapshot? FirstFooter { get; internal set; }
+        public WordHeaderFooterInfo? FirstFooter { get; internal set; }
         /// <summary>Gets the even-page header snapshot.</summary>
-        public WordHeaderFooterSnapshot? EvenHeader { get; internal set; }
+        public WordHeaderFooterInfo? EvenHeader { get; internal set; }
         /// <summary>Gets the even-page footer snapshot.</summary>
-        public WordHeaderFooterSnapshot? EvenFooter { get; internal set; }
+        public WordHeaderFooterInfo? EvenFooter { get; internal set; }
         /// <summary>Gets body paragraphs and tables in document order.</summary>
-        public IReadOnlyList<WordBlockSnapshot> Elements => _elements;
+        public IReadOnlyList<WordBlockInfo> Elements => _elements;
 
-        internal void AddElement(WordBlockSnapshot element) {
+        internal void AddElement(WordBlockInfo element) {
             if (element == null) throw new ArgumentNullException(nameof(element));
             _elements.Add(element);
         }
     }
 
     /// <summary>Base snapshot for an ordered Word body element.</summary>
-    public abstract class WordBlockSnapshot {
+    public abstract class WordBlockInfo {
         /// <summary>Initializes a block with its stable kind name.</summary>
-        protected WordBlockSnapshot(string kind) {
+        protected WordBlockInfo(string kind) {
             Kind = kind ?? throw new ArgumentNullException(nameof(kind));
         }
 
@@ -114,13 +114,13 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Text, formatting, list, border, bookmark, and pagination state for one paragraph.</summary>
-    public sealed class WordParagraphSnapshot : WordBlockSnapshot {
-        private readonly List<WordRunSnapshot> _runs = new List<WordRunSnapshot>();
-        private readonly List<WordInlineFieldSnapshot> _fields = new List<WordInlineFieldSnapshot>();
-        private readonly List<WordTabStopSnapshot> _tabStops = new List<WordTabStopSnapshot>();
+    public sealed class WordParagraphInfo : WordBlockInfo {
+        private readonly List<WordRunInfo> _runs = new List<WordRunInfo>();
+        private readonly List<WordInlineFieldInfo> _fields = new List<WordInlineFieldInfo>();
+        private readonly List<WordTabStopInfo> _tabStops = new List<WordTabStopInfo>();
 
         /// <summary>Creates an empty paragraph snapshot.</summary>
-        public WordParagraphSnapshot() : base("paragraph") {
+        public WordParagraphInfo() : base("paragraph") {
         }
 
         /// <summary>Gets text extracted from the paragraph's runs, including text hidden by run formatting.</summary>
@@ -162,13 +162,13 @@ namespace OfficeIMO.Word {
         /// <summary>Paragraph shading pattern, when explicitly authored.</summary>
         public WordShadingPattern? ShadingPattern { get; internal set; }
         /// <summary>Gets the left paragraph border.</summary>
-        public WordParagraphBorderSnapshot? LeftBorder { get; internal set; }
+        public WordParagraphBorderInfo? LeftBorder { get; internal set; }
         /// <summary>Gets the right paragraph border.</summary>
-        public WordParagraphBorderSnapshot? RightBorder { get; internal set; }
+        public WordParagraphBorderInfo? RightBorder { get; internal set; }
         /// <summary>Gets the top paragraph border.</summary>
-        public WordParagraphBorderSnapshot? TopBorder { get; internal set; }
+        public WordParagraphBorderInfo? TopBorder { get; internal set; }
         /// <summary>Gets the bottom paragraph border.</summary>
-        public WordParagraphBorderSnapshot? BottomBorder { get; internal set; }
+        public WordParagraphBorderInfo? BottomBorder { get; internal set; }
         /// <summary>Gets directly authored right-to-left layout without resolving paragraph styles.</summary>
         public bool IsRightToLeft { get; internal set; }
         /// <summary>Gets directly authored keep-with-next formatting without resolving paragraph styles.</summary>
@@ -184,30 +184,30 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the first bookmark identifier associated with the paragraph.</summary>
         public int? BookmarkId { get; internal set; }
         /// <summary>Gets text runs in source order.</summary>
-        public IReadOnlyList<WordRunSnapshot> Runs => _runs;
+        public IReadOnlyList<WordRunInfo> Runs => _runs;
         /// <summary>Simple fields and their positions among the paragraph's ordinary runs.</summary>
-        public IReadOnlyList<WordInlineFieldSnapshot> InlineFields => _fields;
+        public IReadOnlyList<WordInlineFieldInfo> InlineFields => _fields;
         /// <summary>Gets explicit paragraph tab stops.</summary>
-        public IReadOnlyList<WordTabStopSnapshot> TabStops => _tabStops;
+        public IReadOnlyList<WordTabStopInfo> TabStops => _tabStops;
 
-        internal void AddRun(WordRunSnapshot run) {
+        internal void AddRun(WordRunInfo run) {
             if (run == null) throw new ArgumentNullException(nameof(run));
             _runs.Add(run);
         }
 
-        internal void AddInlineField(WordInlineFieldSnapshot field) {
+        internal void AddInlineField(WordInlineFieldInfo field) {
             if (field == null) throw new ArgumentNullException(nameof(field));
             _fields.Add(field);
         }
 
-        internal void AddTabStop(WordTabStopSnapshot tabStop) {
+        internal void AddTabStop(WordTabStopInfo tabStop) {
             if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
             _tabStops.Add(tabStop);
         }
     }
 
     /// <summary>A simple Word field in a paragraph's inline order.</summary>
-    public sealed class WordInlineFieldSnapshot {
+    public sealed class WordInlineFieldInfo {
         /// <summary>Number of ordinary runs before this field.</summary>
         public int RunIndex { get; internal set; }
         /// <summary>Raw field instruction.</summary>
@@ -233,7 +233,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Extracted text, character formatting, links, notes, and images for one Word run.</summary>
-    public sealed class WordRunSnapshot {
+    public sealed class WordRunInfo {
         internal IReadOnlyDictionary<int, WordBreakType>? NonTextBreaks { get; set; }
         internal IReadOnlyList<WordPositionedImageSnapshot> PositionedImages { get; set; } = Array.Empty<WordPositionedImageSnapshot>();
         /// <summary>Gets text extracted from the run, including text hidden by run formatting.</summary>
@@ -275,54 +275,54 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the internal bookmark target.</summary>
         public string? HyperlinkAnchor { get; internal set; }
         /// <summary>Gets the referenced footnote content.</summary>
-        public WordFootnoteSnapshot? Footnote { get; internal set; }
+        public WordFootnoteInfo? Footnote { get; internal set; }
         /// <summary>Gets the referenced endnote content.</summary>
-        public WordEndnoteSnapshot? Endnote { get; internal set; }
+        public WordEndnoteInfo? Endnote { get; internal set; }
         /// <summary>Gets the first inline or positioned image encountered in the run.</summary>
-        public WordInlineImageSnapshot? InlineImage { get; internal set; }
+        public WordInlineImageInfo? InlineImage { get; internal set; }
     }
 
     internal sealed class WordPositionedImageSnapshot {
-        internal WordPositionedImageSnapshot(int offset, WordInlineImageSnapshot image) {
+        internal WordPositionedImageSnapshot(int offset, WordInlineImageInfo image) {
             Offset = offset;
             Image = image;
         }
         internal int Offset { get; }
-        internal WordInlineImageSnapshot Image { get; }
+        internal WordInlineImageInfo Image { get; }
     }
 
     /// <summary>Paragraph content for one referenced Word footnote.</summary>
-    public sealed class WordFootnoteSnapshot {
-        private readonly List<WordParagraphSnapshot> _paragraphs = new List<WordParagraphSnapshot>();
+    public sealed class WordFootnoteInfo {
+        private readonly List<WordParagraphInfo> _paragraphs = new List<WordParagraphInfo>();
 
         /// <summary>Gets the footnote identifier from the reference element.</summary>
         public long? ReferenceId { get; internal set; }
         /// <summary>Gets footnote paragraphs in source order.</summary>
-        public IReadOnlyList<WordParagraphSnapshot> Paragraphs => _paragraphs;
+        public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
-        internal void AddParagraph(WordParagraphSnapshot paragraph) {
+        internal void AddParagraph(WordParagraphInfo paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             _paragraphs.Add(paragraph);
         }
     }
 
     /// <summary>Paragraph content for one referenced Word endnote.</summary>
-    public sealed class WordEndnoteSnapshot {
-        private readonly List<WordParagraphSnapshot> _paragraphs = new List<WordParagraphSnapshot>();
+    public sealed class WordEndnoteInfo {
+        private readonly List<WordParagraphInfo> _paragraphs = new List<WordParagraphInfo>();
 
         /// <summary>Gets the endnote identifier from the reference element.</summary>
         public long? ReferenceId { get; internal set; }
         /// <summary>Gets endnote paragraphs in source order.</summary>
-        public IReadOnlyList<WordParagraphSnapshot> Paragraphs => _paragraphs;
+        public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
-        internal void AddParagraph(WordParagraphSnapshot paragraph) {
+        internal void AddParagraph(WordParagraphInfo paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             _paragraphs.Add(paragraph);
         }
     }
 
     /// <summary>Embedded image content, dimensions, accessibility text, and layout.</summary>
-    public sealed class WordInlineImageSnapshot {
+    public sealed class WordInlineImageInfo {
         /// <summary>Gets available image-origin text, such as a caller-supplied path or file name, a linked URI, or no value for package-loaded images.</summary>
         public string? FilePath { get; internal set; }
         /// <summary>Gets the image file name.</summary>
@@ -346,8 +346,8 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Ordered paragraphs and tables from one header or footer part.</summary>
-    public sealed class WordHeaderFooterSnapshot {
-        private readonly List<WordBlockSnapshot> _elements = new List<WordBlockSnapshot>();
+    public sealed class WordHeaderFooterInfo {
+        private readonly List<WordBlockInfo> _elements = new List<WordBlockInfo>();
 
         /// <summary>Gets whether the story is a header or footer.</summary>
         public string Kind { get; internal set; } = string.Empty;
@@ -356,25 +356,25 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the number of tables in the story.</summary>
         public int TableCount { get; internal set; }
         /// <summary>Gets paragraphs and tables in source order.</summary>
-        public IReadOnlyList<WordBlockSnapshot> Elements => _elements;
+        public IReadOnlyList<WordBlockInfo> Elements => _elements;
         /// <summary>Gets paragraph snapshots in source order.</summary>
-        public IReadOnlyList<WordParagraphSnapshot> Paragraphs => _elements.OfType<WordParagraphSnapshot>().ToList();
+        public IReadOnlyList<WordParagraphInfo> Paragraphs => _elements.OfType<WordParagraphInfo>().ToList();
         /// <summary>Gets table snapshots in source order.</summary>
-        public IReadOnlyList<WordTableSnapshot> Tables => _elements.OfType<WordTableSnapshot>().ToList();
+        public IReadOnlyList<WordTableInfo> Tables => _elements.OfType<WordTableInfo>().ToList();
 
-        internal void AddElement(WordBlockSnapshot element) {
+        internal void AddElement(WordBlockInfo element) {
             if (element == null) throw new ArgumentNullException(nameof(element));
             _elements.Add(element);
         }
     }
 
     /// <summary>Structure, accessibility metadata, merges, and widths for one Word table.</summary>
-    public sealed class WordTableSnapshot : WordBlockSnapshot {
-        private readonly List<WordTableRowSnapshot> _rows = new List<WordTableRowSnapshot>();
+    public sealed class WordTableInfo : WordBlockInfo {
+        private readonly List<WordTableRowInfo> _rows = new List<WordTableRowInfo>();
         private readonly List<double> _columnWidthPoints = new List<double>();
 
         /// <summary>Creates an empty table snapshot.</summary>
-        public WordTableSnapshot() : base("table") {
+        public WordTableInfo() : base("table") {
         }
 
         /// <summary>Gets the row count.</summary>
@@ -394,11 +394,11 @@ namespace OfficeIMO.Word {
         /// <summary>Gets whether at least one cell spans multiple rows.</summary>
         public bool HasVerticalMerges { get; internal set; }
         /// <summary>Gets rows in source order.</summary>
-        public IReadOnlyList<WordTableRowSnapshot> Rows => _rows;
+        public IReadOnlyList<WordTableRowInfo> Rows => _rows;
         /// <summary>Gets authored grid-column widths in points.</summary>
         public IReadOnlyList<double> ColumnWidthPoints => _columnWidthPoints;
 
-        internal void AddRow(WordTableRowSnapshot row) {
+        internal void AddRow(WordTableRowInfo row) {
             if (row == null) throw new ArgumentNullException(nameof(row));
             _rows.Add(row);
         }
@@ -409,23 +409,23 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Physical cell elements from one table row, in source order.</summary>
-    public sealed class WordTableRowSnapshot {
-        private readonly List<WordTableCellSnapshot> _cells = new List<WordTableCellSnapshot>();
+    public sealed class WordTableRowInfo {
+        private readonly List<WordTableCellInfo> _cells = new List<WordTableCellInfo>();
 
         /// <summary>Gets the zero-based row index.</summary>
         public int RowIndex { get; internal set; }
         /// <summary>Gets physical cell elements in source order.</summary>
-        public IReadOnlyList<WordTableCellSnapshot> Cells => _cells;
+        public IReadOnlyList<WordTableCellInfo> Cells => _cells;
 
-        internal void AddCell(WordTableCellSnapshot cell) {
+        internal void AddCell(WordTableCellInfo cell) {
             if (cell == null) throw new ArgumentNullException(nameof(cell));
             _cells.Add(cell);
         }
     }
 
     /// <summary>Logical span, borders, shading, and paragraph content for one table cell.</summary>
-    public sealed class WordTableCellSnapshot {
-        private readonly List<WordParagraphSnapshot> _paragraphs = new List<WordParagraphSnapshot>();
+    public sealed class WordTableCellInfo {
+        private readonly List<WordParagraphInfo> _paragraphs = new List<WordParagraphInfo>();
 
         /// <summary>Gets the zero-based physical cell index within the row.</summary>
         public int ColumnIndex { get; internal set; }
@@ -436,28 +436,28 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the authored OOXML cell-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ShadingFillColorHex { get; internal set; }
         /// <summary>Gets the left cell border.</summary>
-        public WordTableCellBorderSnapshot? LeftBorder { get; internal set; }
+        public WordTableCellBorderInfo? LeftBorder { get; internal set; }
         /// <summary>Gets the right cell border.</summary>
-        public WordTableCellBorderSnapshot? RightBorder { get; internal set; }
+        public WordTableCellBorderInfo? RightBorder { get; internal set; }
         /// <summary>Gets the top cell border.</summary>
-        public WordTableCellBorderSnapshot? TopBorder { get; internal set; }
+        public WordTableCellBorderInfo? TopBorder { get; internal set; }
         /// <summary>Gets the bottom cell border.</summary>
-        public WordTableCellBorderSnapshot? BottomBorder { get; internal set; }
+        public WordTableCellBorderInfo? BottomBorder { get; internal set; }
         /// <summary>Gets whether the cell participates in explicit horizontal-merge markup; a grid-span-only cell does not set this value.</summary>
         public bool HasHorizontalMerge { get; internal set; }
         /// <summary>Gets whether the cell participates in a vertical merge.</summary>
         public bool HasVerticalMerge { get; internal set; }
         /// <summary>Gets cell paragraphs in source order.</summary>
-        public IReadOnlyList<WordParagraphSnapshot> Paragraphs => _paragraphs;
+        public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
-        internal void AddParagraph(WordParagraphSnapshot paragraph) {
+        internal void AddParagraph(WordParagraphInfo paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             _paragraphs.Add(paragraph);
         }
     }
 
     /// <summary>Style, color, and width of one table-cell border.</summary>
-    public sealed class WordTableCellBorderSnapshot {
+    public sealed class WordTableCellBorderInfo {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
@@ -467,7 +467,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Style, color, width, and spacing of one paragraph border.</summary>
-    public sealed class WordParagraphBorderSnapshot {
+    public sealed class WordParagraphBorderInfo {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
@@ -479,7 +479,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Alignment, leader, and position of an explicit paragraph tab stop.</summary>
-    public sealed class WordTabStopSnapshot {
+    public sealed class WordTabStopInfo {
         /// <summary>Gets tab-stop alignment.</summary>
         public string? Alignment { get; internal set; }
         /// <summary>Gets the leader character style.</summary>

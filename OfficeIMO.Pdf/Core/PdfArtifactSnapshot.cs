@@ -5,8 +5,8 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Immutable identity and size evidence for one PDF artifact in a processing pipeline.
 /// </summary>
-public sealed class PdfArtifactSnapshot {
-    private PdfArtifactSnapshot(long byteCount, string sha256, int? pageCount) {
+public sealed class PdfArtifactInfo {
+    private PdfArtifactInfo(long byteCount, string sha256, int? pageCount) {
         ByteCount = byteCount;
         Sha256 = sha256;
         PageCount = pageCount;
@@ -21,12 +21,12 @@ public sealed class PdfArtifactSnapshot {
     /// <summary>Readable page count, or null when page inspection did not complete.</summary>
     public int? PageCount { get; }
 
-    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null,
+    internal static PdfArtifactInfo Capture(byte[] bytes, PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) =>
         Capture(bytes, readOptions, out _, cancellationToken);
 
     /// <summary>Retains a successful artifact readback for the next operation on the same output.</summary>
-    internal static PdfArtifactSnapshot Capture(
+    internal static PdfArtifactInfo Capture(
         byte[] bytes,
         PdfLoadOptions? readOptions,
         out PdfReadDocument? readDocument,
@@ -50,13 +50,13 @@ public sealed class PdfArtifactSnapshot {
     }
 
     /// <summary>Captures artifact identity when the owning operation already has canonical page-count evidence.</summary>
-    internal static PdfArtifactSnapshot CaptureKnownPageCount(byte[] bytes, int? pageCount,
+    internal static PdfArtifactInfo CaptureKnownPageCount(byte[] bytes, int? pageCount,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(bytes, nameof(bytes));
-        return new PdfArtifactSnapshot(bytes.LongLength, ComputeSha256Hex(bytes, cancellationToken), pageCount);
+        return new PdfArtifactInfo(bytes.LongLength, ComputeSha256Hex(bytes, cancellationToken), pageCount);
     }
 
-    internal static PdfArtifactSnapshot FromDigest(long byteCount, string sha256, int? pageCount) {
+    internal static PdfArtifactInfo FromDigest(long byteCount, string sha256, int? pageCount) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegative(byteCount);
 #else
@@ -66,7 +66,7 @@ public sealed class PdfArtifactSnapshot {
 #endif
 
         Guard.NotNullOrWhiteSpace(sha256, nameof(sha256));
-        return new PdfArtifactSnapshot(byteCount, sha256, pageCount);
+        return new PdfArtifactInfo(byteCount, sha256, pageCount);
     }
 
     private static string ComputeSha256Hex(byte[] bytes, CancellationToken cancellationToken) {

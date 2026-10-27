@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Tests {
                 multipleSheets: surface == "sdk");
             try {
                 using var owner = surface == "sheet" ? ExcelDocumentReader.Open(path) : null;
-                using DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path)
+                using DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path)
                     : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:A4097", schemaSampleRows: 0);
                 Assert.True(reader.Read());
                 Assert.Throws<XmlException>(() => reader.GetString(0));
@@ -36,12 +36,12 @@ namespace OfficeIMO.Excel.Tests {
         public void DataReader_XmlStructureIgnoresCellExtensionValuesAndFormulas(string surface, bool useCachedFormulaResult) {
             string path = CreateXmlStructureExtensionWorkbook(surface == "sdk");
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     UseCachedFormulaResult = useCachedFormulaResult,
                     MaxXmlDataReaderBufferedCharacters = 32
                 };
                 using var owner = surface == "sheet" ? ExcelDocumentReader.Open(path, options) : null;
-                using DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                using DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                     : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:D4097", schemaSampleRows: 0);
                 Assert.True(reader.Read());
                 Assert.Equal(1, reader.GetInt32(0));
@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel.Tests {
         public void Reader_XmlStructureIgnoresExtensionsAcrossValueAndTypedObjectReaders(bool useConverter) {
             string path = CreateXmlStructureExtensionWorkbook();
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = useConverter ? _ => ExcelCellValue.NotHandled : null,
                     InferDataTableColumnTypes = false
                 };
@@ -109,8 +109,8 @@ namespace OfficeIMO.Excel.Tests {
                     + "<row r=\"4097\"><c r=\"A4097\"><v>0</v></c></row></sheetData></worksheet>";
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                     Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
                     Assert.True(reader.Read());
                     Assert.Equal(expected, reader.GetString(0));
                     Assert.Equal(expected, reader.GetValue(0));
@@ -119,8 +119,8 @@ namespace OfficeIMO.Excel.Tests {
                 }
                 using var owner = ExcelDocumentReader.Open(path);
                 Assert.Equal(expected, owner.GetSheet("Data").ReadRange("A2:A2", ExcelExecutionMode.Sequential)[0, 0]);
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length - 1 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length - 1 })) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => reader.GetString(0));
                     reader.Close();

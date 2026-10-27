@@ -88,7 +88,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesLinkAnnotationsAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -125,7 +125,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Reader_ExposesLinkHelpersAndDiagnostics() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -189,7 +189,7 @@ public partial class PdfDocumentReadResultTests {
                     linkDestinationName: "Details")))
                 .Spacer(18)
                 .Bookmark("Details")
-                .H2("Details")), new PdfOptions {
+                .H2("Details")), new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -294,7 +294,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,

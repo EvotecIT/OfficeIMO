@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out LegacyPptWriter.LegacyPptWriterFontCatalog
                         textFonts)) return false;
             if (presentation.LegacyPptImportDiagnostics.Any(diagnostic =>
-                    diagnostic.Code.StartsWith("PPT-PICTURE-BULLET",
+                    diagnostic.Code.StartsWith("ppt-picture-bullet",
                         StringComparison.Ordinal))
                 || !LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
                     out LegacyPptWriter

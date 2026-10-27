@@ -25,7 +25,7 @@ public sealed class WordImageVmlOwnershipTests {
         Assert.Equal(48, image.Width);
         Assert.Equal(32, image.Height);
         Assert.Contains("rotation:30", shape.Style!.Value);
-        using var bytes = document.ToStream();
+        using var bytes = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         WordImage persisted = reopened.Paragraphs.Single(item => item.IsImage).Image!;
         Assert.Equal(48, persisted.Width);
@@ -45,7 +45,7 @@ public sealed class WordImageVmlOwnershipTests {
         var clone = source.Clone(target);
         source.Remove();
         Assert.Equal(expected, clone.ToBytes());
-        using var bytes = targetDocument.ToStream();
+        using var bytes = new System.IO.MemoryStream(targetDocument.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         Assert.Equal(expected, reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!.ToBytes());
     }
@@ -74,7 +74,7 @@ public sealed class WordImageVmlOwnershipTests {
         else Assert.Equal(expected, clone.ToBytes());
         paragraph.Image!.Remove();
         if (external) Assert.NotNull(clone.ExternalUri); else Assert.Equal(expected, clone.ToBytes());
-        using var bytes = targetDocument.ToStream();
+        using var bytes = new System.IO.MemoryStream(targetDocument.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         var persisted = reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!;
         if (external) Assert.NotNull(persisted.ExternalUri); else Assert.Equal(expected, persisted.ToBytes());
@@ -104,7 +104,7 @@ public sealed class WordImageVmlOwnershipTests {
         document.AddParagraph("Texture")._run!.Append(new W.Picture(new V.Shape(fill) { Id = "Texture", Style = "width:15pt;height:15pt" }));
         image.Remove();
         Assert.True(owner.TryGetPartById(id, out _));
-        using var bytes = document.ToStream();
+        using var bytes = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         using var content = new MemoryStream();
         reopened.MainDocumentPartRoot.GetPartById(id).GetStream().CopyTo(content);

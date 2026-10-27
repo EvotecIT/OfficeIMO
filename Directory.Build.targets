@@ -6,6 +6,19 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
 
+  <!-- Exercise the legacy library graph from a modern test host without substituting
+       modern dependencies for the implementations under test. Normal package targets stay unchanged. -->
+  <PropertyGroup Condition="'$(OfficeIMOCompatibilityTarget)' == 'netstandard2.0' And '$(IsTestProject)' != 'true' And '$(OutputType)' != 'Exe' And $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO')) And $([System.String]::Copy(';$(TargetFrameworks);').Contains(';netstandard2.0;'))">
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <!-- Keep modern library builds under trimming and NativeAOT analysis. -->
+  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0') And '$(IsTestProject)' != 'true' And '$(IsPackable)' != 'false' And '$(OutputType)' == 'Library'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+
   <!-- Keep shipped release binaries reproducible without embedding a maintainer's
        checkout path in portable PDB documents or CodeView content IDs. Limit the
        source mapping to packable production projects: non-packable test projects

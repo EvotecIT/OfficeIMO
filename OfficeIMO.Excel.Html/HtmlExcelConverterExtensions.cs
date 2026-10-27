@@ -392,8 +392,8 @@ public static partial class HtmlExcelConverterExtensions {
         string description) {
         if (TryReadIntAttribute(item, "data-officeimo-to-row", out int toRow)
             && TryReadIntAttribute(item, "data-officeimo-to-column", out int toColumn)) {
-            toRow = NormalizeImportInt(toRow, Math.Min(A1.MaxRows, row + 1), 1, A1.MaxRows, budget, result, "image ending row");
-            toColumn = NormalizeImportInt(toColumn, Math.Min(A1.MaxColumns, column + 1), 1, A1.MaxColumns, budget, result, "image ending column");
+            toRow = NormalizeImportInt(toRow, Math.Min(ExcelA1.MaxRows, row + 1), 1, ExcelA1.MaxRows, budget, result, "image ending row");
+            toColumn = NormalizeImportInt(toColumn, Math.Min(ExcelA1.MaxColumns, column + 1), 1, ExcelA1.MaxColumns, budget, result, "image ending column");
             int endRow = Math.Max(row, toRow - 1);
             int endColumn = Math.Max(column, toColumn - 1);
             long anchoredCells = (long)(endRow - row + 1) * (endColumn - column + 1);
@@ -633,8 +633,8 @@ public static partial class HtmlExcelConverterExtensions {
         if (TryReadIntAttribute(item, "data-officeimo-column", out int attributeColumn)) column = Math.Max(1, attributeColumn);
         if (TryReadIntAttribute(item, "data-officeimo-width", out int attributeWidth)) width = Math.Max(1, attributeWidth);
         if (TryReadIntAttribute(item, "data-officeimo-height", out int attributeHeight)) height = Math.Max(1, attributeHeight);
-        row = NormalizeImportInt(row, 1, 1, A1.MaxRows, budget, result, "chart row");
-        column = NormalizeImportInt(column, 6, 1, A1.MaxColumns, budget, result, "chart column");
+        row = NormalizeImportInt(row, 1, 1, ExcelA1.MaxRows, budget, result, "chart row");
+        column = NormalizeImportInt(column, 6, 1, ExcelA1.MaxColumns, budget, result, "chart column");
         int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
         width = NormalizeImportInt(width, 320, 1, maxGeometry, budget, result, "chart width");
         height = NormalizeImportInt(height, 180, 1, maxGeometry, budget, result, "chart height");
@@ -683,8 +683,8 @@ public static partial class HtmlExcelConverterExtensions {
         if (TryReadIntAttribute(item, "data-officeimo-height", out int attributeHeight)) height = Math.Max(1, attributeHeight);
         if (TryReadIntAttribute(item, "data-officeimo-offset-x", out int attributeOffsetX)) offsetX = Math.Max(0, attributeOffsetX);
         if (TryReadIntAttribute(item, "data-officeimo-offset-y", out int attributeOffsetY)) offsetY = Math.Max(0, attributeOffsetY);
-        row = NormalizeImportInt(row, 1, 1, A1.MaxRows, budget, result, "image row");
-        column = NormalizeImportInt(column, 1, 1, A1.MaxColumns, budget, result, "image column");
+        row = NormalizeImportInt(row, 1, 1, ExcelA1.MaxRows, budget, result, "image row");
+        column = NormalizeImportInt(column, 1, 1, ExcelA1.MaxColumns, budget, result, "image column");
         int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
         width = NormalizeImportInt(width, 96, 1, maxGeometry, budget, result, "image width");
         height = NormalizeImportInt(height, 32, 1, maxGeometry, budget, result, "image height");
@@ -826,7 +826,7 @@ public static partial class HtmlExcelConverterExtensions {
         string reference = value!;
         while (index < reference.Length && char.IsLetter(reference[index])) {
             int letter = char.ToUpperInvariant(reference[index]) - 'A' + 1;
-            if (letter < 1 || letter > 26 || column > (A1.MaxColumns - letter) / 26) {
+            if (letter < 1 || letter > 26 || column > (ExcelA1.MaxColumns - letter) / 26) {
                 row = 0;
                 column = 0;
                 return false;
@@ -840,11 +840,11 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         return column > 0
-            && column <= A1.MaxColumns
+            && column <= ExcelA1.MaxColumns
             && index < reference.Length
             && int.TryParse(reference.Substring(index), NumberStyles.Integer, CultureInfo.InvariantCulture, out row)
             && row > 0
-            && row <= A1.MaxRows;
+            && row <= ExcelA1.MaxRows;
     }
 
     private static bool TrySetCellTextValue(
@@ -887,8 +887,8 @@ public static partial class HtmlExcelConverterExtensions {
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
             "The " + contentKind + " coordinate '" + reference + "' was outside the Excel worksheet grid and was omitted.",
             lossKind: OfficeConversionLossKind.Omission,
-            detail: "Rows=1-" + A1.MaxRows.ToString(CultureInfo.InvariantCulture)
-                + "; Columns=1-" + A1.MaxColumns.ToString(CultureInfo.InvariantCulture));
+            detail: "Rows=1-" + ExcelA1.MaxRows.ToString(CultureInfo.InvariantCulture)
+                + "; Columns=1-" + ExcelA1.MaxColumns.ToString(CultureInfo.InvariantCulture));
     }
 
     private static string BuildCellReference(int row, int column) {

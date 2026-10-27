@@ -3,11 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
         if (cell.ShrinkTextToFit && fontSize > 0D) {
             minimumShrinkFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 6D;
             TableRowTextSizing sizing = ResolveTableCellsTextSizing(new[] { cell }, fontSize,
-                minimumShrinkFontSize, baseFont, options ?? new PdfOptions(),
+                minimumShrinkFontSize, baseFont, options ?? new PdfCreateOptions(),
                 _ => innerWidth, runFontSizeScale);
             leading *= sizing.FontSize / fontSize;
             fontSize = sizing.FontSize;
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
     private static double GetTableCellWrapWidth(double innerWidth, bool noWrap) =>
         noWrap ? TableCellNoWrapWidth : innerWidth;
 
-    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
+    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
         var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
@@ -230,7 +230,7 @@ internal static partial class PdfWriter {
         return style;
     }
 
-    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, PdfLineSpacing? lineSpacing) {
+    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, PdfLineSpacing? lineSpacing) {
         var wrap = WrapRichRunsWithSpacing(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options, lineSpacing);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());

@@ -210,13 +210,13 @@ internal static class PdfTableStyleBuilder
 
         return Normalize(styleName!) switch
         {
-            "light" => TableStyles.Light(),
-            "minimal" => TableStyles.Minimal(),
-            "rightalignednumbers" => TableStyles.RightAlignedNumbers(),
-            "technicaldocument" or "technical" => TableStyles.TechnicalDocument(),
-            "compact" => TableStyles.Compact(),
-            "report" => TableStyles.Report(),
-            _ => TableStyles.FromWordTableStyle(styleName!)
+            "light" => PdfTableStyles.Light(),
+            "minimal" => PdfTableStyles.Minimal(),
+            "rightalignednumbers" => PdfTableStyles.RightAlignedNumbers(),
+            "technicaldocument" or "technical" => PdfTableStyles.TechnicalDocument(),
+            "compact" => PdfTableStyles.Compact(),
+            "report" => PdfTableStyles.Report(),
+            _ => PdfTableStyles.FromWordTableStyle(styleName!)
         };
     }
 

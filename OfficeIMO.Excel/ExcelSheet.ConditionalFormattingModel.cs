@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateConditionalFormattingBorder(ExcelCellBorderSnapshot? border) {
+        private static void ValidateConditionalFormattingBorder(ExcelCellBorderInfo? border) {
             if (border == null) return;
             ValidateConditionalFormattingBorderSide(border.Left);
             ValidateConditionalFormattingBorderSide(border.Right);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel {
             ValidateConditionalFormattingBorderSide(border.Diagonal);
         }
 
-        private static void ValidateConditionalFormattingBorderSide(ExcelBorderSideSnapshot? side) {
+        private static void ValidateConditionalFormattingBorderSide(ExcelBorderSideInfo? side) {
             if (side == null) return;
             if (NormalizeConditionalFormattingBorderStyle(side.Style) == null) {
                 throw new ArgumentException($"Conditional-formatting border style '{side.Style}' is not supported.");
@@ -313,7 +313,7 @@ namespace OfficeIMO.Excel {
                 CreateConditionalFormattingBorderSignature(info.DifferentialBorder)
             });
 
-        private static string CreateConditionalFormattingBorderSignature(ExcelCellBorderSnapshot? border) {
+        private static string CreateConditionalFormattingBorderSignature(ExcelCellBorderInfo? border) {
             if (border == null) return string.Empty;
             return string.Join("\u001e", new[] {
                 CreateConditionalFormattingBorderSideSignature(border.Left),
@@ -326,7 +326,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string CreateConditionalFormattingBorderSideSignature(ExcelBorderSideSnapshot? side) =>
+        private static string CreateConditionalFormattingBorderSideSignature(ExcelBorderSideInfo? side) =>
             side == null ? string.Empty : (side.Style ?? string.Empty) + "\u001d" + (side.ColorArgb ?? string.Empty);
 
         private static bool IsKnownConditionalFormattingType(string type) =>

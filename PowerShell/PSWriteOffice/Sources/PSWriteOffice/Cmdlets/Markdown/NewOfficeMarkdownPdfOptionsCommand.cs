@@ -14,15 +14,15 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Builds a typed options object through ordinary PowerShell parameters; no hashtable or .NET construction is required.</para>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeMarkdownPdfOptions")]
-[OutputType(typeof(MarkdownToPdfOptions))]
+[OutputType(typeof(MarkdownPdfExportOptions))]
 public sealed class NewOfficeMarkdownPdfOptionsCommand : PSCmdlet, IMarkdownPdfOptionSource {
     /// <summary>Existing Markdown PDF options to clone and override.</summary>
     [Parameter(ValueFromPipeline = true)]
-    public MarkdownToPdfOptions? Options { get; set; }
+    public MarkdownPdfExportOptions? Options { get; set; }
 
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Built-in visual theme.</summary>
     [Parameter]
@@ -103,8 +103,8 @@ public sealed class NewOfficeMarkdownPdfOptionsCommand : PSCmdlet, IMarkdownPdfO
     [Parameter]
     public SwitchParameter CreateOutlineFromHeadings { get; set; }
 
-    MarkdownToPdfOptions? IMarkdownPdfOptionSource.MarkdownPdfOptions => Options;
-    OfficeIMO.Pdf.PdfOptions? IMarkdownPdfOptionSource.PdfOptions => PdfOptions;
+    MarkdownPdfExportOptions? IMarkdownPdfOptionSource.MarkdownPdfOptions => Options;
+    OfficeIMO.Pdf.PdfCreateOptions? IMarkdownPdfOptionSource.PdfOptions => PdfOptions;
     OfficeVisualThemeKind? IMarkdownPdfOptionSource.PdfTheme => Theme;
     string? IMarkdownPdfOptionSource.PdfFontFamily => FontFamily;
     string? IMarkdownPdfOptionSource.PdfTitle => Title;

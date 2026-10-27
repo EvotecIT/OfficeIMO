@@ -3,10 +3,10 @@ namespace OfficeIMO.Pdf;
 /// <summary>Two-up duplex booklet layout in print order, with blank pages padded to a multiple of four.</summary>
 public sealed class PdfBookletOptions {
     /// <summary>Creates a booklet layout using the physical sheet size in PDF points.</summary>
-    public PdfBookletOptions(PageSize sheetSize) => SheetSize = sheetSize;
+    public PdfBookletOptions(PdfPageSize sheetSize) => SheetSize = sheetSize;
 
     /// <summary>Physical sheet dimensions in PDF points.</summary>
-    public PageSize SheetSize { get; }
+    public PdfPageSize SheetSize { get; }
     /// <summary>Outer sheet margin in PDF points.</summary>
     public double Margin { get; set; } = 18D;
     /// <summary>Space between the two page cells in PDF points.</summary>

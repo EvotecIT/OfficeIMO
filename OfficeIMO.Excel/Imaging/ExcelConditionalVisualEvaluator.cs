@@ -826,7 +826,7 @@ namespace OfficeIMO.Excel {
         private static bool TryResolveCellReference(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string reference, out int row, out int column) {
             row = column = 0;
             string normalized = NormalizeCellReference(StripSheetPrefix(reference), out bool absoluteColumn, out bool absoluteRow);
-            if (!A1.TryParseCellReferenceFast(normalized, out int referenceRow, out int referenceColumn)) {
+            if (!ExcelA1.TryParseCellReferenceFast(normalized, out int referenceRow, out int referenceColumn)) {
                 return false;
             }
 
@@ -863,11 +863,11 @@ namespace OfficeIMO.Excel {
         private static (int Row, int Column) GetReferenceListOrigin(string referenceList) {
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
-                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
+                if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
                     return (firstRow, firstColumn);
                 }
 
-                if (A1.TryParseCellReferenceFast(token, out int row, out int column)) {
+                if (ExcelA1.TryParseCellReferenceFast(token, out int row, out int column)) {
                     return (row, column);
                 }
             }
@@ -974,7 +974,7 @@ namespace OfficeIMO.Excel {
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (emitted >= maximumCells) yield break;
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
-                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     for (int row = firstRow; row <= lastRow; row++) {
                         for (int column = firstColumn; column <= lastColumn; column++) {
                             if (emitted >= maximumCells) yield break;
@@ -988,7 +988,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (A1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn) &&
+                if (ExcelA1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn) &&
                     seen.Add(Key(singleRow, singleColumn))) {
                     emitted++;
                     yield return (singleRow, singleColumn);
@@ -1003,11 +1003,11 @@ namespace OfficeIMO.Excel {
 
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
-                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     if (row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn) {
                         return true;
                     }
-                } else if (A1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn)) {
+                } else if (ExcelA1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn)) {
                     (int Row, int Col) singleCell = (singleRow, singleColumn);
                     if (singleCell.Row == row && singleCell.Col == column) {
                         return true;
@@ -1081,7 +1081,7 @@ namespace OfficeIMO.Excel {
             format.Border = MergeDifferentialBorder(format.Border, rule.DifferentialBorder);
         }
 
-        private static ExcelCellBorderSnapshot? MergeDifferentialBorder(ExcelCellBorderSnapshot? current, ExcelCellBorderSnapshot? incoming) {
+        private static ExcelCellBorderInfo? MergeDifferentialBorder(ExcelCellBorderInfo? current, ExcelCellBorderInfo? incoming) {
             if (incoming == null) {
                 return current;
             }
@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Excel {
                 return incoming;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = current.Left ?? incoming.Left,
                 Right = current.Right ?? incoming.Right,
                 Top = current.Top ?? incoming.Top,
@@ -1163,6 +1163,6 @@ namespace OfficeIMO.Excel {
 
         internal double? FontSize { get; set; }
 
-        internal ExcelCellBorderSnapshot? Border { get; set; }
+        internal ExcelCellBorderInfo? Border { get; set; }
     }
 }

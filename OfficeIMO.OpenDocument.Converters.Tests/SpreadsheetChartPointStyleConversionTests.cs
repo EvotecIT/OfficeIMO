@@ -411,7 +411,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
 
         using ExcelDocument excel = source.ToExcelDocumentResult().Value;
         ExcelChart converted = Assert.Single(excel["Data"].Charts);
-        Assert.True(converted.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(converted.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(2, snapshot.Data.Series.Count);
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(excel.ToBytes()), false)) {
             ChartPart part = Assert.Single(package.WorkbookPart!.WorksheetParts

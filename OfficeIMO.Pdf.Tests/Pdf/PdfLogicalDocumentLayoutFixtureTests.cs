@@ -42,7 +42,7 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_GroupsWrappedTextLinesIntoParagraphs() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 360,
                 MarginLeft = 36,

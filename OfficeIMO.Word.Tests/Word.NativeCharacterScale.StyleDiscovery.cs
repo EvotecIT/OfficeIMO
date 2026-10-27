@@ -22,7 +22,7 @@ public partial class Word {
         style.StyleRunProperties ??= new StyleRunProperties();
         style.StyleRunProperties.AddChild(new Position { Val = "2" }, true);
         Assert.Empty(document.ValidateDocument());
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Body", loaded.Paragraphs.Single().Text);
     }
 
@@ -49,11 +49,11 @@ public partial class Word {
         style.StyleRunProperties.AddChild(new Position { Val = "2" }, true);
         Assert.Empty(document.ValidateDocument());
         if (referenced) {
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             Assert.Contains("position", error.Message, StringComparison.Ordinal);
             return;
         }
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Body", loaded.Paragraphs.Single().Text);
     }
 }

@@ -17,7 +17,7 @@ public sealed class LatexProjectionContractTests {
     [InlineData("A\\textasciitilde{B} C", "A~B C")]
     [InlineData("A\\% B", "A% B")]
     public void LiteralControlWordsDiscardDelimiterWhitespaceInTextAndScalars(string source, string expected) {
-        MarkdownDoc markdown = LatexDocument.Parse("\\author{" + source + "}" + Wrap(source)).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse("\\author{" + source + "}" + Wrap(source)).ToMarkdownDocument();
         Assert.Equal(expected, markdown.FindFrontMatterEntry("author")?.Value);
         var text = new StringBuilder();
         foreach (IPlainTextMarkdownInline inline in Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
@@ -26,7 +26,7 @@ public sealed class LatexProjectionContractTests {
 
     [Fact]
     public void LiteralControlWordDelimitersDoNotConsumeParagraphsOrExplicitGroupSpaces() {
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("A\\textasciitilde \n\nB\n\nC\\newline D")).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap("A\\textasciitilde \n\nB\n\nC\\newline D")).ToMarkdownDocument();
         ParagraphBlock[] paragraphs = markdown.Blocks.OfType<ParagraphBlock>().ToArray();
         Assert.Equal(3, paragraphs.Length);
         Assert.Equal("A~", PlainText(paragraphs[0].Inlines));
@@ -37,7 +37,7 @@ public sealed class LatexProjectionContractTests {
 
     [Fact]
     public void ResourceLiteralCommandsShareControlWordDelimiterHandling() {
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("\\url{https://example.test/\\textasciitilde alice} " +
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap("\\url{https://example.test/\\textasciitilde alice} " +
             "\\href{https://example.test/\\textasciitilde alice}{Link} \\includegraphics{\\textasciitilde images/a.png}")).ToMarkdownDocument();
         InlineSequence inlines = Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines;
         Assert.All(inlines.Nodes.OfType<LinkInline>(), static link => Assert.Equal("https://example.test/~alice", link.Url));
@@ -49,9 +49,9 @@ public sealed class LatexProjectionContractTests {
     [InlineData("[ ]")]
     [InlineData("[\\label{item}]")]
     public void EmptyCustomListLabelsDoNotInjectVisiblePunctuation(string label) {
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("\\begin{itemize}\\item" + label + " Body\\end{itemize}")).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap("\\begin{itemize}\\item" + label + " Body\\end{itemize}")).ToMarkdownDocument();
         ListItem item = Assert.Single(Assert.Single(markdown.Blocks.OfType<UnorderedListBlock>()).Items);
-        string rendered = MarkdownDoc.Create().Add(new ParagraphBlock(item.Content)).ToMarkdown();
+        string rendered = MarkdownDocument.Create().Add(new ParagraphBlock(item.Content)).ToMarkdown();
         Assert.DoesNotContain(":", rendered, StringComparison.Ordinal);
         Assert.Contains("Body", rendered, StringComparison.Ordinal);
         if (label.Contains("label")) Assert.Contains("<a id=\"item\"></a>", rendered, StringComparison.Ordinal);
@@ -81,9 +81,9 @@ public sealed class LatexProjectionContractTests {
 
     [Fact]
     public void PlainMetadataAndFigureCaptionsRoundTripThroughTheWriter() {
-        var source = MarkdownDoc.Create().FrontMatter(new Dictionary<string, object?> { ["author"] = "Alice_Doe", ["date"] = "R&D" })
+        var source = MarkdownDocument.Create().FrontMatter(new Dictionary<string, object?> { ["author"] = "Alice_Doe", ["date"] = "R&D" })
             .Add(new ImageBlock("a.png", "100% useful") { Caption = "100% useful" });
-        MarkdownDoc result = source.ToLatexDocument().ToMarkdownDocument();
+        MarkdownDocument result = source.ToLatexDocument().ToMarkdownDocument();
         Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value);
         Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value);
         Assert.Equal("100% useful", Assert.Single(result.Blocks.OfType<ImageBlock>()).Caption);
@@ -97,14 +97,14 @@ public sealed class LatexProjectionContractTests {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\begin{theorem}" + body + "\\end{theorem}")).ToMarkdownDocumentResult();
         CalloutBlock callout = Assert.Single(result.Value.Blocks.OfType<CalloutBlock>());
         Assert.Equal("x", callout.Attributes.ElementId);
-        Assert.Contains(expected, result.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.DoesNotContain("\\label", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(expected, ((result.Value.ToMarkdown())), StringComparison.Ordinal);
+        Assert.DoesNotContain("\\label", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
         if (body.StartsWith("\\textbf", StringComparison.Ordinal)) Assert.Empty(result.Report.Diagnostics);
     }
 
     [Fact]
     public void BatchedBlocksAndFigureImagesHaveCompleteObjectTreeNavigation() {
-        MarkdownDoc result = LatexDocument.Parse(Wrap("First\n\n\\begin{figure}\\includegraphics{a.png}\\includegraphics{b.png}\\end{figure}\nLast")).ToMarkdownDocument();
+        MarkdownDocument result = LatexDocument.Parse(Wrap("First\n\n\\begin{figure}\\includegraphics{a.png}\\includegraphics{b.png}\\end{figure}\nLast")).ToMarkdownDocument();
         Assert.Equal(4, result.Blocks.Count);
         for (int index = 0; index < result.Blocks.Count; index++) {
             MarkdownObject block = (MarkdownObject)result.Blocks[index];
@@ -121,11 +121,11 @@ public sealed class LatexProjectionContractTests {
     [InlineData("\\textasciitilde{}")]
     public void UrlAndHrefDestinationsRetainLiteralTildes(string tilde) {
         string destination = "https://example.test/" + tilde + "alice";
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("\\url{" + destination + "} \\href{" + destination + "}{Alice}")).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap("\\url{" + destination + "} \\href{" + destination + "}{Alice}")).ToMarkdownDocument();
         LinkInline[] links = Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<LinkInline>().ToArray();
         Assert.Equal(2, links.Length);
         Assert.All(links, static link => Assert.Equal("https://example.test/~alice", link.Url));
-        Assert.Contains("https://example.test/~alice", markdown.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("https://example.test/~alice", ((markdown.ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -133,7 +133,7 @@ public sealed class LatexProjectionContractTests {
     [InlineData(true)]
     public void InlineAndFigureResourcesRetainTildePaths(bool figure) {
         string image = "\\includegraphics{~/images/a.png}";
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap(figure ? "\\begin{figure}" + image + "\\end{figure}" : image)).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap(figure ? "\\begin{figure}" + image + "\\end{figure}" : image)).ToMarkdownDocument();
         string path = figure ? Assert.Single(markdown.Blocks.OfType<ImageBlock>()).Path
             : Assert.Single(Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<ImageInline>()).Src;
         Assert.Equal("~/images/a.png", path);
@@ -141,7 +141,7 @@ public sealed class LatexProjectionContractTests {
 
     [Fact]
     public void ProseStillMapsTildeToSpacingAndExplicitTildeToLiteralText() {
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("Hello~world \\textasciitilde{}")).ToMarkdownDocument();
+        MarkdownDocument markdown = LatexDocument.Parse(Wrap("Hello~world \\textasciitilde{}")).ToMarkdownDocument();
         var text = new StringBuilder();
         foreach (IPlainTextMarkdownInline inline in Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
         Assert.Equal("Hello world ~", text.ToString());
@@ -154,7 +154,7 @@ public sealed class LatexProjectionContractTests {
             "\\begin{unknown}Last% PRIVATE4\nEnd\\end{unknown}";
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(body)).ToMarkdownDocumentResult();
         Assert.Equal(3, result.Value.Blocks.Count);
-        string markdown = result.Value.ToMarkdown();
+        string markdown = ((result.Value.ToMarkdown()));
         Assert.DoesNotContain("PRIVATE", markdown, StringComparison.Ordinal);
         Assert.Contains("First", markdown, StringComparison.Ordinal);
         Assert.Contains("Tail", markdown, StringComparison.Ordinal);

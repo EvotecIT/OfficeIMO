@@ -7,7 +7,7 @@ internal static class MobileSampleDocument {
     internal static void Save(string path) {
         var ink = PdfColor.FromRgb(28, 43, 64);
         var blue = PdfColor.FromRgb(47, 99, 233);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 14,
             DefaultTextColor = ink,

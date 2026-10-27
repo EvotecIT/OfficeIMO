@@ -12,7 +12,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
     /// <summary>
     /// Projects neutral document content into a PDF document while merging source and PDF diagnostics.
     /// </summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentModel source,
         PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -26,7 +26,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
 
         var report = new PdfConversionReport();
         AddSourceDiagnostics(source, report, cancellationToken);
-        PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
+        PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
         PdfDocument document = PdfDocument.Create(pdfOptions)
@@ -95,7 +95,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         }
 
         if (identities.HasAmbiguousTableProjection) report.Add(new PdfConversionWarning(ConverterName,
-            "MODEL_TABLE_CORRELATION_UNASSESSED", source.Format + "/document",
+            "model-table-correlation-unassessed", source.Format + "/document",
             "Unlocated aggregate table content occurs in several page scopes. Correspondence is not inferred and all supplied entries are retained.",
             PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Unassessed));
         AddSourceSpecificPolicyEvidence(source, options, assetSummary, report);

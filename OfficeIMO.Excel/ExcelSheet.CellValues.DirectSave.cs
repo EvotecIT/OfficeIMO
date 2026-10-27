@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string range = A1.CellReference(1, 1) + ":" + A1.CellReference(firstRow + candidate.RowCount - 1, columnCount);
+            string range = ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(firstRow + candidate.RowCount - 1, columnCount);
             candidate = candidate.WithRange(range);
             return true;
         }
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
 
                 string? reference = cell.CellReference?.Value;
                 if (string.IsNullOrEmpty(reference)
-                    || A1.ParseColumnIndexFromCellReferenceFast(reference) != cellCount) {
+                    || ExcelA1.ParseColumnIndexFromCellReferenceFast(reference) != cellCount) {
                     return false;
                 }
 
@@ -270,7 +270,7 @@ namespace OfficeIMO.Excel {
                     : "Column" + (column + 1).ToString(CultureInfo.InvariantCulture);
             }
 
-            string range = A1.CellReference(1, 1) + ":" + A1.CellReference(rowCount, columnCount);
+            string range = ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(rowCount, columnCount);
             candidate = values != null
                 ? new DirectCellValuesSaveCandidate(columnNames, columnTypes, values, columnCount, dataRowCount, valuesMatchColumnTypes, includeHeaders, range)
                 : new DirectCellValuesSaveCandidate(columnNames, columnTypes, rows!, includeHeaders, range);

@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(2, 3, "C");
                 });
 
-                var options = new ExcelReadOptions { NormalizeHeaders = false };
+                var options = new ExcelReaderOptions { NormalizeHeaders = false };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:C2"));

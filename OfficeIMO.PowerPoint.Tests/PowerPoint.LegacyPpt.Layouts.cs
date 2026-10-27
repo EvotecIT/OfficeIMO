@@ -113,13 +113,13 @@ namespace OfficeIMO.Tests {
                     .Where(shape => shape.Placeholder != null), shape =>
                     Assert.True(shape.Placeholder!.Position >= 0));
                 Assert.DoesNotContain(presentation.Diagnostics, diagnostic =>
-                    diagnostic.Code == "PPT-SLIDE-ATOM-TRUNCATED"
-                    || diagnostic.Code == "PPT-MASTER-SLIDE-ATOM-TRUNCATED"
-                    || diagnostic.Code == "PPT-SLIDE-ATOM-LENGTH"
-                    || diagnostic.Code == "PPT-SLIDE-LAYOUT-TYPE"
-                    || diagnostic.Code == "PPT-SLIDE-LAYOUT-PLACEHOLDER"
-                    || diagnostic.Code == "PPT-SLIDE-FLAGS-RESERVED"
-                    || diagnostic.Code == "PPT-PLACEHOLDER-INVALID");
+                    diagnostic.Code == "ppt-slide-atom-truncated"
+                    || diagnostic.Code == "ppt-master-slide-atom-truncated"
+                    || diagnostic.Code == "ppt-slide-atom-length"
+                    || diagnostic.Code == "ppt-slide-layout-type"
+                    || diagnostic.Code == "ppt-slide-layout-placeholder"
+                    || diagnostic.Code == "ppt-slide-flags-reserved"
+                    || diagnostic.Code == "ppt-placeholder-invalid");
             }
         }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             body.PlaceholderOrientation = PowerPointPlaceholderDirection.Vertical;
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
             LegacyPptSlide binary = Assert.Single(LegacyPptPresentation.Load(bytes).Slides);
             Assert.Equal(LegacyPptSlideLayoutType.TitleBody, binary.Layout);
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
             body.PlaceholderType = PowerPointPlaceholderType.Body;
             body.PlaceholderIndex = 1;
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
             Assert.Equal(binary.Slides[0].MasterId, binary.Slides[1].MasterId);
             Assert.Equal(LegacyPptSlideLayoutType.TitleSlide, binary.Slides[0].Layout);
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
             Assert.Empty(slide.Shapes);
 
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSlide binary = Assert.Single(
                 LegacyPptPresentation.Load(bytes).Slides);
             Assert.Equal(2, binary.Shapes.Count);
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
             title.PlaceholderIndex = 0;
 
             LegacyPptSlide binary = Assert.Single(LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt)).Slides);
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides);
 
             Assert.Equal(2, binary.Shapes.Count);
             LegacyPptShape binaryTitle = Assert.Single(binary.Shapes, shape =>
@@ -321,7 +321,7 @@ namespace OfficeIMO.Tests {
                     })));
 
             LegacyPptSlide visible = Assert.Single(LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt)).Slides);
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides);
             LegacyPptShape decoration = Assert.Single(visible.Shapes,
                 shape => shape.Placeholder == null);
             Assert.Equal(LayoutToMasterUnits(decorationBounds.Left),
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
                 decoration.Bounds.Top);
 
             slide.SlidePart.Slide!.ShowMasterShapes = false;
-            byte[] hiddenBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] hiddenBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSlide hidden = Assert.Single(
                 LegacyPptPresentation.Load(hiddenBytes).Slides);
             Assert.Empty(hidden.Shapes);
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation created =
                    PowerPointPresentation.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original =
                 LegacyPptPresentation.Load(sourceBytes);
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved =
                 LegacyPptPresentation.Load(savedBytes);
 
@@ -407,7 +407,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
                 Assert.Single(saved.Slides).Layout);
             Assert.Equal(original.Package.UserEdits.Count + 1,
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptPresentation saved =
                 LegacyPptPresentation.Load(savedBytes);
             LegacyPptSlide savedSlide = Assert.Single(saved.Slides);
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
                    PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
@@ -590,7 +590,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(sourceBytes,
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                finding.Code == "ppt-write-import-loss");
         }
 
         [Fact]
@@ -645,7 +645,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Text);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             using var input = new MemoryStream(sourceBytes,
                 writable: false);
@@ -667,7 +667,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                finding.Code == "ppt-write-import-loss");
         }
 
         private static int LayoutToMasterUnits(long emus) => checked((int)Math.Round(

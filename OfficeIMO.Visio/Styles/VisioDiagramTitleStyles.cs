@@ -1,5 +1,5 @@
 using System;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static class VisioDiagramTitleStyles {

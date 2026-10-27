@@ -93,7 +93,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     /// <summary>Parsed inline representation of the current data rows.</summary>
     public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
-    public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
+    public List<MarkdownColumnAlignment> Alignments { get; } = new List<MarkdownColumnAlignment>();
     /// <summary>Optional fixed column widths in points. Null entries are sized by weights or defaults.</summary>
     public List<double?> ColumnWidthPoints { get; } = new List<double?>();
     /// <summary>Optional relative column width weights. Missing columns default to 1.0 in consumers that support widths.</summary>
@@ -117,7 +117,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
     // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
     // (links/emphasis/etc) can honor URL safety settings and reference-style link definitions.
-    internal MarkdownReaderOptions? InlineRenderOptions { get; set; }
+    internal MarkdownLoadOptions? InlineRenderOptions { get; set; }
     internal MarkdownReaderState? InlineRenderState { get; set; }
 
     internal void SetParsedCells(
@@ -214,7 +214,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             var alignRow = new string[columnCount];
             for (int i = 0; i < columnCount; i++) {
                 var a = GetAlignment(i);
-                alignRow[i] = a switch { ColumnAlignment.Left => ":---", ColumnAlignment.Center => ":---:", ColumnAlignment.Right => "---:", _ => "---" };
+                alignRow[i] = a switch { MarkdownColumnAlignment.Left => ":---", MarkdownColumnAlignment.Center => ":---:", MarkdownColumnAlignment.Right => "---:", _ => "---" };
             }
             AppendRow(sb, alignRow);
 
@@ -400,7 +400,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         return ColumnWidthWeights.Count > 0;
     }
 
-    private static string RenderCellAttributes(TableCell? cell, ColumnAlignment alignment) {
+    private static string RenderCellAttributes(TableCell? cell, MarkdownColumnAlignment alignment) {
         if (cell == null) {
             return RenderStyleAttribute(alignment, null);
         }
@@ -429,15 +429,15 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         return attributes?.ToString() ?? string.Empty;
     }
 
-    private static string RenderStyleAttribute(ColumnAlignment alignment, TableCell? cell) {
+    private static string RenderStyleAttribute(MarkdownColumnAlignment alignment, TableCell? cell) {
         StringBuilder? style = null;
-        ColumnAlignment effectiveAlignment = cell != null && cell.Alignment != ColumnAlignment.None ? cell.Alignment : alignment;
-        if (effectiveAlignment != ColumnAlignment.None) {
+        MarkdownColumnAlignment effectiveAlignment = cell != null && cell.Alignment != MarkdownColumnAlignment.None ? cell.Alignment : alignment;
+        if (effectiveAlignment != MarkdownColumnAlignment.None) {
             style ??= new StringBuilder();
             style.Append("text-align:");
             style.Append(effectiveAlignment switch {
-                ColumnAlignment.Center => "center",
-                ColumnAlignment.Right => "right",
+                MarkdownColumnAlignment.Center => "center",
+                MarkdownColumnAlignment.Right => "right",
                 _ => "left"
             });
         }

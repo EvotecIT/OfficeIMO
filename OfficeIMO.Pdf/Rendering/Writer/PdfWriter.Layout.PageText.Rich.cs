@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfOptions options,
+        PdfCreateOptions options,
         double firstBaseline,
         out double bottom,
         out double top) {
@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfOptions options,
+        PdfCreateOptions options,
         double firstBaseline,
         out double bottom,
         out double top) {
@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
         double defaultFontSize,
         PdfColor? defaultColor,
         double x,
-        PdfOptions options,
+        PdfCreateOptions options,
         double? lineBoxWidth,
         PdfAlign align) {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {

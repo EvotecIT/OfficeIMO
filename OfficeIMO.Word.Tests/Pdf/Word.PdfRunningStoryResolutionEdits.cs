@@ -13,14 +13,14 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_InheritedRunningStoriesRefreshAfterReferenceEdits(bool footer) {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, "default", "next");
-        using (var initial = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions())))
+        using (var initial = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })))
             Assert.Contains("MARK", initial.GetPage(2).Text);
 
         WordSection later = document.Sections[1];
         later.AddHeadersAndFooters();
         WordHeaderFooter local = footer ? later.Footer.Default! : later.Header.Default!;
         local.AddParagraph("LOCAL");
-        using (var authored = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()))) {
+        using (var authored = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Contains("MARK", authored.GetPage(1).Text);
             Assert.Contains("LOCAL", authored.GetPage(2).Text);
             Assert.DoesNotContain("MARK", authored.GetPage(2).Text);
@@ -28,7 +28,7 @@ public partial class Word {
 
         foreach (var reference in later._sectionProperties.ChildElements.Where(element =>
             footer ? element is W.FooterReference : element is W.HeaderReference).ToArray()) reference.Remove();
-        using (var inherited = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()))) {
+        using (var inherited = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Contains("MARK", inherited.GetPage(2).Text);
             Assert.DoesNotContain("LOCAL", inherited.GetPage(2).Text);
         }

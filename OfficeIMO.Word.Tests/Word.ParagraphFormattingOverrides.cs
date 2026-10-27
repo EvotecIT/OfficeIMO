@@ -63,8 +63,8 @@ public partial class Word {
             .Elements<Style>().Single(s => s.StyleName?.Val?.Value == "EnabledControls");
         Assert.True(enabled.StyleParagraphProperties?.PageBreakBefore?.Val?.Value ?? enabled.StyleParagraphProperties?.PageBreakBefore != null);
         Assert.Equal(2, enabled.StyleParagraphProperties?.OutlineLevel?.Val?.Value);
-        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes(
-            new OfficeIMO.Word.Pdf.WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }));
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf(
+            new OfficeIMO.Word.Pdf.WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("Styled direct off", pdf.GetPage(1).Text);
     }

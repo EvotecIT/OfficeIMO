@@ -80,9 +80,9 @@ public partial class Word {
         string xml = section._sdtRun.OuterXml;
         Assert.Equal("FirstSecond", Assert.Single(section.TextItems));
         Assert.Equal(xml, section._sdtRun.OuterXml);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("FirstSecond", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
         Assert.Equal(xml, section._sdtRun.OuterXml);
     }
@@ -172,9 +172,9 @@ public partial class Word {
         foreach (W.Text text in paragraph._paragraph.Descendants<W.Text>()) text.Space = null;
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("FirstSecond", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }

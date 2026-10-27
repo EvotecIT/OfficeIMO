@@ -8,7 +8,7 @@ public sealed class PdfTaggingStandardsTests {
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void Pdf20DeclaresOneDocumentAndAnIndirectNamespaceOnEveryElement(PdfObjectSerializationMode mode) {
-        var bytes = PdfDocument.Create(new PdfOptions {
+        var bytes = PdfDocument.Create(new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf20,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             Language = "en-US",
@@ -52,7 +52,7 @@ public sealed class PdfTaggingStandardsTests {
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
                         .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Next", 140, 100, 100, 20))))));
         } else {
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 1;
             document.Table(new[] { new[] { "First", "Second" }, new[] { "One", "Two" } }, style: style);
         }
@@ -131,7 +131,7 @@ public sealed class PdfTaggingStandardsTests {
 
     [Fact]
     public void LayoutLanguageIsAttachedToTheSpanWithoutChangingDocumentLanguage() {
-        var document = PdfDocument.Create(new PdfOptions { Language = "en-US" }).TaggedPdfCatalogMarkers();
+        var document = PdfDocument.Create(new PdfCreateOptions { Language = "en-US" }).TaggedPdfCatalogMarkers();
         document.Compose(compose => compose.Page(page => {
             page.Options.Language = "fr-FR";
             page.Content(content => content.Canvas(canvas => canvas.Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, 20, 20, 100, 20)));
@@ -146,7 +146,7 @@ public sealed class PdfTaggingStandardsTests {
     [Fact]
     public void PublicSpanLanguageIsSnapshottedInheritedAndCanReturnToDocumentLanguage() {
         var french = new PdfCanvasStructureOptions { Language = "fr-FR" };
-        var document = PdfDocument.Create(new PdfOptions { Language = "en-US" }).TaggedPdfCatalogMarkers()
+        var document = PdfDocument.Create(new PdfCreateOptions { Language = "en-US" }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
                 .Structure(PdfCanvasStructureRole.Span, span => span
                     .Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, 20, 20, 100, 20)

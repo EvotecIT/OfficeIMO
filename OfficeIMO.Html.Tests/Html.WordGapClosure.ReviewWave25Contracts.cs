@@ -18,7 +18,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -45,7 +45,7 @@ public partial class HtmlWordGapClosure {
                 new Text("Adjacent")),
             new M.OfficeMath(new M.Run(new M.Text("x"))));
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains(
             """<mark style="background-color:#00ff00">Regular</mark>""",
@@ -79,7 +79,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_ModernRgbBackgroundSyntaxPreservesColorAndAlpha() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<div style="background-color:rgb(100% 0% 50% / 0.5)">Text</div>""")
-            .ToWordDocument();
+            .ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -93,7 +93,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_OmittedBlockBorderWidthUsesCssMedium(string style) {
         string html = $"""<div style="{style}">Text</div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");

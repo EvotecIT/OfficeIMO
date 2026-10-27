@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult permissive = document.ExportImage(format, options);
         Assert.Contains(permissive.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        var pdf = document.ToPdfDocumentResult(new HtmlToPdfOptions(options));
+        var pdf = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options));
         Assert.Contains(pdf.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(pdf.HasLoss);

@@ -56,11 +56,11 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(GetRealWorldFixtureBaselines))]
-        public void PowerPointImageExportRealWorldFixturesMatchPdfPageImages(PowerPointImageFixtureBaseline baseline) {
+        public void PowerPointImageExportRealWorldFixturesPreserveTextColorsAndDimensions(PowerPointImageFixtureBaseline baseline) {
             using PowerPointPresentation presentation = baseline.CreatePresentation();
             PowerPointSlide slide = presentation.Slides[0];
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             }
 
             foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Jpeg, OfficeImageExportFormat.Svg }) {
-                AssertSharedPdfImageRoute(presentation, format);
+                AssertNativeImageRoute(presentation, format);
             }
 
             foreach (OfficeColor expectedColor in baseline.ExpectedRasterColors) {
@@ -91,11 +91,11 @@ namespace OfficeIMO.Tests {
         private static void AssertFixtureDiagnostics(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
             OfficeImageExportDiagnostic[] all = diagnostics.ToArray();
             // These compact labels allow visible overflow. Any clipping or other loss still fails below.
-            foreach (OfficeImageExportDiagnostic diagnostic in all.Where(item => item.Code == "text-box-overflow")) {
+            foreach (OfficeImageExportDiagnostic diagnostic in all.Where(item => item.Code == "text-box-overflow" || item.Code == OfficeDiagnosticCodes.PowerpointTextOverflow)) {
                 Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind);
                 Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             }
-            AssertNoUnexpectedDiagnostics(all.Where(item => item.Code != "text-box-overflow"));
+            AssertNoUnexpectedDiagnostics(all.Where(item => item.Code != "text-box-overflow" && item.Code != OfficeDiagnosticCodes.PowerpointTextOverflow));
         }
 
         public static IEnumerable<object[]> GetRealWorldFixtureBaselines() =>
@@ -235,12 +235,12 @@ namespace OfficeIMO.Tests {
             return count;
         }
 
-        private static string GetSnapshotPlainText(PowerPointSlideVisualSnapshot snapshot) =>
+        private static string GetSnapshotPlainText(PowerPointSlideVisualInfo snapshot) =>
             string.Concat(GetSnapshotTextSegments(snapshot).Select(segment => segment.Text));
 
-        private static IEnumerable<(PdfTextSpan Span, string Text)> GetSnapshotTextSegments(PowerPointSlideVisualSnapshot snapshot) {
-            PdfTextSpan? previous = null;
-            foreach (PdfTextSpan span in snapshot.TextSpans) {
+        private static IEnumerable<(PowerPointTextSpanInfo Span, string Text)> GetSnapshotTextSegments(PowerPointSlideVisualInfo snapshot) {
+            PowerPointTextSpanInfo? previous = null;
+            foreach (PowerPointTextSpanInfo span in snapshot.TextSpans) {
                 string text = System.Text.RegularExpressions.Regex.Replace(span.Text, @"\s+", " ");
                 if (text.Length == 0) continue;
                 // Preserve run boundaries within a line; a wrapped line separates logical words.

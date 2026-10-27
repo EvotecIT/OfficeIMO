@@ -17,7 +17,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
-        WordDocumentSnapshot snapshot = source.CreateInspectionSnapshot();
+        WordDocumentInfo snapshot = source.Inspect();
         OdtDocument target = OdtDocument.Create();
         var report = new OdfConversionReport("DOCX", "ODT");
 
@@ -25,28 +25,28 @@ public static partial class WordOpenDocumentConversionExtensions {
         int nestedListLevels = 0;
         var notes = new NoteMappingStats(source);
         var imageValidationBudget = new OdfImageValidationBudget();
-        IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
-        IReadOnlyList<WordParagraphSnapshot> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
+        IReadOnlyList<WordParagraphInfo> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
+        IReadOnlyList<WordParagraphInfo> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
             ? EnumerateMappedHeaderFooterParagraphs(snapshot.Sections[0]).ToList()
-            : Array.Empty<WordParagraphSnapshot>();
-        IEnumerable<WordParagraphSnapshot> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
+            : Array.Empty<WordParagraphInfo>();
+        IEnumerable<WordParagraphInfo> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
         int fieldResultFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.InlineFields)
             .Count(field => field.HasFormattedResult && field.ResultText.Length > 0);
-        int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
+        int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableInfo>().Count(HasUnsupportedTableFormatting);
         int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
             .SelectMany(run => run.PositionedImages).Count(positioned =>
                 !string.IsNullOrWhiteSpace(positioned.Image.Description) || !string.IsNullOrWhiteSpace(positioned.Image.Title) ||
                 (!positioned.Image.IsInline && !string.IsNullOrWhiteSpace(positioned.Image.WrapText)));
         if (snapshot.Sections.Count > 0) ApplyWordPageLayout(snapshot.Sections[0], target.PageLayout);
         for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
-            WordSectionSnapshot section = snapshot.Sections[sectionIndex];
+            WordSectionInfo section = snapshot.Sections[sectionIndex];
             notes.CurrentSectionIndex = sectionIndex;
             OdtList? currentList = null;
             bool? currentOrdered = null;
-            foreach (WordBlockSnapshot block in section.Elements.OrderBy(item => item.Order)) {
-                if (block is WordParagraphSnapshot paragraph) {
+            foreach (WordBlockInfo block in section.Elements.OrderBy(item => item.Order)) {
+                if (block is WordParagraphInfo paragraph) {
                     if (paragraph.IsListItem) {
                         bool ordered = paragraph.IsOrderedList == true;
                         if (currentList == null || currentOrdered != ordered) {
@@ -67,7 +67,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
                     CopyParagraph(paragraph, converted, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
                     if (headingLevel > 0) headings++; else paragraphs++;
-                } else if (block is WordTableSnapshot table) {
+                } else if (block is WordTableInfo table) {
                     currentList = null;
                     currentOrdered = null;
                     ConvertTable(table, target, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
@@ -80,7 +80,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         int headerFooterBlocks = snapshot.Sections.Sum(CountHeaderFooterBlocks);
         if (effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0) {
             notes.CurrentSectionIndex = 0;
-            WordSectionSnapshot first = snapshot.Sections[0];
+            WordSectionInfo first = snapshot.Sections[0];
             CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header, effective, imageValidationBudget, ref hyperlinks, ref images,
                 ref unsupportedImages, ref bookmarks, notes);
             CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer, effective, imageValidationBudget, ref hyperlinks, ref images,
@@ -552,7 +552,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void ApplyWordRunFormatting(WordRunSnapshot source, OdtSpan target) {
+    private static void ApplyWordRunFormatting(WordRunInfo source, OdtSpan target) {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
@@ -565,7 +565,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
     }
 
-    private static void ApplyWordRunFormatting(WordRunSnapshot source, OdtHyperlink target) {
+    private static void ApplyWordRunFormatting(WordRunInfo source, OdtHyperlink target) {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         target.Underline = source.Underline ? true : (bool?)null;
@@ -590,7 +590,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void ApplyWordDecoration(WordRunSnapshot source, OdtSpan target) {
+    private static void ApplyWordDecoration(WordRunInfo source, OdtSpan target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
         target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
@@ -601,7 +601,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.SmallCaps = string.Equals(source.CapsStyle, nameof(WordCapsStyle.SmallCaps), StringComparison.OrdinalIgnoreCase) ? true : (bool?)null;
     }
 
-    private static void ApplyWordDecoration(WordRunSnapshot source, OdtHyperlink target) {
+    private static void ApplyWordDecoration(WordRunInfo source, OdtHyperlink target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
         target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
@@ -679,12 +679,12 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void CopyHeaderFooter(WordHeaderFooterSnapshot? source, OdtHeaderFooter target,
+    private static void CopyHeaderFooter(WordHeaderFooterInfo? source, OdtHeaderFooter target,
         WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, NoteMappingStats notes) {
         if (source == null) return;
-        foreach (WordParagraphSnapshot paragraph in source.Paragraphs) {
+        foreach (WordParagraphInfo paragraph in source.Paragraphs) {
             int headingLevel = GetHeadingLevel(paragraph);
             OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
             CopyParagraph(paragraph, converted, options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
@@ -692,7 +692,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static int GetHeadingLevel(WordParagraphSnapshot paragraph) {
+    private static int GetHeadingLevel(WordParagraphInfo paragraph) {
         string value = paragraph.StyleId ?? paragraph.StyleName ?? string.Empty;
         if (!value.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) return 0;
         return int.TryParse(value.Substring(7), out int level) ? Math.Max(1, Math.Min(9, level)) : 0;
@@ -716,32 +716,32 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (count > 0) report.Add(feature, OdfConversionMappingStatus.Converted, count);
     }
 
-    private static IEnumerable<WordParagraphSnapshot> EnumerateParagraphs(WordDocumentSnapshot snapshot) {
-        foreach (WordSectionSnapshot section in snapshot.Sections) {
-            foreach (WordBlockSnapshot block in section.Elements) {
-                if (block is WordParagraphSnapshot paragraph) yield return paragraph;
-                else if (block is WordTableSnapshot table) {
-                    foreach (WordParagraphSnapshot nested in table.Rows.SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs)) yield return nested;
+    private static IEnumerable<WordParagraphInfo> EnumerateParagraphs(WordDocumentInfo snapshot) {
+        foreach (WordSectionInfo section in snapshot.Sections) {
+            foreach (WordBlockInfo block in section.Elements) {
+                if (block is WordParagraphInfo paragraph) yield return paragraph;
+                else if (block is WordTableInfo table) {
+                    foreach (WordParagraphInfo nested in table.Rows.SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs)) yield return nested;
                 }
             }
         }
     }
 
-    private static IEnumerable<WordHeaderFooterSnapshot?> EnumerateMappedHeaderFooters(WordSectionSnapshot section) =>
+    private static IEnumerable<WordHeaderFooterInfo?> EnumerateMappedHeaderFooters(WordSectionInfo section) =>
         new[] { section.DefaultHeader, section.DefaultFooter }
             .Concat(section.DifferentFirstPage
                 ? new[] { section.FirstHeader, section.FirstFooter }
-                : Array.Empty<WordHeaderFooterSnapshot?>())
+                : Array.Empty<WordHeaderFooterInfo?>())
             .Concat(section.DocumentOddEvenSettingEnabled
                 ? new[] { section.EvenHeader, section.EvenFooter }
-                : Array.Empty<WordHeaderFooterSnapshot?>());
+                : Array.Empty<WordHeaderFooterInfo?>());
 
-    private static IEnumerable<WordParagraphSnapshot> EnumerateMappedHeaderFooterParagraphs(WordSectionSnapshot section) =>
+    private static IEnumerable<WordParagraphInfo> EnumerateMappedHeaderFooterParagraphs(WordSectionInfo section) =>
         EnumerateMappedHeaderFooters(section)
             .Where(item => item != null)
             .SelectMany(item => item!.Paragraphs);
 
-    private static bool HasUnsupportedParagraphFormatting(WordParagraphSnapshot paragraph) =>
+    private static bool HasUnsupportedParagraphFormatting(WordParagraphInfo paragraph) =>
         (paragraph.Alignment != null && !TryMapWordAlignment(paragraph.Alignment, out _)) ||
         HasUnsupportedWordLineHeight(paragraph) ||
         (paragraph.ShadingPattern.HasValue && paragraph.ShadingPattern.Value != WordShadingPattern.Nil &&
@@ -749,12 +749,12 @@ public static partial class WordOpenDocumentConversionExtensions {
         paragraph.LeftBorder != null || paragraph.RightBorder != null || paragraph.TopBorder != null || paragraph.BottomBorder != null ||
         paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
 
-    private static bool HasUnsupportedWordLineHeight(WordParagraphSnapshot paragraph) {
+    private static bool HasUnsupportedWordLineHeight(WordParagraphInfo paragraph) {
         if (!paragraph.LineSpacingValue.HasValue && paragraph.LineSpacingRule == null) return false;
         return !TryMapWordLineHeight(paragraph, out _);
     }
 
-    private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) =>
+    private static bool HasUnsupportedRunFormatting(WordRunInfo run) =>
         run.UnderlineStyle is WordUnderlineStyle.Words or WordUnderlineStyle.Thick or
             WordUnderlineStyle.DottedHeavy or WordUnderlineStyle.DashedHeavy or
             WordUnderlineStyle.DashLongHeavy or WordUnderlineStyle.DashDotHeavy or
@@ -763,12 +763,12 @@ public static partial class WordOpenDocumentConversionExtensions {
             run.RunShadingPattern.Value != WordShadingPattern.Clear) ||
         (!string.IsNullOrWhiteSpace(run.RunShadingFillColorHex) && !string.IsNullOrWhiteSpace(run.HighlightColor));
 
-    private static bool HasUnsupportedTableFormatting(WordTableSnapshot table) => table.StyleName != null ||
+    private static bool HasUnsupportedTableFormatting(WordTableInfo table) => table.StyleName != null ||
         table.Description != null || table.RepeatHeaderRow || table.ColumnWidthPoints.Count > 0 ||
         table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
             cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
 
-    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) =>
+    private static int CountHeaderFooterBlocks(WordSectionInfo section) =>
         CountBlocks(section.DefaultHeader, section.Index == 0 || section.HasExplicitDefaultHeader) +
         CountBlocks(section.DefaultFooter, section.Index == 0 || section.HasExplicitDefaultFooter) +
         CountBlocks(section.FirstHeader, section.Index == 0 || section.HasExplicitFirstHeader) +
@@ -776,10 +776,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         CountBlocks(section.EvenHeader, section.Index == 0 || section.HasExplicitEvenHeader) +
         CountBlocks(section.EvenFooter, section.Index == 0 || section.HasExplicitEvenFooter);
 
-    private static int CountBlocks(WordHeaderFooterSnapshot? part, bool authoredHere) =>
+    private static int CountBlocks(WordHeaderFooterInfo? part, bool authoredHere) =>
         authoredHere ? part?.Elements.Count ?? 0 : 0;
 
-    private static void ApplyWordPageLayout(WordSectionSnapshot source, OdtPageLayout target) {
+    private static void ApplyWordPageLayout(WordSectionInfo source, OdtPageLayout target) {
         if (source.PageWidthPoints.HasValue) target.Width = OdfLength.Points(source.PageWidthPoints.Value);
         if (source.PageHeightPoints.HasValue) target.Height = OdfLength.Points(source.PageHeightPoints.Value);
         if (source.MarginTopPoints.HasValue) target.MarginTop = OdfLength.Points(source.MarginTopPoints.Value);

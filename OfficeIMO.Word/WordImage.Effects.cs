@@ -84,9 +84,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the alpha inversion color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? AlphaInversionColor {
+        public OfficeIMO.OfficeColor? AlphaInversionColor {
             get {
-                if (AlphaInversionColorHex == null) return (OfficeIMO.Drawing.OfficeColor?)null;
+                if (AlphaInversionColorHex == null) return (OfficeIMO.OfficeColor?)null;
                 return Helpers.ParseColor(AlphaInversionColorHex);
             }
             set { AlphaInversionColorHex = value?.ToRgbHex(); }
@@ -214,9 +214,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the source color to change from.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorChangeFrom {
+        public OfficeIMO.OfficeColor? ColorChangeFrom {
             get {
-                return ColorChangeFromHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromHex);
+                return ColorChangeFromHex == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromHex);
             }
             set { ColorChangeFromHex = value?.ToRgbHex(); }
         }
@@ -224,9 +224,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the target color to change to.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorChangeTo {
+        public OfficeIMO.OfficeColor? ColorChangeTo {
             get {
-                return ColorChangeToHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeToHex);
+                return ColorChangeToHex == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorChangeToHex);
             }
             set { ColorChangeToHex = value?.ToRgbHex(); }
         }
@@ -295,9 +295,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a color replacement.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorReplacement {
+        public OfficeIMO.OfficeColor? ColorReplacement {
             get {
-                return ColorReplacementHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorReplacementHex);
+                return ColorReplacementHex == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorReplacementHex);
             }
             set { ColorReplacementHex = value?.ToRgbHex(); }
         }
@@ -337,9 +337,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the first duotone color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? DuotoneColor1 {
+        public OfficeIMO.OfficeColor? DuotoneColor1 {
             get {
-                return DuotoneColor1Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Hex);
+                return DuotoneColor1Hex == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Hex);
             }
             set { DuotoneColor1Hex = value?.ToRgbHex(); }
         }
@@ -347,9 +347,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the second duotone color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? DuotoneColor2 {
+        public OfficeIMO.OfficeColor? DuotoneColor2 {
             get {
-                return DuotoneColor2Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Hex);
+                return DuotoneColor2Hex == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Hex);
             }
             set { DuotoneColor2Hex = value?.ToRgbHex(); }
         }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         private static readonly DateTime When = new DateTime(2026, 10, 8, 6, 0, 0);
         private static readonly string[] Headers = { "Name", "Amount", "When", "Blank" };
 
-        private static ExcelTabularWriteOptions Options(bool sharedStrings = false, bool references = true) => new() {
+        private static ExcelWriterOptions Options(bool sharedStrings = false, bool references = true) => new() {
             RequireStreaming = true, UseSharedStrings = sharedStrings, IncludeCellReferences = references,
             DateSystem = ExcelDateSystem.NineteenFour,
             Styles = new Dictionary<string, ExcelStyleDefinition> {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             DefaultRowStyle = "Emphasis", ColumnStyles = new Dictionary<int, string> { [2] = "Amount" }
         };
 
-        private static ExcelTabularWriteOptions SingleColumnOptions(bool shared = false) {
+        private static ExcelWriterOptions SingleColumnOptions(bool shared = false) {
             var options = Options(shared);
             options.ColumnStyles = null;
             return options;
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(shared, package.WorkbookPart.SharedStringTablePart != null);
             using var loaded = ExcelDocument.Load(new MemoryStream(sync.ToArray()));
             Assert.Equal(new[] { "Amount", "Emphasis", "Normal", "Plain" }, loaded.GetNamedStyles().Select(style => style.Name).OrderBy(name => name));
-            using var reader = ExcelDocument.OpenDataReader(sync.ToArray());
+            using var reader = ExcelDocument.OpenReader(sync.ToArray());
             Assert.True(reader.Read());
             Assert.Equal("β & <text>", reader.GetString(0));
             Assert.Equal(12.5, reader.GetDouble(1));
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(rows[1].Elements<Cell>().Last().DataType);
             Assert.NotNull(rows[2].Elements<Cell>().Last().DataType);
             Assert.Empty(new OpenXmlValidator().Validate(package));
-            using var read = ExcelDocument.OpenDataReader(output.ToArray());
+            using var read = ExcelDocument.OpenReader(output.ToArray());
             Assert.True(read.Read()); Assert.Equal(When, read.GetDateTime(2)); Assert.True(read.IsDBNull(3));
             Assert.True(read.Read()); Assert.Equal(string.Empty, read.GetString(0)); Assert.True(read.IsDBNull(2));
             Assert.Equal(string.Empty, read.GetString(3)); Assert.False(read.Read());
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
             Assert.True(disposed); Assert.Equal(1, callbacks); Assert.True(output.CanWrite);
             output.SetLength(0);
             ExcelDocument.WriteRows(output, new[] { 3 }, new[] { "Id" }, (row, value) => row.Write(value), SingleColumnOptions());
-            using var reader = ExcelDocument.OpenDataReader(output.ToArray()); Assert.True(reader.Read()); Assert.Equal(3, reader.GetInt32(0));
+            using var reader = ExcelDocument.OpenReader(output.ToArray()); Assert.True(reader.Read()); Assert.Equal(3, reader.GetInt32(0));
         }
 
         [Fact]
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
             Assert.All(package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().Skip(1), row => {
                 Assert.True(row.CustomFormat!.Value); Assert.Equal(row.StyleIndex!.Value, row.Elements<Cell>().Single().StyleIndex!.Value);
             });
-            using var reader = ExcelDocument.OpenDataReader(output.ToArray());
+            using var reader = ExcelDocument.OpenReader(output.ToArray());
             Assert.True(reader.Read()); Assert.Equal("A & β", reader.GetString(0)); Assert.True(reader.Read()); Assert.Equal("A & β", reader.GetString(0));
         }
 #endif

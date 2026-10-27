@@ -117,7 +117,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     public void FixedGridOverflowReducesColumnsBeforeWorksheetBoundaryCheck(OverflowMode overflowMode) {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Data");
-        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, A1.MaxColumns);
+        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, ExcelA1.MaxColumns);
         composer.SetGridConstraints(3, overflowMode);
 
         string range = composer.TableFrom(new[] { new WideRow("Alpha", 1, 2) });

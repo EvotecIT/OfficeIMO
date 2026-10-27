@@ -45,7 +45,7 @@ public sealed class StudioOcrPublicationTests {
                 model.OutputPath = output;
                 await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
-                Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Pages.Single().ExtractText().Trim());
                 Assert.True(services.Jobs.Entries[0].HasOutput);
                 Capture(window, $"ocr-publication-{width}-{(dark ? "dark" : "light")}-completed.png");
                 byte[] saved = File.ReadAllBytes(output);
@@ -111,7 +111,7 @@ public sealed class StudioOcrPublicationTests {
                 await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
                 Assert.Equal(destination, model.PublishedPath);
-                Assert.Equal("Recognized", PdfReadDocument.Open(output.Bytes).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(output.Bytes)).Pages.Single().ExtractText().Trim());
                 Assert.Equal(0, input.Writes);
                 Assert.Equal(input.Reads, input.ClosedReads);
                 Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-completed.png");
@@ -132,7 +132,7 @@ public sealed class StudioOcrPublicationTests {
                 Assert.NotNull(services.Jobs.Entries[0].Recovery);
                 var retained = Assert.Single(services.WorkflowRecovery.GetRecoveries());
                 await services.WorkflowRecovery.VerifyAsync(retained);
-                Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(retained.FilePath)).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(retained.FilePath))).Pages.Single().ExtractText().Trim());
                 Assert.Equal(2, output.Writes);
                 Assert.Equal(sourceBytes, input.Bytes);
                 Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-recovery.png");
@@ -149,7 +149,7 @@ public sealed class StudioOcrPublicationTests {
                 InputStream = options.InputStream, OutputStream = options.OutputStream,
                 PublicationGuard = options.PublicationGuard, ReviewCorrectionsAsync = options.ReviewCorrectionsAsync,
                 ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
-                    ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+                    ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
             }, engine, cancellationToken);
             return new(result.AddedWordCount, result.ModifiedPages, result.Provider, result);
         }

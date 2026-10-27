@@ -31,7 +31,7 @@ internal static class HtmlToMarkdownBenchmarkCorpus {
 <article>
   <h1>OfficeIMO Markdown Notes</h1>
   <p>OfficeIMO can convert <strong>HTML</strong> into <a href="https://example.com/docs">Markdown</a>.</p>
-  <p>The converter keeps code such as <code>MarkdownDoc.Create()</code> readable.</p>
+  <p>The converter keeps code such as <code>MarkdownDocument.Create()</code> readable.</p>
   <blockquote><p>Representative fixtures should look like real docs.</p></blockquote>
   <ul>
     <li>Parse the document</li>
@@ -122,7 +122,7 @@ internal static class HtmlToMarkdownBenchmarkCorpus {
     <summary>Deployment details</summary>
     <p>Staging is complete and production is pending.</p>
   </details>
-  <pre><code class="language-csharp">var doc = MarkdownDoc.Create();
+  <pre><code class="language-csharp">var doc = MarkdownDocument.Create();
 doc.H1("Status");</code></pre>
   <table>
     <tr><th>Name</th><th>Value</th></tr>

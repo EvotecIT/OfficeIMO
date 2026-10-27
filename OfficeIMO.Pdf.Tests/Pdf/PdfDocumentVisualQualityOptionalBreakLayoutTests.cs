@@ -10,7 +10,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaksKeepCharacterJustificationGlyphsAndAdvances(bool embedded) {
-        PdfOptions options = JustificationPolicyOptions();
+        PdfCreateOptions options = JustificationPolicyOptions();
         if (embedded) options.UseFontFamily(new PdfEmbeddedFontFamily("Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 'D')));
         // A trailing separator keeps these paragraph tests outside the single-identifier
@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OptionalBreaksKeepCharacterJustificationCombiningClustersAcrossRuns() {
-        PdfOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Identifier Font",
+        PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 0x0301)));
         PdfTextRun[] Runs(string prefix) => new[] { new PdfTextRun(prefix), new PdfTextRun("\u0301C ", color: new PdfColor(1, 0, 0)) };
         byte[] control = RenderJustificationPolicyRuns(options, Runs("AB"), distributed: true);
@@ -41,7 +41,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaksKeepDecimalTabAtThePaintedSeparator(bool embedded) {
-        PdfOptions options = JustificationPolicyOptions();
+        PdfCreateOptions options = JustificationPolicyOptions();
         if (embedded) options.UseFontFamily(new PdfEmbeddedFontFamily("Numeric Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'W', '1', '2', '.', '5', '0')));
         var style = new PdfParagraphStyle();

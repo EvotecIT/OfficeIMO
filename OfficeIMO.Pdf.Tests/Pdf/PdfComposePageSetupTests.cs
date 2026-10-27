@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("height", pageHeightException.ParamName);
 
             var pageSizeException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PageSize(612, double.PositiveInfinity));
+                new PdfPageSize(612, double.PositiveInfinity));
             Assert.Equal("height", pageSizeException.ParamName);
 
             var defaultPageSizeException = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("right", sideMarginException.ParamName);
 
             var pageMarginsException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PageMargins(10, double.NaN, 10, 10));
+                new PdfPageMargins(10, double.NaN, 10, 10));
             Assert.Equal("top", pageMarginsException.ParamName);
 
             var documentPageNumberException = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -81,45 +81,45 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PageMarginsPresets_MatchWordCompatiblePointValues() {
-            AssertMargins(PageMargins.Normal, 72, 72, 72, 72);
-            AssertMargins(PageMargins.Narrow, 36, 36, 36, 36);
-            AssertMargins(PageMargins.Moderate, 54, 72, 54, 72);
-            AssertMargins(PageMargins.Wide, 144, 72, 144, 72);
-            AssertMargins(PageMargins.Mirrored, 90, 72, 72, 72);
-            AssertMargins(PageMargins.Office2003Default, 90, 72, 90, 72);
-            AssertMargins(PageMargins.Uniform(24), 24, 24, 24, 24);
+            AssertMargins(PdfPageMargins.Normal, 72, 72, 72, 72);
+            AssertMargins(PdfPageMargins.Narrow, 36, 36, 36, 36);
+            AssertMargins(PdfPageMargins.Moderate, 54, 72, 54, 72);
+            AssertMargins(PdfPageMargins.Wide, 144, 72, 144, 72);
+            AssertMargins(PdfPageMargins.Mirrored, 90, 72, 72, 72);
+            AssertMargins(PdfPageMargins.Office2003Default, 90, 72, 90, 72);
+            AssertMargins(PdfPageMargins.Uniform(24), 24, 24, 24, 24);
         }
 
         [Fact]
         public void PageSetupValues_CanBeCreatedFromOfficeFriendlyUnits() {
-            var letter = PageSize.FromInches(8.5, 11);
+            var letter = PdfPageSize.FromInches(8.5, 11);
             Assert.Equal(612, letter.Width);
             Assert.Equal(792, letter.Height);
 
-            var a4 = PageSize.FromCentimeters(21, 29.7);
+            var a4 = PdfPageSize.FromCentimeters(21, 29.7);
             Assert.InRange(a4.Width, 595.2, 595.4);
             Assert.InRange(a4.Height, 841.8, 842.0);
 
-            AssertMargins(PageMargins.UniformInches(0.5), 36, 36, 36, 36);
+            AssertMargins(PdfPageMargins.UniformInches(0.5), 36, 36, 36, 36);
 
-            var customInches = PageMargins.FromInches(1, 1.25, 1.5, 2);
+            var customInches = PdfPageMargins.FromInches(1, 1.25, 1.5, 2);
             AssertMargins(customInches, 72, 90, 108, 144);
 
-            var customCentimeters = PageMargins.FromCentimeters(2.54, 1.27, 3.81, 5.08);
+            var customCentimeters = PdfPageMargins.FromCentimeters(2.54, 1.27, 3.81, 5.08);
             AssertMargins(customCentimeters, 72, 36, 108, 144);
 
-            var sizeException = Assert.Throws<ArgumentOutOfRangeException>(() => PageSize.FromInches(0, 11));
+            var sizeException = Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageSize.FromInches(0, 11));
             Assert.Equal("width", sizeException.ParamName);
 
-            var marginException = Assert.Throws<ArgumentOutOfRangeException>(() => PageMargins.UniformCentimeters(double.NaN));
+            var marginException = Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageMargins.UniformCentimeters(double.NaN));
             Assert.Equal("centimeters", marginException.ParamName);
         }
 
         [Fact]
         public void PdfOptionsPageSetupProperties_ApplyReusableValuesAndValidate() {
-            var options = new PdfOptions {
-                PageSize = PageSizes.A4.Landscape(),
-                Margins = PageMargins.Moderate
+            var options = new PdfCreateOptions {
+                PageSize = PdfPageSizes.A4.Landscape(),
+                Margins = PdfPageMargins.Moderate
             };
 
             Assert.InRange(options.PageWidth, 841.0, 843.0);
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests.Pdf {
             AssertMargins(options.Margins, 54, 72, 54, 72);
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PdfOptions { PageSize = default });
+                new PdfCreateOptions { PageSize = default });
 
             Assert.Equal("PageSize", exception.ParamName);
         }
@@ -136,9 +136,9 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PdfDocumentPageSetupFluent_AppliesToTopLevelFlowAndComposePages() {
             var doc = PdfDocument.Create()
-                .Size(PageSizes.A5)
+                .Size(PdfPageSizes.A5)
                 .Landscape()
-                .Margin(PageMargins.Narrow)
+                .Margin(PdfPageMargins.Narrow)
                 .Paragraph(p => p.Text("Document default page setup."));
 
             doc.Compose(c => c.Page(page =>
@@ -167,8 +167,8 @@ namespace OfficeIMO.Tests.Pdf {
             var doc = PdfDocument.Create();
 
             doc.Compose(c => c.Page(page => {
-                page.Size(PageSizes.A4);
-                page.Margin(PageMargins.Narrow);
+                page.Size(PdfPageSizes.A4);
+                page.Margin(PdfPageMargins.Narrow);
                 page.Content(content =>
                     content.Column(column =>
                         column.Item().Paragraph(p => p.Text("Narrow margin body."))));

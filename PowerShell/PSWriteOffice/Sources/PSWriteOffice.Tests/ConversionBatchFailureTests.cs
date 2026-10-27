@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Pdf;
@@ -31,7 +32,7 @@ public sealed class ConversionBatchFailureTests {
             shell.Invoke();
             Assert.False((bool)runspace.SessionStateProxy.GetVariable("continued"));
             Assert.StartsWith(errorId, Assert.IsType<string>(runspace.SessionStateProxy.GetVariable("caught")));
-            var summary = Assert.IsType<OfficeConversionBatchResult>(runspace.SessionStateProxy.GetVariable("summary"));
+            var summary = Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(1, summary.Completed);
             Assert.Equal(0, summary.Failed);
             Assert.NotNull(summary.FailureSummary);
@@ -64,7 +65,7 @@ public sealed class ConversionBatchFailureTests {
             shell.Invoke();
             Assert.False((bool)runspace.SessionStateProxy.GetVariable("continued"));
             Assert.StartsWith(errorId, Assert.IsType<string>(runspace.SessionStateProxy.GetVariable("caught")));
-            var summary = Assert.IsType<OfficeConversionBatchResult>(runspace.SessionStateProxy.GetVariable("summary"));
+            var summary = Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(1, summary.Completed);
             Assert.Equal(1, summary.Failed);
             Assert.Contains("Completed before reporting", PdfDocument.Load(Path.Combine(output, "good.txt.pdf")).Read().Text);
@@ -92,7 +93,7 @@ public sealed class ConversionBatchFailureTests {
             shell.AddScript(script);
             var output = shell.Invoke();
             Assert.StartsWith(errorId, Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
-            var summary = Assert.IsType<OfficeConversionBatchResult>(Assert.Single(output).BaseObject);
+            var summary = Assert.IsType<OfficeBatchSummary>(Assert.Single(output).BaseObject);
             Assert.Equal(0, summary.Selected);
             Assert.Equal(1, summary.Skipped);
             shell.Commands.Clear();

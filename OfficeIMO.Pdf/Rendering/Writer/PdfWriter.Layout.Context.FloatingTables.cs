@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
             pendingFloatingBookmarks.Clear();
         }
 
-        private PdfOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
+        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0

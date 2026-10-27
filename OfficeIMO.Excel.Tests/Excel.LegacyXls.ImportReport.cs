@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.AdvancedWorkbook.Worksheets[0].Cells,
                 cell => cell.Row == 2 && (cell.Column == 2 || cell.Column == 3));
             OfficeConversionFidelityDiagnostic omission = Assert.Single(result.FidelityDiagnostics,
-                item => item.Code == "XLS-BIFF-SHEET-RECORD-INVALID");
+                item => item.Code == "xls-biff-sheet-record-invalid");
             Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
             Assert.True(result.HasLoss);
             Assert.Contains(result.Summary.FidelityDiagnostics,
@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(true, "XLS-BIFF-LBL-SHORT")]
-        [InlineData(false, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED")]
+        [InlineData(true, "xls-biff-lbl-short")]
+        [InlineData(false, "xls-biff-formula-tokens-unsupported")]
         public void LegacyXls_UnreadDefinedNamesAreTypedOmissions(bool shortRecord, string code) {
             byte[] workbook = LegacyXlsTestWorkbookBuilder.CreateUnreadDefinedNameWorkbookStream(shortRecord);
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbook);
@@ -2977,7 +2977,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.Single(result.Document.Sheets);
             Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.VbaProject);
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED");
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-compound-feature-vba-project-preserved");
             Assert.False(result.ImportReport.HasUnsupportedFeatures);
             LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, compoundRecord.Kind);
@@ -3011,8 +3011,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleByteCount["Bytes:0"]);
             Assert.Equal(1, result.ImportReport.VbaProjectWorkbookStates["BiffMarker:Missing|NoMacrosMarker:Missing|CompoundProject:Present|Modules:Missing"]);
             Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.VbaProject, result.ImportReport.UnsupportedFeaturesByKind.Keys);
-            Assert.DoesNotContain("XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED", result.ImportReport.UnsupportedFeaturesByCode.Keys);
-            Assert.DoesNotContain("VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("xls-compound-feature-vba-project-preserved", result.ImportReport.UnsupportedFeaturesByCode.Keys);
+            Assert.DoesNotContain("VbaProject|xls-compound-feature-vba-project-preserved|Compound:VbaProjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("VbaProject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
@@ -3153,7 +3153,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.Single(result.Document.Sheets);
             Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.OleObject);
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED");
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-compound-feature-ole-object-preserved");
             Assert.False(result.ImportReport.HasUnsupportedFeatures);
             LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.OleObject, compoundRecord.Kind);
@@ -3167,8 +3167,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRole["OleObjectPoolStorage"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKindAndRole["OleObject|OleObjectPoolStorage"]);
             Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.OleObject, result.ImportReport.UnsupportedFeaturesByKind.Keys);
-            Assert.DoesNotContain("XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED", result.ImportReport.UnsupportedFeaturesByCode.Keys);
-            Assert.DoesNotContain("OleObject|XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED|Compound:OleObjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("xls-compound-feature-ole-object-preserved", result.ImportReport.UnsupportedFeaturesByCode.Keys);
+            Assert.DoesNotContain("OleObject|xls-compound-feature-ole-object-preserved|Compound:OleObjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("OleObject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
@@ -3187,9 +3187,9 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.Single(result.Document.Sheets);
             LegacyXlsUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DigitalSignature);
-            Assert.Equal("XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED", feature.Code);
+            Assert.Equal("xls-compound-feature-digital-signature-diagnosed", feature.Code);
             Assert.Contains("_signatures", feature.Description);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "xls-compound-feature-digital-signature-diagnosed");
             LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.DigitalSignature, compoundRecord.Kind);
             Assert.Contains("_signatures", compoundRecord.Entries);
@@ -3215,8 +3215,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByContentKind["DigitalSignatureStream"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRoleAndContentKind["DigitalSignatureStream|DigitalSignatureStream"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DigitalSignature]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["DigitalSignature|XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED|Compound:DigitalSignature"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["xls-compound-feature-digital-signature-diagnosed"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["DigitalSignature|xls-compound-feature-digital-signature-diagnosed|Compound:DigitalSignature"]);
             Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
             Assert.Empty(result.ImportReport.UnsupportedProjectionGapsByKind);
             string markdown = result.ImportReport.ToMarkdown();

@@ -7,7 +7,7 @@ namespace OfficeIMO.Latex.Pdf;
 /// <summary>Controls the loss-aware LaTeX-to-PDF route.</summary>
 public sealed class LatexToPdfOptions {
     private LatexToMarkdownOptions _projectionOptions = new LatexToMarkdownOptions();
-    private MarkdownToPdfOptions _markdownOptions = new MarkdownToPdfOptions();
+    private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
     /// <summary>LaTeX-to-Markdown semantic projection settings.</summary>
     public LatexToMarkdownOptions ProjectionOptions {
@@ -16,7 +16,7 @@ public sealed class LatexToPdfOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownToPdfOptions MarkdownOptions {
+    public MarkdownPdfExportOptions MarkdownOptions {
         get => _markdownOptions;
         set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }

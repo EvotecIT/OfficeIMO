@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                 int lastColumn,
                 int fieldCount,
                 bool headersInFirstRow,
-                ExcelReadOptions options,
+                ExcelReaderOptions options,
                 CancellationToken ct,
                 ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
                 int utf8SourceFirstColumn = 0,
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
                     throw new XlsxTabularFastPathNotSupportedException(
                         $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
                 } else {
-                    _stream = owner.OpenDataReaderWorksheetStream(ct);
+                    _stream = owner.OpenReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
                     _reader = OpenWorksheetXmlReader(_stream);
                     _xmlTextBudget = new XmlDataReaderTextBudget(options.MaxXmlDataReaderBufferedCharacters,
@@ -670,7 +670,7 @@ namespace OfficeIMO.Excel {
 
                 if (!_bufferedRows!.TryGetValue(rowIndex, out object?[]? values)) {
                     if ((long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
-                        throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _maximumBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                        throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _maximumBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
                     }
                     values = new object?[_fieldCount];
                     _bufferedRows.Add(rowIndex, values);

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Represents the destination artifact and report produced by a PowerPoint conversion.</summary>
-public sealed class PowerPointPresentationConversionResult : IOfficeConversionResult<string, PowerPointPresentationConversionReport> {
+internal sealed class PowerPointPresentationConversionResult : IOfficeConversionResult<string, PowerPointPresentationConversionReport> {
     internal PowerPointPresentationConversionResult(
         string sourcePath,
         string destinationPath,
@@ -52,7 +52,7 @@ public sealed class PowerPointPresentationConversionResult : IOfficeConversionRe
 }
 
 /// <summary>Describes paths, formats, fidelity decisions, and commit behavior for one conversion.</summary>
-public sealed class PowerPointPresentationConversionReport : IOfficeConversionReport {
+internal sealed class PowerPointPresentationConversionReport : IOfficeConversionReport {
     internal PowerPointPresentationConversionReport(
         string sourcePath,
         string destinationPath,
@@ -134,7 +134,7 @@ public sealed class PowerPointPresentationConversionReport : IOfficeConversionRe
 }
 
 /// <summary>Raised when a validated PowerPoint conversion cannot be completed safely.</summary>
-public sealed class PowerPointPresentationConversionException : InvalidOperationException {
+internal sealed class PowerPointPresentationConversionException : InvalidOperationException {
     internal PowerPointPresentationConversionException(
         OfficeConversionFailureReason reason,
         PowerPointPresentationConversionResult result,
@@ -153,7 +153,7 @@ public sealed class PowerPointPresentationConversionException : InvalidOperation
 }
 
 /// <summary>Controls file-to-file PowerPoint conversion.</summary>
-public sealed class PowerPointPresentationConversionOptions {
+internal sealed class PowerPointPresentationConversionOptions {
     /// <summary>Gets or sets how an existing destination is handled.</summary>
     public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 

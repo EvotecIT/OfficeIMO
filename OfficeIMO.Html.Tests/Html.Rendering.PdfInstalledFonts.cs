@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(":left", 1)]
     [InlineData(" Report", 0)]
     public void HtmlPdf_LibraryDefaultMeasuresUnicodePageTextBeforeRetainingWrappedLines(string selector, int pageIndex) {
-        string? installedFamily = PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(',')
+        string? installedFamily = PdfCore.PdfCreateOptions.DefaultDocumentFontFamilyFallback.Split(',')
             .Select(candidate => candidate.Trim())
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         // This is a system-font integration contract; portable registered-font
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(following.LayoutY >= renderedImage.Y + renderedImage.Height,
             "The selected-face image baseline must also advance the containing line's flow height.");
         Assert.Equal(40D, renderedImage.Height, 3);
-        Assert.Contains("NEXT", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("NEXT", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Home (https://www.w3.org/WAI/)", extracted, StringComparison.Ordinal);
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfEmbeddedFontFamily embedded = result.Document.Options.NamedFontFamilies[installedFamily];
         Assert.Equal(expected!.Bold, embedded.Bold);
-        Assert.Contains("Bold heading", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Bold heading", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed partial class HtmlRenderingTests {
                 fontFamily: "Helvetica Neue"), result.Document.Options));
         Assert.Equal(paintedWidth, Assert.IsType<double>(title.TextAdvanceWidth), 3);
         Assert.Contains("Exploring Planet Uranus Resource Page",
-            PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -281,7 +281,7 @@ public sealed partial class HtmlRenderingTests {
         };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("ScopedWeb-Regular"), rawPdf);
@@ -309,6 +309,6 @@ public sealed partial class HtmlRenderingTests {
             result.Document.Options));
 
         Assert.Equal(expected, Assert.IsType<double>(text.TextAdvanceWidth), 3);
-        Assert.Contains("ΩΩ", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("ΩΩ", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 }

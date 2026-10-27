@@ -563,7 +563,7 @@ namespace OfficeIMO.Excel {
 
         private static string GetFirstReferenceCell(string range) {
             var bounds = ParseReferenceArgument(range);
-            return A1.ColumnIndexToLetters(bounds.c1) + bounds.r1.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return ExcelA1.ColumnIndexToLetters(bounds.c1) + bounds.r1.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -904,29 +904,29 @@ namespace OfficeIMO.Excel {
             return fontSize is > 0D ? fontSize : null;
         }
 
-        private static ExcelCellBorderSnapshot? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
+        private static ExcelCellBorderInfo? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
-            ExcelCellBorderSnapshot? border = BuildBorderSnapshot(format?.Border, workbookPart);
+            ExcelCellBorderInfo? border = BuildBorderSnapshot(format?.Border, workbookPart);
             return RemoveDifferentialColorOnlyBorderSides(border);
         }
 
-        private static ExcelCellBorderSnapshot? RemoveDifferentialColorOnlyBorderSides(ExcelCellBorderSnapshot? border) {
+        private static ExcelCellBorderInfo? RemoveDifferentialColorOnlyBorderSides(ExcelCellBorderInfo? border) {
             if (border == null) {
                 return null;
             }
 
-            ExcelBorderSideSnapshot? left = HasBorderStyle(border.Left) ? border.Left : null;
-            ExcelBorderSideSnapshot? right = HasBorderStyle(border.Right) ? border.Right : null;
-            ExcelBorderSideSnapshot? top = HasBorderStyle(border.Top) ? border.Top : null;
-            ExcelBorderSideSnapshot? bottom = HasBorderStyle(border.Bottom) ? border.Bottom : null;
-            ExcelBorderSideSnapshot? diagonal = HasBorderStyle(border.Diagonal) ? border.Diagonal : null;
+            ExcelBorderSideInfo? left = HasBorderStyle(border.Left) ? border.Left : null;
+            ExcelBorderSideInfo? right = HasBorderStyle(border.Right) ? border.Right : null;
+            ExcelBorderSideInfo? top = HasBorderStyle(border.Top) ? border.Top : null;
+            ExcelBorderSideInfo? bottom = HasBorderStyle(border.Bottom) ? border.Bottom : null;
+            ExcelBorderSideInfo? diagonal = HasBorderStyle(border.Diagonal) ? border.Diagonal : null;
             bool diagonalUp = diagonal != null && border.DiagonalUp;
             bool diagonalDown = diagonal != null && border.DiagonalDown;
             if (left == null && right == null && top == null && bottom == null && diagonal == null) {
                 return null;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = left,
                 Right = right,
                 Top = top,
@@ -937,7 +937,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static bool HasBorderStyle(ExcelBorderSideSnapshot? side) {
+        private static bool HasBorderStyle(ExcelBorderSideInfo? side) {
             if (side == null || string.IsNullOrWhiteSpace(side.Style)) {
                 return false;
             }
@@ -998,7 +998,7 @@ namespace OfficeIMO.Excel {
                 range, SpreadsheetAddressDialect.ExcelA1);
             SpreadsheetCellReference start = syntax.References[0].Start;
             if (!start.IsCell) throw new ArgumentException("Conditional formatting requires a cell reference.", nameof(range));
-            return A1.CellReference(checked((int)start.Row!.Value), start.Column!.Value);
+            return ExcelA1.CellReference(checked((int)start.Row!.Value), start.Column!.Value);
         }
 
         private static string EscapeFormulaString(string value) {

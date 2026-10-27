@@ -23,7 +23,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             "<div class='grid'>Grid content</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToWordResult wordResult = source.ToWordDocumentResult();
+        HtmlToWordResult wordResult = source.ConvertToWordWithEvidence();
         byte[] docx = SaveWord(wordResult.Value);
         using WordDocument word = WordDocument.Load(
             new MemoryStream(docx),
@@ -71,7 +71,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout.pptx", pptx);
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
-            WriteEvidenceWhenRequested("editable-layout-word.pdf", word.ToPdfBytes());
+            WriteEvidenceWhenRequested("editable-layout-word.pdf", (word.ToPdf()).ToBytes());
             WriteEvidenceWhenRequested("editable-layout-word.svg", Encoding.UTF8.GetBytes(word.ToSvg()));
         }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);

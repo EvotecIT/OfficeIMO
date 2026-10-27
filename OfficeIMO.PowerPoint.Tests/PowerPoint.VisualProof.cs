@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
                     report.RecordArtifact("proof.html", "text/html", Encoding.UTF8.GetBytes(html),
                         htmlResult.ImageDiagnostics.Count);
 
-                    var pdfOptions = new PowerPointToPdfOptions().UseProfile(PdfExportProfile.Faithful);
-                    PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
+                    var pdfOptions = new PowerPointPdfExportOptions().UseProfile(PdfExportProfile.Faithful);
+                    PdfDocumentConversionResult pdfResult = presentation.ConvertToPdfWithEvidence(pdfOptions);
                     byte[] pdf = pdfResult.ToBytes();
                     Assert.True(pdf.Length > 100);
                     Assert.DoesNotContain(pdfResult.Warnings,

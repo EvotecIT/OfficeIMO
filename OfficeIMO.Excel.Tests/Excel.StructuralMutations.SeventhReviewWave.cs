@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         public void Test_CellInsertion_PreflightsDrawingMarkerCapacity() {
             using (var document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                AppendDrawingMarker(sheet, row: 1, column: A1.MaxColumns);
+                AppendDrawingMarker(sheet, row: 1, column: ExcelA1.MaxColumns);
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => sheet.PlanInsertCells("A1", ExcelCellShiftDirection.Right));
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                AppendDrawingMarker(sheet, row: A1.MaxRows, column: 1);
+                AppendDrawingMarker(sheet, row: ExcelA1.MaxRows, column: 1);
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => sheet.PlanInsertCells("A1", ExcelCellShiftDirection.Down));

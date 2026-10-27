@@ -51,17 +51,17 @@ public sealed class ReaderNativeLeanProjectionTests {
         using WordDocument document = WordDocument.Create();
         using var image = new MemoryStream(Pixel, writable: false);
         document.AddParagraph("Body evidence").AddImage(image, "pixel.png", 1, 1, description: "Source alt text");
-        WordDocumentSnapshot lean = document.CreateInspectionSnapshot(includeImageBytes: false);
-        WordRunSnapshot descriptor = lean.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+        WordDocumentInfo lean = document.Inspect(includeImageBytes: false);
+        WordRunInfo descriptor = lean.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .SelectMany(paragraph => paragraph.Runs).Single(run => run.InlineImage != null);
         Assert.Null(descriptor.InlineImage!.Bytes);
         Assert.Equal("Source alt text", descriptor.InlineImage.Description);
         Assert.Equal("pixel.png", descriptor.InlineImage.FileName);
-        WordDocumentSnapshot full = document.CreateInspectionSnapshot();
-        Assert.Equal(Pixel, full.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+        WordDocumentInfo full = document.Inspect();
+        Assert.Equal(Pixel, full.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .SelectMany(paragraph => paragraph.Runs).Single(run => run.InlineImage != null).InlineImage!.Bytes);
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
-        Assert.Throws<OperationCanceledException>(() => document.CreateInspectionSnapshot(false, canceled.Token));
+        Assert.Throws<OperationCanceledException>(() => document.Inspect(false, canceled.Token));
     }
 
     [Fact]
@@ -120,22 +120,22 @@ public sealed class ReaderNativeLeanProjectionTests {
         byte[] source;
         if (format == "word") {
             using WordDocument document = WordDocument.Create(); document.AddParagraph("Legacy body");
-            source = document.ToBytes(WordFileFormat.Doc);
+            source = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => WordDocument.Load(input, new WordLoadOptions { AllowLegacyProjection = false }));
             using WordDocument ordinary = WordDocument.Load(new MemoryStream(source, writable: false));
             Assert.Contains(ordinary.Paragraphs, paragraph => paragraph.Text == "Legacy body");
         } else if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create(); document.AddWorksheet("Legacy").CellValue(1, 1, "Legacy body");
-            source = document.ToBytes(ExcelFileFormat.Xls);
+            source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
             using ExcelDocument ordinary = ExcelDocument.Load(new MemoryStream(source, writable: false)); Assert.Single(ordinary.Sheets);
         } else {
             using PowerPointPresentation document = PowerPointPresentation.Create(); document.AddSlide().AddTextBox("Legacy body", 100000, 100000, 2000000, 500000);
-            source = document.ToBytes(PowerPointFileFormat.Ppt);
+            source = document.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             using var input = new MemoryStream(source, writable: false);
-            Assert.Throws<NotSupportedException>(() => PowerPointPresentation.Load(input, new PowerPointLoadOptions { AllowLegacyProjection = false }));
+            Assert.Throws<NotSupportedException>(() => PowerPointPresentation.Load(input, new PowerPointLoadOptions { AllowLegacyProjection = false, Password = "unused-wrong-password" }));
             using PowerPointPresentation ordinary = PowerPointPresentation.Load(new MemoryStream(source, writable: false)); Assert.Single(ordinary.Slides);
         }
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddExcelHandler().AddPowerPointHandler().Build();
@@ -176,9 +176,9 @@ public sealed class ReaderNativeLeanProjectionTests {
         byte[] original = Create(format);
         using var input = new MemoryStream(original, writable: false);
         using var encrypted = new MemoryStream();
-        if (format == "word") { using WordDocument document = WordDocument.Load(input); document.SaveEncrypted(encrypted, password); }
-        else if (format == "excel") { using ExcelDocument document = ExcelDocument.Load(input); document.SaveEncrypted(encrypted, password); }
-        else { using PowerPointPresentation document = PowerPointPresentation.Load(input); document.SaveEncrypted(encrypted, password); }
+        if (format == "word") { using WordDocument document = WordDocument.Load(input); document.Save(encrypted,new OfficeIMO.Word.WordSaveOptions{Password=password}); }
+        else if (format == "excel") { using ExcelDocument document = ExcelDocument.Load(input); document.Save(encrypted,new OfficeIMO.Excel.ExcelSaveOptions{Password=password}); }
+        else { using PowerPointPresentation document = PowerPointPresentation.Load(input); document.Save(encrypted,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password}); }
         byte[] source = encrypted.ToArray();
         OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddWordHandler().AddExcelHandler().AddPowerPointHandler().Build()
             .ReadDocument(source, name, new ReaderOptions {
@@ -199,16 +199,16 @@ public sealed class ReaderNativeLeanProjectionTests {
     [InlineData("stream-async")]
     public async Task NativeEncryptedBinaryPowerPointRefusalPrecedesPasswordAndPayloadProjection(string route) {
         using PowerPointPresentation source = PowerPointPresentation.Create(); source.AddSlide().AddTextBox("Legacy body", 100000, 100000, 2000000, 500000);
-        byte[] bytes = source.ToEncryptedBytes("source-password", PowerPointFileFormat.Ppt);
+        byte[] bytes = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password="source-password",Format=PowerPointFileFormat.Ppt});
         string path = Path.Combine(Path.GetTempPath(), "lean-legacy-" + Guid.NewGuid().ToString("N") + ".ppt");
         File.WriteAllBytes(path, bytes);
-        var options = new PowerPointLoadOptions { AllowLegacyProjection = false };
+        var options = new PowerPointLoadOptions { AllowLegacyProjection = false, Password = "unused-wrong-password" };
         using var input = new MemoryStream(bytes, writable: false);
         try {
-            if (route == "path") Assert.Throws<NotSupportedException>(() => PowerPointPresentation.LoadEncrypted(path, "unused-wrong-password", options));
-            else if (route == "stream") Assert.Throws<NotSupportedException>(() => PowerPointPresentation.LoadEncrypted(input, "unused-wrong-password", options));
-            else if (route == "path-async") await Assert.ThrowsAsync<NotSupportedException>(() => PowerPointPresentation.LoadEncryptedAsync(path, "unused-wrong-password", options));
-            else await Assert.ThrowsAsync<NotSupportedException>(() => PowerPointPresentation.LoadEncryptedAsync(input, "unused-wrong-password", options));
+            if (route == "path") Assert.Throws<NotSupportedException>(() => PowerPointPresentation.Load(path, options));
+            else if (route == "stream") Assert.Throws<NotSupportedException>(() => PowerPointPresentation.Load(input, options));
+            else if (route == "path-async") await Assert.ThrowsAsync<NotSupportedException>(() => PowerPointPresentation.LoadAsync(path, options));
+            else await Assert.ThrowsAsync<NotSupportedException>(() => PowerPointPresentation.LoadAsync(input, options));
             Assert.False(options.AllowLegacyProjection);
             Assert.True(input.CanRead);
         } finally { File.Delete(path); }
@@ -217,7 +217,7 @@ public sealed class ReaderNativeLeanProjectionTests {
     [Fact]
     public void XmlOnlyExcelLoadRefusesXlsbBeforeProjection() {
         using ExcelDocument source = ExcelDocument.Create(); source.AddWorksheet("Binary").CellValue(1, 1, "Saved value");
-        byte[] bytes = source.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] bytes = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var input = new MemoryStream(bytes, writable: false);
         Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
         using ExcelDocument ordinary = ExcelDocument.Load(new MemoryStream(bytes, writable: false)); Assert.Single(ordinary.Sheets);

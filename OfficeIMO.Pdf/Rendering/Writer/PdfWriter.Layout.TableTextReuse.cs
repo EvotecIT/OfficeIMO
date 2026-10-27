@@ -9,11 +9,11 @@ internal static partial class PdfWriter {
     private sealed class TableTextLayoutReuse {
         private const int MaximumEntries = 64;
         private const int MaximumTextLength = 256;
-        private readonly PdfOptions options;
+        private readonly PdfCreateOptions options;
         private readonly Dictionary<(string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap), LinkedListNode<Entry>> entries = new();
         private readonly LinkedList<Entry> recent = new();
 
-        public TableTextLayoutReuse(PdfOptions options) {
+        public TableTextLayoutReuse(PdfCreateOptions options) {
             this.options = options;
         }
 

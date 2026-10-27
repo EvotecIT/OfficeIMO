@@ -11,11 +11,11 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptCommentTests {
         [Theory]
-        [InlineData("Container", "PPT-COMMENT-CONTAINER")]
-        [InlineData("Atom", "PPT-COMMENT-ATOM")]
-        [InlineData("Index", "PPT-COMMENT-INDEX")]
-        [InlineData("DateTime", "PPT-COMMENT-DATETIME")]
-        [InlineData("String", "PPT-COMMENT-STRING")]
+        [InlineData("Container", "ppt-comment-container")]
+        [InlineData("Atom", "ppt-comment-atom")]
+        [InlineData("Index", "ppt-comment-index")]
+        [InlineData("DateTime", "ppt-comment-datetime")]
+        [InlineData("String", "ppt-comment-string")]
         public void UnreadBinaryCommentIsReportedAsAnOmission(string malformedPart, string code) {
             byte[] bytes = CreatePresentationWithMalformedComment(malformedPart);
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite, string.Join(Environment.NewLine, report.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 AddAuthors(source, (0U, "Original Author", "OA", 1U));
                 AddComment(slide, 0U, 1U, "Original review",
                     new DateTime(2026, 7, 1, 7, 0, 0, DateTimeKind.Utc), 120, 240);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite, string.Join(Environment.NewLine, report.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide();
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                 AddComment(imported.Slides[0], 0U, 4U, "Added after import",
                     new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc), 500, 600);
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                withComment = imported.ToBytes(PowerPointFileFormat.Ppt);
+                withComment = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation added = LegacyPptPresentation.Load(withComment);
             Assert.Equal("Added after import", Assert.Single(added.Slides[0].Comments).Text);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 SlidePart slidePart = imported.Slides[0].SlidePart;
                 slidePart.DeletePart(slidePart.SlideCommentsPart!);
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                withoutComment = imported.ToBytes(PowerPointFileFormat.Ppt);
+                withoutComment = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(withoutComment);
             Assert.Empty(removed.Slides[0].Comments);
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
 
             LegacyPptWriteFinding finding = Assert.Single(report.Findings,
-                item => item.Code == "PPT-WRITE-MODERN-COMMENTS");
+                item => item.Code == "ppt-write-modern-comments");
             Assert.Contains("no native PowerPoint 97-2003 representation",
                 finding.Description, StringComparison.Ordinal);
         }
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
 
             LegacyPptWriteFinding finding = Assert.Single(report.Findings,
-                item => item.Code == "PPT-WRITE-COMMENTS");
+                item => item.Code == "ppt-write-comments");
             Assert.Contains("color index", finding.Description, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide();
                 AddAuthors(source, (0U, "Author", "A", 0U));
                 AddComment(slide, 0U, 0U, "Review", new DateTime(2026, 7, 15, 10, 0, 0, DateTimeKind.Utc), 100, 200);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation original = LegacyPptPresentation.Load(bytes);

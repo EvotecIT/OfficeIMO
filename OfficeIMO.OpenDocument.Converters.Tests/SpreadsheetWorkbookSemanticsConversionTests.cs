@@ -53,7 +53,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.SetHyperlink(1, 1, "https://example.test/docs", "Docs", style: true, tooltip: "Open docs");
 
-        ExcelCellSnapshot authored = Assert.Single(source.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo authored = Assert.Single(source.Inspect().Worksheets.Single().Cells);
         Assert.Equal("Open docs", authored.Hyperlink!.Tooltip);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();

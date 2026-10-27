@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private const string DocumentSummaryInformationStreamName = "\u0005DocumentSummaryInformation";
         private const uint PropertyDictionaryId = 0;
         private const uint CodePagePropertyId = 1;
-        private const string UnsupportedCustomPropertyCode = "XLS-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED";
+        private const string UnsupportedCustomPropertyCode = "xls-ole-custom-document-property-unsupported";
 
         internal static void AddDocumentProperties(OfficeCompoundFile compoundFile, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
             if (compoundFile == null) throw new ArgumentNullException(nameof(compoundFile));
@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private static void AddPropertyWarning(LegacyXlsWorkbook workbook, string streamName, Exception exception) {
             workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Warning,
-                "XLS-OLE-PROPERTIES-UNREADABLE",
+                "xls-ole-properties-unreadable",
                 string.Format(CultureInfo.InvariantCulture, "The OLE document property stream '{0}' could not be read. {1}", streamName, exception.Message)));
         }
     }

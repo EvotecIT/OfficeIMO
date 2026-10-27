@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Pdf {
     internal static class WriterHeadersFooters {
         public static void Example_Pdf_PageNumbers(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.WithPageNumbers.pdf");
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

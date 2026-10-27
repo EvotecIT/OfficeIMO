@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             return new OfficeIMO.Pdf.PdfConversionWarning(
                 "OfficeIMO.Excel.Pdf",
-                string.IsNullOrWhiteSpace(Feature) ? "ExcelPdfWarning" : Feature,
+                string.IsNullOrWhiteSpace(Feature) ? "excel-pdf-warning" : Feature,
                 SheetName,
                 Message,
                 severity: OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning, lossKind: LossKind, details: details);

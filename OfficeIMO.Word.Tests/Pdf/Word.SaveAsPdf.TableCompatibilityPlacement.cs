@@ -40,10 +40,10 @@ public sealed class PdfTableCompatibilityPlacementTests {
         table.Rows[0].Cells[firstCellMargin ? 0 : 1].MarginLeftWidth = 360;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "OTHER";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72)
-        }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PdfPageSize(612, 792),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var first = Assert.Single(words, word => word.Text == "FIRST");
         var other = Assert.Single(words, word => word.Text == "OTHER");

@@ -2,9 +2,9 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Controls how Word content without a native Markdown representation is exported.
     /// </summary>
-    public enum MarkdownUnsupportedContentMode {
+    public enum WordMarkdownUnsupportedContentMode {
         /// <summary>
-        /// Emit a non-fatal warning through <see cref="WordToMarkdownOptions.OnWarning"/> and omit the content.
+        /// Emit a non-fatal warning through <see cref="WordMarkdownExportOptions.OnWarning"/> and omit the content.
         /// </summary>
         WarnOnly = 0,
 

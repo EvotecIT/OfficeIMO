@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 4) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SUPBOOK-SHORT",
+                        "xls-biff-supbook-short",
                         "A SupBook record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SUPBOOK-INVALID",
+                    "xls-biff-supbook-invalid",
                     $"A SupBook record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));

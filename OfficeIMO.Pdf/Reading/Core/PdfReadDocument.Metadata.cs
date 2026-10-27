@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private string ToRaw() {
         // Reconstruct raw text for simple metadata extraction without reserialization; ok for small files.
         var sb = new StringBuilder();

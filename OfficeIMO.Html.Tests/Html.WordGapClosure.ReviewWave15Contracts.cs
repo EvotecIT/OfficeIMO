@@ -14,7 +14,7 @@ public partial class HtmlWordGapClosure {
             <body>before<img class="hero" src="data:image/png;base64,{{ValidPng}}" alt="Hero">after</body>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph before = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "before");
         WordParagraph image = Assert.Single(
             document.Paragraphs,
@@ -34,7 +34,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTable table = Assert.Single(document.Sections[0].Tables);
         WordTableCell first = table.Rows[0].Cells[0];
         WordTableCell last = table.Rows[0].Cells[1];

@@ -893,7 +893,7 @@ public partial class PdfFormFillerTests {
             return Array.Empty<byte>();
         }
 
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Fill Font", fontPath)

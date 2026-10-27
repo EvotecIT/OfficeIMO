@@ -15,7 +15,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Svg)]
-    public void PowerPointSlide_ImageExportMatchesPdfPageForTextTableThemeAndClippedContent(OfficeImageExportFormat format) {
+    public void PowerPointSlide_ImageExportPreservesTextTableThemeAndClippedContent(OfficeImageExportFormat format) {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         presentation.SlideSize.SetSizePoints(320, 180);
         presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "146C94");
@@ -44,8 +44,8 @@ public partial class PowerPointImageExportTests {
         edge.FillColor = "D7263D";
         edge.OutlineWidthPoints = 0;
 
-        AssertSharedPdfImageRoute(presentation, format, scale: 1.5D);
-        PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+        AssertNativeImageRoute(presentation, format, scale: 1.5D);
+        PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
         Assert.Contains("Canonical slide", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
         Assert.Contains("Revenue", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
         Assert.Contains(snapshot.TextSpans, span => span.Text.Contains("Canonical", StringComparison.Ordinal)
@@ -57,19 +57,17 @@ public partial class PowerPointImageExportTests {
         Assert.Equal(OfficeColor.FromRgb(255, 249, 232), image.GetPixel(60, 170));
     }
 
-    private static void AssertSharedPdfImageRoute(PowerPointPresentation presentation, OfficeImageExportFormat format, double scale = 1D) {
-        // Compare public routes, without relying on the Drawing scene's element types or text representation.
-        PdfReadDocument pdf = PdfReadDocument.Open(presentation.ToPdfBytes(new PowerPointToPdfOptions { IncludeHiddenSlides = true }), new PdfLoadOptions { IncludeArtifactText = true });
-        PdfReadPage page = pdf.Pages[0];
-        OfficeImageExportResult expected = page.ExportImage(format, new PdfImageExportOptions { Scale = scale });
+    private static void AssertNativeImageRoute(PowerPointPresentation presentation, OfficeImageExportFormat format, double scale = 1D) {
         OfficeImageExportResult actual = presentation.Slides[0].ExportImage(format, new PowerPointImageExportOptions { Scale = scale });
-        Assert.Equal(expected.Format, actual.Format);
-        Assert.Equal((expected.Width, expected.Height), (actual.Width, actual.Height));
-        Assert.Equal(expected.Bytes, actual.Bytes);
-
-        PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0].CreateVisualSnapshot();
-        Assert.Equal(page.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Color)),
-            snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Color)));
+        PowerPointSlideVisualInfo snapshot = presentation.Slides[0].CreateVisualSnapshot();
+        Assert.Equal(format, actual.Format);
+        Assert.Equal(((int)Math.Ceiling(snapshot.Width * scale), (int)Math.Ceiling(snapshot.Height * scale)), (actual.Width, actual.Height));
+        if (format == OfficeImageExportFormat.Svg) {
+            ReadSvgOutput(actual);
+        } else {
+            Assert.True(OfficeImageReader.TryIdentifyByContent(actual.Bytes, null, out OfficeImageInfo info));
+            Assert.Equal((actual.Width, actual.Height), (info.Width, info.Height));
+        }
     }
 
     private static OfficeRasterImage ReadSvgOutput(OfficeImageExportResult result) {

@@ -23,8 +23,8 @@ public partial class Word {
             CreateContinuousHeaderSource(changedHeader, bodyBreak)));
         string before = source.MainDocumentPartRoot.Document.OuterXml;
 
-        var result = source.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeContinuousSectionPaginationApproximated");
+        var result = source.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-continuous-section-pagination-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
 
         Assert.Equal(expectedPages, pdf.NumberOfPages);
@@ -47,8 +47,8 @@ public partial class Word {
         WordTable table = source.Sections[1].AddTable(1, 1);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "TABLE CELL";
 
-        var result = source.ToPdfDocumentResult(EmptyRunningOptions());
-        var warning = Assert.Single(result.Report.Warnings, item => item.Code == "NativeContinuousSectionPaginationApproximated");
+        var result = source.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        var warning = Assert.Single(result.Report.Warnings, item => item.Code == "native-continuous-section-pagination-approximated");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
 
@@ -64,7 +64,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: false, successor: "inherited")));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(2, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
@@ -81,7 +81,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: false, successor: "explicit")));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(2, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
@@ -97,7 +97,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: false, overflowParagraphs: flowParagraphs)));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.True(pdf.NumberOfPages >= 3);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
@@ -113,8 +113,8 @@ public partial class Word {
         using WordDocument control = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: true)));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
-        using var ordinary = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var ordinary = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(2, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
@@ -139,8 +139,8 @@ public partial class Word {
         using WordDocument control = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: false)));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
-        using var ordinary = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var ordinary = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(1, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
@@ -157,7 +157,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: true, discriminator: "successive")));
 
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(2, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");

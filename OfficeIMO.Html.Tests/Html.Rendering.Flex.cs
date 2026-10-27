@@ -702,9 +702,9 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         Assert.Equal(2, PdfCore.PdfInspector.Inspect(pdf).PageCount);
-        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string pdfText = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Contains("Line9", pdfText, StringComparison.Ordinal);
         Assert.Contains("Following sibling", pdfText, StringComparison.Ordinal);
     }
@@ -752,7 +752,7 @@ public sealed partial class HtmlRenderingTests {
         options.EnableEditableLayoutRegions = editableRegions;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
@@ -760,7 +760,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
             visual => visual.Text == "Ninth");
         Assert.Equal(2, PdfCore.PdfInspector.Inspect(pdf).PageCount);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Contains("Ninth", text, StringComparison.Ordinal);
         Assert.Contains("Following sibling", text, StringComparison.Ordinal);
     }
@@ -786,7 +786,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes()));
         Assert.True(rendered.Pages.Count >= 4);
         Assert.Equal(rendered.Pages.Count, pdf.Pages.Count);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
@@ -979,7 +979,7 @@ public sealed partial class HtmlRenderingTests {
                 HonorCssPageRules = false,
                 Margins = HtmlRenderMargins.All(0D)
             };
-            var pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions));
+            var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes()));
             Assert.Contains(pdf.NamedDestinations, destination => destination.Name == "html-fragment:tail-anchor");
         }
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(),
@@ -1365,7 +1365,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(10, 40));
@@ -1375,7 +1375,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(10, 33));
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(10, 40));
         Assert.Contains("ColumnFlexPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -1522,7 +1522,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
@@ -1532,7 +1532,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(33, 10));
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(40, 10));
         Assert.Contains("FlexPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

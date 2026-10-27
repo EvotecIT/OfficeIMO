@@ -18,7 +18,7 @@ public partial class WordPdfPageFootnoteTests {
     private readonly ITestOutputHelper _output;
     private const string NativeArialRegularHash = "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a";
     private const string NativeArialBoldHash = "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5";
-    private const string SeparatorWarningCode = "NativeFootnoteSeparatorMarkOmitted";
+    private const string SeparatorWarningCode = "native-footnote-separator-mark-omitted";
 
     public WordPdfPageFootnoteTests(ITestOutputHelper output) => _output = output;
 
@@ -51,7 +51,7 @@ public partial class WordPdfPageFootnoteTests {
         PageFootnoteFrame frame = ReadPageFootnoteFrame(input);
         using WordDocument document = WordDocument.Load(new MemoryStream(input));
         Assert.Empty(document.ValidateDocument());
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(actual, 0, 4));
         Assert.Equal(input, File.ReadAllBytes(inputPath));
@@ -72,7 +72,7 @@ public partial class WordPdfPageFootnoteTests {
             Assert.Contains("selected font does not provide usable strike-band metrics", warning.Message, StringComparison.Ordinal);
             _output.WriteLine("{0}: separator font-metric limitation: {1}", id, warning.Message);
         }
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.All(result.SourceConversionReports, report => Assert.False(report.HasLoss));
         Assert.All(substitutions, warning => Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind));
         foreach (PdfConversionWarning warning in result.Warnings.Where(warning => warning.LossKind != OfficeConversionLossKind.None)) {
@@ -90,7 +90,7 @@ public partial class WordPdfPageFootnoteTests {
         string[] faces = rendered.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName ?? string.Empty)
             .Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         PdfConversionWarning[] substitutions = warnings.Where(warning =>
-            warning.Code is "NativeFontFamilySubstituted" or "font-family-substitution").ToArray();
+            warning.Code is "font-family-substitution" or "font-family-substitution").ToArray();
         IReadOnlyCollection<string> sourceFamilies = declaredSourceFontFamilies ?? new[] { "Arial" };
         foreach (PdfConversionWarning warning in substitutions) {
             _output.WriteLine("{0}: font degradation: code={1}; source={2}; loss={3}; {4}; details={5}",

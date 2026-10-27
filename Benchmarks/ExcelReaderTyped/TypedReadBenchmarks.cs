@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOTyped() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_workbook, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             while (reader.Read()) {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         internal int OpenOfficeIMO() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_workbook, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = true });
             return reader.FieldCount == TypedWorkbookFixture.Headers.Length
                 ? reader.FieldCount : throw new InvalidDataException("Incorrect field count when opening the workbook.");
         }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using MemoryStream stream = new MemoryStream(_workbook, writable: false);
             using DbDataReader reader = useSylvan
                 ? global::Sylvan.Data.Excel.ExcelDataReader.Create(stream, ExcelWorkbookType.ExcelXml, new ExcelDataReaderOptions())
-                : ExcelDocument.OpenDataReader(_workbook, new ExcelReadOptions { HasHeaderRow = true });
+                : ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = true });
             if (reader.FieldCount != TypedWorkbookFixture.Headers.Length) throw new InvalidDataException("Incorrect field count.");
             for (int column = 0; column < TypedWorkbookFixture.Headers.Length; column++) {
                 if (reader.GetName(column) != TypedWorkbookFixture.Headers[column])

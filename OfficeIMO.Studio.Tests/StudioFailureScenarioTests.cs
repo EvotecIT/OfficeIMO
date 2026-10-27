@@ -104,7 +104,7 @@ public sealed class StudioFailureScenarioTests {
             IReadOnlyList<string> files = [input];
             using var model = new ConversionWorkbenchViewModel(_ => Task.FromResult(files), _ => Task.FromResult<string?>(root.Path), new OfficeWorkflowRunner());
             model.SelectedRoute = model.Routes.Single(route => route.Route.Id == "txt-pdf");
-            model.SelectedConflict = model.ConflictPolicies.Single(choice => choice.Value == OfficeWorkflowConflictPolicy.Replace);
+            model.SelectedConflict = model.ConflictPolicies.Single(choice => choice.Value == OfficePublicationPolicy.Replace);
             await model.AddFilesCommand.ExecuteAsync(null);
             string[] before = Directory.GetFiles(root.Path);
 

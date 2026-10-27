@@ -26,19 +26,19 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownTable", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownTable")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPipelineDocument = "PipelineDocument";
     private readonly List<object?> _items = new();
-    private MarkdownDoc? _document;
+    private MarkdownDocument? _document;
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocument)]
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetPipelineDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Objects to convert into a Markdown table.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetContext)]
@@ -125,7 +125,7 @@ public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
         }
     }
 
-    private void RenderTable(MarkdownDoc doc, object[] rows)
+    private void RenderTable(MarkdownDocument doc, object[] rows)
     {
         var projectedRows = TableViewProjection.Project(rows, View);
         var options = PowerShellObjectNormalizerOptions.ForTable(
@@ -157,7 +157,7 @@ public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
         return TableInputCollector.RequireRows(items, nameof(InputObject));
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

@@ -12,7 +12,7 @@ public class RtfPdfTableImportDefaultsTests {
     [InlineData(true)]
     public void BorderlessZeroGapTableHasNoGridAndStartsAtNativeMargin(bool unrelatedPdfOptions) {
         RtfDocument source = ReadTable();
-        PdfCore.PdfDocument mapped = source.ToPdfDocument(Options(unrelatedPdfOptions));
+        PdfCore.PdfDocument mapped = source.ToPdf(Options(unrelatedPdfOptions));
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
         byte[] bytes = mapped.ToBytes();
         Assert.True(bytes.Take(5).SequenceEqual(System.Text.Encoding.ASCII.GetBytes("%PDF-")));
@@ -30,7 +30,7 @@ public class RtfPdfTableImportDefaultsTests {
     [Fact]
     public void ExplicitCellBorderAndPaddingRemainVisible() {
         RtfDocument source = ReadTable(@"\clbrdrl\brdrs\brdrw8\brdrcf1\clpadl240\clpadfl3");
-        PdfCore.PdfDocument mapped = source.ToPdfDocument(Options());
+        PdfCore.PdfDocument mapped = source.ToPdf(Options());
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
         Assert.Null(table.Style!.BorderColor);
         Assert.Equal(12D, table.Style.CellPaddings![(0, 0)].Left);
@@ -46,7 +46,7 @@ public class RtfPdfTableImportDefaultsTests {
 
     [Fact]
     public void CallerTableStyleOverridesImportFallbackWithoutMutation() {
-        var caller = new PdfCore.PdfOptions {
+        var caller = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
             DefaultFontSize = 12D,
             DefaultTableStyle = new PdfCore.PdfTableStyle {
@@ -58,7 +58,7 @@ public class RtfPdfTableImportDefaultsTests {
         };
         RtfToPdfOptions options = Options();
         options.PdfOptions = caller;
-        PdfCore.PdfDocument mapped = ReadTable().ToPdfDocument(options);
+        PdfCore.PdfDocument mapped = ReadTable().ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
         Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), table.Style!.BorderColor);
         Assert.Equal(1D, table.Style.BorderWidth);
@@ -82,7 +82,7 @@ public class RtfPdfTableImportDefaultsTests {
     private static RtfToPdfOptions Options(bool includePdfOptions = true) => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
-        PdfOptions = includePdfOptions ? new PdfCore.PdfOptions {
+        PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
             DefaultFontSize = 12D
         } : null

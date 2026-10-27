@@ -39,7 +39,7 @@ public sealed class VisioDrawingReviewRegressionTests {
             }
             Assert.True(ink > 70, $"The visible {kind} artwork was lost during raster projection.");
             byte[] pdf = document.ToPdfBytes(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages });
-            Assert.Equal((216D, 144D), Assert.Single(PdfReadDocument.Open(pdf).Pages).GetPageSize());
+            Assert.Equal((216D, 144D), Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages).GetPageSize());
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }
     }
@@ -54,11 +54,11 @@ public sealed class VisioDrawingReviewRegressionTests {
         var shape = document.AddPage("Font override").AddRectangle(2, 2, .5, .16, "AAAAAAAAAA");
         shape.TextStyle = new VisioTextStyle { Size = 6, FontFamily = "Arial", LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0 };
         var drawingOptions = new VisioDrawingOptions(); drawingOptions.Fonts.Add("Arial", widePdf ? narrow : wide);
-        var pdfOptions = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", widePdf ? wide : narrow));
+        var pdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", widePdf ? wide : narrow));
         var result = document.ToPdfDocumentResult(new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = drawingOptions, PdfOptions = pdfOptions
         });
-        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         Assert.Equal(!widePdf, text.Contains("AAAAAAAAAA"));
         Assert.Equal(widePdf, result.FidelityDiagnostics.Any(d => d.Code == "VISIO_DRAWING_TEXT_CLIPPED" && d.LossKind == OfficeConversionLossKind.Omission));
     }
@@ -75,7 +75,7 @@ public sealed class VisioDrawingReviewRegressionTests {
         drawingOptions.Fonts.Add("Arial", ManagedTextShapingTestAssets.CreateFont('A'));
         var options = new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = drawingOptions,
-            PdfOptions = new PdfOptions { TextShapingProvider = pdfProvider ? provider : null }
+            PdfOptions = new PdfCreateOptions { TextShapingProvider = pdfProvider ? provider : null }
         };
         Assert.ThrowsAny<OperationCanceledException>(() => document.ToPdfDocumentResult(options, cancellation.Token));
         Assert.Equal(cancellation.Token, provider.ObservedToken);

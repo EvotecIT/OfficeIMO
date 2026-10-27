@@ -31,7 +31,7 @@ public sealed class SetOfficeExcelUrlLinksCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1 range containing values to convert into external links.</summary>
+    /// <summary>ExcelA1 range containing values to convert into external links.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Range { get; set; } = string.Empty;
 

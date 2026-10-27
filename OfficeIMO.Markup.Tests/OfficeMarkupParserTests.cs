@@ -2192,7 +2192,7 @@ Revenue,120
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            var snapshot = document.CreateInspectionSnapshot();
+            var snapshot = document.Inspect();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
 
@@ -2241,7 +2241,7 @@ Revenue,120
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            var snapshot = document.CreateInspectionSnapshot();
+            var snapshot = document.Inspect();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
 

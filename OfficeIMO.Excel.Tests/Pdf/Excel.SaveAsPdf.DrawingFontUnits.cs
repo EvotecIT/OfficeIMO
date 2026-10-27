@@ -13,7 +13,7 @@ public partial class Excel {
     [InlineData(50)]
     public void DrawingText_PreservesPointSizeAcrossPdfAndImageCoordinates(int percent) {
         string path = Path.Combine(_directoryWithFiles, "DrawingFontUnits" + percent + ".xlsx");
-        using (var document = ExcelDocument.Create(path, "Shapes")) {
+        using (var document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Shapes" })) {
             document.Sheets[0].CellValue(1, 1, "Body");
             document.Sheets[0].SetPageSetup(scale: (uint)percent);
             document.Save();
@@ -26,7 +26,7 @@ public partial class Excel {
             drawing.Save();
         }
         using var loaded = ExcelDocument.Load(path);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(loaded.ToPdfBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letter = Assert.Single(pdf.GetPage(1).Letters.Where(letter => letter.Value == "V"));
         Assert.InRange(letter.FontSize, 24D * percent / 100D - 0.01D, 24D * percent / 100D + 0.01D);
         // SVG geometry is in CSS pixels: authored 24 points occupy 32 pixels.

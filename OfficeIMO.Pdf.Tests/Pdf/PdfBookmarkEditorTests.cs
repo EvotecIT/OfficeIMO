@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfBookmarkEditorTests {
     [Fact]
     public void Edit_AddsRenamesMovesNestsRetargetsRemovesAndRebuilds() {
-        byte[] source = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("First")
             .Paragraph(p => p.Text("Page one"))
             .PageBreak()

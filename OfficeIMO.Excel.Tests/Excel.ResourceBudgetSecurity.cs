@@ -31,14 +31,14 @@ public sealed class ExcelResourceBudgetSecurityTests {
     public void ReadRange_RejectsDenseRangesBeyondConfiguredCellBudget() {
         string path = CreateWorkbookWithRows(2);
         try {
-            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            var options = new ExcelReaderOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadRange("A1:Z100"));
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxRangeCells), exception.LimitName);
             Assert.Equal(options.MaxRangeCells, exception.Maximum);
             Assert.Contains("2600", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
@@ -50,14 +50,14 @@ public sealed class ExcelResourceBudgetSecurityTests {
     public void ReadRangeAsDataTable_RejectsDenseRangesBeyondConfiguredCellBudget() {
         string path = CreateWorkbookWithRows(2);
         try {
-            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            var options = new ExcelReaderOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadRangeAsDataTable("A1:XFD1048576"));
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxRangeCells), exception.LimitName);
             Assert.Equal(options.MaxRangeCells, exception.Maximum);
             Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
@@ -69,14 +69,14 @@ public sealed class ExcelResourceBudgetSecurityTests {
     public void ReadObjects_RejectsDenseRangesBeyondConfiguredCellBudget() {
         string path = CreateWorkbookWithRows(2);
         try {
-            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            var options = new ExcelReaderOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjects("A1:XFD1048576"));
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxRangeCells), exception.LimitName);
             Assert.Equal(options.MaxRangeCells, exception.Maximum);
             Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
@@ -88,14 +88,14 @@ public sealed class ExcelResourceBudgetSecurityTests {
     public void ReadObjectsOfT_RejectsDenseRangesBeyondConfiguredCellBudget() {
         string path = CreateWorkbookWithRows(2);
         try {
-            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            var options = new ExcelReaderOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjects<BudgetRow>("A1:Z100").ToList());
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxRangeCells), exception.LimitName);
             Assert.Equal(options.MaxRangeCells, exception.Maximum);
             Assert.Contains("2600", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
@@ -126,14 +126,14 @@ public sealed class ExcelResourceBudgetSecurityTests {
                 tablePart.Table.Save();
             }
 
-            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            var options = new ExcelReaderOptions { MaxRangeCells = 100 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadUsedRange());
 
             Assert.Equal("excel", exception.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxRangeCells), exception.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxRangeCells), exception.LimitName);
             Assert.Equal(options.MaxRangeCells, exception.Maximum);
             Assert.Contains("17179869184", exception.InnerException!.Message, StringComparison.Ordinal);
         } finally {
@@ -154,12 +154,12 @@ public sealed class ExcelResourceBudgetSecurityTests {
                 worksheetPart.Worksheet.Save();
             }
 
-            var options = new ExcelReadOptions { MaxPendingTypedRows = 1 };
+            var options = new ExcelReaderOptions { MaxPendingTypedRows = 1 };
             using var reader = ExcelDocumentReader.Open(path, options);
 
             var error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
                 reader.GetSheet("Data").ReadObjectsStream<BudgetRow>("A1:A4").ToList());
-            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxPendingTypedRows), error.LimitName); Assert.Equal(1, error.Maximum);
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxPendingTypedRows), error.LimitName); Assert.Equal(1, error.Maximum);
         } finally {
             DeleteIfExists(path);
         }

@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 var preflight = presentation.AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite, string.Join(Environment.NewLine,
                     preflight.Findings.Select(finding => finding.Code + ": " + finding.Description)));
-                binary = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                binary = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using PowerPointPresentation roundTrip = PowerPointPresentation.Load(
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             second.Remove();
             Assert.Equal(1U, GetClassicAuthor(presentation, "Alice").LastIndex!.Value);
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.NotEmpty(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 .Select(pair => pair.OpenXmlPart)
                 .OfType<PowerPointAuthorsPart>());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.NotEmpty(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Bob Reviewer", reply.Author.Name);
                 Assert.Single(comment.Replies);
                 Assert.Contains(presentation.AnalyzeLegacyPptWrite().Findings,
-                    finding => finding.Code == "PPT-WRITE-MODERN-COMMENTS");
+                    finding => finding.Code == "ppt-write-modern-comments");
                 PowerPointFeatureFinding finding = presentation.InspectFeatures().Features
                     .Single(item => item.Name == "Comments");
                 Assert.Equal(OfficeFeatureSupportLevel.Editable, finding.SupportLevel);
@@ -532,7 +532,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(GetModernAuthorNames(presentation));
             Assert.Empty(presentation.GetModernComments(slide));
             Assert.DoesNotContain(presentation.AnalyzeLegacyPptWrite().Findings,
-                finding => finding.Code == "PPT-WRITE-MODERN-COMMENTS");
+                finding => finding.Code == "ppt-write-modern-comments");
 
             PowerPointModernComment comment = presentation.AddModernComment(
                 slide, alice, "Valid review");

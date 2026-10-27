@@ -77,7 +77,7 @@ public sealed class PdfCanvasImageLifecycleTests {
         Assert.DoesNotContain("20 60 100 80 re W", raw, StringComparison.Ordinal);
     }
 
-    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {
+    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = 160D,
         PageHeight = 160D,
         MarginLeft = 0D,

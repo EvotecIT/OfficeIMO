@@ -47,7 +47,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     document.AddSlide().AddVisualArtifact(conversion, 24D, 36D);
                     document.Save();
                 }
-                PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+                PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
                     .AddVisualArtifact(conversion).Save(pdfPath);
 
                 using (var document = WordDocument.Load(wordPath)) {
@@ -74,7 +74,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     Assert.Equal("Service load", picture.Title);
                 }
                 var pdf = File.ReadAllBytes(pdfPath);
-                Assert.Single(PdfReadDocument.Open(pdf).Pages);
+                Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages);
                 string textAlternative = BitConverter.ToString(Encoding.UTF8.GetBytes(description)).Replace("-", string.Empty);
                 Assert.Contains("/Figure << /Alt <" + textAlternative + ">", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
             } finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }

@@ -3,8 +3,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static PdfCore.PdfOptions CreatePdfOptions(ExcelToPdfOptions options, out bool preserveConfiguredFontSlots) {
-            PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        private static PdfCore.PdfCreateOptions CreatePdfOptions(ExcelPdfExportOptions options, out bool preserveConfiguredFontSlots) {
+            PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
             pdfOptions.UseContentStreamCompressionByDefault();
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 
@@ -28,8 +28,8 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void ApplyTextFallbacks(
-            PdfCore.PdfOptions pdfOptions,
-            ExcelToPdfOptions options,
+            PdfCore.PdfCreateOptions pdfOptions,
+            ExcelPdfExportOptions options,
             bool preserveConfiguredFontSlots,
             IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.Pdf {
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
                 yield return plan.SheetName;
                 object?[,] values = plan.ExportData.Values;
-                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                ExcelCellStyleInfo?[,]? styles = plan.ExportData.Styles;
                 for (int row = 0; row < values.GetLength(0); row++) {
                     for (int column = 0; column < values.GetLength(1); column++) {
                         if (values[row, column] is string text) {
@@ -143,11 +143,11 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
+        private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfCreateOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots, OfficeFontInfo? defaultFont) {
+        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfCreateOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfExportOptions options, bool preserveConfiguredFontSlots, OfficeFontInfo? defaultFont) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             if (options.UseWorksheetCellStyles) {
                 foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                    ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                    ExcelCellStyleInfo?[,]? styles = plan.ExportData.Styles;
                     if (styles == null) {
                         continue;
                     }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Excel.Pdf {
                     int columns = styles.GetLength(1);
                     for (int row = 0; row < rows; row++) {
                         for (int column = 0; column < columns; column++) {
-                            ExcelCellStyleSnapshot? style = styles[row, column];
+                            ExcelCellStyleInfo? style = styles[row, column];
                             RegisterWorksheetFontCandidate(
                                 style?.FontName,
                                 pdfOptions,
@@ -196,16 +196,16 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void RegisterWorksheetHeaderFooterFonts(
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            PdfCore.PdfOptions pdfOptions) {
+            PdfCore.PdfCreateOptions pdfOptions) {
             if (!options.UseWorksheetHeadersAndFooters) {
                 return;
             }
 
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = plan.HeaderFooter;
+                ExcelSheet.ExcelHeaderFooterInfo? headerFooter = plan.HeaderFooter;
                 if (headerFooter == null) {
                     continue;
                 }
@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IEnumerable<string?> EnumerateHeaderFooterTextZones(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter) {
+        private static IEnumerable<string?> EnumerateHeaderFooterTextZones(ExcelSheet.ExcelHeaderFooterInfo headerFooter) {
             yield return headerFooter.HeaderLeft;
             yield return headerFooter.HeaderCenter;
             yield return headerFooter.HeaderRight;
@@ -239,10 +239,10 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void RegisterWorksheetHeaderFooterFontCandidate(
             string? text,
-            PdfCore.PdfOptions pdfOptions,
+            PdfCore.PdfCreateOptions pdfOptions,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             string sheetName) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
@@ -270,13 +270,13 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void RegisterWorksheetFontCandidate(
             string? familyName,
-            PdfCore.PdfOptions pdfOptions,
+            PdfCore.PdfCreateOptions pdfOptions,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            ExcelToPdfOptions options,
+            ExcelPdfExportOptions options,
             string sheetName,
             bool reportSubstitution = true) {
-            if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+            if (PdfCore.PdfCreateOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
                 if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
                     return;
                 }
@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel.Pdf {
                     substitution != null) {
                     options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                         "OfficeIMO.Excel.Pdf",
-                        "WorksheetFontFamilySubstituted",
+                        "font-family-substitution",
                         sheetName,
                         trimmedFamilyName,
                         fallbackSlot: null,
@@ -325,7 +325,7 @@ namespace OfficeIMO.Excel.Pdf {
                         : PdfCore.PdfStandardFont.Helvetica;
                     options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                         "OfficeIMO.Excel.Pdf",
-                        "WorksheetFontFamilySubstituted",
+                        "font-family-substitution",
                         sheetName,
                         trimmedFamilyName,
                         reportedFallback,
@@ -338,7 +338,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelToPdfOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
+        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfExportOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
             var plans = new List<WorksheetPdfExportPlan>();
             for (int i = 0; i < sheetNames.Count; i++) {
                 string sheetName = sheetNames[i];
@@ -351,7 +351,7 @@ namespace OfficeIMO.Excel.Pdf {
                 bool boundedRead = IsBoundedWorksheetRead(options);
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
-                ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
+                ExcelSheet.ExcelHeaderFooterInfo? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
                 IReadOnlyList<WorksheetChartExportData> worksheetCharts = boundedRead
                     ? Array.Empty<WorksheetChartExportData>()
                     : ReadWorksheetCharts(workbookSheet, options, sheetName);
@@ -379,14 +379,14 @@ namespace OfficeIMO.Excel.Pdf {
                         AddWarning(
                             options,
                             sheetName,
-                            "WorksheetRows",
+                            "worksheet-rows",
                             $"Worksheet export was truncated from {sourceRows.ToString(CultureInfo.InvariantCulture)} to {exportedRows.ToString(CultureInfo.InvariantCulture)} rows because MaxRowsPerSheet is set.");
                     }
                     if (boundedRead) {
                         AddWarning(
                             options,
                             sheetName,
-                            "WorksheetBoundedRead",
+                            "worksheet-bounded-read",
                             "The bounded worksheet path preserved values, direct cell styles, and built-in Excel table styles without materializing the full worksheet. Print settings, repeated titles, merges, hyperlinks, conditional formatting, row and column sizing, and worksheet media were not inspected.");
                     }
 
@@ -442,11 +442,11 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
-            ExcelCellStyleSnapshot?[,]? styles = exportData.Styles;
+            ExcelCellStyleInfo?[,]? styles = exportData.Styles;
             if (styles != null) {
                 for (int row = 0; row < styles.GetLength(0); row++) {
                     for (int column = 0; column < styles.GetLength(1); column++) {
-                        if (styles[row, column] is ExcelCellStyleSnapshot style && HasVisibleBlankCellStyle(style)) {
+                        if (styles[row, column] is ExcelCellStyleInfo style && HasVisibleBlankCellStyle(style)) {
                             return true;
                         }
                     }
@@ -469,7 +469,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool HasVisibleBlankCellStyle(ExcelCellStyleSnapshot style) =>
+        private static bool HasVisibleBlankCellStyle(ExcelCellStyleInfo style) =>
             style.FillColorArgb != null ||
             style.FillPatternType != null ||
             style.FillPatternForegroundColorArgb != null ||
@@ -482,14 +482,14 @@ namespace OfficeIMO.Excel.Pdf {
             style.Border != null;
 
         private static int GetRangeRowCount(string normalizedRange) {
-            return A1.TryParseRange(normalizedRange, out int firstRow, out _, out int lastRow, out _)
+            return ExcelA1.TryParseRange(normalizedRange, out int firstRow, out _, out int lastRow, out _)
                 ? Math.Max(0, lastRow - firstRow + 1)
                 : 0;
         }
 
         private static string LimitRangeRows(string normalizedRange, int maximumRows) {
             if (maximumRows <= 0 ||
-                !A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                !ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return normalizedRange;
             }
 
@@ -497,8 +497,8 @@ namespace OfficeIMO.Excel.Pdf {
             return ToA1Range(firstRow, firstColumn, limitedLastRow, lastColumn);
         }
 
-        private static WorksheetGeometryData CreateWorksheetGeometry(ExcelSheet? workbookSheet, string normalizedRange, ExcelToPdfOptions options) {
-            A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
+        private static WorksheetGeometryData CreateWorksheetGeometry(ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfExportOptions options) {
+            ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
             return new WorksheetGeometryData(
                 Math.Max(1, firstRow),
                 Math.Max(1, firstColumn),
@@ -507,8 +507,8 @@ namespace OfficeIMO.Excel.Pdf {
                 workbookSheet?.DefaultColumnWidth is double defaultColumnWidth && defaultColumnWidth > 0D ? defaultColumnWidth : (double?)null,
                 workbookSheet?.BaseColumnWidth ?? 8D,
                 workbookSheet?.DefaultRowHeight is double defaultRowHeight && defaultRowHeight > 0D ? defaultRowHeight : 15D,
-                workbookSheet?.GetColumnDefinitions(options.CancellationToken) ?? Array.Empty<ExcelColumnSnapshot>(),
-                workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowSnapshot>(),
+                workbookSheet?.GetColumnDefinitions(options.CancellationToken) ?? Array.Empty<ExcelColumnInfo>(),
+                workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowInfo>(),
                 options.UseWorksheetColumnWidths,
                 options.UseWorksheetRowHeights,
                 options.RespectWorksheetHiddenRowsAndColumns);
@@ -559,7 +559,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static HashSet<string> CollectInternalHyperlinkTargetCells(IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
             var targetCells = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                ExcelHyperlinkSnapshot?[,]? hyperlinks = plan.ExportData.Hyperlinks;
+                ExcelHyperlinkInfo?[,]? hyperlinks = plan.ExportData.Hyperlinks;
                 if (hyperlinks == null) {
                     continue;
                 }
@@ -568,7 +568,7 @@ namespace OfficeIMO.Excel.Pdf {
                 int columns = hyperlinks.GetLength(1);
                 for (int row = 0; row < rows; row++) {
                     for (int column = 0; column < columns; column++) {
-                        ExcelHyperlinkSnapshot? hyperlink = hyperlinks[row, column];
+                        ExcelHyperlinkInfo? hyperlink = hyperlinks[row, column];
                         if (hyperlink == null || hyperlink.IsExternal) {
                             continue;
                         }

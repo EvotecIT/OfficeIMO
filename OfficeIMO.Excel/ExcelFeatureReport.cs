@@ -424,7 +424,7 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelImage image in images) {
                     if (isVisibleForDefaultPdfExport && !IsPdfSupportedWorksheetImage(image, out string reason)) {
                         pdfUnsupportedImageCount++;
-                        pdfUnsupportedImageDetails.Add($"{sheet.Name}!{A1.CellReference(image.RowIndex, image.ColumnIndex)}: {reason}");
+                        pdfUnsupportedImageDetails.Add($"{sheet.Name}!{ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)}: {reason}");
                     }
                 }
                 IReadOnlyList<string> inCellImageReferences = excelSheet.GetInCellImageCellReferences();
@@ -438,7 +438,7 @@ namespace OfficeIMO.Excel {
                 var charts = excelSheet.Charts.ToList();
                 chartCount += charts.Count;
                 foreach (ExcelChart chart in charts.Where(_ => isVisibleForDefaultPdfExport)) {
-                    if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+                    if (!chart.TryGetSnapshot(out ExcelChartInfo snapshot)) {
                         pdfUnreadableChartCount++;
                         pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetSafeChartDisplayName(chart)} data could not be read into a PDF snapshot.");
                         continue;
@@ -466,7 +466,7 @@ namespace OfficeIMO.Excel {
                         $"{sheet.Name}: {chart.ChartType} ChartEx ({chart.Name})"));
                 }
                 if (isVisibleForDefaultPdfExport) {
-                    ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = excelSheet.GetHeaderFooter();
+                    ExcelSheet.ExcelHeaderFooterInfo headerFooter = excelSheet.GetHeaderFooter();
                     AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
                     AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
                     AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);

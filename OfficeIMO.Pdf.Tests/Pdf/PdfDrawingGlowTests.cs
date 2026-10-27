@@ -196,7 +196,7 @@ public sealed class PdfDrawingGlowTests {
         return OfficeDrawingRasterRenderer.Render(imported!, background: OfficeColor.White);
     }
 
-    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = drawing.Width, PageHeight = drawing.Height,
         MarginLeft = 0D, MarginTop = 0D, MarginRight = 0D, MarginBottom = 0D,
         CompressContentStreams = false

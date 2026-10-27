@@ -6,7 +6,7 @@ using V = DocumentFormat.OpenXml.Vml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using Path = System.IO.Path;
 using System.Linq;
 using DocumentFormat.OpenXml;

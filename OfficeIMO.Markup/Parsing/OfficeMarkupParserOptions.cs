@@ -11,5 +11,5 @@ public sealed class OfficeMarkupParserOptions {
     /// <summary>Gets or sets whether profile and required-field validation diagnostics are added; defaults to true.</summary>
     public bool Validate { get; set; } = true;
     /// <summary>Gets or sets optional settings passed to the underlying Markdown semantic parser.</summary>
-    public MarkdownReaderOptions? MarkdownOptions { get; set; }
+    public MarkdownLoadOptions? MarkdownOptions { get; set; }
 }

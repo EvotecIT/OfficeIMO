@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static void PromoteNestedInlineGenericAttributesToParagraph(ParagraphBlock paragraph, MarkdownReaderOptions options) {
+internal static partial class MarkdownReader {
+    private static void PromoteNestedInlineGenericAttributesToParagraph(ParagraphBlock paragraph, MarkdownLoadOptions options) {
         if (paragraph == null ||
             options?.GenericAttributes != true ||
             !paragraph.Attributes.IsEmpty) {

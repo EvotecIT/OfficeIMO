@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 style.IsFillGradientStopTableTruncated || hasUnresolvedGradientStop);
 
             if (options.ReportUnsupportedContent && NeedsBackgroundDiagnostic(result)) {
-                AddDiagnostic("PPT-BACKGROUND-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-background-partial", LegacyPptDiagnosticSeverity.Warning,
                     GetBackgroundDiagnostic(result), container.Offset);
             }
             return result;

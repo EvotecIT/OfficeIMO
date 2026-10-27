@@ -1,8 +1,9 @@
+using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>
 /// Immutable literal RGBA color or theme-role reference shared by OfficeIMO packages.

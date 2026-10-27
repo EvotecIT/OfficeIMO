@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Pdf {
                         BorderWidth = 0.5,
                         PaddingX = 9,
                         PaddingY = 7
-                    })), new PdfOptions {
+                    })), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

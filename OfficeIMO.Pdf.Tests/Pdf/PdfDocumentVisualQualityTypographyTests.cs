@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Paragraph_UsesNaturalWordSpacingForProportionalFonts() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 12
         };
@@ -45,7 +45,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesProportionalGlyphWidthsForWrapping() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 100,
             PageHeight = 160,
             MarginLeft = 35,
@@ -93,7 +93,7 @@ public partial class PdfDocumentVisualQualityTests {
             return;
         }
 
-        var standardOptions = new PdfOptions {
+        var standardOptions = new PdfCreateOptions {
             PageWidth = 92,
             PageHeight = 180,
             MarginLeft = 30,
@@ -130,7 +130,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_JustifyExpandsWrappedLinesButNotFinalLine() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 240,
             MarginLeft = 30,
@@ -174,8 +174,8 @@ public partial class PdfDocumentVisualQualityTests {
                 new PdfTableCellParagraph(firstRuns, align: PdfAlign.Justify),
                 new PdfTableCellParagraph(secondRuns, align: PdfAlign.Justify)
             });
-        byte[] bytes = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 })
-            .Table(new[] { new[] { cell } }, style: TableStyles.Minimal())
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 12 })
+            .Table(new[] { new[] { cell } }, style: PdfTableStyles.Minimal())
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -187,7 +187,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_JustifyDoesNotStretchExplicitLineBreaks() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -219,7 +219,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_RightAlignsUsingProportionalTextWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 180,
             MarginLeft = 30,
@@ -244,7 +244,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ComposeItemHeading_AppliesExplicitAlignmentAndColor() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 180,
             MarginLeft = 30,
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeading_AppliesExplicitAlignmentAndColor() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 180,
             MarginLeft = 30,
@@ -310,7 +310,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_UsesProportionalGlyphWidthsForWideWrapping() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -342,7 +342,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Heading_UsesProportionalGlyphWidthsWithoutOverWrappingNarrowText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -369,7 +369,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeading_UsesProportionalGlyphWidthsForWideWrapping() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -406,7 +406,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnHeading_UsesProportionalGlyphWidthsWithoutOverWrappingNarrowText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 140,
             PageHeight = 160,
             MarginLeft = 30,
@@ -438,7 +438,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Footer_RightAlignsUsingProportionalTextWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 180,
             MarginLeft = 30,

@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Html {
 
         private short NormalizeTableCellPadding(int twips, string side) {
             if (twips > short.MaxValue) {
-                AddUnsupportedCssDiagnostic("UnsupportedCssValue", "Table cell padding exceeded the native margin limit and was bounded.",
+                AddUnsupportedCssDiagnostic("unsupported-css-value", "Table cell padding exceeded the native margin limit and was bounded.",
                     "td:padding-" + side, "maximum-twips=" + short.MaxValue);
             }
             return (short)Math.Max(0, Math.Min(short.MaxValue, twips));

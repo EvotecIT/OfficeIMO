@@ -54,7 +54,7 @@ public partial class Excel {
             """;
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions { UseCachedFormulaResult = useCachedResult });
+            using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions { UseCachedFormulaResult = useCachedResult });
             var sheet = owner.GetSheet("Data");
             string range = $"A1:A{lastRow}";
             var rows = (api == "Stream"

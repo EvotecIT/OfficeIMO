@@ -18,7 +18,7 @@ public class PdfSignatureValidatorTests {
         Assert.True(report.IsStructurallyValid);
         Assert.Equal("Unsigned", report.ProofStatus);
         Assert.False(report.CryptographicTrustVerified);
-        Assert.Contains(report.Findings, finding => finding.Code == "NoSignatures");
+        Assert.Contains(report.Findings, finding => finding.Code == "no-signatures");
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class PdfSignatureValidatorTests {
         Assert.Equal(0, report.SignatureCount);
         Assert.True(report.HasErrors);
         Assert.False(report.IsStructurallyValid);
-        Assert.Contains(report.Findings, finding => finding.Code == "UnreadableSignature");
+        Assert.Contains(report.Findings, finding => finding.Code == "unreadable-signature");
     }
 
     [Fact]
@@ -87,12 +87,12 @@ public class PdfSignatureValidatorTests {
         Assert.True(result.ByteRangeGapMatchesContents);
         Assert.True(result.UnsignedByteCount > 0);
         Assert.True(result.ByteRangeCoverageRatio > 0);
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeDoesNotCoverEof");
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeCoverage");
-        Assert.Contains(report.Findings, finding => finding.Code == "DocMDPDetected");
-        Assert.Contains(report.Findings, finding => finding.Code == "LongTermValidationEvidenceDetected");
-        Assert.Contains(report.Findings, finding => finding.Code == "CryptographicTrustNotVerified");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-byte-range-does-not-cover-eof");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-detached-cms-sub-filter");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-byte-range-coverage");
+        Assert.Contains(report.Findings, finding => finding.Code == "doc-mdp-detected");
+        Assert.Contains(report.Findings, finding => finding.Code == "long-term-validation-evidence-detected");
+        Assert.Contains(report.Findings, finding => finding.Code == "cryptographic-trust-not-verified");
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class PdfSignatureValidatorTests {
         Assert.Equal(3, result.Signature.ContentsSizeBytes);
         Assert.Equal(10, result.Signature.ContentsEncodedSizeBytes);
         Assert.True(result.ByteRangeGapMatchesContents);
-        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "signature-byte-range-contents-gap-mismatch");
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class PdfSignatureValidatorTests {
         Assert.Equal(10, result.ByteRangeGapLength);
         Assert.Equal(8, result.Signature.ContentsEncodedSizeBytes);
         Assert.False(result.ByteRangeGapMatchesContents);
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-byte-range-contents-gap-mismatch");
     }
 
     [Fact]
@@ -202,8 +202,8 @@ public class PdfSignatureValidatorTests {
         Assert.True(report.HasSignatures);
         Assert.False(report.IsStructurallyValid);
         Assert.Equal("StructuralIssues", report.ProofStatus);
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureUnsupportedByteRangeShape");
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureMissingContents");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-unsupported-byte-range-shape");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-missing-contents");
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class PdfSignatureValidatorTests {
         Assert.False(report.IsStructurallyValid);
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.False(result.ByteRangeGapMatchesContents);
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-byte-range-contents-gap-mismatch");
     }
 
     [Fact]
@@ -257,8 +257,8 @@ public class PdfSignatureValidatorTests {
         Assert.True(result.ByteRangeGapMatchesContents);
         Assert.True(result.Signature.HasContents);
         Assert.True(result.Signature.ContentsSizeBytes >= 512);
-        Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
-        Assert.Contains(report.Findings, finding => finding.Code == "AcroFormAppendOnly");
+        Assert.Contains(report.Findings, finding => finding.Code == "signature-detached-cms-sub-filter");
+        Assert.Contains(report.Findings, finding => finding.Code == "acro-form-append-only");
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class PdfSignatureValidatorTests {
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.Equal(preparation.ByteRangeValues, result.Signature.ByteRangeValues);
         Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
-        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "signature-empty-contents");
     }
 
     [Fact]
@@ -351,7 +351,7 @@ public class PdfSignatureValidatorTests {
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.True(report.IsStructurallyValid);
         Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
-        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "signature-empty-contents");
     }
 
     private static byte[] BuildSignedIncrementalPdf() {

@@ -15,7 +15,7 @@ public sealed class HtmlGenericFormTextFallbackTests {
 
         HtmlToExcelResult excel = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using (ExcelDocument workbook = excel.RequireValue()) {
-            using var artifact = workbook.ToStream();
+            using var artifact = new System.IO.MemoryStream(workbook.ToBytes());
             using ExcelDocument reopened = ExcelDocument.Load(artifact);
             Assert.Contains("Was this page helpful?", reopened.ToHtml());
         }
@@ -26,7 +26,7 @@ public sealed class HtmlGenericFormTextFallbackTests {
         HtmlToPowerPointResult slides = source.ToPowerPointPresentationResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using (PowerPointPresentation presentation = slides.RequireValue()) {
-            using var artifact = presentation.ToStream();
+            using var artifact = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointPresentation reopened = PowerPointPresentation.Load(artifact);
             Assert.Contains("Was this page helpful?", reopened.ToHtml());
         }

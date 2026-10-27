@@ -43,16 +43,16 @@ public partial class Word {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, kind, mode);
         WordSection later = document.Sections[1];
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = false;
-        if (mode == "override") options.PdfOptions = new PdfOptions {
+        if (mode == "override") options.PdfOptions = new PdfCreateOptions {
             HeaderFont = PdfStandardFont.Courier, HeaderFontSize = 18D, HeaderAlign = PdfAlign.Left,
             FooterFont = PdfStandardFont.Courier, FooterFontSize = 18D, FooterAlign = PdfAlign.Left
         };
         using WordDocument? explicitDocument = mode == "override" ? CreateExplicitRunningStoryControl(document) : null;
-        using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdfBytes(options));
+        using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         for (int repeat = 0; repeat < 2; repeat++) {
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Equal(mode == "continuous" ? 1 : 3, pdf.NumberOfPages);
             Assert.Contains("S1", pdf.GetPage(1).Text);
             Assert.Contains("S2A", pdf.GetPage(mode == "continuous" ? 1 : 2).Text);
@@ -95,7 +95,7 @@ public partial class Word {
     public void SaveAsPdf_InheritedEvenRunningStoryUsesRestartedPageNumber(bool footer, int start) {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, "even", "fields");
         document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start % 2 == 0 ? 3 : 4, pdf.NumberOfPages);
         int secondPage = pdf.NumberOfPages - 1;
         for (int index = 0; index < 2; index++) {

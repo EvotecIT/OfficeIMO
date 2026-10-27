@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
-        internal string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
+        internal string ConvertParagraph(WordParagraph paragraph, WordMarkdownExportOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
             if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Markdown {
             return null;
         }
 
-        internal string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
+        internal string RenderRuns(WordParagraph paragraph, WordMarkdownExportOptions options) {
             var sb = new StringBuilder();
             // Inline code detection:
             // 1) If caller specifies options.FontFamily, treat runs with that font as code
@@ -184,7 +184,7 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
-        internal string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
+        internal string RenderFootnote(WordFootNote footNote, WordMarkdownExportOptions options) {
             var paragraphs = footNote.Paragraphs;
             if (paragraphs == null || paragraphs.Count == 0) return string.Empty;
             var sb = new StringBuilder();
@@ -195,7 +195,7 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
-        internal string RenderImage(WordImage image, WordToMarkdownOptions options) {
+        internal string RenderImage(WordImage image, WordMarkdownExportOptions options) {
             if (image == null) {
                 return string.Empty;
             }
@@ -211,9 +211,8 @@ namespace OfficeIMO.Word.Markdown {
                 return $"![{alt}]({source})";
             }
 
-            if (options.ImageExportMode == ImageExportMode.File) {
+            if (options.ImageExportMode == WordMarkdownImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
-                Directory.CreateDirectory(directory);
                 string extension = Path.GetExtension(image.FilePath);
                 if (string.IsNullOrEmpty(extension)) {
                     extension = ".png";
@@ -289,7 +288,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static byte[] ReadEmbeddedImageBytes(WordImage image, WordToMarkdownOptions options) {
+        private static byte[] ReadEmbeddedImageBytes(WordImage image, WordMarkdownExportOptions options) {
             long maximumBytes = options.MaxEmbeddedImageBytes;
             if (maximumBytes <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes), "MaxEmbeddedImageBytes must be greater than zero.");
@@ -317,10 +316,8 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void WriteImageFile(WordImage image, string targetPath) {
-            OfficeFileCommit.Write(targetPath, output => {
-                using Stream input = !string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)
-                    ? File.OpenRead(image.FilePath)
-                    : image.OpenRead();
+            OfficeConversionAssets.WriteFile(targetPath, output => {
+                using Stream input = image.OpenRead();
                 input.CopyTo(output);
             });
         }

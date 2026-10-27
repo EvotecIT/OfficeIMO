@@ -91,9 +91,9 @@ public sealed class WordPdfNoteNumberingTests {
     private static string ReadPdfText(WordDocument source, bool native) {
         using WordDocument restored = WordDocument.Load(new MemoryStream(
             source.ToBytes(native ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        using var pdf = PdfPigDocument.Open(restored.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(restored.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Arial"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Regex.Replace(string.Concat(pdf.GetPages().Select(page => page.Text)), @"\s+", "");
     }
 
@@ -137,8 +137,8 @@ public sealed class WordPdfNoteNumberingTests {
         source.Sections[0].AddFootnoteProperties(WordNumberFormat.UpperLetter,
             WordFootnotePosition.PageBottom, WordNoteNumberRestart.EachPage, startNumber: 3);
         source.AddParagraph("FOOTREF").AddFootNote("FOOTBODY");
-        var result = source.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeNotePageRestartApproximated");
+        var result = source.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-note-page-restart-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Contains("FOOTREFC", Regex.Replace(pdf.GetPage(1).Text, @"\s+", ""));
     }

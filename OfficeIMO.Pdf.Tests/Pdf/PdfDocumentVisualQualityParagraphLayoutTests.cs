@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Paragraph_RendersExplicitLineBreaksInsideRichText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 12
         };
@@ -35,7 +35,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredSpacingBeforeAndAfter() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_SuppressesSpacingBeforeAtPageTop() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -100,7 +100,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_SuppressesSpacingBeforeAtRowColumnTop() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 220,
             MarginLeft = 30,
@@ -134,7 +134,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Spacer_AddsInvisibleVerticalSpaceWithoutExtractedText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -166,7 +166,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Spacer_WorksInsideRowColumnFlow() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredLineHeight() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 260,
             MarginLeft = 30,
@@ -244,7 +244,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredHorizontalIndents() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 280,
             MarginLeft = 30,
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_NegativeIndentsExtendTextIntoMargins() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 280,
             MarginLeft = 30,
@@ -312,7 +312,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredFirstLineIndent() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -344,7 +344,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesDefaultParagraphStyleWhenStyleIsNotProvided() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -377,7 +377,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_DefaultParagraphStyleAppliesToFollowingParagraphsAndSnapshotsInput() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -418,7 +418,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_ExplicitStyleOverridesDefaultParagraphStyle() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -449,7 +449,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredHangingIndent() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -482,7 +482,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnParagraph_UsesConfiguredFirstLineIndent() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -519,7 +519,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnParagraph_UsesDefaultParagraphStyleWhenStyleIsNotProvided() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,

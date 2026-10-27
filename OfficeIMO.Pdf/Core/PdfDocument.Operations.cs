@@ -7,13 +7,13 @@ public sealed partial class PdfDocument {
     /// Reports read and rewrite capabilities for a PDF byte array without requiring the document to open successfully.
     /// This is useful for encrypted, malformed, or otherwise unsupported input that still needs a diagnostic report.
     /// </summary>
-    public static PdfDocumentPreflight Preflight(byte[] pdf, PdfLoadOptions? options = null) =>
+    internal static PdfDocumentPreflight Preflight(byte[] pdf, PdfLoadOptions? options = null) =>
         PdfInspector.Preflight(pdf, options);
 
     /// <summary>
     /// Reports read and rewrite capabilities for a PDF byte array with cooperative cancellation.
     /// </summary>
-    public static PdfDocumentPreflight Preflight(
+    internal static PdfDocumentPreflight Preflight(
         byte[] pdf,
         PdfLoadOptions? options,
         CancellationToken cancellationToken) =>
@@ -23,14 +23,14 @@ public sealed partial class PdfDocument {
     /// Reports read and rewrite capabilities for a PDF file without requiring the document to open successfully.
     /// This is useful for encrypted, malformed, or otherwise unsupported input that still needs a diagnostic report.
     /// </summary>
-    public static PdfDocumentPreflight Preflight(string path, PdfLoadOptions? options = null) =>
+    internal static PdfDocumentPreflight Preflight(string path, PdfLoadOptions? options = null) =>
         PdfInspector.Preflight(path, options);
 
     /// <summary>
     /// Reports read and rewrite capabilities for a readable PDF stream without requiring the document to open successfully.
     /// The stream is consumed from its current position.
     /// </summary>
-    public static PdfDocumentPreflight Preflight(Stream stream, PdfLoadOptions? options = null) =>
+    internal static PdfDocumentPreflight Preflight(Stream stream, PdfLoadOptions? options = null) =>
         PdfInspector.Preflight(stream, options);
 
     /// <summary>
@@ -118,11 +118,11 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>
-    public PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) =>
+    internal PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) =>
         GetPreflightSnapshot(options, CancellationToken.None).Preflight;
 
     /// <summary>Reports read and rewrite capabilities with cooperative cancellation.</summary>
-    public PdfDocumentPreflight Preflight(PdfLoadOptions? options, CancellationToken cancellationToken) =>
+    internal PdfDocumentPreflight Preflight(PdfLoadOptions? options, CancellationToken cancellationToken) =>
         GetPreflightSnapshot(options, cancellationToken).Preflight;
 
     /// <summary>Captures one byte snapshot while keeping parser failures inside diagnostic preflight.</summary>
@@ -477,11 +477,11 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
-    public static PdfDocument Merge(params PdfDocument[] documents) =>
+    internal static PdfDocument Merge(params PdfDocument[] documents) =>
         Merge((IEnumerable<PdfDocument>)documents);
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
-    public static PdfDocument Merge(IEnumerable<PdfDocument> documents) {
+    internal static PdfDocument Merge(IEnumerable<PdfDocument> documents) {
         return Merge(documents, CancellationToken.None);
     }
 
@@ -489,7 +489,7 @@ public sealed partial class PdfDocument {
     /// Creates one PDF by merging the supplied caller-owned PDF byte payloads in order.
     /// The inputs are consumed synchronously and are not retained by the returned document.
     /// </summary>
-    public static PdfDocument MergeBytes(IEnumerable<byte[]> pdfs) {
+    internal static PdfDocument MergeBytes(IEnumerable<byte[]> pdfs) {
         return MergeBytes(pdfs, CancellationToken.None);
     }
 
@@ -497,7 +497,7 @@ public sealed partial class PdfDocument {
     /// Creates one PDF by merging the supplied caller-owned PDF byte payloads in order through a cancellable single merge pass.
     /// The inputs are consumed synchronously and are not retained by the returned document.
     /// </summary>
-    public static PdfDocument MergeBytes(
+    internal static PdfDocument MergeBytes(
         IEnumerable<byte[]> pdfs,
         CancellationToken cancellationToken) {
         PdfMergeResult result = MergeByteSources(pdfs, cancellationToken);
@@ -508,21 +508,21 @@ public sealed partial class PdfDocument {
     /// Merges the supplied caller-owned PDF byte payloads and returns the merged artifact directly.
     /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
     /// </summary>
-    public static byte[] MergeToBytes(params byte[][] pdfs) =>
+    internal static byte[] MergeToBytes(params byte[][] pdfs) =>
         MergeToBytes((IEnumerable<byte[]>)pdfs, CancellationToken.None);
 
     /// <summary>
     /// Merges the supplied caller-owned PDF byte payloads and returns the merged artifact directly.
     /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
     /// </summary>
-    public static byte[] MergeToBytes(IEnumerable<byte[]> pdfs) =>
+    internal static byte[] MergeToBytes(IEnumerable<byte[]> pdfs) =>
         MergeToBytes(pdfs, CancellationToken.None);
 
     /// <summary>
     /// Merges the supplied caller-owned PDF byte payloads through a cancellable single pass and returns the merged artifact directly.
     /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
     /// </summary>
-    public static byte[] MergeToBytes(
+    internal static byte[] MergeToBytes(
         IEnumerable<byte[]> pdfs,
         CancellationToken cancellationToken) =>
         MergeByteSources(pdfs, cancellationToken).OwnedBytes;
@@ -559,7 +559,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a cancellable single merge pass.</summary>
-    public static PdfDocument Merge(
+    internal static PdfDocument Merge(
         IEnumerable<PdfDocument> documents,
         CancellationToken cancellationToken) {
         Guard.NotNull(documents, nameof(documents));
@@ -620,7 +620,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another loaded or generated PDF, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MergeWithResult(PdfDocument document, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MergeWithResult(PdfDocument document, PdfLoadOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(document, options ?? ReadOptions), options: options);
     }
@@ -647,7 +647,7 @@ public sealed partial class PdfDocument {
     /// Attempts to merge this PDF with another PDF byte payload, returning diagnostics when blocked or failed.
     /// The input is consumed synchronously and is not retained by the result.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MergeWithResult(byte[] pdf, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MergeWithResult(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(pdf, options ?? ReadOptions), options: options);
     }
@@ -667,7 +667,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another PDF file, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MergeWithResult(string path, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MergeWithResult(string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(path, options ?? ReadOptions), options: options);
     }
@@ -691,7 +691,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to merge this PDF with another readable PDF stream, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MergeWithResult(Stream stream, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MergeWithResult(Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(stream, options ?? ReadOptions), options: options);
     }
@@ -709,11 +709,11 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options = null) =>
+    internal PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options = null) =>
         FlattenVisualAnnotationsResult(options, CancellationToken.None);
 
     /// <summary>Attempts to flatten supported annotation appearances with cooperative cancellation.</summary>
-    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options, CancellationToken cancellationToken) {
+    internal PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options, CancellationToken cancellationToken) {
         return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations,
             _ => FlattenVisualAnnotationsWithReadOptions(options ?? ReadOptions, cancellationToken),
             options: options, cancellationToken: cancellationToken);
@@ -743,7 +743,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(
+    internal PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(
         string? title = null,
         string? author = null,
         string? subject = null,
@@ -859,7 +859,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts an Info/XMP synchronization through the planner-selected full-rewrite or append-only path.
     /// </summary>
-    public PdfOperationResult<PdfDocument> SynchronizeMetadataResult(
+    internal PdfOperationResult<PdfDocument> SynchronizeMetadataResult(
         string? title = null,
         string? author = null,
         string? subject = null,
@@ -898,7 +898,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> UpdateMetadataResult(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> UpdateMetadataResult(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) {
         return TryMutationOperation(
             "Update metadata",
             PdfPreflightCapability.ManipulatePages,
@@ -924,7 +924,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Attempts to create a new PDF with exactly the supplied metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation(
             "Replace metadata",

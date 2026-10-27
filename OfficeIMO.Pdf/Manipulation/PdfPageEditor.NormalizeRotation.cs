@@ -20,7 +20,7 @@ internal static partial class PdfPageEditor {
             geometries.Add(page.ObjectNumber, geometry);
             PdfPageBox media = geometry.MediaBox ?? throw new InvalidOperationException("Rotation normalization requires a readable MediaBox.");
             var size = rotation == 90 || rotation == 270
-                ? new PageSize(media.Height, media.Width) : new PageSize(media.Width, media.Height);
+                ? new PdfPageSize(media.Height, media.Width) : new PdfPageSize(media.Width, media.Height);
             transforms.Add(page.ObjectNumber, CalculateResizeTransform(page.ObjectNumber,
                 media.Left, media.Bottom, media.Width, media.Height, rotation, new PdfPageResizeOptions(size)));
         }

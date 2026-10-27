@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
                 1000, -500, 0, 500, Enumerable.Range(32, 95).ToArray());
             byte[] Render(bool strut) {
-                var options = new PdfOptions {
+                var options = new PdfCreateOptions {
                     PageWidth = 300D, PageHeight = 300D,
                     MarginTop = 30D, MarginBottom = 30D, MarginLeft = 30D, MarginRight = 30D
                 };
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(false)]
         [InlineData(true)]
         public void AlignedNaturalLinesReserveTheirCombinedFontBox(bool minimum) {
-            PdfOptions options = new PdfOptions();
+            PdfCreateOptions options = new PdfCreateOptions();
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Natural line bounds", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
             PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(1, 1D) : PdfLineSpacing.Multiple(1D))
                 .WithFontLineBoxBaseline(1D).WithFontAlignment(PdfFontLineAlignment.Top, .12D);
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(true, "Baseline", 0D)]
         public void NaturalAndMinimumLinesAlignEachRunByItsOwnMetrics(bool minimum, string alignmentName, double difference) {
             PdfFontLineAlignment alignment = (PdfFontLineAlignment)Enum.Parse(typeof(PdfFontLineAlignment), alignmentName);
-            PdfOptions options = new PdfOptions();
+            PdfCreateOptions options = new PdfCreateOptions();
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Natural device metrics", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
             PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(30, 1.2D) : PdfLineSpacing.Multiple(1.2D))
                 .WithFontLineBoxBaseline(1.2D).WithFontAlignment(alignment, .12D);

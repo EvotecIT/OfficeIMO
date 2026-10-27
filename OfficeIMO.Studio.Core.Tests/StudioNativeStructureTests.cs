@@ -179,8 +179,8 @@ public sealed class StudioNativeStructureTests : IDisposable {
         string path = Path.Combine(_root, "tagged.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
             .Content(content => content.Column(column => column.Item().Paragraph(paragraph => paragraph.Text("Tagged page"))))),
-            new PdfOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
-        Assert.True(PdfDocument.Preflight(File.ReadAllBytes(path)).DocumentInfo!.HasTaggedContent);
+            new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
+        Assert.True(PdfDocument.Load(path).Inspect().HasTaggedContent);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         Assert.True((await document.GetInfoAsync(default)).CanMutatePages);
         StudioNativeStructure structure = await document.GetStructureAsync(default);

@@ -35,7 +35,7 @@ public sealed class HtmlPdfIntentCommandTests {
         }, input, output, errors);
 
         Assert.True(exit == 0, errors.ToString());
-        PdfReadDocument pdf = PdfReadDocument.Open(output.ToArray());
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Equal(expectedPages, pdf.Pages.Count);
         string text = pdf.ExtractText();
         Assert.Contains(visibleMarker + " first", text, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public sealed class HtmlPdfIntentCommandTests {
         }, input, output, errors);
 
         Assert.True(exit == 0, errors.ToString());
-        PdfReadDocument pdf = PdfReadDocument.Open(output.ToArray());
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Single(pdf.Pages);
         Assert.Contains("Screen second", pdf.ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain("Screen first", pdf.ExtractText(), StringComparison.Ordinal);

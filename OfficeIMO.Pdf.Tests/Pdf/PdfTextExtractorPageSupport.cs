@@ -27,7 +27,7 @@ public partial class PdfTextExtractorPageTests {
     }
 
     private static byte[] BuildTwoColumnPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 36,
@@ -51,7 +51,7 @@ public partial class PdfTextExtractorPageTests {
     }
 
     private static byte[] BuildMarkdownPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -76,7 +76,7 @@ public partial class PdfTextExtractorPageTests {
     }
 
     private static byte[] BuildThreePageMarkdownPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 30,

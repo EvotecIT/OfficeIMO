@@ -595,7 +595,7 @@ namespace OfficeIMO.Excel {
             out int firstColumn,
             out int lastRow,
             out int lastColumn) {
-            if (A1.TryParseRange(
+            if (ExcelA1.TryParseRange(
                     reference,
                     out firstRow,
                     out firstColumn,
@@ -604,7 +604,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (A1.TryParseCellReferenceFast(reference, out firstRow, out firstColumn)) {
+            if (ExcelA1.TryParseCellReferenceFast(reference, out firstRow, out firstColumn)) {
                 lastRow = firstRow;
                 lastColumn = firstColumn;
                 return true;
@@ -676,7 +676,7 @@ namespace OfficeIMO.Excel {
             string reference,
             int firstDeletedRow) {
             return TryParseReference(reference, out var bounds)
-                ? A1.CellReference(firstDeletedRow, bounds.c1)
+                ? ExcelA1.CellReference(firstDeletedRow, bounds.c1)
                 : "A1";
         }
     }

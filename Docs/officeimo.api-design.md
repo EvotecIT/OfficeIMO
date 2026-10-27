@@ -100,7 +100,7 @@ A theme applies when a document is created. Loading or opening an existing docum
 - `OfficeConversionReport` is the single report type: source and target, output path, pages or items written, elapsed time, and a list of `OfficeDiagnostic`.
 - `OfficeDiagnostic` has `Code`, `Severity`, `Message`, `Location` and `Format`. Codes come from one catalog in Core, so a flattened 3-D chart is `chart-flattened` in Word, Excel and PowerPoint alike.
 - `report.HasLoss`, `report.ThrowIfLoss()`, `FailOnLoss` for conversions and `AllowLoss` for native saves are the only loss controls.
-- PowerShell errors use `FullyQualifiedErrorId` values of the form `{DiagnosticCode},{CommandName}`, so scripts can match the same codes the C# report carries.
+- PowerShell errors use the diagnostic code as the error ID, so `FullyQualifiedErrorId` starts with the same code the C# report carries; PowerShell appends the implementing cmdlet type after the comma, as it does for every binary cmdlet.
 
 ## C# rules
 
@@ -190,8 +190,9 @@ Package boundaries follow principle 7.
 - `OfficeIMO.Word.Pdf` and `OfficeIMO.PowerPoint.Pdf` change direction in 3.6: today they convert PDF into Word and PowerPoint; afterwards they convert Word and PowerPoint into PDF, and the reverse lives in `OfficeIMO.Pdf.Word` and `OfficeIMO.Pdf.PowerPoint`. `MIGRATION.md` states this first, because the package names stay the same while their contents change.
 - The `OfficeIMO` package is the front door. It references Word, Excel, PowerPoint, PDF and Markdown, the adapters between them, `OfficeConverter` and Reader with its format handlers. `dotnet add package OfficeIMO` is the first line of the README. The NuGet ID is already registered to this project (two unlisted 0.1.x versions from 2022).
 - Namespaces stay per format (`OfficeIMO.Word`, `OfficeIMO.Excel`). The `OfficeIMO` namespace already holds Core's shared types. All shared foundations live there, including `OfficeColor` and `OfficeColorRole`, which move from `OfficeIMO.Drawing`; `OfficeConverter` and the batch types join them, and the existing `OfficeDocumentFormat` enum names formats.
-- The `OfficeIMO` package targets `net10.0`, because its batch engine relies on modern runtime APIs. .NET Framework applications reference the format and adapter packages directly.
-- Libraries target `netstandard2.0` (which serves .NET Framework 4.7.2+) and `net10.0`, identically on every build host. `net8.0` is dropped because .NET 8 reaches end of support in November 2026. The `netstandard2.0` build keeps a test run on .NET Framework on Windows, which PSWriteOffice on Windows PowerShell 5.1 depends on.
+- Every library keeps the frameworks it supports today, and 3.6 drops none of them: `netstandard2.0`, `net472`, `net8.0` and `net10.0`. Windows builds add `net472`, as they do today. This includes the `OfficeIMO` front door, `OfficeConverter`, the batch engine and `OfficeIMO.Workflows`, so .NET Framework applications and Windows PowerShell 5.1 get the same conversion routes as modern .NET. The batch engine runs on every framework and uses newer runtime APIs where they exist. `OfficeIMO.Workflows` and `OfficeIMO.Workflows.IWork`, which target only modern .NET today, gain the same targets. A route whose engine is modern-only (for example invoice validation) is registered only on the frameworks that engine supports. Other packages that target only modern .NET today (Tool, AI, Odbc, Studio, Data.Arrow, the KSeF and browser-PDF adapters) keep their targets.
+- `net8.0` is dropped in a later release, after .NET 8 reaches end of support on 10 November 2026, not as part of 3.6.
+- `IsAotCompatible` and the trimming analyzers are on for the `net8.0` and `net10.0` builds of every library. The `netstandard2.0` and `net472` builds keep a test run on .NET Framework on Windows.
 - Packages that pass trimming and NativeAOT analysis declare `IsAotCompatible`.
 
 ### Naming
@@ -295,7 +296,7 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 | Heading | `WordHeading` | `PptSlide -Title` | `PdfHeading` | `MarkdownHeading` | — |
 | Paragraph | `WordParagraph` | `PptParagraph` | `PdfParagraph` | `MarkdownParagraph` | — |
 | Styled text | `WordText` | `PptText` | `PdfText` | `MarkdownText` | `ExcelText` (rich text inside a cell) |
-| List | `WordList` / `WordListItem` | `PptList` / `PptListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `MarkdownListItem` | — |
+| List | `WordList` / `WordListItem` | `PptList` / `PptListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `ListItem` | — |
 | Table | `WordTable` | `PptTable` | `PdfTable` | `MarkdownTable` | `ExcelTable` |
 | Chart | `WordChart` | `PptChart` | `PdfChart` | — | `ExcelChart` |
 | Image | `WordImage` | `PptImage` | `PdfImage` | `MarkdownImage` | `ExcelImage` |
@@ -306,7 +307,7 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 - The same concept takes the same parameters in every format. `WordText`, `PptText`, `PdfText` and `MarkdownText` share `-Text`, `-Bold`, `-Italic`, `-Strikethrough`, `-Color`, `-Font`, `-Size` and `-Link`; `-Underline` takes the shared underline style where the format supports it. A list item takes `-Text` or a content block.
 - Styled runs are written as child commands. The `-Run @{ Text = …; Bold = $true, $true, $false }` hashtables of parallel arrays are removed.
 - Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PptNotes`). `Ppt` is the only PowerPoint prefix.
-- Aliases exist only for commands used inside a content block. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
+- Aliases exist only for commands that add content inside a content block. Commands that change the current element (`Set-OfficeWordParagraph`) and deck- or document-level settings are called by their full name inside a block; their natural alias would collide with the command that creates the element. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
 - A test rejects aliases that break these rules or collide with commands in PowerShell itself.
 
 ### Consolidation
@@ -346,7 +347,7 @@ The same map drives three things:
 
 ### Platform support
 
-- PowerShell 7.6 and later (on .NET 10) is the primary target. PowerShell 7.4 reaches end of support in November 2026 along with .NET 8.
+- PSWriteOffice keeps its current runtime reach: the PowerShell 7 payload is built for `net8.0` and runs on PowerShell 7.4 and later, including 7.6 on .NET 10, and Windows PowerShell 5.1 loads its own `net472` payload. Import checks the edition and picks the payload. The PowerShell 7 payload moves to `net10.0` (PowerShell 7.6 and later) in the same later release that drops `net8.0` from the libraries.
 - The module loads its third-party dependencies (Open XML SDK, AngleSharp and others) in an isolated assembly load context, so they never clash with other modules. OfficeIMO's own assemblies load so that type names such as `[OfficeIMO.Word.WordDocument]` work in user scripts. M3 qualifies the exact mechanism.
 - Windows PowerShell 5.1 stays supported for the commands that work there. The manifest description and the README say what is missing on 5.1, and assembly resolution problems are reported through PowerShell's error stream, not the console.
 
@@ -383,6 +384,9 @@ Slides are built from theme layouts with designed placeholders:
 | `Cards` | Three to six cards (today's card grid) |
 | `Process` | Three to six steps (today's process slide) |
 | `Quote`, `ImageFull`, `Closing` | Statement, full-bleed image and closing slides |
+| `CaseStudy` | Challenge, approach and result with two or three metrics |
+| `Logos` | A wall of four to twelve logos or product images |
+| `Coverage` | A map or diagram with pinned locations |
 
 - `-Layout` is optional. By default the layout is chosen from the content: a title only gives a section slide; one list, table, chart or image gives `TitleAndContent`; two blocks give `TwoContent`; `PptKpi` items give `Kpi`. The first slide of a deck uses `Title`.
 - Content that is too long for a slide is handled rather than overflowing: lists shrink to the theme's minimum size, then continue on a new slide; tables split across slides with the header repeated.

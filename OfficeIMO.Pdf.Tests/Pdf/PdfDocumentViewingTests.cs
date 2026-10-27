@@ -66,7 +66,7 @@ public sealed class PdfDocumentViewingTests {
     public void CancellationDuringGeneratedSerializationStopsFurtherComposition(string route) {
         using var cancellation = new CancellationTokenSource();
         int callbacks = 0;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TextLineBreakCallback = text => {
                 callbacks++; cancellation.Cancel(); return new[] { text.Length / 2 };
             }
@@ -116,7 +116,7 @@ public sealed class PdfDocumentViewingTests {
     }
 
     private static byte[] CreatePdf(PdfStandardPermissions permissions) =>
-        PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+        PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = permissions
         })).Meta(title: "Private metadata")
           .Paragraph(paragraph => paragraph.Text("Visible content with restricted extraction"))

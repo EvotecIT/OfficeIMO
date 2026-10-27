@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
     private static PdfTabStop[]? GetParagraphTabStops(PdfParagraphStyle? style) =>
         style?.TabStops.Count > 0 ? style.TabStops.ToArray() : null;
 
-    private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfOptions options) {
+    private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultHeadingStylesSnapshot?.GetSnapshot(block.Level);
     }
 
@@ -98,7 +98,7 @@ internal static partial class PdfWriter {
         return style?.Bold ?? true;
     }
 
-    private static PdfStandardFont GetHeadingFont(PdfOptions options, PdfHeadingStyle? style) {
+    private static PdfStandardFont GetHeadingFont(PdfCreateOptions options, PdfHeadingStyle? style) {
         var normalFont = ChooseNormal(style?.Font ?? options.DefaultFont);
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
@@ -117,7 +117,7 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? "F2" : "F1";
     }
 
-    private static PdfListStyle? ResolveListStyle(PdfListBlock block, PdfOptions options) {
+    private static PdfListStyle? ResolveListStyle(PdfListBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultListStyleSnapshot;
     }
 
@@ -165,7 +165,7 @@ internal static partial class PdfWriter {
         return normalFont;
     }
 
-    private static PdfNamedFontFace? GetListMarkerNamedFont(PdfListStyle? style, PdfOptions options) {
+    private static PdfNamedFontFace? GetListMarkerNamedFont(PdfListStyle? style, PdfCreateOptions options) {
         if (style == null ||
             !options.TryResolveNamedFontFace(style.MarkerFontFamily, style.MarkerBold, style.MarkerItalic, out PdfNamedFontFace namedFont)) {
             return null;
@@ -187,19 +187,19 @@ internal static partial class PdfWriter {
     }
 
 
-    private static PdfHorizontalRuleStyle ResolveHorizontalRuleStyle(HorizontalRuleBlock block, PdfOptions options) {
+    private static PdfHorizontalRuleStyle ResolveHorizontalRuleStyle(HorizontalRuleBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultHorizontalRuleStyleSnapshot ?? new PdfHorizontalRuleStyle();
     }
 
-    private static PdfImageStyle ResolveImageStyle(ImageBlock block, PdfOptions options) {
+    private static PdfImageStyle ResolveImageStyle(ImageBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultImageStyleSnapshot ?? new PdfImageStyle();
     }
 
-    private static PdfDrawingStyle ResolveDrawingStyle(ShapeBlock block, PdfOptions options) {
+    private static PdfDrawingStyle ResolveDrawingStyle(ShapeBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultDrawingStyleSnapshot ?? new PdfDrawingStyle();
     }
 
-    private static PdfDrawingStyle ResolveDrawingStyle(DrawingBlock block, PdfOptions options) {
+    private static PdfDrawingStyle ResolveDrawingStyle(DrawingBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultDrawingStyleSnapshot ?? new PdfDrawingStyle();
     }
 

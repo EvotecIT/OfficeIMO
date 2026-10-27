@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
                 paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
                 paragraph._paragraph.Remove();
             }
-            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc))) : null;
-            (imported ?? document).SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }))) : null;
+            (imported ?? document).SaveAsPdf(path, new WordPdfExportOptions { IncludePageNumbers = false });
             var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
             var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
             Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 first.AddFootNote("Native footnote text");
                 document.AddParagraph("Native after footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 string documentBefore = main.Document.OuterXml;
                 string notesBefore = main.EndnotesPart!.Endnotes!.OuterXml;
                 byte[] sourceBefore = File.ReadAllBytes(docPath);
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
                 Assert.Equal(documentBefore, main.Document.OuterXml);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
                 WordSection secondSection = document.AddSection();
                 secondSection.AddParagraph("Second section note").AddFootNote("Second section footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
                     .SetText("Later outer note")
                     .AddFootNote("Later outer footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
             }
 
             using (var pdf = PdfPigDocument.Open(pdfPath)) {

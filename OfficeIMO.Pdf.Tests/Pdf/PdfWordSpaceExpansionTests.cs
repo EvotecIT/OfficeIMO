@@ -72,7 +72,7 @@ public sealed class PdfWordSpaceExpansionTests {
                 TextWhitespaceMode = PdfTextWhitespaceMode.Preserve
             };
             if (anchored) style.AddTabStop(36D, PdfTabAlignment.Left);
-            return PdfDocument.Create(new PdfOptions {
+            return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 612D, PageHeight = 792D, MarginLeft = 72D, MarginRight = 360D,
                 MarginTop = 72D, MarginBottom = 72D, DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 12D, CompressContentStreams = false
@@ -118,7 +118,7 @@ public sealed class PdfWordSpaceExpansionTests {
     }
 
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, bool lastLine, PdfTextWhitespaceMode whitespace) =>
-        PdfDocument.Create(new PdfOptions { PageWidth = width + 40D, PageHeight = 300D,
+        PdfDocument.Create(new PdfCreateOptions { PageWidth = width + 40D, PageHeight = 300D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false })
         .Paragraph(p => p.Runs(runs), PdfAlign.Justify, style: new PdfParagraphStyle {

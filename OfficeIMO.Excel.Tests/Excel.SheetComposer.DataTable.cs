@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 document.Compose("Data", composer => composer.TableFrom(
-                    new CountOnlyRows(A1.MaxRows),
+                    new CountOnlyRows(ExcelA1.MaxRows),
                     configure: options => options.MaxRows = int.MaxValue,
                     freezeHeaderRow: false)));
 
@@ -460,7 +460,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
             var table = new DataTable("Wide");
-            for (int index = 0; index <= A1.MaxColumns; index++) {
+            for (int index = 0; index <= ExcelA1.MaxColumns; index++) {
                 table.Columns.Add("Column" + index, typeof(string));
             }
             table.Rows.Add(table.NewRow());
@@ -478,7 +478,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SheetComposer_DataTablePrefersHardExcelColumnBoundaryOverLowerConfiguredLimit() {
             var table = new DataTable("Wide");
-            for (int index = 0; index <= A1.MaxColumns; index++) {
+            for (int index = 0; index <= ExcelA1.MaxColumns; index++) {
                 table.Columns.Add("Column" + index, typeof(string));
             }
             table.Rows.Add(table.NewRow());

@@ -37,7 +37,7 @@ public static class PdfLogicalTableAnalysis {
             : PdfLogicalTableSchemaKind.Unknown;
         IReadOnlyList<PdfInferenceEvidence> schemaEvidence = BuildSchemaEvidence(table, hasHeader);
         double schemaConfidence = hasHeader
-            ? table.Evidence.Any(static evidence => evidence.Code == "table.tagged-header-row") ? 0.99D : 0.95D
+            ? table.Evidence.Any(static evidence => evidence.Code == "table-tagged-header-row") ? 0.99D : 0.95D
             : 0D;
 
         return new PdfLogicalTableStructure(
@@ -361,8 +361,8 @@ public static class PdfLogicalTableAnalysis {
         }
 
         bool hasExplicitHeaderEvidence = table.Evidence.Any(static evidence =>
-            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal) ||
-            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "table-header-emphasis", StringComparison.Ordinal) ||
+            string.Equals(evidence.Code, "table-tagged-header-row", StringComparison.Ordinal));
         if (!hasExplicitHeaderEvidence) {
             return null;
         }
@@ -854,15 +854,15 @@ public static class PdfLogicalTableAnalysis {
     private static PdfInferenceEvidence[] BuildSchemaEvidence(PdfLogicalTable table, bool hasHeader) {
         if (!hasHeader) {
             return new[] { new PdfInferenceEvidence(
-                "table.schema-unknown",
+                "table-schema-unknown",
                 "No tagged or structural evidence is strong enough to promote a row to table schema.",
                 -0.5D) };
         }
         PdfInferenceEvidence? tagged = table.Evidence.FirstOrDefault(static evidence =>
-            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "table-tagged-header-row", StringComparison.Ordinal));
         if (tagged is not null) return new[] { tagged };
         PdfInferenceEvidence? emphasis = table.Evidence.FirstOrDefault(static evidence =>
-            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "table-header-emphasis", StringComparison.Ordinal));
         return emphasis is not null ? new[] { emphasis } : Array.Empty<PdfInferenceEvidence>();
     }
 

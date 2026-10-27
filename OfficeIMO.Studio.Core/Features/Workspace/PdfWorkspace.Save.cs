@@ -18,7 +18,7 @@ internal sealed partial class PdfWorkspace {
         try {
             byte[] bytes = _bytes;
             await WriteWorkspaceOutputAsync(destination,
-                async (stream, token) => await LoadDocument(bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                async (stream, token) => await SaveWorkspacePdfAsync(bytes, stream, token).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false);
         } finally {
             _operationGate.Release();
@@ -51,7 +51,7 @@ internal sealed partial class PdfWorkspace {
                 bool replacingSource = OfficeStorageIdentity.AreEquivalent(destination, Path);
                 if (!replacingSource) await VerifyOutputDestinationAsync(destination, cancellationToken).ConfigureAwait(false);
                 using var serialized = new OfficeBoundedMemoryStream(StudioDocumentStorage.MaximumDocumentBytes);
-                saved = await LoadDocument(_bytes).SaveAsync(serialized, cancellationToken).ConfigureAwait(false);
+                saved = await SaveWorkspacePdfAsync(_bytes, serialized, cancellationToken).ConfigureAwait(false);
                 if (replacingSource) {
                     await _recoveryStore.WriteAsync(RecoveryIdentity, _baseFingerprint, _bytes, _revision, cancellationToken).ConfigureAwait(false);
                 }
@@ -79,7 +79,7 @@ internal sealed partial class PdfWorkspace {
                 // Publish to the resolved file while preserving the user's symlink itself.
                 destination = OfficePathIdentity.ResolvePhysicalPath(destination);
                 await OfficeFileCommit.WriteIfUnchangedAsync(destination,
-                    async (stream, token) => saved = await LoadDocument(_bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                    async (stream, token) => saved = await SaveWorkspacePdfAsync(_bytes, stream, token).ConfigureAwait(false),
                     candidate => {
                         using var stream = new FileStream(candidate, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
                         if (OfficePathIdentity.GetPhysicalIdentityKey(candidate, stream.SafeFileHandle) != _sourceIdentityKey) return false;
@@ -87,7 +87,7 @@ internal sealed partial class PdfWorkspace {
                     }, cancellationToken).ConfigureAwait(false);
             } else {
                 await WriteWorkspaceOutputAsync(destination,
-                    async (stream, token) => saved = await LoadDocument(_bytes).SaveAsync(stream, token).ConfigureAwait(false),
+                    async (stream, token) => saved = await SaveWorkspacePdfAsync(_bytes, stream, token).ConfigureAwait(false),
                     cancellationToken).ConfigureAwait(false);
             }
             Path = destination;

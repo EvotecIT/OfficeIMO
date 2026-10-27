@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PageBackground_CanBeOverriddenPerComposedPage() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     BackgroundColor = PdfColor.White
                 })
                 .Page(page => page
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_ItemAndSpacerProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 12
                 })
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_PageBreaksProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 12
                 })
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeItem_ElementPageBreakProvidesNestedWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 12
                 })

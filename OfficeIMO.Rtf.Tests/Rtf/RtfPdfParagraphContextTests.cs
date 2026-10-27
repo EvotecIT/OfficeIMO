@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests.Rtf;
 public sealed class RtfPdfParagraphContextTests {
     [Fact]
     public void CellParagraphsRetainInheritedSpacingIndentsAndIndependentAlignment() {
-        using PdfPigDocument expected = PdfPigDocument.Open(CreateCellParagraphs(0).ToPdfBytes(PortableOptions()));
-        using PdfPigDocument actual = PdfPigDocument.Open(CreateCellParagraphs(240).ToPdfBytes(PortableOptions()));
+        using PdfPigDocument expected = PdfPigDocument.Open((CreateCellParagraphs(0).ToPdf(PortableOptions())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((CreateCellParagraphs(240).ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         var letters = actual.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");
@@ -39,7 +39,7 @@ public sealed class RtfPdfParagraphContextTests {
         cell.AddParagraph("L\tR").SetStyle(1);
         cell.AddParagraph("U\tV").AddTabStop(1440);
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
         var left = Assert.Single(letters, letter => letter.Value == "L");
@@ -61,8 +61,8 @@ public sealed class RtfPdfParagraphContextTests {
     public void AppendedNoteParagraphsRetainLayoutAndEmitTheirLabelOnce(RtfNoteKind kind, string label) {
         RtfDocument unspaced = CreateNoteParagraphs(kind, 0);
         RtfDocument spaced = CreateNoteParagraphs(kind, 240);
-        byte[] bytes = spaced.ToPdfBytes(PortableOptions());
-        using PdfPigDocument expected = PdfPigDocument.Open(unspaced.ToPdfBytes(PortableOptions()));
+        byte[] bytes = (spaced.ToPdf(PortableOptions())).ToBytes();
+        using PdfPigDocument expected = PdfPigDocument.Open((unspaced.ToPdf(PortableOptions())).ToBytes());
         using PdfPigDocument actual = PdfPigDocument.Open(bytes);
         Assert.Equal(1, actual.NumberOfPages);
         var letters = actual.GetPage(1).Letters;
@@ -90,7 +90,7 @@ public sealed class RtfPdfParagraphContextTests {
             .OfType<RtfGeneratedText>().Single().Note!;
         note.Paragraphs[1].PageBreakBefore = true;
 
-        byte[] bytes = document.ToPdfBytes(PortableOptions());
+        byte[] bytes = (document.ToPdf(PortableOptions())).ToBytes();
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "X");
@@ -121,7 +121,7 @@ public sealed class RtfPdfParagraphContextTests {
         table.Rows[0].Cells[2].AddParagraph("TOP");
         table.Rows[1].Cells[2].AddParagraph("BOTTOM");
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(PortableOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(PortableOptions());
         PdfCore.TableBlock outputTable = Assert.IsType<PdfCore.TableBlock>(result.Value.Blocks.First());
         Assert.Equal(2, outputTable.Cells[0][0].ColumnSpan);
         Assert.Equal(2, outputTable.Cells[0][0].RowSpan);
@@ -198,6 +198,6 @@ public sealed class RtfPdfParagraphContextTests {
 
     private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica, DefaultFontSize = 12 }
+        PdfOptions = new PdfCore.PdfCreateOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica, DefaultFontSize = 12 }
     };
 }

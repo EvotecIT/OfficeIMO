@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < ThemePayloadMinimumLength) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-THEME-SHORT",
+                    "xls-biff-theme-short",
                     "The Theme record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (headerRecordType != (ushort)BiffRecordType.Theme) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-THEME-HEADER-UNEXPECTED",
+                    "xls-biff-theme-header-unexpected",
                     $"The Theme future record header declares record type 0x{headerRecordType:X4}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));

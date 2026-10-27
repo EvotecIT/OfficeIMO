@@ -15,7 +15,7 @@ namespace OfficeIMO.Pdf;
 /// - Paragraphs: heuristic paragraph groups built from nearby non-list, non-table lines
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
-public sealed class StructuredPage {
+public sealed class PdfStructuredPage {
     private readonly HashSet<(string Label, string Value)> _leaderRowKeys = new();
     /// <summary>Plain text lines in natural reading order.</summary>
     public List<string> Lines { get; } = new();
@@ -35,23 +35,23 @@ public sealed class StructuredPage {
         return true;
     }
     /// <summary>Detected list nodes with hierarchical level.</summary>
-    public List<StructuredListItem> ListNodes { get; } = new();
+    public List<PdfStructuredListItem> ListNodes { get; } = new();
     /// <summary>Per-line geometry details (Y, XStart, XEnd, Text, Spans).</summary>
-    public List<StructuredLine> LinesDetailed { get; } = new();
+    public List<PdfStructuredLine> LinesDetailed { get; } = new();
     /// <summary>Heuristic heading lines inferred from larger-than-body font sizes.</summary>
-    public List<StructuredHeading> Headings { get; } = new();
+    public List<PdfStructuredHeading> Headings { get; } = new();
     /// <summary>Heuristic paragraph groups built from nearby non-list, non-table lines.</summary>
-    public List<StructuredParagraph> Paragraphs { get; } = new();
+    public List<PdfStructuredParagraph> Paragraphs { get; } = new();
     /// <summary>Simple table-like rows derived from large X gaps per line.</summary>
     public List<string[]> Tables { get; } = new();
     /// <summary>Optional horizontal bands (line groups) for diagnostics/structure.</summary>
-    public List<StructuredBand> Bands { get; } = new();
+    public List<PdfStructuredBand> Bands { get; } = new();
     /// <summary>Detailed tables with column geometry and band extents.</summary>
-    public List<StructuredTable> TablesDetailed { get; } = new();
+    public List<PdfStructuredTable> TablesDetailed { get; } = new();
 }
 
 /// <summary>Represents a horizontal band grouping multiple lines.</summary>
-public sealed class StructuredBand {
+public sealed class PdfStructuredBand {
     /// <summary>Top Y (points) of the band (higher value is nearer top of page).</summary>
     public double YTop { get; set; }
     /// <summary>Bottom Y (points) of the band.</summary>
@@ -61,7 +61,7 @@ public sealed class StructuredBand {
 }
 
 /// <summary>Represents a parsed list item (bullet or numbered) with hierarchy.</summary>
-public sealed class StructuredListItem {
+public sealed class PdfStructuredListItem {
     /// <summary>1-based nesting level (best effort).</summary>
     public int Level { get; set; }
     /// <summary>Original marker like "1.2.3", "-", "•", "(a)".</summary>
@@ -69,11 +69,11 @@ public sealed class StructuredListItem {
     /// <summary>Normalized text of the list item.</summary>
     public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry for the source list item.</summary>
-    public StructuredLine Line { get; set; } = new();
+    public PdfStructuredLine Line { get; set; } = new();
 }
 
 /// <summary>Table model with column geometry and extracted rows.</summary>
-public sealed class StructuredTable {
+public sealed class PdfStructuredTable {
     /// <summary>Top Y (points) of the band that produced this table.</summary>
     public double YTop { get; set; }
     /// <summary>Bottom Y (points) of the band that produced this table.</summary>
@@ -81,7 +81,7 @@ public sealed class StructuredTable {
     /// <summary>Reason/heuristic for detection (e.g., band-splits, leaders).</summary>
     public string Kind { get; set; } = "band-splits";
     /// <summary>Detected columns with X ranges.</summary>
-    public List<StructuredTableColumn> Columns { get; } = new();
+    public List<PdfStructuredTableColumn> Columns { get; } = new();
     /// <summary>Extracted row values aligned to Columns.</summary>
     public List<string[]> Rows { get; } = new();
     internal IReadOnlyList<PdfTextSpan> SourceRuns { get; set; } = Array.Empty<PdfTextSpan>();
@@ -91,7 +91,7 @@ public sealed class StructuredTable {
 }
 
 /// <summary>Column geometry for a detected table.</summary>
-public sealed class StructuredTableColumn {
+public sealed class PdfStructuredTableColumn {
     /// <summary>Left X coordinate (points).</summary>
     public double From { get; set; }
     /// <summary>Right X coordinate (points).</summary>
@@ -100,9 +100,9 @@ public sealed class StructuredTableColumn {
 }
 
 /// <summary>Detected tables for a single document page.</summary>
-public sealed class StructuredTablePage {
+public sealed class PdfStructuredTablePage {
     /// <summary>Creates a page table result.</summary>
-    public StructuredTablePage(int pageNumber, IEnumerable<StructuredTable> tables) {
+    public PdfStructuredTablePage(int pageNumber, IEnumerable<PdfStructuredTable> tables) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
         }
@@ -115,13 +115,13 @@ public sealed class StructuredTablePage {
     public int PageNumber { get; }
 
     /// <summary>Detected tables on this page.</summary>
-    public List<StructuredTable> Tables { get; } = new();
+    public List<PdfStructuredTable> Tables { get; } = new();
 }
 
 /// <summary>Detected paragraphs for a single document page.</summary>
-public sealed class StructuredParagraphPage {
+public sealed class PdfStructuredParagraphPage {
     /// <summary>Creates a page paragraph result.</summary>
-    public StructuredParagraphPage(int pageNumber, IEnumerable<StructuredParagraph> paragraphs) {
+    public PdfStructuredParagraphPage(int pageNumber, IEnumerable<PdfStructuredParagraph> paragraphs) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
         }
@@ -134,13 +134,13 @@ public sealed class StructuredParagraphPage {
     public int PageNumber { get; }
 
     /// <summary>Detected paragraphs on this page.</summary>
-    public List<StructuredParagraph> Paragraphs { get; } = new();
+    public List<PdfStructuredParagraph> Paragraphs { get; } = new();
 }
 
 /// <summary>Detected headings for a single document page.</summary>
-public sealed class StructuredHeadingPage {
+public sealed class PdfStructuredHeadingPage {
     /// <summary>Creates a page heading result.</summary>
-    public StructuredHeadingPage(int pageNumber, IEnumerable<StructuredHeading> headings) {
+    public PdfStructuredHeadingPage(int pageNumber, IEnumerable<PdfStructuredHeading> headings) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
         }
@@ -153,13 +153,13 @@ public sealed class StructuredHeadingPage {
     public int PageNumber { get; }
 
     /// <summary>Detected headings on this page.</summary>
-    public List<StructuredHeading> Headings { get; } = new();
+    public List<PdfStructuredHeading> Headings { get; } = new();
 }
 
 /// <summary>Detected list items for a single document page.</summary>
-public sealed class StructuredListItemPage {
+public sealed class PdfStructuredListItemPage {
     /// <summary>Creates a page list-item result.</summary>
-    public StructuredListItemPage(int pageNumber, IEnumerable<StructuredListItem> listItems) {
+    public PdfStructuredListItemPage(int pageNumber, IEnumerable<PdfStructuredListItem> listItems) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
         }
@@ -172,27 +172,27 @@ public sealed class StructuredListItemPage {
     public int PageNumber { get; }
 
     /// <summary>Detected list items on this page.</summary>
-    public List<StructuredListItem> ListItems { get; } = new();
+    public List<PdfStructuredListItem> ListItems { get; } = new();
 }
 
 /// <summary>Heuristic heading line inferred from font size and geometry.</summary>
-public sealed class StructuredHeading {
+public sealed class PdfStructuredHeading {
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
     public int Level { get; set; }
     /// <summary>Heading text.</summary>
     public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry for the heading.</summary>
-    public StructuredLine Line { get; set; } = new();
+    public PdfStructuredLine Line { get; set; } = new();
     /// <summary>Representative font size in points.</summary>
     public double FontSize { get; set; }
 }
 
 /// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
-public sealed class StructuredParagraph {
+public sealed class PdfStructuredParagraph {
     /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
     public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry entries that make up the paragraph.</summary>
-    public List<StructuredLine> Lines { get; } = new();
+    public List<PdfStructuredLine> Lines { get; } = new();
     /// <summary>Leftmost X coordinate (points).</summary>
     public double XStart { get; set; }
     /// <summary>Rightmost X coordinate (points).</summary>
@@ -204,7 +204,7 @@ public sealed class StructuredParagraph {
 }
 
 /// <summary>Geometry detail for a single emitted line.</summary>
-public sealed class StructuredLine {
+public sealed class PdfStructuredLine {
     /// <summary>Baseline Y coordinate for the line (points from bottom).</summary>
     public double Y { get; set; }
     /// <summary>Leftmost X coordinate (points).</summary>
@@ -399,21 +399,21 @@ internal static class ContentStructureExtractor {
         return index > start;
     }
 
-    public static StructuredPage Extract(
+    public static PdfStructuredPage Extract(
         IReadOnlyList<PdfTextSpan> spans,
         TextLayoutEngine.Options opts,
         double? pageHeight = null) =>
         Extract(spans, opts, pageHeight, consumeWork: null, cancellationCheck: null);
 
-    internal static StructuredPage Extract(
+    internal static PdfStructuredPage Extract(
         IReadOnlyList<PdfTextSpan> spans,
         TextLayoutEngine.Options opts,
         double? pageHeight,
         Action<long>? consumeWork,
         Action? cancellationCheck,
-        IReadOnlyList<StructuredTable>? precomputedTables = null) {
+        IReadOnlyList<PdfStructuredTable>? precomputedTables = null) {
         cancellationCheck?.Invoke();
-        var page = new StructuredPage();
+        var page = new PdfStructuredPage();
         var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
         var lines = TextLayoutEngine.BuildLines(spans, opts, consumeWork, cancellationCheck);
         var nonEmpty = new List<TextLayoutEngine.TextLine>();
@@ -444,7 +444,7 @@ internal static class ContentStructureExtractor {
             }
             if (TryParseListItemText(t, out string marker, out string listText, out int listLevel)) {
                 page.ListItems.Add(t);
-                page.ListNodes.Add(new StructuredListItem {
+                page.ListNodes.Add(new PdfStructuredListItem {
                     Level = listLevel,
                     Marker = marker,
                     Text = listText,
@@ -467,7 +467,7 @@ internal static class ContentStructureExtractor {
             if (b.Count == 0) continue;
             consumeWork?.Invoke(b.Count);
             double top = b[0].Y; double bottom = b[b.Count - 1].Y;
-            var sb = new StructuredBand { YTop = top, YBottom = bottom };
+            var sb = new PdfStructuredBand { YTop = top, YBottom = bottom };
             foreach (var ln in b) sb.Lines.Add(ln.Text);
             page.Bands.Add(sb);
         }
@@ -542,7 +542,7 @@ internal static class ContentStructureExtractor {
     }
 
     private static void AddParagraphs(
-        StructuredPage page,
+        PdfStructuredPage page,
         List<TextLayoutEngine.TextLine> lines,
         HashSet<TextLayoutEngine.TextLine> fallbackTableLines,
         IReadOnlyList<StructuredTableBounds> tableBounds,
@@ -603,8 +603,8 @@ internal static class ContentStructureExtractor {
         }
     }
 
-    private static StructuredParagraph BuildParagraph(List<TextLayoutEngine.TextLine> lines) {
-        var paragraph = new StructuredParagraph {
+    private static PdfStructuredParagraph BuildParagraph(List<TextLayoutEngine.TextLine> lines) {
+        var paragraph = new PdfStructuredParagraph {
             Text = string.Join(" ", lines.Select(line => line.Text.Trim())),
             XStart = lines.Min(line => line.XStart),
             XEnd = lines.Max(line => line.XEnd),
@@ -614,7 +614,7 @@ internal static class ContentStructureExtractor {
 
         for (int i = 0; i < lines.Count; i++) {
             var line = lines[i];
-            paragraph.Lines.Add(new StructuredLine {
+            paragraph.Lines.Add(new PdfStructuredLine {
                 Y = line.Y,
                 XStart = line.XStart,
                 XEnd = line.XEnd,
@@ -628,7 +628,7 @@ internal static class ContentStructureExtractor {
     }
 
     private static void AddHeadings(
-        StructuredPage page,
+        PdfStructuredPage page,
         List<TextLayoutEngine.TextLine> lines,
         IReadOnlyList<StructuredTableBounds> tableBounds,
         Action<long>? consumeWork,
@@ -668,7 +668,7 @@ internal static class ContentStructureExtractor {
                 continue;
             }
 
-            var structuredLine = new StructuredLine {
+            var structuredLine = new PdfStructuredLine {
                 Y = line.Y,
                 XStart = line.XStart,
                 XEnd = line.XEnd,
@@ -676,7 +676,7 @@ internal static class ContentStructureExtractor {
                 FontSize = fontSize,
                 Spans = Array.AsReadOnly(line.Spans.ToArray())
             };
-            page.Headings.Add(new StructuredHeading {
+            page.Headings.Add(new PdfStructuredHeading {
                 Level = GetHeadingLevel(fontSize, bodySize),
                 Text = text,
                 Line = structuredLine,
@@ -709,7 +709,7 @@ internal static class ContentStructureExtractor {
 
     private static bool IsHeadingLine(
         TextLayoutEngine.TextLine line,
-        List<StructuredHeading> headings,
+        List<PdfStructuredHeading> headings,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
         for (int i = 0; i < headings.Count; i++) {
@@ -735,8 +735,8 @@ internal static class ContentStructureExtractor {
         return fontSize;
     }
 
-    private static StructuredLine ToStructuredLine(TextLayoutEngine.TextLine line) {
-        return new StructuredLine {
+    private static PdfStructuredLine ToStructuredLine(TextLayoutEngine.TextLine line) {
+        return new PdfStructuredLine {
             Y = line.Y,
             XStart = line.XStart,
             XEnd = line.XEnd,
@@ -746,18 +746,18 @@ internal static class ContentStructureExtractor {
         };
     }
 
-    internal static bool IsInsideTable(TextLayoutEngine.TextLine line, IReadOnlyList<StructuredTable> tables) =>
+    internal static bool IsInsideTable(TextLayoutEngine.TextLine line, IReadOnlyList<PdfStructuredTable> tables) =>
         IsInsideTable(line, tables, consumeWork: null, cancellationCheck: null);
 
     internal static bool IsInsideTable(
         TextLayoutEngine.TextLine line,
-        IReadOnlyList<StructuredTable> tables,
+        IReadOnlyList<PdfStructuredTable> tables,
         Action<long>? consumeWork,
         Action? cancellationCheck) =>
         IsInsideTable(line, BuildTableBounds(tables, consumeWork, cancellationCheck), consumeWork, cancellationCheck);
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredTableBounds> BuildTableBounds(
-        IReadOnlyList<StructuredTable> tables,
+        IReadOnlyList<PdfStructuredTable> tables,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
         var result = new List<StructuredTableBounds>(tables.Count);
@@ -774,7 +774,7 @@ internal static class ContentStructureExtractor {
             for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
                 cancellationCheck?.Invoke();
                 consumeWork?.Invoke(1);
-                StructuredTableColumn column = table.Columns[columnIndex];
+                PdfStructuredTableColumn column = table.Columns[columnIndex];
                 tableLeft = Math.Min(tableLeft, Math.Min(column.From, column.To));
                 tableRight = Math.Max(tableRight, Math.Max(column.From, column.To));
             }
@@ -822,7 +822,7 @@ internal static class ContentStructureExtractor {
         return (values[middle - 1] + values[middle]) / 2D;
     }
 
-    internal static void NormalizeDetectedTable(StructuredTable table) {
+    internal static void NormalizeDetectedTable(PdfStructuredTable table) {
         if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 string[] row = table.Rows[rowIndex];
@@ -843,7 +843,7 @@ internal static class ContentStructureExtractor {
         }
     }
 
-    internal static void AddLeaderRow(StructuredPage page, string label, string value) {
+    internal static void AddLeaderRow(PdfStructuredPage page, string label, string value) {
         label = NormalizeShattered(label ?? string.Empty).Trim();
         value = NormalizeLeaderValue(value);
         if (label.Length == 0 || value.Length == 0) {

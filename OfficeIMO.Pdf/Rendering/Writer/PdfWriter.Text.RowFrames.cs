@@ -72,7 +72,7 @@ internal static partial class PdfWriter {
         /// <summary>Collapses interval fragments into rows before pagination observes any line count.</summary>
         internal (List<List<RichSeg>> Lines, List<double> Heights) Complete(
             List<List<RichSeg>> fragments, List<double> advances, PdfStandardFont baseFont,
-            double fontSize, PdfOptions? options, PdfLineSpacing? spacing) {
+            double fontSize, PdfCreateOptions? options, PdfLineSpacing? spacing) {
             var rows = new List<List<RichSeg>>();
             var heights = new List<double>();
             for (int start = 0; start < fragments.Count;) {

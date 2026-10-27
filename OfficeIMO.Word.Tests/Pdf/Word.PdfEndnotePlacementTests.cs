@@ -86,8 +86,8 @@ public sealed class WordPdfEndnotePlacementTests {
     [InlineData(true)]
     public void NativeDocumentPositionIsProjectedIntoSavedDocx(bool sectionEnd) {
         using WordDocument source = CreateTwoSections(sectionEnd ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd);
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
-        using WordDocument docx = WordDocument.Load(new MemoryStream(native.ToBytes(WordFileFormat.Docx)));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(native.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         W.EndnotePositionValues? position = docx._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
             .GetFirstChild<W.EndnoteDocumentWideProperties>()?.GetFirstChild<W.EndnotePosition>()?.Val?.Value;
         Assert.Equal(sectionEnd ? W.EndnotePositionValues.SectionEnd : W.EndnotePositionValues.DocumentEnd, position);
@@ -154,7 +154,7 @@ public sealed class WordPdfEndnotePlacementTests {
 
     private static string ReadPdfText(WordDocument source, bool native) {
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(native ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        using var pdf = PdfPigDocument.Open(restored.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Arial" }));
+        using var pdf = PdfPigDocument.Open(restored.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Arial" }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Regex.Replace(string.Concat(pdf.GetPages().Select(page => page.Text)), @"\s+", "");
     }
 

@@ -19,7 +19,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img alt='Sized marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -35,14 +35,14 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img src='" + image + "' style='width:20px;height:20px'></div>";
-        var options = new HtmlToWordOptions { EnableAccessibilityDiagnostics = true };
+        var options = new WordHtmlImportOptions { EnableAccessibilityDiagnostics = true };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument document = result.Value;
 
         Assert.Single(document.TextBoxes);
         Assert.Single(result.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "AccessibilityImageMissingAlt");
+            diagnostic.Code == "accessibility-image-missing-alt");
     }
 
     [Fact]

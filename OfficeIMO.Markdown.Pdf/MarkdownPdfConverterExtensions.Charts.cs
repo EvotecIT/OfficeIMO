@@ -8,14 +8,14 @@ public static partial class MarkdownPdfConverterExtensions {
     private const double MinimumChartWidth = 240D;
     private const double MinimumChartHeight = 150D;
 
-    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (!IsChartSemanticFence(semantic)) {
             return false;
         }
 
         if (!TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warningMessage, visualTheme)) {
             if (!string.IsNullOrWhiteSpace(warningMessage)) {
-                AddWarning(options, "UnsupportedChartFence", semantic.Language, warningMessage!);
+                AddWarning(options, "unsupported-chart-fence", semantic.Language, warningMessage!);
             }
 
             return false;
@@ -37,7 +37,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool IsChartSemanticFence(SemanticFencedBlock semantic) =>
         string.Equals(semantic.SemanticKind, MarkdownSemanticKinds.Chart, StringComparison.OrdinalIgnoreCase);
 
-    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownToPdfOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfStyle? visualTheme = null) {
+    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfExportOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfStyle? visualTheme = null) {
         snapshot = null;
         warningMessage = null;
         if (string.IsNullOrWhiteSpace(semantic.Content)) {
@@ -778,7 +778,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static MarkdownPdfStyle ResolveChartVisualTheme(MarkdownToPdfOptions options, MarkdownPdfStyle? visualTheme) {
+    private static MarkdownPdfStyle ResolveChartVisualTheme(MarkdownPdfExportOptions options, MarkdownPdfStyle? visualTheme) {
         if (visualTheme != null) {
             return visualTheme.Clone();
         }
@@ -799,7 +799,7 @@ public static partial class MarkdownPdfConverterExtensions {
             : MarkdownPdfStyle.Plain();
     }
 
-    private static void FitChartToPageFrame(MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme, ref double width, ref double height) {
+    private static void FitChartToPageFrame(MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme, ref double width, ref double height) {
         if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
             availableWidth = width;
         }
@@ -819,19 +819,19 @@ public static partial class MarkdownPdfConverterExtensions {
         height = Math.Max(MinimumChartHeight, height * scale);
     }
 
-    private static bool TryGetAvailablePdfContentWidth(MarkdownToPdfOptions options, out double availableWidth) {
-        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
+    private static bool TryGetAvailablePdfContentWidth(MarkdownPdfExportOptions options, out double availableWidth) {
+        PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
         availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
         return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
     }
 
-    private static bool TryGetAvailablePdfContentHeight(MarkdownToPdfOptions options, out double availableHeight) {
-        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
+    private static bool TryGetAvailablePdfContentHeight(MarkdownPdfExportOptions options, out double availableHeight) {
+        PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
         availableHeight = pdfOptions.PageHeight - pdfOptions.MarginTop - pdfOptions.MarginBottom;
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
-    private static bool TryGetAvailableChartContentHeight(MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme, out double availableHeight) {
+    private static bool TryGetAvailableChartContentHeight(MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme, out double availableHeight) {
         if (!TryGetAvailablePdfContentHeight(options, out availableHeight)) {
             return false;
         }

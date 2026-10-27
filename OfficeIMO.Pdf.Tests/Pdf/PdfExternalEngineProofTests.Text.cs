@@ -23,7 +23,7 @@ public partial class PdfExternalEngineProofTests {
     [InlineData("following", "Logical replacement words")]
     public void LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(string scenario, string replacement) {
         const string paint = "PaintOnly";
-        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers();
+        var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers();
         if (scenario == "drawing") {
             var ink = new OfficeDrawing(120D, 40D).AddText(paint, 5D, 5D, 100D, 25D, new OfficeFontInfo("Helvetica", 12D));
             var drawing = new OfficeDrawing(120D, 40D).AddActualTextDrawing(replacement, ink, 5D, 5D);

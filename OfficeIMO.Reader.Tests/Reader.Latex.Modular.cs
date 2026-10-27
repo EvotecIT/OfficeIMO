@@ -118,8 +118,8 @@ public sealed class ReaderLatexModularTests {
         const string source = @"\documentclass{article}\begin{document}\begin{tabular}{lcr}\textbf{L}&\textbf{C}&\textbf{R}\\left&center&right\\\end{tabular}\end{document}";
         ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source),
             latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
-        OfficeIMO.Markdown.TableBlock table = Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.TableBlock>());
-        Assert.Equal(new[] { OfficeIMO.Markdown.ColumnAlignment.Left, OfficeIMO.Markdown.ColumnAlignment.Center, OfficeIMO.Markdown.ColumnAlignment.Right }, table.Alignments);
+        OfficeIMO.Markdown.TableBlock table = Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.TableBlock>());
+        Assert.Equal(new[] { OfficeIMO.Markdown.MarkdownColumnAlignment.Left, OfficeIMO.Markdown.MarkdownColumnAlignment.Center, OfficeIMO.Markdown.MarkdownColumnAlignment.Right }, table.Alignments);
         Assert.Contains("left\tcenter\tright", chunk.Text, StringComparison.Ordinal);
     }
 
@@ -137,7 +137,7 @@ public sealed class ReaderLatexModularTests {
             } }).ToArray();
         Assert.Equal(preserve ? source : string.Empty, string.Concat(chunks.Select(static chunk => chunk.Text)));
         Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD297:", StringComparison.Ordinal));
-        if (preserve) Assert.All(chunks, static chunk => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks)));
+        if (preserve) Assert.All(chunks, static chunk => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks)));
         else Assert.All(chunks, static chunk => Assert.Equal(string.Empty, chunk.Markdown));
         Assert.Equal(1, chunks[0].Location.StartLine);
         Assert.Equal(6, chunks[0].Location.EndLine);
@@ -197,9 +197,9 @@ public sealed class ReaderLatexModularTests {
         Assert.Equal(expected, string.Concat(chunks.Select(static chunk => chunk.Text)));
         Assert.All(chunks, static chunk => {
             Assert.InRange(chunk.Text.Length, 1, 32);
-            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            OfficeIMO.Markdown.MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!);
             Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(block));
-            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtml(), StringComparison.Ordinal);
         });
     }
 
@@ -212,10 +212,10 @@ public sealed class ReaderLatexModularTests {
             readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
         Assert.True(chunks.Length > 1);
         Assert.All(chunks, static chunk => {
-            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            OfficeIMO.Markdown.MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!);
             Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(block));
             Assert.DoesNotContain(parsed.Descendants(), static node => node is OfficeIMO.Markdown.LinkInline || node is OfficeIMO.Markdown.ItalicSequenceInline);
-            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtml(), StringComparison.Ordinal);
         });
     }
 
@@ -226,10 +226,10 @@ public sealed class ReaderLatexModularTests {
         string body = new string('p', 70) + "\\label{real}\\verb|<a id=\"fake\"></a> *value*|" + new string('s', 70);
         ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + body + "\\end{document}"),
             readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
-        string html = string.Concat(chunks.Select(static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).ToHtmlFragment()));
+        string html = string.Concat(chunks.Select(static chunk => OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).ToHtml()));
         Assert.Contains("<a id=\"real\"></a>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<a id=\"fake\"></a>", html, StringComparison.Ordinal);
-        Assert.Contains(chunks, static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.CodeBlock>().Any());
+        Assert.Contains(chunks, static chunk => OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.CodeBlock>().Any());
     }
 
     [Theory]
@@ -268,7 +268,7 @@ public sealed class ReaderLatexModularTests {
             readerOptions: new ReaderOptions { MaxChars = 40 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
         ReaderChunk part = Assert.Single(chunks, static chunk => chunk.Text.Contains("*value*", StringComparison.Ordinal));
         OfficeIMO.Markdown.ParagraphBlock paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(
-            Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(part.Markdown!).Blocks));
+            Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(part.Markdown!).Blocks));
         var text = new StringBuilder();
         foreach (OfficeIMO.Markdown.IPlainTextMarkdownInline inline in paragraph.Inlines.Nodes.OfType<OfficeIMO.Markdown.IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
         Assert.Equal(indentation + literal, text.ToString());

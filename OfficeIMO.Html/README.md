@@ -22,7 +22,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - one operation-scoped resource session for policy, resolution, MIME checks, caching, deduplication, budgets, timeouts, and digests
 - fidelity scoring across structure, text, styles, resources, annotations, formulas, charts, geometry, and reopened native artifacts
 
-Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
+Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDocument` through `OfficeIMO.Markdown.Html`.
 
 To save a source HTML copy in another directory while retaining its relative resource paths:
 
@@ -92,7 +92,8 @@ HtmlDocument edited = source.Edit(document => {
     targetRow.AppendChild(document.ImportNode(cells));
 });
 HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
-string markdown = conversion.ToMarkdown();
+using var markdownDocument = conversion.ToMarkdown();
+string markdown = markdownDocument.ToMarkdown();
 byte[] preview = conversion.ToPng();
 ```
 
@@ -787,7 +788,8 @@ var options = new HtmlToPdfOptions {
     Margins = HtmlRenderMargins.All(32)
 };
 
-byte[] pdf = source.ToPdfBytes(options);
+using var pdfDocument = source.ToPdf(options);
+byte[] pdf = pdfDocument.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 byte[] png = source.ToPng(options);
 string svg = source.ToSvg(options);
 ```
@@ -874,7 +876,7 @@ Native adapters use `HtmlConversionResult<TArtifact>` when callers need conversi
 ## Conversion Document And Normalized HTML
 
 ```csharp
-var conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+var conversion = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
     Profile = HtmlConversionProfile.Document,
     Trust = HtmlInputTrust.Untrusted,
     BaseUri = new Uri("https://example.com/reports/"),
@@ -999,6 +1001,8 @@ already belongs to the body, `TitleHeading` is null; read it from `Blocks`.
 Current OfficeIMO semantic exports identify schema `2` and public-safe restoration metadata. Public-safe envelopes can be imported from untrusted input. A target-specific envelope marked `trusted-target` restores private target metadata only when the prepared input is trusted; otherwise the adapter uses the shared generic semantic path and reports the boundary. Schema `1` remains readable.
 
 ```csharp
+using OfficeIMO.Word.Html;
+
 HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, exportedHtml);
 Console.WriteLine(score.Dimensions["structure"]);
 Console.WriteLine(score.Dimensions["styles"]);
@@ -1068,7 +1072,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

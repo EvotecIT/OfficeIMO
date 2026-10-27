@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.SetComment(2, 2, "Tall note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
-            string anchor = $"1, 0, 2, 0, 4, 0, {A1.MaxRows}, 0";
+            string anchor = $"1, 0, 2, 0, 4, 0, {ExcelA1.MaxRows}, 0";
             SetCommentVmlPlacement(vmlPart, anchor, moveWithCells: true, sizeWithCells: false);
 
             sheet.InsertRows(5);
@@ -59,11 +59,11 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.SetComment(2, 2, "Boundary note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
-            string anchor = $"1, 0, {A1.MaxRows - 2}, 0, 4, 0, {A1.MaxRows}, 0";
+            string anchor = $"1, 0, {ExcelA1.MaxRows - 2}, 0, 4, 0, {ExcelA1.MaxRows}, 0";
             SetCommentVmlPlacement(vmlPart, anchor, moveWithCells: true, sizeWithCells: false);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                () => sheet.InsertRows(A1.MaxRows - 1));
+                () => sheet.InsertRows(ExcelA1.MaxRows - 1));
 
             Assert.Contains("comment note anchor", exception.Message);
             Assert.Equal(anchor, GetCommentVmlAnchor(vmlPart));

@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example_MarkdownCodeBlocks(string folderPath, bool openWord) {
             string markdown = "```csharp\nConsole.WriteLine(\"Hello\");\n```";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             var codeParagraph = doc.Paragraphs[0];
             Console.WriteLine($"Detected language style: {codeParagraph.StyleId}");
 
@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Markdown {
             string mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
             doc.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("CodeLang_csharp");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = (doc.ToMarkdown(new WordMarkdownExportOptions())).ToMarkdown();
             Console.WriteLine(markdown);
 
             doc.Save(filePath);
@@ -42,8 +42,8 @@ namespace OfficeIMO.Examples.Markdown {
             const string codeFont = "Courier New";
             doc.AddParagraph("System.out.println(\"Hello\");").SetFontFamily(codeFont).SetStyleId("CodeLang_java");
 
-            var options = new WordToMarkdownOptions { FontFamily = codeFont };
-            string markdown = doc.ToMarkdown(options);
+            var options = new WordMarkdownExportOptions { FontFamily = codeFont };
+            string markdown = (doc.ToMarkdown(options)).ToMarkdown();
             Console.WriteLine(markdown);
 
             doc.Save(filePath);

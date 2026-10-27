@@ -8,11 +8,11 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with selected pages scaled into the supplied target page size.
     /// If no page numbers are supplied, all pages are resized.
     /// </summary>
-    public static byte[] ResizePages(byte[] pdf, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(byte[] pdf, PdfPageSize pageSize, params int[] pageNumbers) {
         return ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions: null, pageNumbers);
     }
 
-    internal static byte[] ResizePages(byte[] pdf, PageSize pageSize, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+    internal static byte[] ResizePages(byte[] pdf, PdfPageSize pageSize, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions, pageNumbers);
 
     /// <summary>
@@ -123,7 +123,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a readable stream.</summary>
-    public static byte[] ResizePages(Stream stream, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(Stream stream, PdfPageSize pageSize, params int[] pageNumbers) {
         return ResizePages(ReadStream(stream, nameof(stream)), pageSize, pageNumbers);
     }
 
@@ -133,7 +133,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size.</summary>
-    public static void ResizePages(byte[] pdf, Stream outputStream, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(byte[] pdf, Stream outputStream, PdfPageSize pageSize, params int[] pageNumbers) {
         WriteOutput(outputStream, ResizePages(pdf, pageSize, pageNumbers));
     }
 
@@ -143,7 +143,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size from a readable stream.</summary>
-    public static void ResizePages(Stream inputStream, Stream outputStream, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(Stream inputStream, Stream outputStream, PdfPageSize pageSize, params int[] pageNumbers) {
         WriteOutput(outputStream, ResizePages(inputStream, pageSize, pageNumbers));
     }
 
@@ -153,7 +153,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF file with selected pages scaled into the supplied target page size.</summary>
-    public static void ResizePages(string inputPath, string outputPath, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(string inputPath, string outputPath, PdfPageSize pageSize, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
@@ -171,7 +171,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a file path.</summary>
-    public static byte[] ResizePages(string inputPath, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(string inputPath, PdfPageSize pageSize, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return ResizePages(ReadPath(inputPath), pageSize, pageNumbers);
     }
@@ -183,7 +183,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the supplied target page size.</summary>
-    public static byte[] ResizePageRange(byte[] pdf, PageSize pageSize, int firstPage, int lastPage) {
+    public static byte[] ResizePageRange(byte[] pdf, PdfPageSize pageSize, int firstPage, int lastPage) {
         return ResizePages(pdf, pageSize, BuildInclusivePageRange(firstPage, lastPage, nameof(lastPage)));
     }
 
@@ -193,7 +193,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the supplied page ranges scaled into the supplied target page size.</summary>
-    public static byte[] ResizePageRanges(byte[] pdf, PageSize pageSize, params PdfPageRange[] pageRanges) {
+    public static byte[] ResizePageRanges(byte[] pdf, PdfPageSize pageSize, params PdfPageRange[] pageRanges) {
         return ResizePages(pdf, pageSize, ExpandPageRangesDistinct(pageRanges, nameof(pageRanges)));
     }
 
@@ -258,7 +258,7 @@ internal static partial class PdfPageEditor {
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PageSize pageSize) {
+    private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PdfPageSize pageSize) {
         PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width, pageSize.Height);
         if (geometry.BleedBox is not null) {
             pageOverrides["BleedBox"] = ClonePageBoxArray(targetBox);

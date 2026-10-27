@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Optional color overrides for Markdown HTML rendering. Values are CSS color strings (e.g., #RRGGBB).
-/// Leave null to keep defaults from the selected HtmlStyle.
+/// Leave null to keep defaults from the selected MarkdownHtmlStyle.
 /// </summary>
 public sealed class MarkdownHtmlColorOverrides {
     /// <summary>

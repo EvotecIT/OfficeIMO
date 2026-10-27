@@ -589,10 +589,10 @@ public sealed class HtmlOfficeAdapterLimitTests {
                 UrlPolicy = hyperlinkPolicy,
                 ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
             });
-        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         permissiveOptions.ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
-        HtmlToWordResult result = source.ToWordDocumentResult(permissiveOptions);
+        HtmlToWordResult result = source.ConvertToWordWithEvidence(permissiveOptions);
         using WordDocument document = result.Value;
 
         Assert.Empty(document.ParagraphsHyperLinks);
@@ -630,10 +630,10 @@ public sealed class HtmlOfficeAdapterLimitTests {
             Trust = HtmlInputTrust.Trusted,
             Limits = limits
         });
-        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(permissiveOptions));
+            () => source.ConvertToWordWithEvidence(permissiveOptions));
 
         Assert.Equal(expectedCode, exception.Code);
         Assert.Equal(expectedSource, exception.LimitSource);

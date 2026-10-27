@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
                 IReadOnlyList<ExcelColumnFormatResult> exactResults = sheet.ApplyColumnFormatPlan(
                     exactPlan,
                     headerRow: 2,
-                    options: new ExcelReadOptions { NormalizeHeaders = false });
+                    options: new ExcelReaderOptions { NormalizeHeaders = false });
 
                 var titlePlan = new ExcelColumnFormatPlan().Currency(System.Globalization.CultureInfo.GetCultureInfo("en-US"), "Value");
                 IReadOnlyList<ExcelColumnFormatResult> titleResults = sheet.ApplyColumnFormatPlan(

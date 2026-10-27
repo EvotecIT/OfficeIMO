@@ -92,7 +92,7 @@ public class HtmlRenderingOutputBenchmarks {
     public string ExportSvg() => OfficeDrawingSvgExporter.ToSvg(_drawing);
 
     [Benchmark]
-    public byte[] ExportRenderedPdf() => _document.ToPdfBytes(_pdfOptions);
+    public byte[] ExportRenderedPdf() => _document.ToPdf(_pdfOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 }
 
 /// <summary>Measures realistic paged purchase-table scaling without retaining the final PDF artifact.</summary>
@@ -111,7 +111,7 @@ public class HtmlPagedPurchaseTableBenchmarks {
         _document = HtmlConversionDocument.Parse(HtmlBenchmarkCorpus.BuildPurchaseTable(RowCount));
         _renderOptions = HtmlBenchmarkCorpus.CreatePagedOptions();
         _pdfOptions = new HtmlToPdfOptions(_renderOptions) {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                 FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
                 ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
                 TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
@@ -123,7 +123,7 @@ public class HtmlPagedPurchaseTableBenchmarks {
     public HtmlRenderDocument LayoutPaged() => HtmlRenderEngine.Render(_document, _renderOptions);
 
     [Benchmark]
-    public long RenderPdfToForwardOnlyStream() => _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess().BytesWritten;
+    public long RenderPdfToForwardOnlyStream() => _document.SaveAsPdf(Stream.Null, _pdfOptions).ItemsWritten;
 }
 
 /// <summary>Measures 100-page and 1,000-page legal-document style workloads.</summary>
@@ -154,7 +154,7 @@ public class HtmlLongDocumentBenchmarks {
             MaxPageCount = PageCount
         };
         _pdfOptions = new HtmlToPdfOptions(_renderOptions) {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                 FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
                 ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
                 TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
@@ -189,11 +189,11 @@ public class HtmlLongDocumentBenchmarks {
 
     [Benchmark]
     public long RenderPdfToForwardOnlyStream() {
-        OfficeIMO.Pdf.PdfSaveResult saved = _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess();
-        if (saved.Serialization?.PageCount != PageCount) {
-            throw new InvalidOperationException($"Expected {PageCount} rendered PDF pages but observed {saved.Serialization?.PageCount}.");
+        OfficeConversionReport saved = _document.SaveAsPdf(Stream.Null, _pdfOptions);
+        if (saved.ItemsWritten != PageCount) {
+            throw new InvalidOperationException($"Expected {PageCount} rendered PDF pages but observed {saved.ItemsWritten}.");
         }
-        return saved.BytesWritten;
+        return saved.ItemsWritten;
     }
 
     private HtmlRenderDocument RequirePageCount(HtmlRenderDocument rendered) {
@@ -237,7 +237,7 @@ public class HtmlStaticStandardsBenchmarks {
         _document = HtmlConversionDocument.Parse(HtmlBenchmarkCorpus.BuildStaticStandardsShowcase());
         _renderOptions = HtmlBenchmarkCorpus.CreateStaticStandardsOptions();
         _pdfOptions = new HtmlToPdfOptions(_renderOptions) {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                 FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
                 ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
                 TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
@@ -245,8 +245,8 @@ public class HtmlStaticStandardsBenchmarks {
         };
 
         RequireStandardsContract(HtmlRenderEngine.Render(_document, _renderOptions));
-        byte[] pdf = _document.ToPdfBytes(_pdfOptions);
-        OfficeIMO.Pdf.PdfReadDocument readDocument = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
+        byte[] pdf = _document.ToPdf(_pdfOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        OfficeIMO.Pdf.PdfDocument readDocument = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         string text = readDocument.ExtractText();
         if (readDocument.Pages.Count != 2
             || !text.Contains("Static standards packet", StringComparison.Ordinal)
@@ -260,8 +260,11 @@ public class HtmlStaticStandardsBenchmarks {
         HtmlRenderEngine.Render(_document, _renderOptions));
 
     [Benchmark]
-    public long RenderTaggedPdfToForwardOnlyStream() =>
-        _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess().RequireNoLoss().BytesWritten;
+    public long RenderTaggedPdfToForwardOnlyStream() {
+        OfficeConversionReport saved = _document.SaveAsPdf(Stream.Null, _pdfOptions);
+        saved.ThrowIfLoss();
+        return saved.ItemsWritten;
+    }
 
     private static HtmlRenderDocument RequireStandardsContract(HtmlRenderDocument rendered) {
         rendered.RequireNoLoss();

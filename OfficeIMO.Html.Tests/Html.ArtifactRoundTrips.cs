@@ -21,7 +21,7 @@ public class HtmlArtifactRoundTrips {
         HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<h1>Conversion proof</h1><p>" + Marker + "</p><ul><li>First</li><li>Second</li></ul>");
 
-        HtmlToWordResult wordResult = source.ToWordDocumentResult();
+        HtmlToWordResult wordResult = source.ConvertToWordWithEvidence();
         using var docx = new MemoryStream();
         wordResult.Value.Save(docx);
         using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -30,8 +30,8 @@ public class HtmlArtifactRoundTrips {
         string rtf = rtfResult.Value.ToRtf();
         RtfReadResult reopenedRtf = RtfDocument.Read(rtf);
 
-        string markdown = source.ToMarkdown();
-        byte[] pdf = source.ToPdfBytes();
+        string markdown = source.ToMarkdown().ToMarkdown();
+        byte[] pdf = (source.ToPdf()).ToBytes();
         string svg = source.ToSvg();
 
         Assert.NotEmpty(reopenedWord.Find(Marker, StringComparison.Ordinal));

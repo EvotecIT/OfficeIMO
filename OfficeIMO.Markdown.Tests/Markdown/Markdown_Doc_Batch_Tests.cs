@@ -8,9 +8,9 @@ public class MarkdownDocBatchTests {
     public void AddRange_Appends_In_Order_And_Binds_The_Object_Tree() {
         var first = new ParagraphBlock(new InlineSequence().Text("First"));
         var second = new ParagraphBlock(new InlineSequence().Text("Second"));
-        MarkdownDoc document = MarkdownDoc.Create();
+        MarkdownDocument document = MarkdownDocument.Create();
 
-        MarkdownDoc returned = document.AddRange(new IMarkdownBlock[] { first, second });
+        MarkdownDocument returned = document.AddRange(new IMarkdownBlock[] { first, second });
 
         Assert.Same(document, returned);
         Assert.Equal(new IMarkdownBlock[] { first, second }, document.Blocks);
@@ -23,7 +23,7 @@ public class MarkdownDocBatchTests {
 
     [Fact]
     public void AddRange_Rejects_Null_Input_And_Null_Entries() {
-        MarkdownDoc document = MarkdownDoc.Create();
+        MarkdownDocument document = MarkdownDocument.Create();
 
         Assert.Throws<ArgumentNullException>(() => document.AddRange(null!));
         Assert.Throws<ArgumentException>(() => document.AddRange(new IMarkdownBlock[] { null! }));

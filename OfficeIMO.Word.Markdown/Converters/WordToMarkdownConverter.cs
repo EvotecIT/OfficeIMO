@@ -20,11 +20,11 @@ namespace OfficeIMO.Word.Markdown {
     /// 4. Use paragraph.Bold, paragraph.Italic for inline formatting
     /// </summary>
     internal partial class WordToMarkdownConverter {
-        public MarkdownDoc ConvertToDocument(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
+        public MarkdownDocument ConvertToDocument(WordDocument document, WordMarkdownExportOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new WordToMarkdownOptions();
+            options ??= new WordMarkdownExportOptions();
 
-            var markdown = MarkdownDoc.Create();
+            var markdown = MarkdownDocument.Create();
             using (WordComplexFieldRunVisibility.BeginConversionScope())
                 BuildMarkdownDocument(document, markdown, options, cancellationToken);
             return markdown;

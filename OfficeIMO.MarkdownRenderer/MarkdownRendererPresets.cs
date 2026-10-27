@@ -7,13 +7,13 @@ namespace OfficeIMO.MarkdownRenderer;
 /// These are intentionally opinionated, but still fully configurable via <see cref="MarkdownRendererOptions"/>.
 /// </summary>
 public static class MarkdownRendererPresets {
-    private static MarkdownReaderOptions CreateStrictReaderOptions(MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
-        var reader = MarkdownReaderOptions.CreateProfile(readerProfile);
+    private static MarkdownLoadOptions CreateStrictReaderOptions(MarkdownLoadOptions.MarkdownDialectProfile readerProfile) {
+        var reader = MarkdownLoadOptions.CreateProfile(readerProfile);
         ApplyStrictReaderSecurityDefaults(reader);
         return reader;
     }
 
-    private static void ApplyStrictReaderSecurityDefaults(MarkdownReaderOptions reader) {
+    private static void ApplyStrictReaderSecurityDefaults(MarkdownLoadOptions reader) {
         reader.HtmlBlocks = false;
         // Keep block HTML disabled, but allow the reader's safe inline-tag subset
         // so built-in formatting like <u>...</u> and <br> can survive strict rendering.
@@ -28,7 +28,7 @@ public static class MarkdownRendererPresets {
     private static void ApplyStrictRenderingDefaults(
         MarkdownRendererOptions options,
         string? baseHref,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
+        MarkdownLoadOptions.MarkdownDialectProfile readerProfile) {
         options.BaseHref = baseHref;
         options.ReaderOptions = CreateStrictReaderOptions(readerProfile);
 
@@ -52,7 +52,7 @@ public static class MarkdownRendererPresets {
         options.NormalizeTightParentheticalSpacing = true;
         options.NormalizeNestedStrongDelimiters = true;
 
-        options.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
+        options.HtmlOptions.RawHtmlHandling = MarkdownRawHtmlHandling.Strip;
         options.HtmlOptions.ExternalLinksTargetBlank = true;
         options.HtmlOptions.ExternalLinksRel = "noopener noreferrer nofollow ugc";
         options.HtmlOptions.ExternalLinksReferrerPolicy = "no-referrer";
@@ -103,7 +103,7 @@ public static class MarkdownRendererPresets {
 
     private static void ApplyIntelligenceXTranscriptReaderContract(
         MarkdownRendererOptions options,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
+        MarkdownLoadOptions.MarkdownDialectProfile readerProfile) {
         var transcriptReader = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             readerProfile,
             preservesGroupedDefinitionLikeParagraphs: false,
@@ -133,7 +133,7 @@ public static class MarkdownRendererPresets {
             throw new ArgumentNullException(nameof(options));
         }
 
-        options.HtmlOptions.Style = HtmlStyle.ChatAuto;
+        options.HtmlOptions.Style = MarkdownHtmlStyle.ChatAuto;
         options.HtmlOptions.CssScopeSelector = "#omdRoot article.markdown-body";
         options.EnableCodeCopyButtons = enableCopyButtons;
         options.EnableTableCopyButtons = enableCopyButtons;
@@ -148,7 +148,7 @@ public static class MarkdownRendererPresets {
     /// - Blocks external HTTP(S) images unless same-origin with BaseHref/BaseUri
     /// </summary>
     public static MarkdownRendererOptions CreateStrict(string? baseHref = null) {
-        return CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateStrict(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
@@ -156,10 +156,10 @@ public static class MarkdownRendererPresets {
     /// This keeps the same security defaults while allowing hosts to target OfficeIMO, CommonMark,
     /// GitHub Flavored Markdown, or the portable OfficeIMO subset.
     /// </summary>
-    public static MarkdownRendererOptions CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateStrict(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = new MarkdownRendererOptions();
         ApplyStrictRenderingDefaults(options, baseHref, readerProfile);
-        if (readerProfile == MarkdownReaderOptions.MarkdownDialectProfile.Portable) {
+        if (readerProfile == MarkdownLoadOptions.MarkdownDialectProfile.Portable) {
             ApplyPortableHtmlOutputProfile(options);
         }
         return options;
@@ -170,20 +170,20 @@ public static class MarkdownRendererPresets {
     /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same security defaults.
     /// </summary>
     public static MarkdownRendererOptions CreateStrictPortable(string? baseHref = null) =>
-        CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+        CreateStrict(MarkdownLoadOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
     /// Strict preset for generic untrusted markdown hosting with optional client-side renderers disabled.
     /// This disables Mermaid, charts, math, Prism, and copy-button helpers to minimize shell scripting.
     /// </summary>
     public static MarkdownRendererOptions CreateStrictMinimal(string? baseHref = null) {
-        return CreateStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateStrictMinimal(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Strict minimal preset for generic untrusted markdown hosting using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateStrictMinimal(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
         ApplyMinimalRenderingDefaults(options);
         return options;
@@ -193,7 +193,7 @@ public static class MarkdownRendererPresets {
     /// Strict minimal preset for generic untrusted markdown hosting with the portable reader profile enabled.
     /// </summary>
     public static MarkdownRendererOptions CreateStrictMinimalPortable(string? baseHref = null) =>
-        CreateStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+        CreateStrictMinimal(MarkdownLoadOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
     /// Relaxed preset for trusted or controlled generic markdown hosting.
@@ -201,19 +201,19 @@ public static class MarkdownRendererPresets {
     /// - Allows external HTTP(S) images unless further restricted by the host
     /// </summary>
     public static MarkdownRendererOptions CreateRelaxed(string? baseHref = null) {
-        return CreateRelaxed(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateRelaxed(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Relaxed preset for trusted or controlled generic markdown hosting using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateRelaxed(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
 
         options.ReaderOptions.HtmlBlocks = true;
         options.ReaderOptions.InlineHtml = true;
 
-        options.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Sanitize;
+        options.HtmlOptions.RawHtmlHandling = MarkdownRawHtmlHandling.Sanitize;
         options.HtmlOptions.BlockExternalHttpImages = false;
         options.HtmlOptions.RestrictHttpLinksToBaseOrigin = false;
         options.HtmlOptions.RestrictHttpImagesToBaseOrigin = false;
@@ -226,13 +226,13 @@ public static class MarkdownRendererPresets {
     /// This is the preferred first-class name for the OfficeIMO-hosted IX transcript surface.
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscript(string? baseHref = null) {
-        return CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateIntelligenceXTranscript(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Strict preset for the explicit IntelligenceX transcript rendering contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscript(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
@@ -246,20 +246,20 @@ public static class MarkdownRendererPresets {
     /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same transcript security defaults.
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptPortable(string? baseHref = null) =>
-        CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+        CreateIntelligenceXTranscript(MarkdownLoadOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
     /// Strict minimal preset for the explicit IntelligenceX transcript rendering contract.
     /// This keeps the IX transcript semantics while minimizing client-side shell features by default.
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(string? baseHref = null) {
-        return CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateIntelligenceXTranscriptMinimal(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Strict minimal preset for the explicit IntelligenceX transcript rendering contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrictMinimal(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
@@ -273,7 +273,7 @@ public static class MarkdownRendererPresets {
     /// This combines the minimal shell-friendly renderer defaults with the stricter reader preset used for portability-sensitive hosts.
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimalPortable(string? baseHref = null) =>
-        CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+        CreateIntelligenceXTranscriptMinimal(MarkdownLoadOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
     /// Strict desktop-shell preset for the explicit IntelligenceX transcript contract.
@@ -281,13 +281,13 @@ public static class MarkdownRendererPresets {
     /// required by the IntelligenceX desktop host.
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptDesktopShell(string? baseHref = null) {
-        return CreateIntelligenceXTranscriptDesktopShell(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateIntelligenceXTranscriptDesktopShell(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Strict desktop-shell preset for the explicit IntelligenceX transcript contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateIntelligenceXTranscriptDesktopShell(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptDesktopShell(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateIntelligenceXTranscriptMinimal(readerProfile, baseHref);
         options.Mermaid.Enabled = true;
         options.Chart.Enabled = true;
@@ -301,13 +301,13 @@ public static class MarkdownRendererPresets {
     /// - Allows external HTTP(S) images (unless further restricted via host/origin allowlists)
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(string? baseHref = null) {
-        return CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+        return CreateIntelligenceXTranscriptRelaxed(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
     /// Relaxed preset for trusted or controlled IntelligenceX transcript content using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(MarkdownLoadOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateRelaxed(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
         options.ReaderOptions.HtmlBlocks = true;

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsInvalidRelativeColumnWidthWeights() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
 
         var exception = Assert.Throws<ArgumentException>(() =>
             style.ColumnWidthWeights = new List<double> { 1, 0, 1 });
@@ -25,14 +25,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsInvalidFixedColumnWidthPoints_AndFitsOversizedFixedColumns() {
-        var invalidStyle = TableStyles.Minimal();
+        var invalidStyle = PdfTableStyles.Minimal();
 
         var invalidException = Assert.Throws<ArgumentException>(() =>
             invalidStyle.ColumnWidthPoints = new List<double?> { 1, -5 });
 
         Assert.Contains("Table fixed column widths must be positive finite values.", invalidException.Message, StringComparison.Ordinal);
 
-        var tooWideStyle = TableStyles.Minimal();
+        var tooWideStyle = PdfTableStyles.Minimal();
         tooWideStyle.ColumnWidthPoints = new List<double?> { 400, 400 };
 
         byte[] bytes = PdfDocument.Create()
@@ -52,14 +52,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsInvalidMinimumAndMaximumColumnWidthPoints() {
-        var invalidMinimum = TableStyles.Minimal();
+        var invalidMinimum = PdfTableStyles.Minimal();
 
         var invalidMinimumException = Assert.Throws<ArgumentException>(() =>
             invalidMinimum.ColumnMinWidthPoints = new List<double?> { 0 });
 
         Assert.Contains("Table minimum column widths must be positive finite values.", invalidMinimumException.Message, StringComparison.Ordinal);
 
-        var invertedRange = TableStyles.Minimal();
+        var invertedRange = PdfTableStyles.Minimal();
         invertedRange.ColumnMinWidthPoints = new List<double?> { 90 };
         invertedRange.ColumnMaxWidthPoints = new List<double?> { 60 };
 
@@ -71,63 +71,63 @@ public partial class PdfDocumentVisualQualityTests {
                 }, style: invertedRange)
                 .ToBytes());
 
-        var invalidHeaderRows = TableStyles.Minimal();
+        var invalidHeaderRows = PdfTableStyles.Minimal();
 
         var invalidHeaderRowsException = Assert.Throws<ArgumentException>(() =>
             invalidHeaderRows.HeaderRowCount = -1);
 
         Assert.Contains("Table header row count cannot be negative.", invalidHeaderRowsException.Message, StringComparison.Ordinal);
 
-        var invalidRepeatHeaderRows = TableStyles.Minimal();
+        var invalidRepeatHeaderRows = PdfTableStyles.Minimal();
 
         var invalidRepeatHeaderRowsException = Assert.Throws<ArgumentException>(() =>
             invalidRepeatHeaderRows.RepeatHeaderRowCount = -1);
 
         Assert.Contains("Table repeating header row count cannot be negative.", invalidRepeatHeaderRowsException.Message, StringComparison.Ordinal);
 
-        var invalidFooterRows = TableStyles.Minimal();
+        var invalidFooterRows = PdfTableStyles.Minimal();
 
         var invalidFooterRowsException = Assert.Throws<ArgumentException>(() =>
             invalidFooterRows.FooterRowCount = -1);
 
         Assert.Contains("Table footer row count cannot be negative.", invalidFooterRowsException.Message, StringComparison.Ordinal);
 
-        var invalidMinimumRowHeight = TableStyles.Minimal();
+        var invalidMinimumRowHeight = PdfTableStyles.Minimal();
 
         var invalidMinimumRowHeightException = Assert.Throws<ArgumentException>(() =>
             invalidMinimumRowHeight.MinRowHeight = -1);
 
         Assert.Contains("Table minimum row height must be a non-negative finite value.", invalidMinimumRowHeightException.Message, StringComparison.Ordinal);
 
-        var invalidPreferredWidth = TableStyles.Minimal();
+        var invalidPreferredWidth = PdfTableStyles.Minimal();
 
         var invalidPreferredWidthException = Assert.Throws<ArgumentException>(() =>
             invalidPreferredWidth.PreferredWidth = double.PositiveInfinity);
 
         Assert.Contains("Table preferred width must be a positive finite value.", invalidPreferredWidthException.Message, StringComparison.Ordinal);
 
-        var invalidRowMinimumHeights = TableStyles.Minimal();
+        var invalidRowMinimumHeights = PdfTableStyles.Minimal();
 
         var invalidRowMinimumHeightsException = Assert.Throws<ArgumentException>(() =>
             invalidRowMinimumHeights.RowMinHeights = new List<double?> { 18, double.NaN });
 
         Assert.Contains("Table row minimum heights must be non-negative finite values.", invalidRowMinimumHeightsException.Message, StringComparison.Ordinal);
 
-        var invalidSpacingBefore = TableStyles.Minimal();
+        var invalidSpacingBefore = PdfTableStyles.Minimal();
 
         var invalidSpacingBeforeException = Assert.Throws<ArgumentException>(() =>
             invalidSpacingBefore.SpacingBefore = -1);
 
         Assert.Contains("Table spacing before must be a non-negative finite value.", invalidSpacingBeforeException.Message, StringComparison.Ordinal);
 
-        var invalidSpacingAfter = TableStyles.Minimal();
+        var invalidSpacingAfter = PdfTableStyles.Minimal();
 
         var invalidSpacingAfterException = Assert.Throws<ArgumentException>(() =>
             invalidSpacingAfter.SpacingAfter = double.PositiveInfinity);
 
         Assert.Contains("Table spacing after must be a non-negative finite value.", invalidSpacingAfterException.Message, StringComparison.Ordinal);
 
-        var invalidCaptionFontSize = TableStyles.Minimal();
+        var invalidCaptionFontSize = PdfTableStyles.Minimal();
         invalidCaptionFontSize.Caption = "Caption";
 
         var invalidCaptionFontSizeException = Assert.Throws<ArgumentException>(() =>
@@ -135,35 +135,35 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table caption font size must be a positive finite value.", invalidCaptionFontSizeException.Message, StringComparison.Ordinal);
 
-        var invalidBodyFontSize = TableStyles.Minimal();
+        var invalidBodyFontSize = PdfTableStyles.Minimal();
 
         var invalidBodyFontSizeException = Assert.Throws<ArgumentException>(() =>
             invalidBodyFontSize.FontSize = 0);
 
         Assert.Contains("Table body font size must be a positive finite value.", invalidBodyFontSizeException.Message, StringComparison.Ordinal);
 
-        var invalidLineHeight = TableStyles.Minimal();
+        var invalidLineHeight = PdfTableStyles.Minimal();
 
         var invalidLineHeightException = Assert.Throws<ArgumentException>(() =>
             invalidLineHeight.LineHeight = double.NaN);
 
         Assert.Contains("Table line height must be a positive finite value.", invalidLineHeightException.Message, StringComparison.Ordinal);
 
-        var invalidHeaderFontSize = TableStyles.Minimal();
+        var invalidHeaderFontSize = PdfTableStyles.Minimal();
 
         var invalidHeaderFontSizeException = Assert.Throws<ArgumentException>(() =>
             invalidHeaderFontSize.HeaderFontSize = double.NaN);
 
         Assert.Contains("Table header font size must be a positive finite value.", invalidHeaderFontSizeException.Message, StringComparison.Ordinal);
 
-        var invalidFooterFontSize = TableStyles.Minimal();
+        var invalidFooterFontSize = PdfTableStyles.Minimal();
 
         var invalidFooterFontSizeException = Assert.Throws<ArgumentException>(() =>
             invalidFooterFontSize.FooterFontSize = double.PositiveInfinity);
 
         Assert.Contains("Table footer font size must be a positive finite value.", invalidFooterFontSizeException.Message, StringComparison.Ordinal);
 
-        var whitespaceCaption = TableStyles.Minimal();
+        var whitespaceCaption = PdfTableStyles.Minimal();
         whitespaceCaption.Caption = "   ";
 
         var whitespaceCaptionException = Assert.Throws<ArgumentException>(() =>
@@ -176,7 +176,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table caption cannot be empty or whitespace.", whitespaceCaptionException.Message, StringComparison.Ordinal);
 
-        var invalidCaptionSpacing = TableStyles.Minimal();
+        var invalidCaptionSpacing = PdfTableStyles.Minimal();
         invalidCaptionSpacing.Caption = "Caption";
 
         var invalidCaptionSpacingException = Assert.Throws<ArgumentException>(() =>
@@ -184,7 +184,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table caption spacing after must be a non-negative finite value.", invalidCaptionSpacingException.Message, StringComparison.Ordinal);
 
-        var invalidCellBorder = TableStyles.Minimal();
+        var invalidCellBorder = PdfTableStyles.Minimal();
 
         var invalidCellBorderException = Assert.Throws<ArgumentException>(() =>
             invalidCellBorder.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
@@ -261,7 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsRowSpanCrossingHeaderBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsRowSpanCrossingFooterBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FooterRowCount = 1;
 
@@ -296,7 +296,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsRowSpanCrossingHeaderBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -318,7 +318,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsRowSpanCrossingFooterBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FooterRowCount = 1;
 
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsHeaderRowCountBeyondRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 3;
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -357,7 +357,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsRepeatHeaderRowCountBeyondHeaderRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 2;
 
@@ -375,7 +375,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RejectsCombinedHeaderAndFooterRowsBeyondRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 2;
 
@@ -392,7 +392,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsFooterRowCountBeyondRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FooterRowCount = 3;
 
@@ -414,7 +414,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RejectsCombinedHeaderAndFooterRowsBeyondRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 2;
 
@@ -436,7 +436,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithHeaderRowCountBeyondRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 3;
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -455,7 +455,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithRowSpanCrossingHeaderBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
 
         var exception = Assert.Throws<ArgumentException>(() =>

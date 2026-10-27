@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfAllSeverityBatch21Tests {
     [Fact]
     public void UnprofiledExternalValidationDoesNotSatisfyProfiledProof() {
-        PdfOptions options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfCreateOptions options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
@@ -117,7 +117,7 @@ public class PdfAllSeverityBatch21Tests {
 
     [Fact]
     public void TopOfPageKeepTogetherIgnoresSuppressedSpacingBefore() {
-        PdfOptions options = new() {
+        PdfCreateOptions options = new() {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,
@@ -141,7 +141,7 @@ public class PdfAllSeverityBatch21Tests {
 
     [Fact]
     public void KeepTogetherCollapsesSpacingBeforeAfterMovingToFreshPage() {
-        PdfOptions options = new() {
+        PdfCreateOptions options = new() {
             PageWidth = 320,
             PageHeight = 170,
             MarginLeft = 30,

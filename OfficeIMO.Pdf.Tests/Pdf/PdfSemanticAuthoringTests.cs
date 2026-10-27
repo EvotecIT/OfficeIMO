@@ -141,7 +141,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 300;
                 options.PageHeight = 220;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
                 options.CompressContentStreams = false;
             })
             .Content(content => content.Element(element => element
@@ -177,7 +177,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
             })
             .Content(content => content.Element(element => element
                 .Padding(6)
@@ -198,7 +198,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
             })
             .Content(content => content.Flow(flow => flow.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 20; index++) {
@@ -216,7 +216,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(30);
+                options.Margins = PdfPageMargins.Uniform(30);
             })
             .Content(content => content.Element(element => element
                 .KeepTogether()
@@ -234,7 +234,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(30);
+                options.Margins = PdfPageMargins.Uniform(30);
             })
             .Content(content => content.Element(outer => outer
                 .KeepTogether()
@@ -253,7 +253,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => {
                 options.PageWidth = 260;
                 options.PageHeight = 170;
-                options.Margins = PageMargins.Uniform(30);
+                options.Margins = PdfPageMargins.Uniform(30);
                 options.DefaultFontSize = 10;
             })
             .Content(content => content
@@ -295,7 +295,7 @@ public sealed class PdfSemanticAuthoringTests {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
             })
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 24; index++) {
@@ -321,7 +321,7 @@ public sealed class PdfSemanticAuthoringTests {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
             })
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => article.H1(heading))))
             .ToBytes();
@@ -344,7 +344,7 @@ public sealed class PdfSemanticAuthoringTests {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                 options.PageWidth = 300;
                 options.PageHeight = 180;
-                options.Margins = PageMargins.Uniform(24);
+                options.Margins = PdfPageMargins.Uniform(24);
             })
             .Content(content => content.Semantic(PdfSemanticRole.Figure, figure => {
                 for (int index = 0; index < 24; index++) {

@@ -47,12 +47,14 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
     }
 
     public override void Write(byte[] buffer, int offset, int count) {
-        ArgumentNullException.ThrowIfNull(buffer);
+        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
         Advance(count);
     }
 
+#if NET8_0_OR_GREATER
     public override void Write(ReadOnlySpan<byte> buffer) => Advance(buffer.Length);
+#endif
 
     public override void WriteByte(byte value) => Advance(1);
 
@@ -62,6 +64,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
         return Task.CompletedTask;
     }
 
+#if NET8_0_OR_GREATER
     public override ValueTask WriteAsync(
         ReadOnlyMemory<byte> buffer,
         CancellationToken cancellationToken = default) {
@@ -69,6 +72,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
         Advance(buffer.Length);
         return ValueTask.CompletedTask;
     }
+#endif
 
     private void Advance(int count) {
         long end;
@@ -98,7 +102,7 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
     private readonly bool _leaveOpen;
 
     internal OfficeWorkflowBoundedWriteStream(Stream inner, long maximumBytes, bool leaveOpen = false) {
-        ArgumentNullException.ThrowIfNull(inner);
+        if (inner == null) throw new ArgumentNullException(nameof(inner));
         if (!inner.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(inner));
         if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         _inner = inner;
@@ -144,10 +148,12 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
         _inner.Write(buffer, offset, count);
     }
 
+#if NET8_0_OR_GREATER
     public override void Write(ReadOnlySpan<byte> buffer) {
         EnsureWriteWithinLimit(buffer.Length);
         _inner.Write(buffer);
     }
+#endif
 
     public override void WriteByte(byte value) {
         EnsureWriteWithinLimit(1);
@@ -159,20 +165,24 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
         return _inner.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
+#if NET8_0_OR_GREATER
     public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
         EnsureWriteWithinLimit(buffer.Length);
         return _inner.WriteAsync(buffer, cancellationToken);
     }
+#endif
 
     protected override void Dispose(bool disposing) {
         if (disposing && !_leaveOpen) _inner.Dispose();
         base.Dispose(disposing);
     }
 
+#if NET8_0_OR_GREATER
     public override async ValueTask DisposeAsync() {
         if (!_leaveOpen) await _inner.DisposeAsync().ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
+#endif
 
     private void EnsureWriteWithinLimit(int count) {
         long end;

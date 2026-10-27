@@ -24,12 +24,12 @@ public partial class Word {
         Configure(indented, "MarkerNegative");
         indented.StyleDetails!.TableIndentationWidth = -108;
         using WordDocument reopened = WordDocument.Load(new MemoryStream(nativeDoc
-            ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+            ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         Assert.Equal((short)-108, reopened.Tables[1].StyleDetails!.TableIndentationWidth);
-        byte[] bytes = reopened.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PageSize(500, 400), Margins = PageMargins.Uniform(40)
-        });
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 400), Margins = PdfPageMargins.Uniform(40)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var words = pdf.GetPage(1).GetWords().ToArray();
         var original = Assert.Single(words, word => word.Text == "MarkerDefault");

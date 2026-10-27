@@ -28,7 +28,7 @@ public sealed class ExcelPowerShellCellEdit
     /// <summary>Gets the 1-based worksheet column index.</summary>
     public int ColumnIndex => _cell.Column;
 
-    /// <summary>Gets the A1 cell address.</summary>
+    /// <summary>Gets the ExcelA1 cell address.</summary>
     public string Address => _cell.Address;
 
     /// <summary>Gets or sets the current cell value.</summary>

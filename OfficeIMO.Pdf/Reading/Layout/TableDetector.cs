@@ -39,7 +39,7 @@ internal static partial class TableDetector {
         return rows;
     }
 
-    public static List<StructuredTable> DetectTablesFromBands(
+    public static List<PdfStructuredTable> DetectTablesFromBands(
         List<List<TextLayoutEngine.TextLine>> bands,
         double? pageHeight = null,
         Action<long>? consumeWork = null,
@@ -55,7 +55,7 @@ internal static partial class TableDetector {
             if (recoverable.Count > 0) recoverableBands.Add(recoverable);
         }
         bands = recoverableBands;
-        var tables = new List<StructuredTable>();
+        var tables = new List<PdfStructuredTable>();
         // Leader-dominated bands should become leader tables, not generic band tables
         foreach (var band in bands) {
             cancellationCheck?.Invoke();
@@ -87,7 +87,7 @@ internal static partial class TableDetector {
             .Where(line => !IsCoveredByDetectedTable(line, tables))
             .Take(MaximumPositionedRecoveryLines)
             .ToList();
-        List<StructuredTable> positionedTables = DetectPositionedCellTables(
+        List<PdfStructuredTable> positionedTables = DetectPositionedCellTables(
             unmatchedLines,
             pageHeight,
             consumeWork,
@@ -102,7 +102,7 @@ internal static partial class TableDetector {
         return tables;
     }
 
-    private static bool IsSubsumedByPositionedTable(StructuredTable candidate, StructuredTable positioned) {
+    private static bool IsSubsumedByPositionedTable(PdfStructuredTable candidate, PdfStructuredTable positioned) {
         if (candidate.Columns.Count == 0 || positioned.Columns.Count == 0 || positioned.Rows.Count <= candidate.Rows.Count) {
             return false;
         }
@@ -134,7 +134,7 @@ internal static partial class TableDetector {
 
     private static bool IsCoveredByDetectedTable(
         TextLayoutEngine.TextLine line,
-        List<StructuredTable> tables) {
+        List<PdfStructuredTable> tables) {
         for (int index = 0; index < tables.Count; index++) {
             // Two-row band candidates are deliberately admitted only with strong
             // evidence, but they are still too weak to own the source geometry.
@@ -176,7 +176,7 @@ internal static partial class TableDetector {
         return leaderLines >= 3 || (leaderLines * 10 >= nonEmpty * 3);
     }
 
-    private static StructuredTable? BuildLeaderTableForBand(List<TextLayoutEngine.TextLine> band) {
+    private static PdfStructuredTable? BuildLeaderTableForBand(List<TextLayoutEngine.TextLine> band) {
         var rows = new List<string[]>();
         var sourceRuns = new List<PdfTextSpan>();
         double leftMin = double.MaxValue, leftMax = double.MinValue;
@@ -192,9 +192,9 @@ internal static partial class TableDetector {
             }
         }
         if (rows.Count == 0) return null;
-        var t = new StructuredTable { YTop = band[0].Y, YBottom = band[band.Count - 1].Y, Kind = "leaders" };
-        t.Columns.Add(new StructuredTableColumn { From = leftMin, To = leftMax });
-        t.Columns.Add(new StructuredTableColumn { From = rightMin, To = rightMax });
+        var t = new PdfStructuredTable { YTop = band[0].Y, YBottom = band[band.Count - 1].Y, Kind = "leaders" };
+        t.Columns.Add(new PdfStructuredTableColumn { From = leftMin, To = leftMax });
+        t.Columns.Add(new PdfStructuredTableColumn { From = rightMin, To = rightMax });
         t.Rows.AddRange(rows);
         t.SourceRuns = sourceRuns.Distinct().ToArray();
         return t;
@@ -207,7 +207,7 @@ internal static partial class TableDetector {
         return true;
     }
 
-    private static StructuredTable? BuildTableFromLinesAndSplits(
+    private static PdfStructuredTable? BuildTableFromLinesAndSplits(
         List<TextLayoutEngine.TextLine> lines,
         List<double> splits,
         string kind,
@@ -215,7 +215,7 @@ internal static partial class TableDetector {
         if (splits.Count == 0) return null;
         double minX = double.MaxValue, maxX = double.MinValue;
         foreach (var ln in lines) { minX = Math.Min(minX, ln.XStart); maxX = Math.Max(maxX, ln.XEnd); }
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             YTop = lines[0].Y,
             YBottom = lines[lines.Count - 1].Y,
             Kind = kind
@@ -223,7 +223,7 @@ internal static partial class TableDetector {
         double prev = minX;
         for (int i = 0; i <= splits.Count; i++) {
             double next = (i < splits.Count) ? splits[i] : maxX;
-            table.Columns.Add(new StructuredTableColumn { From = prev, To = next });
+            table.Columns.Add(new PdfStructuredTableColumn { From = prev, To = next });
             prev = next;
         }
         int cols = table.Columns.Count;
@@ -247,7 +247,7 @@ internal static partial class TableDetector {
         return table.Rows.Count > 0 ? table : null;
     }
 
-    public static StructuredTable? DetectLeaderTable(
+    public static PdfStructuredTable? DetectLeaderTable(
         List<TextLayoutEngine.TextLine> lines,
         double? pageHeight = null,
         Action<long>? consumeWork = null,
@@ -276,13 +276,13 @@ internal static partial class TableDetector {
             }
         }
         if (rows.Count < 2) return null;
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             YTop = candidates[0].Y,
             YBottom = candidates[candidates.Count - 1].Y,
             Kind = "leaders"
         };
-        table.Columns.Add(new StructuredTableColumn { From = leftMin, To = leftMax });
-        table.Columns.Add(new StructuredTableColumn { From = rightMin, To = rightMax });
+        table.Columns.Add(new PdfStructuredTableColumn { From = leftMin, To = leftMax });
+        table.Columns.Add(new PdfStructuredTableColumn { From = rightMin, To = rightMax });
         table.Rows.AddRange(rows);
         table.SourceRuns = sourceRuns.Distinct().ToArray();
         return table;

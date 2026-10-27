@@ -96,7 +96,7 @@ public sealed class OfficeWorkflowStreamInputTests {
         var source = new Source(CreatePdf(1)) { ChangeOnVerification = !revoked, DenyVerification = revoked };
         var result = await new OfficeWorkflowRunner().RunAsync(new() {
             InputPath = "content://provider/opaque", InputStream = source.Input("report.pdf"),
-            Operation = OfficeWorkflowOperation.Optimize, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            Operation = OfficeWorkflowOperation.Optimize, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace
         });
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(original, File.ReadAllBytes(output));
@@ -113,7 +113,7 @@ public sealed class OfficeWorkflowStreamInputTests {
         var source = new Source(bytes);
         var result = await new OfficeWorkflowRunner().RunAsync(new() {
             InputPath = path, InputStream = source.Input("input.pdf"),
-            Operation = OfficeWorkflowOperation.Optimize, OutputPath = path, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            Operation = OfficeWorkflowOperation.Optimize, OutputPath = path, ConflictPolicy = OfficePublicationPolicy.Replace
         });
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(bytes, File.ReadAllBytes(path));
@@ -211,10 +211,10 @@ public sealed class OfficeWorkflowStreamInputTests {
         Assert.Equal(source.Reads, source.Closed);
     }
 
-    private sealed class CallbackGuard(Action callback) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class CallbackGuard(Action callback) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             callback();
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
         private static bool TryAppendNoteReference(
             IDocument htmlDoc,
             WordParagraph run,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             bool processNotes,
             List<INode> nodes,
             List<(int Number, WordFootNote Note)> footnotes,
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Html {
         private static void DiscoverTransitiveNotes(
             List<(int Number, WordFootNote Note)> footnotes, Dictionary<long, int> footnoteMap,
             List<(int Number, WordEndNote Note)> endnotes, Dictionary<long, int> endnoteMap,
-            WordToHtmlOptions options, CancellationToken cancellationToken) {
+            WordHtmlExportOptions options, CancellationToken cancellationToken) {
             int footIndex = 0, endIndex = 0;
             while (footIndex < footnotes.Count || endIndex < endnotes.Count) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -201,7 +201,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement body,
             List<(int Number, WordFootNote Note)> footnotes,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportFootnotes || footnotes.Count == 0) {
                 return;
@@ -235,7 +235,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement body,
             List<(int Number, WordEndNote Note)> endnotes,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportEndnotes || endnotes.Count == 0) {
                 return;

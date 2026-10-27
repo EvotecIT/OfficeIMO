@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
             PowerPointGroupShape inner = slide.GroupShapes(new PowerPointShape[] { first, second }, "Inner");
             slide.GroupShapes(new PowerPointShape[] { inner, third }, "Outer");
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(
                 new PowerPointImageExportOptions { MaxGroupShapeDepth = 1 });
 
             Assert.Contains(snapshot.Diagnostics, diagnostic =>
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
             textBox.Color = "111111";
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(result.Diagnostics);
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
@@ -514,7 +514,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(png.Diagnostics, "table-cell-text-fit-approximation");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics, "table-cell-text-fit-approximation");
@@ -532,7 +532,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ExportsListMarkersInPdfTextSpans() {
+        public void PowerPointSlide_ExportsListMarkersInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 260);
@@ -545,7 +545,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -563,7 +563,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ExportsAutoNumberSchemesInPdfTextSpans() {
+        public void PowerPointSlide_ExportsAutoNumberSchemesInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(340, 260);
@@ -583,7 +583,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
@@ -621,7 +621,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             Assert.Empty(slide.Shapes);
             AssertNoUnexpectedDiagnostics(result.Diagnostics);
@@ -655,7 +655,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
 
             Assert.Single(slide.Shapes);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);

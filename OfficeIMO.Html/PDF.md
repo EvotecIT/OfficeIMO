@@ -111,7 +111,7 @@ A prepared HTML report can be exported directly to a file:
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");
-report.SaveAsPdf("service-review.pdf").RequireSuccess();
+report.SaveAsPdf("service-review.pdf");
 ```
 
 The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) also exports editable Word and Excel artifacts from the same prepared source.
@@ -189,21 +189,21 @@ Rectangular, fully opaque table backgrounds with automatic height continue throu
 </section>
 ```
 
-For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdfBytes()`, and select forward-only PDF object serialization when the destination need not be seekable:
+For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdf().ToBytes()`, and select forward-only PDF object serialization when the destination need not be seekable:
 
 ```csharp
 using OfficeIMO.Pdf;
 
 var options = new HtmlToPdfOptions {
-    PdfOptions = new PdfOptions {
+    PdfOptions = new PdfCreateOptions {
         FileVersion = PdfFileVersion.Pdf17,
         ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
     }
 };
 
 using Stream destination = File.Create("purchases.pdf");
-PdfSaveResult saved = HtmlConversionDocument.Parse(html).SaveAsPdf(destination, options);
-Console.WriteLine(saved.Serialization?.PeakRetainedPageContentBytes);
+OfficeIMO.OfficeConversionReport saved = HtmlConversionDocument.Parse(html).SaveAsPdf(destination, options);
+Console.WriteLine(saved.ItemsWritten);
 ```
 
 This bounds completed PDF page and object payloads and avoids buffering the final artifact inside OfficeIMO. HTML parsing, cascading, and layout still operate on the complete document so CSS page counters, named pages, cross-page fragmentation, and other whole-document rules remain correct. `PdfSerializationReport.IsForwardOnlyLayout` stays `false`; split independently generated documents at the application boundary when a workload requires a hard end-to-end heap ceiling.
@@ -270,7 +270,7 @@ Use strict mode when the input must stay inside the declared static contract, an
 ```csharp
 var options = new HtmlToPdfOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
-    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
+    PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 
@@ -321,7 +321,7 @@ source omissions that were not represented in its tags.
 
 The [accessible report example](../OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs)
 embeds the same regular and bold fonts for layout and PDF encoding, uses
-`PdfOptions.UsePdfUa(...)`, and checks the retained result. Its
+`PdfCreateOptions.UsePdfUa(...)`, and checks the retained result. Its
 [HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html)
 contains two pages, ordered and unordered lists, row and column table headers,
 a described figure, decorative SVG, an internal link, a labelled checkbox and
@@ -480,7 +480,7 @@ var options = new HtmlToPdfOptions {
     DefaultFontFamily = "Arial",
     BackgroundColor = OfficeColor.White,
     Scale = 1.5,
-    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
+    PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm }");

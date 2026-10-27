@@ -23,11 +23,11 @@ public sealed class ExcelConditionalIconFidelityTests {
         }
         sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
             percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(360, 360), Margins = PdfCore.PageMargins.Uniform(0)
-        });
-        var yellow = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives()
+            PageSize = new PdfCore.PdfPageSize(360, 360), Margins = PdfCore.PdfPageMargins.Uniform(0)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        var yellow = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetIdentityVisualPrimitives()
             .Where(item => item.FillColor is OfficeColor color && color.R == 255 && color.G == 192 && color.B == 0)
             .OrderBy(item => item.Y).ToArray();
         Assert.Equal(count - 2, yellow.Length);
@@ -72,14 +72,14 @@ public sealed class ExcelConditionalIconFidelityTests {
         sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeSymbols2, showValue, false,
             percentThresholds: null, numberThresholds: new[] { 0D, 300D, 600D });
 
-        ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
         Assert.Equal(new[] { OfficeConditionalIconKind.RedCross, OfficeConditionalIconKind.YellowExclamation, OfficeConditionalIconKind.GreenCheck },
             snapshot.ConditionalIcons.Select(icon => icon.Kind));
 
-        byte[] pdfBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] pdfBytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(360, 240), Margins = PdfCore.PageMargins.Uniform(0)
-        });
+            PageSize = new PdfCore.PdfPageSize(360, 240), Margins = PdfCore.PdfPageMargins.Uniform(0)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(pdfBytes);
         double worksheetScale = percent / 100D;
         AssertPdfSymbolArtwork(pdfBytes, worksheetScale);
@@ -171,7 +171,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             Assert.DoesNotContain(">0<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(">1<", svg, StringComparison.Ordinal);
         }
-        byte[] pdf = loaded.ToPdfBytes(new ExcelToPdfOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 });
+        byte[] pdf = loaded.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.True(OfficePngReader.TryDecode(PdfCore.PdfPageImageRenderer.RenderPageAsPng(pdf, scale: 2D), out var image));
         if (allNoIcons) {
             Assert.Equal(0, FindColorBounds(image!, 2).Count);
@@ -198,7 +198,7 @@ public sealed class ExcelConditionalIconFidelityTests {
     private static void AssertPdfSymbolArtwork(byte[] bytes, double scale) {
         // Inspect serialized paths with their CTM applied. Managed PDF raster projection
         // currently keeps unscaled stroke widths; Poppler separately verifies this fixture.
-        var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives(scaleStrokeWidthWithTransform: true);
+        var primitives = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetIdentityVisualPrimitives(scaleStrokeWidthWithTransform: true);
         var cross = primitives.Where(item => item.Kind == PdfCore.PdfPageVisualPrimitiveKind.Line &&
             item.StrokeColor is OfficeColor color && IsColor(color, 0)).ToArray();
         var check = primitives.Where(item => item.Kind == PdfCore.PdfPageVisualPrimitiveKind.Line &&

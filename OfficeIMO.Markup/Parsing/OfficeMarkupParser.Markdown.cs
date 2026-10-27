@@ -3,10 +3,10 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Markup;
 
 public static partial class OfficeMarkupParser {
-    private static readonly MarkdownReaderOptions DefaultMarkdownOptions = CreateDefaultMarkdownOptions();
+    private static readonly MarkdownLoadOptions DefaultMarkdownOptions = CreateDefaultMarkdownOptions();
 
-    private static MarkdownReaderOptions CreateDefaultMarkdownOptions() {
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+    private static MarkdownLoadOptions CreateDefaultMarkdownOptions() {
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         // OfficeMarkupParser owns front-matter extraction before the Markdown pass.
         // Keep nested Markdown parsing from cloning an option graph just to disable it again.
         options.FrontMatter = false;
@@ -14,7 +14,7 @@ public static partial class OfficeMarkupParser {
         return options;
     }
 
-    private static MarkdownReaderOptions CreateMarkdownOptions(OfficeMarkupParserOptions options) {
+    private static MarkdownLoadOptions CreateMarkdownOptions(OfficeMarkupParserOptions options) {
         if (options.MarkdownOptions == null) {
             return DefaultMarkdownOptions;
         }
@@ -24,12 +24,12 @@ public static partial class OfficeMarkupParser {
         return markdownOptions;
     }
 
-    private static void RegisterOfficeFences(MarkdownReaderOptions options) {
+    private static void RegisterOfficeFences(MarkdownLoadOptions options) {
         AddFence(options, "OfficeIMO Markup", OfficeLanguages, "officeimo");
         AddFence(options, "Mermaid diagram", MermaidLanguages, "diagram");
     }
 
-    private static void AddFence(MarkdownReaderOptions options, string name, string[] languages, string semanticKind) {
+    private static void AddFence(MarkdownLoadOptions options, string name, string[] languages, string semanticKind) {
         for (int extensionIndex = 0; extensionIndex < options.FencedBlockExtensions.Count; extensionIndex++) {
             IReadOnlyList<string> registeredLanguages = options.FencedBlockExtensions[extensionIndex].Languages;
             for (int registeredIndex = 0; registeredIndex < registeredLanguages.Count; registeredIndex++) {
@@ -55,7 +55,7 @@ public static partial class OfficeMarkupParser {
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         foreach (var markdownBlock in markdownBlocks) {
             var mapped = MapMarkdownBlock(markdownBlock, profile, diagnostics, markdownOptions);
             if (mapped != null) {
@@ -68,7 +68,7 @@ public static partial class OfficeMarkupParser {
         IMarkdownBlock markdownBlock,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         switch (markdownBlock) {
             case HeadingBlock heading:
                 return WithLazySourceText(new OfficeMarkupHeadingBlock(heading.Level, heading.Text), markdownBlock);
@@ -115,7 +115,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
         IMarkdownBlock sourceBlock,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var list = WithLazySourceText(new OfficeMarkupListBlock(ordered, start), sourceBlock);
 
         foreach (var item in source) {
@@ -152,7 +152,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
         string sourceText,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var directive = OfficeMarkupDirective.Parse(semantic.Language, semantic.Content);
         OfficeMarkupBlock block;
         switch (NormalizeCommand(directive.Command)) {
@@ -238,7 +238,7 @@ public static partial class OfficeMarkupParser {
     }
 
     private static void PopulateColumn(OfficeMarkupColumnBlock column, OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics, MarkdownReaderOptions markdownOptions) {
+        IList<OfficeMarkupDiagnostic> diagnostics, MarkdownLoadOptions markdownOptions) {
         column.HasParsedBody = true;
         if (string.IsNullOrWhiteSpace(column.Body)) return;
         var nested = MarkdownReader.ParseProjectionWithBlockSpans(column.Body, markdownOptions);
@@ -249,7 +249,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupDirective directive,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var slide = new OfficeMarkupSlideBlock(GetAttribute(directive, "title")) {
             Layout = GetAttribute(directive, "layout"),
             Section = GetAttribute(directive, "section"),
@@ -274,7 +274,7 @@ public static partial class OfficeMarkupParser {
         OfficeMarkupDirective directive,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        MarkdownReaderOptions markdownOptions) {
+        MarkdownLoadOptions markdownOptions) {
         var section = new OfficeMarkupSectionBlock(GetAttribute(directive, "name") ?? GetAttribute(directive, "title")) {
             PageSize = GetAttribute(directive, "pageSize") ?? GetAttribute(directive, "size"),
             Orientation = GetAttribute(directive, "orientation")

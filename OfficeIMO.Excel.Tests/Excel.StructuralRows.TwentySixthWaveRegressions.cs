@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             for (int column = 1; column <= 128; column++) {
                 summary.CellValue(1, column, column);
             }
-            summary.CellFormula(1, 129, $"Data!A{A1.MaxRows}");
+            summary.CellFormula(1, 129, $"Data!A{ExcelA1.MaxRows}");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
 

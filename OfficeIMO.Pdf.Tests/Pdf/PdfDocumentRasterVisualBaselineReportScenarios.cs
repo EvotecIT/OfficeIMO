@@ -34,7 +34,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             [(2, 2)] = "https://github.com/EvotecIT/OfficeIMO/issues"
         };
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -79,7 +79,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
         byte[] alphaBadge = CreateTransparentBadgePng();
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 HeaderFont = PdfStandardFont.Helvetica,
@@ -139,7 +139,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Total", "6 397,62 PLN" }
         };
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 PageWidth = 595,
                 PageHeight = 842,
                 MarginLeft = 50,
@@ -283,7 +283,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static PdfTableStyle CreateLineItemGateTableStyle() {
-        var style = TableStyles.ListTable1Light();
+        var style = PdfTableStyles.ListTable1Light();
         style.SpacingBefore = 0;
         style.SpacingAfter = 14;
         style.Alignments = new List<PdfColumnAlign> {

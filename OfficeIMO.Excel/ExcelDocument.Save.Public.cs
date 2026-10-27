@@ -106,6 +106,13 @@ namespace OfficeIMO.Excel {
 
             string path = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
                 ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
+            if (ResolveSavePassword(options) is string password) {
+                SaveEncrypted(path, password, options);
+                _loadedPassword = password;
+                return;
+            }
+            bool saveCompleted = true;
+            try {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
@@ -175,17 +182,19 @@ namespace OfficeIMO.Excel {
                 FilePath = originalFilePath;
                 throw;
             }
+                    } catch { saveCompleted = false; throw; }
+            finally { if (saveCompleted) _loadedPassword = null; }
         }
 
         /// <summary>
         /// Saves the workbook with password-to-open encryption selected by its destination extension.
         /// XLSX/XLSM use Office package encryption, XLSB encrypts a native BIFF12 package, and XLS uses RC4 with CryptoAPI retained for protected auxiliary entries.
-        /// An associated encrypted destination requires explicit persistence; no password is retained for SaveOnDispose.
+        /// Password-bearing Load retains encrypted persistence for its associated destination, including SaveOnDispose.
         /// </summary>
         /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
         /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        public void SaveEncrypted(string filePath, string password, ExcelSaveOptions? saveOptions = null) {
+        internal void SaveEncrypted(string filePath, string password, ExcelSaveOptions? saveOptions = null) {
             if (password == null) throw new ArgumentNullException(nameof(password));
             EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
@@ -264,6 +273,12 @@ namespace OfficeIMO.Excel {
 
             string target = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
                 ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
+            if (ResolveSavePassword(options) is string password) {
+                await SaveEncryptedFileAsync(target, password, options, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            bool saveCompleted = true;
+            try {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
@@ -332,25 +347,25 @@ namespace OfficeIMO.Excel {
                 FilePath = originalFilePath;
                 throw;
             }
+                    } catch { saveCompleted = false; throw; }
+            finally { if (saveCompleted) _loadedPassword = null; }
         }
 
         /// <summary>Encodes the workbook in the selected physical format.</summary>
-        public byte[] ToBytes(ExcelFileFormat format = ExcelFileFormat.Xlsx, ExcelSaveOptions? options = null) {
+        internal byte[] ToBytes(ExcelFileFormat format, ExcelSaveOptions? options = null) {
             using var stream = new MemoryStream();
-            Save(stream, format, options);
+            SaveToStreamCore(stream, format, options);
             return stream.ToArray();
         }
 
-        /// <summary>Encodes the workbook in a new writable memory stream positioned at the beginning.</summary>
-        public MemoryStream ToStream(ExcelFileFormat format = ExcelFileFormat.Xlsx, ExcelSaveOptions? options = null) =>
-            new MemoryStream(ToBytes(format, options));
+
 
         /// <summary>
         /// Saves the document into a writable stream as XLSX.
         /// </summary>
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         public void Save(Stream destination) {
-            Save(destination, ExcelFileFormat.Xlsx, options: null);
+            Save(destination, (ExcelSaveOptions?)null);
         }
 
         /// <summary>
@@ -359,14 +374,15 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         public void Save(Stream destination, ExcelSaveOptions? options) {
-            Save(destination, ExcelFileFormat.Xlsx, options);
+            if (ResolveSavePassword(options) is string password) SaveEncrypted(destination, password, options?.Format ?? ExcelFileFormat.Xlsx, options);
+            else Save(destination, options?.Format ?? ExcelFileFormat.Xlsx, options);
         }
 
         /// <summary>Saves the workbook to a stream in the explicitly selected physical format.</summary>
         /// <param name="destination">Writable destination stream. This one-time save does not change the associated destination.</param>
         /// <param name="format">Physical XLSX, XLS, or XLSB format.</param>
         /// <param name="options">Optional save settings.</param>
-        public void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
+        internal void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
             SaveToStreamCore(destination, format, options);
             if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
         }
@@ -381,12 +397,10 @@ namespace OfficeIMO.Excel {
                 preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
                 preserveNativeRecords: format == ExcelFileFormat.Xls);
 
-#if NETFRAMEWORK
-            if (!destination.CanSeek) {
+            if (OfficeIMO.Core.Internal.OfficeRuntime.IsNetFramework && !destination.CanSeek) {
                 SaveNonSeekableFrameworkDestination(destination, format, options);
                 return;
             }
-#endif
 
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
@@ -457,7 +471,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the encrypted workbook.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
         /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        public void SaveEncrypted(Stream destination, string password, ExcelSaveOptions? saveOptions = null) {
+        internal void SaveEncrypted(Stream destination, string password, ExcelSaveOptions? saveOptions = null) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
@@ -490,7 +504,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
         public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
-            return SaveAsync(destination, ExcelFileFormat.Xlsx, options: null, cancellationToken);
+            return SaveAsync(destination, (ExcelSaveOptions?)null, cancellationToken);
         }
 
         /// <summary>
@@ -500,7 +514,13 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
         public Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
-            return SaveAsync(destination, ExcelFileFormat.Xlsx, options, cancellationToken);
+            if (ResolveSavePassword(options) is string password) {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var staging = new MemoryStream();
+                SaveEncrypted(staging, password, options?.Format ?? ExcelFileFormat.Xlsx, options);
+                return OfficeStreamWriter.WriteAllBytesAsync(destination, staging.ToArray(), cancellationToken);
+            }
+            return SaveAsync(destination, options?.Format ?? ExcelFileFormat.Xlsx, options, cancellationToken);
         }
 
         /// <summary>Asynchronously saves the workbook to a stream in the selected physical format.</summary>
@@ -508,7 +528,7 @@ namespace OfficeIMO.Excel {
         /// <param name="format">Physical XLSX or XLS format.</param>
         /// <param name="options">Optional save settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        internal async Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
             await SaveToStreamAsyncCore(destination, format, options, cancellationToken).ConfigureAwait(false);
             if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
         }
@@ -523,12 +543,10 @@ namespace OfficeIMO.Excel {
                 preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
                 preserveNativeRecords: format == ExcelFileFormat.Xls);
 
-#if NETFRAMEWORK
-            if (!destination.CanSeek) {
+            if (OfficeIMO.Core.Internal.OfficeRuntime.IsNetFramework && !destination.CanSeek) {
                 await SaveNonSeekableFrameworkDestinationAsync(destination, format, options, cancellationToken).ConfigureAwait(false);
                 return;
             }
-#endif
 
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
@@ -593,7 +611,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-#if NETFRAMEWORK
         private void SaveNonSeekableFrameworkDestination(
             Stream destination,
             ExcelFileFormat format,
@@ -642,7 +659,7 @@ namespace OfficeIMO.Excel {
             }
             return limit ?? long.MaxValue;
         }
-#endif
+
 
         /// <summary>
         /// Asynchronously saves the document.

@@ -29,9 +29,9 @@ public partial class Excel {
                 sheet.CellFontName(row, column, "Arial");
             }
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, IncludeSheetHeadings = false
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         foreach (string text in new[] { "Neighbor1", "Neighbor2", "Amount", "Normal", "quick", "wrap." }) {
             var word = Assert.Single(words, word => word.Text == text);

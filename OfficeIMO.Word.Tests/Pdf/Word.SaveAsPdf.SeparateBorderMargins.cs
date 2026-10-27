@@ -19,14 +19,14 @@ public partial class Word {
         table.StyleDetails!.CellSpacing = spacing;
         table.Rows[0].Height = 2400;
         table.Rows[0].Cells[2].MarginTopWidth = 120;
-        WordToPdfOptions options = BorderFramePdfOptions();
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+        WordPdfExportOptions options = BorderFramePdfOptions();
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
             DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle { CornerRadius = 8D }
         };
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(options));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         var cells = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -70,7 +70,7 @@ public partial class Word {
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         var cells = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())

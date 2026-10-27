@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests
             if (File.Exists(path)) File.Delete(path);
 
             // Write initial file
-            using (var doc = ExcelDocument.Create(path, "Data"))
+            using (var doc = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc.Sheets[0];
                 s.CellValue(1, 1, "Name");
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests
 
         private static List<Dictionary<string, object?>> ReadRows(string path)
         {
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions
+            using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions
             {
                 SheetName = "Data"
             });

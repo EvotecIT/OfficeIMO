@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite,
                     string.Join(Environment.NewLine, report.Findings));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                 projectedLink.Id!.Value!, out OpenXmlPart? targetPart));
             Assert.Same(projected.Slides[1].SlidePart, targetPart);
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
                     Tooltip = "Jump to the destination"
                 });
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                             new A.Paragraph(
                                 new A.Run(new A.Text("Master link"))))));
                 masterPart.SlideMaster.Save();
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
                 third.AddTextBox("Third destination");
                 AddInternalSlideHyperlink(first, second, first.AddRectangle(
                     100000, 100000, 1000000, 500000), mouseOver: false);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.True(report.CanWrite,
                     string.Join(Environment.NewLine, report.Findings));
-                retargetedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                retargetedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation retargeted = LegacyPptPresentation.Load(retargetedBytes);
             LegacyPptHyperlink retargetedLink = Assert.Single(retargeted.Slides[0].Shapes
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
                     .RemoveAllChildren<A.HyperlinkOnClick>();
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
             Assert.Empty(removed.Slides[0].Shapes
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -291,11 +291,10 @@ namespace OfficeIMO.Tests {
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.False(report.CanWrite);
                 Assert.Contains(report.Findings, finding =>
-                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                    finding.Code == "ppt-write-import-loss");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
@@ -328,7 +327,7 @@ namespace OfficeIMO.Tests {
                 destination.AddTextBox("Destination");
                 AddInternalSlideHyperlink(first, destination, first.AddRectangle(
                     100000, 100000, 1000000, 500000), mouseOver: false);
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             byte[] savedBytes;
@@ -339,11 +338,10 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.False(report.CanWrite);
                 Assert.Contains(report.Findings, finding =>
-                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                    finding.Code == "ppt-write-import-loss");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }

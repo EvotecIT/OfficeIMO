@@ -33,7 +33,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         }
         saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        var conversion = reopened.ToPdfDocumentResult();
+        var conversion = reopened.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
         Assert.Equal(7.2D, style.CellPaddingX);
@@ -85,7 +85,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         table.GetCell(0, 1).Text = "Header";
         table.GetCell(1, 1).Text = "Tail";
 
-        var conversion = presentation.ToPdfDocumentResult();
+        var conversion = presentation.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var mapped = item.Block.Cells[0][0];
         Assert.Equal(2, mapped.RowSpan);
@@ -121,7 +121,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         // second run to reproduce genuine imported runs with no local style.
         cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>().Last().RunProperties = new A.RunProperties();
 
-        var conversion = presentation.ToPdfDocumentResult();
+        var conversion = presentation.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
         Assert.Null(style.HeaderFill);
@@ -170,10 +170,10 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.NotEmpty(preview.Elements);
         // Read back the actual preview, including text below the original
         // frame, rather than only checking its enlarged model dimensions.
-        var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
             PageWidth = preview.Width,
             PageHeight = preview.Height,
-            Margins = PdfCore.PageMargins.Uniform(0)
+            Margins = PdfCore.PdfPageMargins.Uniform(0)
         });
         pdf.Canvas(canvas => canvas.DrawingForClippedRendering(preview, 0, 0, preview.Width, preview.Height));
         byte[] bytes = pdf.ToBytes();

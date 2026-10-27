@@ -89,7 +89,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (cell.TextRotation == 0)
-                    ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
+                    ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
                         visibleLines, visibleHeights, firstBaseline, rowSize, rowLeading, contentFrame.Left + cellPadLeft, innerW,
                         new TableCellContentFrame(textClipX, inkClip.Top + textClipBleed, textClipWidth, inkClip.Height + 2D * textClipBleed),
                         alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont);

@@ -37,13 +37,13 @@ public partial class Word {
                 };
             }
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600,
                 Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var letters = page.Letters.ToArray();
         string rowText = string.Concat(Enumerable.Repeat("SA", 8)) + string.Concat(Enumerable.Repeat("SB", 4));
@@ -72,10 +72,10 @@ public partial class Word {
             cell.WidthType = column == 0 ? WordTableWidthUnit.Pct : otherType;
             cell.Width = column == 0 ? percentage : otherWidth;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(164D, 792D),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72D)
-        }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(164D, 792D),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(expectedFirstWidth, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 2);
@@ -102,7 +102,7 @@ public partial class Word {
             cell.WidthType = column == 0 ? WordTableWidthUnit.Pct : column == 1 ? WordTableWidthUnit.Dxa : WordTableWidthUnit.Auto;
             cell.Width = column == 0 ? percentage : column == 1 ? 1440 : 0;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         Assert.Equal("ABC", string.Concat(letters.Select(letter => letter.Value)));
         Assert.InRange(letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, expectedFirstAdvance - .05D, expectedFirstAdvance + .05D);
@@ -121,13 +121,13 @@ public partial class Word {
             cell.MarginLeftWidth = cell.MarginRightWidth = 54;
             cell.WidthType = WordTableWidthUnit.Pct; cell.Width = 2500;
         }
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600,
                 Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         Assert.Equal("SASB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.InRange(letters[2].StartBaseLine.X - letters[0].StartBaseLine.X, 20.8D, 20.805D);
@@ -153,7 +153,7 @@ public partial class Word {
             cell.Width = row == 0 ? percentage : 0;
             cell.Paragraphs[0].Text = "Alpha Bravo Charlie";
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("AlphaBravoCharlieAlphaBravoCharlie", string.Concat(page.Letters
             .Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));

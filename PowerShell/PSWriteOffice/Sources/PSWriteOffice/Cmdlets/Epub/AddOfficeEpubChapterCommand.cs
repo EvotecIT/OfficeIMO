@@ -57,7 +57,7 @@ public sealed class AddOfficeEpubChapterCommand : PSCmdlet {
             while (Publication.Manifest.Any(item => item.Id == id)) id = "chapter-" + (++suffix);
         }
         string body = ParameterSetName == "Xhtml" ? Xhtml!
-            : ParameterSetName == "Markdown" ? MarkdownReader.Parse(Markdown!).ToHtmlFragment(new HtmlOptions { Kind = HtmlKind.Fragment })
+            : ParameterSetName == "Markdown" ? MarkdownDocument.Parse(Markdown!).ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment })
             : "<p>" + System.Security.SecurityElement.Escape(Text ?? string.Empty)?.Replace("\r\n", "\n").Replace("\n", "</p><p>") + "</p>";
         var chapter = Publication.AddChapter(id, ContainerPath ?? "EPUB/text/" + id + ".xhtml", Title, body);
         if (PassThru.IsPresent) WriteObject(chapter);

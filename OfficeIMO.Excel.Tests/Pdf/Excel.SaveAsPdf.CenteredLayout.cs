@@ -13,7 +13,7 @@ public partial class Excel {
     [InlineData(true, true)]
     public void WorksheetPrintCentering_MovesPdfAndPngContentInsideMargins(bool horizontal, bool vertical) {
         string path = Path.Combine(_directoryWithFiles, $"CenteredLayout-{horizontal}-{vertical}.xlsx");
-        using var workbook = ExcelDocument.Create(path, "Centered");
+        using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Centered" });
         ExcelSheet sheet = workbook.Sheets[0];
         sheet.CellValue(1, 1, "Marker");
         sheet.CellValue(2, 2, "Tail");
@@ -25,11 +25,11 @@ public partial class Excel {
         sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
         sheet.Range("A1:B2").SetFillColor("FFCC33");
         sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
-        byte[] originalPdf = workbook.ToPdfBytes();
+        byte[] originalPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var original = PdfPigDocument.Open(originalPdf);
         var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
-        byte[] centeredPdf = workbook.ToPdfBytes();
+        byte[] centeredPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var centered = PdfPigDocument.Open(centeredPdf);
         var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         var before = original.GetPage(1);

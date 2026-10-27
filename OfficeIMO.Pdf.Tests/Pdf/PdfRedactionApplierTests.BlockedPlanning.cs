@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.False(plan.IsReviewable);
             Assert.True(plan.Preflight.CanReadLogicalObjects);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSourceTextMappingUnsupported");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-source-text-mapping-unsupported");
             Assert.Single(PdfReadDocument.Open(source).Pages[0].GetImagePlacements());
             Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text"));
             Assert.Throws<InvalidOperationException>(() => document.Redactions.Apply(areas));

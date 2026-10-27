@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html.Pdf;
@@ -32,7 +33,7 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.All(ordered, item => {
             Assert.True(item.HasGeometry);
             Assert.InRange(item.Confidence, 0D, 1D);
-            Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.column-band");
+            Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-column-band");
         });
     }
 
@@ -100,7 +101,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf 12 160 Td (Partially clipped reading-order marker) Tj ET",
             width: 300,
             height: 240);
-        byte[] croppedAndRotated = PdfDocument.Load(source)
+        byte[] croppedAndRotated = PdfDocument.Load(new System.IO.MemoryStream(source))
             .Pages.SetCropBox(40, 0, 280, 240)
             .Pages.Rotate(90, "1")
             .ToBytes();
@@ -113,8 +114,8 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.True(item.HasGeometry);
         Assert.True(item.IsClipped);
         Assert.True(item.Left >= 0D && item.Top >= 0D);
-        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.page-rotation");
-        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.crop-clipped");
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-page-rotation");
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-crop-clipped");
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf\n" +
             "1 0 0 1 30 180 Tm (Raw left) Tj\n" +
             "1 0 0 1 230 180 Tm (Raw right) Tj ET");
-        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(270, "1").ToBytes();
+        byte[] rotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Pages.Rotate(270, "1").ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(rotated);
         PdfLogicalPage page = Assert.Single(logical.Pages);
 
@@ -145,7 +146,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
-        using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertInOrder(wordText, "Left top", "Left bottom", "Right top", "Right bottom");
@@ -183,7 +184,7 @@ public sealed class PdfLogicalReadingOrderTests {
             item => item.Kind == PdfLogicalReadingOrderKind.TextBlock &&
                 firstPage.TextBlocks[item.SourceIndex].Kind == PdfLogicalElementKind.Header);
 
-        using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertArtifactSequence(wordText, header, "First page body marker.", footer);
@@ -209,7 +210,7 @@ public sealed class PdfLogicalReadingOrderTests {
             .Paragraph(paragraph => paragraph.Text("Readable body text."))
             .ToBytes();
 
-        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+        PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();
 
         Assert.Contains("Readable heading", logical.Text, StringComparison.Ordinal);
         Assert.Contains("Readable body text.", logical.Text, StringComparison.Ordinal);
@@ -266,7 +267,7 @@ public sealed class PdfLogicalReadingOrderTests {
             .Paragraph(paragraph => paragraph.Text("Content below the table"))
             .ToBytes();
 
-        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+        PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();
 
         Assert.Contains(logical.TextBlocks, static block => block.Text == "Identity systems");
         Assert.Contains("Identity systems", logical.Text, StringComparison.Ordinal);

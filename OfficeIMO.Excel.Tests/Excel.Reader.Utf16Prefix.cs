@@ -45,8 +45,8 @@ public partial class Excel {
                 Assert.False(range.Read());
             }
             foreach (bool prefetch in new[] { false, true }) {
-                using var reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { EnableWorksheetPrefetch = prefetch });
+                using var reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { EnableWorksheetPrefetch = prefetch });
                 Assert.Equal(2, reader.FieldCount);
                 Assert.Equal("Id", reader.GetName(0));
                 Assert.Equal("Name", reader.GetName(1));

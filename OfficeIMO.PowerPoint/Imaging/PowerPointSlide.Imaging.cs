@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Creates a format-neutral visual snapshot for this slide.
         /// </summary>
-        public PowerPointSlideVisualSnapshot CreateVisualSnapshot(PowerPointImageExportOptions? options = null) {
+        public PowerPointSlideVisualInfo CreateVisualSnapshot(PowerPointImageExportOptions? options = null) {
             PowerPointImageExportOptions resolved = NormalizeImageExportOptions(options);
             return PowerPointPageImageExport.CreateSnapshot(this, resolved);
         }

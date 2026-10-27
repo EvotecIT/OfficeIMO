@@ -15,7 +15,13 @@ public sealed class VisioPdfWorkflowTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             WriteSource(input);
             byte[] before = File.ReadAllBytes(input);
-            var result = await OfficeWorkflow.Convert(input).To(output).RunAsync();
+            var result = await OfficeWorkflow.RunAsync((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(output), executableOnly: true)?.Id
+            }));
             Assert.True(result.Succeeded, result.Summary);
             Assert.Equal("visio-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf")?.Id);
             var pdf = PdfReadDocument.Open(File.ReadAllBytes(output));
@@ -26,7 +32,7 @@ public sealed class VisioPdfWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("2", evidence.Facts["sourcePages"]);
             Assert.Equal(extension[1..].ToUpperInvariant(), evidence.Facts["sourceFormat"]);
-            Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
             if (extension != ".vsdx")
                 Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VDX_MODEL_PROFILE" && d.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Equal(before, File.ReadAllBytes(input));
@@ -48,12 +54,19 @@ public sealed class VisioPdfWorkflowTests {
             byte[] before = File.ReadAllBytes(input), sentinel = [1, 2, 3];
             File.WriteAllBytes(output, sentinel);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
+                ConversionRouteId = "visio-pdf",
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 ConversionOptions = new() {
-                    RequireNoLoss = !sourceStrict,
-                    Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages,
-                        DrawingOptions = new() { RequireNoLoss = sourceStrict } }
+                    FailOnLoss = !sourceStrict,
+                    RegisteredSettings = new OfficeWorkflowRouteSettings {
+                        Visio = new() {
+                            Mode = VisioPdfProjectionMode.DiagramPages,
+                            DrawingOptions = new() { RequireNoLoss = sourceStrict }
+                        }
+                    }
                 }
             });
             Assert.False(result.Succeeded);
@@ -80,16 +93,24 @@ public sealed class VisioPdfWorkflowTests {
             WriteSource(input);
             byte[] sentinel = [3, 2, 1]; File.WriteAllBytes(output, sentinel);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
-                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = output,
                 ConversionRouteId = "visio-pdf",
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() {
                     MaximumInputBytes = limit == "input" ? 16 : 1024 * 1024,
                     MaximumOutputBytes = limit == "output" ? 64 : 1024 * 1024,
                     MaximumXmlCharactersInPart = limit == "xml" ? 64 : 1024 * 1024
                 },
-                ConversionOptions = new() { Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages,
-                    DrawingOptions = new() { MaximumPages = limit == "pages" ? 1 : 2 } } }
+                ConversionOptions = new() {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings {
+                        Visio = new() {
+                            Mode = VisioPdfProjectionMode.DiagramPages,
+                            DrawingOptions = new() { MaximumPages = limit == "pages" ? 1 : 2 }
+                        }
+                    }
+                }
             });
             Assert.False(result.Succeeded);
             Assert.Equal(sentinel, File.ReadAllBytes(output));
@@ -103,22 +124,24 @@ public sealed class VisioPdfWorkflowTests {
 
     [Fact]
     public void DiagramSettingsAreDetachedAndMixedBatchSelectionRemainsRouteSpecific() {
-        var options = new OfficeWorkflowConversionOptions { RequireNoLoss = true,
-            Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages,
-                DrawingOptions = new() { MaximumPages = 3 }, PdfOptions = new() } };
+        var options = new OfficeConversionOptions {
+            FailOnLoss = true,
+            RegisteredSettings = new OfficeWorkflowRouteSettings {
+                Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new() { MaximumPages = 3 }, PdfOptions = new() }
+            }
+        };
         byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(['G']);
-        options.Visio.DrawingOptions.Fonts.Add("Snapshot font", font);
-        var copy = options.ForRoute("visio-pdf");
-        options.Visio.DrawingOptions.MaximumPages = 30;
-        options.Visio.DrawingOptions.Fonts.Add("Later font", font);
-        Assert.Equal(3, copy.Visio!.DrawingOptions!.MaximumPages);
-        Assert.Single(copy.Visio.DrawingOptions.Fonts.Faces);
-        Assert.NotSame(options.Visio.PdfOptions, copy.Visio.PdfOptions);
-        Assert.True(copy.RequireNoLoss);
-        Assert.Null(options.ForRoute("txt-pdf").Visio);
-        Assert.False(options.ForRoute("txt-pdf").RequireNoLoss);
-        Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionOptions { Visio = new() }
-            .Snapshot(OfficeWorkflowCatalog.FindExecutable("visio-pdf")!));
+        var native = Assert.IsType<OfficeWorkflowRouteSettings>(options.RegisteredSettings).Visio!;
+        native.DrawingOptions!.Fonts.Add("Snapshot font", font);
+        OfficeConversionOptions copy = options.ForRoute("visio-pdf");
+        var copied = Assert.IsType<OfficeWorkflowRouteSettings>(copy.RegisteredSettings).Visio!;
+        native.DrawingOptions.MaximumPages = 30; native.DrawingOptions.Fonts.Add("Later font", font);
+        Assert.Equal(3, copied.DrawingOptions!.MaximumPages); Assert.Single(copied.DrawingOptions.Fonts.Faces);
+        Assert.NotSame(native.PdfOptions, copied.PdfOptions); Assert.True(copy.FailOnLoss);
+        Assert.Null(options.ForRoute("txt-pdf").RegisteredSettings); Assert.True(options.ForRoute("txt-pdf").FailOnLoss);
+        Assert.Throws<ArgumentException>(() => OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
+            RegisteredSettings = new OfficeWorkflowRouteSettings { Visio = new() }
+        }).Snapshot(OfficeWorkflowCatalog.FindExecutable("visio-pdf")!));
     }
 
     [Fact]
@@ -128,25 +151,33 @@ public sealed class VisioPdfWorkflowTests {
         try {
             WriteSource(Path.Combine(input, "source.vdx"), hyperlink: true);
             File.WriteAllText(Path.Combine(input, "literal.txt"), "Literal marker");
-            var request = new OfficeConversionBatchRequest {
-                InputDirectory = input, OutputDirectory = Path.Combine(root, "output"),
-                CheckpointDirectory = Path.Combine(root, "state"), MaximumConcurrency = 1,
-                ConversionOptions = new() { Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages,
-                    DrawingOptions = new() { MaximumPages = 3 } } }
+            var request = new OfficeBatchOptions {
+                InputDirectory = input,
+                OutputDirectory = Path.Combine(root, "output"),
+                ResumeFrom = Path.Combine(Path.Combine(root, "state"), "plan.json"),
+                MaxParallelism = 1,
+                ConversionOptions = new() {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings {
+                        Visio = new() {
+                            Mode = VisioPdfProjectionMode.DiagramPages,
+                            DrawingOptions = new() { MaximumPages = 3 }
+                        }
+                    }
+                }
             };
-            var firstItems = new List<OfficeConversionBatchItemResult>();
-            var first = await new OfficeWorkflowRunner().RunBatchAsync(request, new InlineProgress(firstItems));
+            var firstItems = new List<OfficeBatchItemReport>();
+            var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(firstItems));
             Assert.Equal(2, first.Completed);
             var original = Assert.Single(firstItems, item => item.InputPath.EndsWith(".vdx", StringComparison.Ordinal));
             Assert.Contains(original.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE");
-            var reusedItems = new List<OfficeConversionBatchItemResult>();
-            var reused = await new OfficeWorkflowRunner().RunBatchAsync(request, new InlineProgress(reusedItems));
+            var reusedItems = new List<OfficeBatchItemReport>();
+            var reused = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(reusedItems));
             Assert.Equal(2, reused.Reused);
             var restored = Assert.Single(reusedItems, item => item.InputPath.EndsWith(".vdx", StringComparison.Ordinal));
             Assert.Contains(restored.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE");
             byte[] before = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.vdx.pdf"));
             request.MaximumXmlCharactersInPart = 64;
-            var changed = await new OfficeWorkflowRunner().RunBatchAsync(request);
+            var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed);
             Assert.Equal(1, changed.Reused);
             Assert.Equal(before, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
@@ -158,19 +189,23 @@ public sealed class VisioPdfWorkflowTests {
         string root = CreateDirectory();
         try {
             string input = Path.Combine(root, "source.vdx"); WriteSource(input);
-            var request = new OfficeConversionBatchRequest {
-                InputPaths = [input], OutputDirectory = Path.Combine(root, "output"),
-                CheckpointDirectory = Path.Combine(root, "state"), MaximumConcurrency = 1,
-                ConversionOptions = new() { Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new() } }
+            var request = new OfficeBatchOptions {
+                InputPaths = [input],
+                OutputDirectory = Path.Combine(root, "output"),
+                ResumeFrom = Path.Combine(Path.Combine(root, "state"), "plan.json"),
+                MaxParallelism = 1,
+                ConversionOptions = new() {
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Visio = new() { Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new() } }
+                }
             };
-            request.ConversionOptions.Visio!.DrawingOptions!.Fonts.FontVariationResolver = _ => new Dictionary<string, float>();
-            var rejectedItems = new List<OfficeConversionBatchItemResult>();
-            var rejected = await new OfficeWorkflowRunner().RunBatchAsync(request, new InlineProgress(rejectedItems));
+            ((OfficeIMO.Workflows.OfficeWorkflowRouteSettings)(request.ConversionOptions).RegisteredSettings!).Visio!.DrawingOptions!.Fonts.FontVariationResolver = _ => new Dictionary<string, float>();
+            var rejectedItems = new List<OfficeBatchItemReport>();
+            var rejected = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(rejectedItems));
             Assert.Equal(1, rejected.Failed);
             Assert.Contains("ordinary batch without checkpoints", Assert.Single(rejectedItems).Summary, StringComparison.Ordinal);
             Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
-            request.CheckpointDirectory = null;
-            var ordinary = await new OfficeWorkflowRunner().RunBatchAsync(request);
+            request.ResumeFrom = null;
+            var ordinary = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, ordinary.Completed);
             Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
         } finally { Directory.Delete(root, true); }
@@ -192,7 +227,7 @@ public sealed class VisioPdfWorkflowTests {
         }
     }
 
-    private sealed class InlineProgress(List<OfficeConversionBatchItemResult> items) : IProgress<OfficeConversionBatchItemResult> {
-        public void Report(OfficeConversionBatchItemResult item) => items.Add(item);
+    private sealed class InlineProgress(List<OfficeBatchItemReport> items) : IProgress<OfficeBatchItemReport> {
+        public void Report(OfficeBatchItemReport item) => items.Add(item);
     }
 }

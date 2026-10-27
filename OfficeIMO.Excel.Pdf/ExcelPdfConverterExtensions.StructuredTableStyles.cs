@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static IReadOnlyList<StructuredTableVisualData> ReadStructuredTableVisuals(
             ExcelDocument document,
             string sheetName,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             if (!options.UseWorksheetCellStyles) {
                 return Array.Empty<StructuredTableVisualData>();
             }
@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Pdf {
             var visuals = new List<StructuredTableVisualData>();
             foreach (ExcelTableInfo table in document.GetTables()) {
                 if (!string.Equals(table.SheetName, sheetName, StringComparison.OrdinalIgnoreCase) ||
-                    !A1.TryParseRange(table.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                    !ExcelA1.TryParseRange(table.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     continue;
                 }
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Pdf {
                         AddWarning(
                             options,
                             sheetName,
-                            "WorksheetTableStyle",
+                            "worksheet-table-style",
                             $"Excel table '{table.DisplayName}' uses custom or unknown style '{table.StyleName}'. Its values and direct cell formatting were preserved, but the table style could not be projected.");
                     }
                     continue;
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            (int Row, int Col) cell = A1.ParseCellRef(reference!.Replace("$", string.Empty));
+            (int Row, int Col) cell = ExcelA1.ParseCellRef(reference!.Replace("$", string.Empty));
             if (cell.Row <= 0 || cell.Col <= 0) {
                 return null;
             }

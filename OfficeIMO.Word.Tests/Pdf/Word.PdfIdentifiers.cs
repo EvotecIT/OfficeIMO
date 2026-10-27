@@ -24,7 +24,7 @@ public sealed class WordPdfIdentifierTests {
         word.Position = 0;
         using WordDocument reopened = WordDocument.Load(word);
         Assert.Equal(identifier, WordPaperText.RemoveOptionalBreaks(reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text));
-        byte[] pdf = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] pdf = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string extracted = PdfReadDocument.Open(pdf).ExtractText().Trim();
         Assert.Equal(identifier, extracted);
         Assert.DoesNotContain('\u200B', extracted);
@@ -50,7 +50,7 @@ public sealed class WordPdfIdentifierTests {
         const string identifier = "CorpKeyRecoveryAgent";
         const string uri = "https://example.test/template";
         string display = WordPaperText.WithIdentifierBreaks(identifier).Replace('\u200C', '\u200B');
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = width + 40, MarginLeft = 20, MarginRight = 20,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseTextFallbacks()).Paragraph(paragraph => paragraph.Link(display, uri)).ToBytes();

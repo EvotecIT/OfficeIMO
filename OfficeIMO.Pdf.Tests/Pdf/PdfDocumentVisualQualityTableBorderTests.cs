@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RendersConfiguredCellBorders() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
@@ -24,7 +24,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -49,7 +49,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredSideSpecificCellBorders() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
@@ -70,7 +70,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -94,7 +94,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredDashedCellBorders() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
@@ -117,7 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -142,7 +142,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredDoubleAndDiagonalCellBorders() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
@@ -169,7 +169,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -194,7 +194,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredCellBordersAfterCellText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 160,
                 MarginLeft = 24,
@@ -233,7 +233,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void CanvasTable_RendersConfiguredCellBordersAfterCellText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
@@ -243,7 +243,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -269,7 +269,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredCellBorders() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -308,7 +308,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredCellBorderSides() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
@@ -320,7 +320,7 @@ public partial class PdfDocumentVisualQualityTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -346,14 +346,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredRowSeparatorsWithoutCellBorderDictionary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
         style.HeaderSeparatorColor = new PdfColor(0.7, 0.2, 0.1);
         style.HeaderSeparatorWidth = 1.1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -382,7 +382,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_DrawsHeaderRulesBeforeHeaderText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = PdfColor.FromRgb(15, 23, 42);
         style.HeaderTextColor = PdfColor.White;
         style.BorderColor = PdfColor.FromRgb(238, 51, 68);
@@ -390,7 +390,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderSeparatorColor = PdfColor.FromRgb(238, 51, 68);
         style.HeaderSeparatorWidth = 1.1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -415,14 +415,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredRowSeparatorsWithoutCellBorderDictionary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
         style.HeaderSeparatorColor = new PdfColor(0.7, 0.2, 0.1);
         style.HeaderSeparatorWidth = 1.1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -456,7 +456,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredFooterSeparatorAboveFooterRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
@@ -464,7 +464,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.FooterSeparatorColor = new PdfColor(0.2, 0.7, 0.3);
         style.FooterSeparatorWidth = 1.3;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,
@@ -491,7 +491,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredFooterSeparatorAboveFooterRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
@@ -499,7 +499,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.FooterSeparatorColor = new PdfColor(0.2, 0.7, 0.3);
         style.FooterSeparatorWidth = 1.3;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
                 PageHeight = 220,
                 MarginLeft = 30,

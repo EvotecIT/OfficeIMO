@@ -239,8 +239,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int firstColumn = A1.ColumnLettersToIndex(start);
-                int lastColumn = A1.ColumnLettersToIndex(end);
+                int firstColumn = ExcelA1.ColumnLettersToIndex(start);
+                int lastColumn = ExcelA1.ColumnLettersToIndex(end);
                 if (firstColumn > 0 && lastColumn >= firstColumn) {
                     titles.FirstColumn = firstColumn;
                     titles.LastColumn = lastColumn;
@@ -254,7 +254,7 @@ namespace OfficeIMO.Excel {
         /// Adds a manual worksheet row page break after the specified one-based row.
         /// </summary>
         public void AddManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0 || row > A1.MaxRows) {
+            if (row <= 0 || row > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
@@ -271,7 +271,7 @@ namespace OfficeIMO.Excel {
         /// Adds a manual worksheet column page break after the specified one-based column.
         /// </summary>
         public void AddManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0 || column > A1.MaxColumns) {
+            if (column <= 0 || column > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet row page break.
         /// </summary>
         public bool RemoveManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0 || row > A1.MaxRows) {
+            if (row <= 0 || row > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
@@ -320,7 +320,7 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet column page break.
         /// </summary>
         public bool RemoveManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0 || column > A1.MaxColumns) {
+            if (column <= 0 || column > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 

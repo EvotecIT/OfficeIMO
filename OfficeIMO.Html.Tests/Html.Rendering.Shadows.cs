@@ -105,12 +105,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderPathClipGroup>(),
             group => group.Source == "div#rounded");
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 70D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
-        });
+        })).ToBytes();
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Rounded", pdfText, StringComparison.Ordinal);
         Assert.Contains("shadow", pdfText, StringComparison.Ordinal);
@@ -138,7 +138,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
@@ -151,7 +151,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Type /ExtGState", rawPdf, StringComparison.Ordinal);
         Assert.Contains("ShadowPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(5, group.Visuals.Count);
         Assert.True(raster.GetPixel(7, 15).R > raster.GetPixel(7, 15).G);
@@ -240,7 +240,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clip-path=", svg, StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("/Type /ExtGState", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
     }
 
@@ -317,8 +317,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
         };
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
-        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
+        string extracted = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, artifacts.Length);
         HtmlRenderEffectGroup redSample = Assert.IsType<HtmlRenderEffectGroup>(Assert.Single(red.Visuals));
@@ -378,8 +378,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        string extracted = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal("VerticalOne", extracted);
     }

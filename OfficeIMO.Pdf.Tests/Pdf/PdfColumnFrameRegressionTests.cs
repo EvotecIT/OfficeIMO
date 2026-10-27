@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfColumnFrameRegressionTests {
     [Fact]
     public void Columns_KeptPanelAndCaptionStayTogetherAfterWidthDrivenReadmission() {
-        var options = new PdfOptions { PageWidth = 612, PageHeight = 792,
+        var options = new PdfCreateOptions { PageWidth = 612, PageHeight = 792,
             MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72, MaxGeneratedPages = 3 };
         var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
             new PdfFlowColumn(PdfColumnWidth.Fixed(100), 36), new PdfFlowColumn(PdfColumnWidth.Fixed(332), 0)
@@ -257,7 +257,7 @@ public sealed class PdfColumnFrameRegressionTests {
         Assert.Contains(words, word => word.Text == "Trailing05");
     }
 
-    private static PdfOptions Options() => new() {
+    private static PdfCreateOptions Options() => new() {
         PageWidth = 460, PageHeight = 300, MarginLeft = 20, MarginRight = 20,
         MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, CompressContentStreams = false
     };

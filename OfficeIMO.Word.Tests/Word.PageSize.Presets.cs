@@ -16,14 +16,14 @@ public partial class Word {
         settings.Orientation = OfficePageOrientation.Landscape;
         settings.Width = width; settings.Height = height;
         document.AddParagraph("Landscape default dimension");
-        using var source = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+        using var source = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument loaded = WordDocument.Load(source);
         Assert.Equal(width, loaded.Sections[0].PageSettings.Width);
         Assert.Equal(height, loaded.Sections[0].PageSettings.Height);
         Assert.Equal(OfficePageOrientation.Landscape, loaded.Sections[0].PageSettings.Orientation);
-        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(loaded.ToPdfBytes(new WordToPdfOptions {
+        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false
-        })).Pages);
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal(width / 20D, page.Width);
         Assert.Equal(height / 20D, page.Height);
     }
@@ -75,9 +75,9 @@ public partial class Word {
         Assert.Equal(landscape ? width : height, reopened.Height);
         Assert.Equal(settings.Orientation, reopened.Orientation);
         Assert.Equal("Preset marker", loaded.Paragraphs[0].Text);
-        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(loaded.ToPdfBytes(new WordToPdfOptions {
+        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false
-        })).Pages);
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal((landscape ? height : width) / 20D, page.Width, 3);
         Assert.Equal((landscape ? width : height) / 20D, page.Height, 3);
     }
@@ -89,9 +89,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.Sections[0]._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Remove();
         document.AddParagraph("Default preset");
-        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdfBytes(new WordToPdfOptions {
+        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, DefaultPageSize = preset
-        })).Pages);
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal(width, page.Width, 3);
         Assert.Equal(height, page.Height, 3);
     }
@@ -127,9 +127,9 @@ public partial class Word {
         section.PageSettings.Height = 8000;
         section._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Orient = null;
         document.AddParagraph("Wide page");
-        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdfBytes(new WordToPdfOptions {
+        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false
-        })).Pages);
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal(700D, page.Width);
         Assert.Equal(400D, page.Height);
     }

@@ -37,7 +37,7 @@ public partial class Word {
         } else paragraph._run.Append(new W.Text("Footer Middle"), CreateNativeInputPositionalTab("right", false), new W.Text("Footer Right"));
         document.AddParagraph("BodyMarker");
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = Assert.Single(pdf.GetPages()).GetWords().ToArray();
         var footers = words.Where(word => word.Text == "Footer").OrderBy(word => word.BoundingBox.Left).ToArray();
         Assert.Equal(3, footers.Length);
@@ -97,7 +97,7 @@ public partial class Word {
         Assert.Contains("LEFT\tCENTER\tRIGHT", paragraph.Text);
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var left = Assert.Single(page.GetWords(), word => word.Text == "LEFT");
         var center = Assert.Single(page.GetWords(), word => word.Text == "CENTER");
@@ -131,7 +131,7 @@ public partial class Word {
             new W.Run(new W.RunProperties(new W.Vanish()), CreateNativeInputPositionalTab("right", false), new W.Text("HIDDEN")),
             new W.Run(new W.Text("AFTER")));
         document.AddParagraph("BodyMarker");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         Assert.DoesNotContain("HIDDEN", page.Text);
         var before = Assert.Single(page.GetWords(), word => word.Text == "BEFORE");
@@ -157,7 +157,7 @@ public partial class Word {
         document.AddParagraph("FirstBody");
         document.AddParagraph().AddBreak(WordBreakType.Page);
         document.AddParagraph("SecondBody");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         foreach (int pageNumber in new[] { 1, 2 }) {
             var page = pdf.GetPage(pageNumber);

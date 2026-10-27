@@ -16,10 +16,10 @@ public partial class Excel {
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");
         sheet.MergeRange("A2:A3"); sheet.SetRowHeight(2, 15.1); sheet.SetRowHeight(3, 15.2);
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Merged", pdf.GetPage(1).Text);
         Assert.Contains("Merged", pdf.GetPage(2).Text);
@@ -40,10 +40,10 @@ public partial class Excel {
         sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
         document.SetPrintArea(sheet, "A1:D4");
         if (horizontal) sheet.AddManualColumnPageBreak(1); else sheet.AddManualRowPageBreak(2);
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes));

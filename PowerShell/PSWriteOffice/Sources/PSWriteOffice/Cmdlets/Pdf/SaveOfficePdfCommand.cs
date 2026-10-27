@@ -62,7 +62,7 @@ public sealed class SaveOfficePdfCommand : PSCmdlet {
 
         PdfCommandUtilities.EnsureDirectory(fullPath);
         var document = PdfCommandUtilities.ApplyEncryption(Document, Password, OwnerPassword, Permission);
-        document.Save(fullPath).RequireSuccess();
+        document.Save(fullPath);
 
         if (Open.IsPresent) {
             FileOpenService.Open(fullPath);

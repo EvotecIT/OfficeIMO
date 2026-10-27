@@ -43,7 +43,7 @@ public sealed class AddOfficeExcelThreadedCommentCommand : PSCmdlet {
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>A1-style cell address, such as C5.</summary>
+    /// <summary>ExcelA1-style cell address, such as C5.</summary>
     [Parameter(Mandatory = true)]
     public string Address { get; set; } = string.Empty;
 

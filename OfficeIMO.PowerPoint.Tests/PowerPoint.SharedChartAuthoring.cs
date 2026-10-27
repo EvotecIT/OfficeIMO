@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
             Assert.StartsWith("Data summary:", chart.AltText, StringComparison.Ordinal);
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();
             Assert.DoesNotContain(report.Findings,
-                finding => finding.Code == "Accessibility.ChartColorOnlyMeaning");
+                finding => finding.Code == "accessibility-chart-color-only-meaning");
         }
 
         [Fact]
@@ -576,7 +576,7 @@ namespace OfficeIMO.Tests {
             string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
-            byte[] pdf = presentation.ToPdfBytes();
+            byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.Contains("StackedArea", html, StringComparison.Ordinal);
             Assert.Contains("Radar", html, StringComparison.Ordinal);

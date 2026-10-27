@@ -50,11 +50,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:180px;height:50px'>" + children + "</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlNodes = 12;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.NodeLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxHtmlNodes), exception.LimitSource);
@@ -68,11 +68,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<div style='position:absolute;width:180px;height:50px'>"
             + "<span><span><span><span>Deep</span></span></span></span></div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlDepth = 5;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlConversionDiagnosticCodes.HtmlDepthLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxHtmlDepth), exception.LimitSource);
@@ -86,11 +86,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<style>.bounded { position:absolute; width:180px; height:50px }</style>"
             + "<div class='bounded'>Bounded</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.Limits.MaxCssDeclarations = 1;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxCssDeclarations), exception.LimitSource);
@@ -109,7 +109,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             + "<img alt='Clean' src='" + image
             + "' style='width:40px;height:20px;object-fit:fill;opacity:1'></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         List<WordImage> images = document.TextBoxes
             .SelectMany(textBox => textBox.Paragraphs)

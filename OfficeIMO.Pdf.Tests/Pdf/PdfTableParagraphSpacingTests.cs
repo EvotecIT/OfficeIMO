@@ -48,10 +48,10 @@ public sealed class PdfTableParagraphSpacingTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell[][] cells) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FontSize = 10;
         style.LineHeight = 1.2;
@@ -59,9 +59,9 @@ public sealed class PdfTableParagraphSpacingTests {
         style.CellPaddingX = 0; style.CellPaddingY = 0;
         style.CellSpacing = 0; style.SpacingBefore = 0; style.SpacingAfter = 0;
         return mode switch {
-            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(),
+            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(),
+                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, 24, 24, 192, 32, style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(mode))
         };

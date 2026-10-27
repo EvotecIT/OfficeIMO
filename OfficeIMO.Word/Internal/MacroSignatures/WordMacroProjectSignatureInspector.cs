@@ -62,18 +62,18 @@ namespace OfficeIMO.Word {
             bool macroEnabled = IsMacroEnabledPath(fullPath);
             var findings = new List<WordMacroProjectSignatureFinding>();
             if (!macroEnabled) {
-                findings.Add(Finding("MacroEnabledFormatRequired", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-enabled-format-required", WordSignatureValidationState.Failed,
                     "VBA signature inspection supports saved DOCM and DOTM packages only."));
             }
             if (!File.Exists(fullPath)) {
-                findings.Add(Finding("FileNotFound", WordSignatureValidationState.Failed,
+                findings.Add(Finding("file-not-found", WordSignatureValidationState.Failed,
                     "The Word package does not exist: " + fullPath));
                 return Empty(fullPath, macroEnabled, findings);
             }
 
             var file = new FileInfo(fullPath);
             if (file.Length > options.PackageSecurity.MaxPackageBytes) {
-                findings.Add(Finding("PackageByteLimitExceeded", WordSignatureValidationState.Failed,
+                findings.Add(Finding("package-byte-limit-exceeded", WordSignatureValidationState.Failed,
                     "The Word package exceeds the configured " + options.PackageSecurity.MaxPackageBytes + " byte limit."));
                 return Empty(fullPath, macroEnabled, findings);
             }
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
                     discoveredVbaUri = document.MainDocumentPart?.VbaProjectPart?.Uri;
                 }
                 if (discoveredVbaUri == null) {
-                    findings.Add(Finding("MacroProjectNotPresent", WordSignatureValidationState.NotPresent,
+                    findings.Add(Finding("macro-project-not-present", WordSignatureValidationState.NotPresent,
                         "The Word package does not contain a VBA project part."));
                     return Empty(fullPath, macroEnabled, findings);
                 }
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
                 using (var packageStream = new MemoryStream(packageBytes, writable: false))
                 using (Package package = Package.Open(packageStream, FileMode.Open, FileAccess.Read)) {
                     if (!package.PartExists(discoveredVbaUri)) {
-                        findings.Add(Finding("MacroProjectPartMissing", WordSignatureValidationState.Failed,
+                        findings.Add(Finding("macro-project-part-missing", WordSignatureValidationState.Failed,
                             "The VBA project relationship target is missing from the package."));
                         return new WordMacroProjectSignatureInfo(fullPath, macroEnabled, true,
                             discoveredVbaUri.ToString(), null, null,
@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
                     "The Word package failed the shared security policy before Open XML parsing. " + exception.Message));
                 return Empty(fullPath, macroEnabled, findings);
             } catch (Exception exception) when (IsInspectionException(exception)) {
-                findings.Add(Finding("MacroSignatureInspectionFailed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-signature-inspection-failed", WordSignatureValidationState.Failed,
                     "The VBA signature package structure could not be inspected. " + exception.Message));
                 return PartialOrEmpty(
                     fullPath,
@@ -172,19 +172,19 @@ namespace OfficeIMO.Word {
                 }
                 if (profileFilter.HasValue && profile != profileFilter.Value) continue;
                 if (relationship.TargetMode != TargetMode.Internal) {
-                    findings.Add(Finding("MacroSignatureExternalTarget", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-external-target", WordSignatureValidationState.Failed,
                         "A VBA signature relationship targets an external resource.", profile));
                     continue;
                 }
 
                 Uri partUri = PackUriHelper.ResolvePartUri(vbaPart.Uri, relationship.TargetUri);
                 if (!package.PartExists(partUri)) {
-                    findings.Add(Finding("MacroSignaturePartMissing", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-part-missing", WordSignatureValidationState.Failed,
                         "The " + profile + " VBA signature relationship target is missing.", profile));
                     continue;
                 }
                 if (!profiles.Add(profile)) {
-                    findings.Add(Finding("DuplicateMacroSignatureProfile", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("duplicate-macro-signature-profile", WordSignatureValidationState.Failed,
                         "More than one " + profile + " VBA signature relationship is present.", profile));
                     continue;
                 }
@@ -218,7 +218,7 @@ namespace OfficeIMO.Word {
             var findings = new List<WordMacroProjectSignatureFinding>();
             string expectedContentType = GetExpectedContentType(profile);
             if (!string.Equals(part.ContentType, expectedContentType, StringComparison.OrdinalIgnoreCase)) {
-                findings.Add(Finding("MacroSignatureContentTypeUnexpected", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-signature-content-type-unexpected", WordSignatureValidationState.Failed,
                     "The " + profile + " signature part content type is '" + part.ContentType +
                     "' instead of '" + expectedContentType + "'.", profile));
             }
@@ -230,7 +230,7 @@ namespace OfficeIMO.Word {
             }
 
             if (operationBudget.CmsSession == null) {
-                findings.Add(Finding("SecurityProviderRequired", WordSignatureValidationState.NotChecked,
+                findings.Add(Finding("security-provider-required", WordSignatureValidationState.NotChecked,
                     "CMS signature, certificate, revocation, and timestamp validation requires an explicit OfficeIMO.Security provider.",
                     profile));
                 return CreatePartInfo(profile, part, relationshipType, length, false,
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
 
             if (!TryExtractCms(encodedPart, options.CmsVerification.MaxEncodedBytes,
                     out byte[] cmsBytes, out string parseDetail)) {
-                findings.Add(Finding("MacroSignatureContainerMalformed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-signature-container-malformed", WordSignatureValidationState.Failed,
                     parseDetail, profile));
                 return CreatePartInfo(profile, part, relationshipType, length, false,
                     WordSignatureValidationState.Failed, WordSignatureValidationState.NotChecked,
@@ -255,7 +255,7 @@ namespace OfficeIMO.Word {
             bool hasSingleSigner = cms.Signers.Count == 1;
             if (!hasSingleSigner) {
                 findings.Add(Finding(
-                    "MacroSignatureSignerCountInvalid",
+                    "macro-signature-signer-count-invalid",
                     WordSignatureValidationState.Failed,
                     "A VBA signature profile must contain exactly one CMS signer; the container declares " +
                     cms.Signers.Count + ".",

@@ -166,7 +166,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 ColumnWidthPoints = new List<double?> { 82, 82, 82, 82 },
                 CellPaddingX = 3,
                 CellPaddingY = 2
-            })), new PdfOptions {
+            })), new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 24,

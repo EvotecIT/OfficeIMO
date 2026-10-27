@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string BuildCellA1(int row, int column) {
-            return A1.AbsoluteCellReference(row, column);
+            return ExcelA1.AbsoluteCellReference(row, column);
         }
 
         internal static string BuildRangeA1(int row1, int col1, int row2, int col2) {
@@ -137,9 +137,9 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(a1Range)) return false;
             string normalized = a1Range.Replace("$", string.Empty);
             if (normalized.Contains(":")) {
-                return A1.TryParseRange(normalized, out r1, out c1, out r2, out c2);
+                return ExcelA1.TryParseRange(normalized, out r1, out c1, out r2, out c2);
             }
-            var (row, col) = A1.ParseCellRef(normalized);
+            var (row, col) = ExcelA1.ParseCellRef(normalized);
             if (row <= 0 || col <= 0) return false;
             r1 = r2 = row;
             c1 = c2 = col;

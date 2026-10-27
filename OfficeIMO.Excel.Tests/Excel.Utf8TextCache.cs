@@ -39,7 +39,7 @@ public sealed class ExcelUtf8TextCacheTests {
     public void SharedStringUtf8Cache_InvalidIndexesDoNotResolveAnotherEntry() {
         byte[] payload = Encoding.UTF8.GetBytes(
             "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><si><t>valid</t></si></sst>");
-        var cache = SharedStringCache.Build(() => new MemoryStream(payload, writable: false), new ExcelReadOptions());
+        var cache = SharedStringCache.Build(() => new MemoryStream(payload, writable: false), new ExcelReaderOptions());
         Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> valid));
         Assert.Equal("valid", Decode(valid));
         foreach (int index in new[] { -1, 1, int.MaxValue }) {

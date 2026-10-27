@@ -11,7 +11,7 @@ internal sealed class InvoiceBenchmarkCorpus {
         InvoiceSyntax.Cii,
         InvoiceProfile.En16931);
 
-    private InvoiceBenchmarkCorpus(Invoice invoice, byte[] xml, PdfOptions pdfOptions) {
+    private InvoiceBenchmarkCorpus(Invoice invoice, byte[] xml, PdfCreateOptions pdfOptions) {
         Invoice = invoice;
         Xml = xml;
         PdfOptions = pdfOptions;
@@ -19,7 +19,7 @@ internal sealed class InvoiceBenchmarkCorpus {
 
     internal Invoice Invoice { get; }
     internal byte[] Xml { get; }
-    internal PdfOptions PdfOptions { get; }
+    internal PdfCreateOptions PdfOptions { get; }
 
     internal static InvoiceBenchmarkCorpus Create() {
         var invoice = new Invoice {
@@ -66,10 +66,10 @@ internal sealed class InvoiceBenchmarkCorpus {
         Contract,
         InvoicePdfLayoutOptions.ForCultures("pl-PL", "en-GB"));
 
-    private static PdfOptions CreatePdfOptions() {
+    private static PdfCreateOptions CreatePdfOptions() {
         string fonts = Path.Combine(AppContext.BaseDirectory, "Fonts");
         byte[] baseFont = File.ReadAllBytes(Path.Combine(fonts, "SourceSerif4-Regular.otf"));
-        return new PdfOptions { IncludeStandardFontToUnicodeMaps = true }
+        return new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true }
             .EmbedStandardFont(PdfStandardFont.Helvetica, baseFont, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, baseFont, "OfficeIMO Source Serif")
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {

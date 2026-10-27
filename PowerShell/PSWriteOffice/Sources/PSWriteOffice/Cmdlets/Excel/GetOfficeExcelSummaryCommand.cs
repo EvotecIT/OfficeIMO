@@ -126,13 +126,13 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         }
 
         if (includeSchema && document != null) {
-            summary.Properties.Add(new PSNoteProperty("Schema", CreateSchemaSummary(document.CreateInspectionSnapshot())));
+            summary.Properties.Add(new PSNoteProperty("Schema", CreateSchemaSummary(document.Inspect())));
         }
 
         return summary;
     }
 
-    private static PSObject CreateSchemaSummary(ExcelWorkbookSnapshot snapshot) {
+    private static PSObject CreateSchemaSummary(ExcelWorkbookInfo snapshot) {
         var schema = new PSObject();
         schema.Properties.Add(new PSNoteProperty("ActiveWorksheetIndex", snapshot.ActiveWorksheetIndex));
         schema.Properties.Add(new PSNoteProperty("ActiveWorksheetName", snapshot.ActiveWorksheetName));
@@ -154,7 +154,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         return schema;
     }
 
-    private static PSObject CreateSchemaWorksheet(ExcelWorksheetSnapshot worksheet) {
+    private static PSObject CreateSchemaWorksheet(ExcelWorksheetInfo worksheet) {
         var record = new PSObject();
         record.Properties.Add(new PSNoteProperty("Name", worksheet.Name));
         record.Properties.Add(new PSNoteProperty("Index", worksheet.Index));
@@ -178,7 +178,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         return record;
     }
 
-    private static IEnumerable<PSObject> CreateSchemaTables(ExcelWorksheetSnapshot worksheet) {
+    private static IEnumerable<PSObject> CreateSchemaTables(ExcelWorksheetInfo worksheet) {
         foreach (var table in worksheet.Tables) {
             var record = new PSObject();
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));
@@ -192,7 +192,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         }
     }
 
-    private static PSObject CreateSchemaNamedRange(ExcelNamedRangeSnapshot namedRange) {
+    private static PSObject CreateSchemaNamedRange(ExcelNamedRangeInspectionInfo namedRange) {
         var record = new PSObject();
         record.Properties.Add(new PSNoteProperty("Name", namedRange.Name));
         record.Properties.Add(new PSNoteProperty("SheetName", namedRange.SheetName));
@@ -201,17 +201,17 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         return record;
     }
 
-    private static IEnumerable<PSObject> CreateSchemaFormulaCells(ExcelWorksheetSnapshot worksheet) {
+    private static IEnumerable<PSObject> CreateSchemaFormulaCells(ExcelWorksheetInfo worksheet) {
         foreach (var cell in worksheet.Cells.Where(cell => !string.IsNullOrWhiteSpace(cell.Formula))) {
             var record = new PSObject();
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));
-            record.Properties.Add(new PSNoteProperty("Address", A1.CellReference(cell.Row, cell.Column)));
+            record.Properties.Add(new PSNoteProperty("Address", ExcelA1.CellReference(cell.Row, cell.Column)));
             record.Properties.Add(new PSNoteProperty("Formula", cell.Formula));
             yield return record;
         }
     }
 
-    private static IEnumerable<PSObject> CreateSchemaRows(ExcelWorksheetSnapshot worksheet) {
+    private static IEnumerable<PSObject> CreateSchemaRows(ExcelWorksheetInfo worksheet) {
         foreach (var row in worksheet.Rows) {
             var record = new PSObject();
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));
@@ -225,7 +225,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
         }
     }
 
-    private static IEnumerable<PSObject> CreateSchemaColumns(ExcelWorksheetSnapshot worksheet) {
+    private static IEnumerable<PSObject> CreateSchemaColumns(ExcelWorksheetInfo worksheet) {
         foreach (var column in worksheet.Columns) {
             var record = new PSObject();
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));

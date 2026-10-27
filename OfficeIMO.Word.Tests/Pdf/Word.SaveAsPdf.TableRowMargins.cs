@@ -20,7 +20,7 @@ public partial class Word {
             row.Cells[0].MarginTopWidth = 120;
             row.Cells[1].MarginBottomWidth = 180;
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double first = Assert.Single(words, word => word.Text == "Frame0").Letters[0].StartBaseLine.Y;
         double neighbor = Assert.Single(words, word => word.Text == "Frame1").Letters[0].StartBaseLine.Y;
@@ -47,7 +47,7 @@ public partial class Word {
         foreach (WordTableCell cell in row.Cells) cell.VerticalAlignment = alignment;
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         Assert.Single(pdf.GetPages());
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -78,7 +78,7 @@ public partial class Word {
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         Assert.Single(pdf.GetPages());
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -125,7 +125,7 @@ public partial class Word {
         table.MergeCells(0, 0, 2, 1);
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         Assert.Single(pdf.GetPages());
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -144,7 +144,7 @@ public partial class Word {
         table.Rows[1].Cells[0].MarginBottomWidth = bottom;
         table.MergeCells(0, 0, 2, 1);
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages());
         var words = pdf.GetPage(1).GetWords().ToArray();
         double first = words.Single(word => word.Text == "Frame3").Letters[0].StartBaseLine.Y;

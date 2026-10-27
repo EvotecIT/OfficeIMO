@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
-            ExcelHeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelHeaderFooterInfo? headerFooterSnapshot,
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
             int pageCount,
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
-            ExcelHeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelHeaderFooterInfo? headerFooterSnapshot,
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
             int pageCount,
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
                     cancellationToken,
                     maximumSvgUtf8Bytes);
             } else {
-                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics, sourceImageBudget);
+                ExcelRangeVisualInfo snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics, sourceImageBudget);
                 result = ExcelRangeImageRenderer.Render(
                     snapshot,
                     workingFormat,
@@ -352,7 +352,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
             }
 
-            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range, options, sourceImageBudget: sourceImageBudget);
+            ExcelRangeVisualInfo snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range, options, sourceImageBudget: sourceImageBudget);
             if (snapshot.Diagnostics.Count > 0) {
                 diagnostics.AddRange(snapshot.Diagnostics);
             }
@@ -437,7 +437,7 @@ namespace OfficeIMO.Excel {
             layout = default;
             ExcelPrintTitles titles = GetPrintTitles();
             if ((!titles.HasRows && !titles.HasColumns) ||
-                !A1.TryParseRange(bodyRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                !ExcelA1.TryParseRange(bodyRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return false;
             }
 
@@ -485,7 +485,7 @@ namespace OfficeIMO.Excel {
                 string range,
                 double x,
                 double y,
-                ExcelRangeVisualSnapshot snapshot) {
+                ExcelRangeVisualInfo snapshot) {
                 Range = range;
                 X = x;
                 Y = y;
@@ -495,7 +495,7 @@ namespace OfficeIMO.Excel {
             internal string Range { get; }
             internal double X { get; }
             internal double Y { get; }
-            internal ExcelRangeVisualSnapshot Snapshot { get; }
+            internal ExcelRangeVisualInfo Snapshot { get; }
         }
 
         private sealed class PrintTitleComponent {

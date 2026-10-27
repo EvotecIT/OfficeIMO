@@ -99,7 +99,7 @@ internal static class EditableTargetExporter {
                 HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
                 string artifact = Path.Combine(output, documentName + ".md");
                 result.RequireValue().Save(artifact);
-                MarkdownDoc loaded = MarkdownDoc.Load(artifact);
+                MarkdownDocument loaded = MarkdownDocument.Load(artifact);
                 TableBlock? table = loaded.Blocks.OfType<TableBlock>().FirstOrDefault();
                 return new EditableExport(result.Report, artifact, loaded.ToMarkdown(),
                     MarkdownTableRows: table?.Rows.Count,

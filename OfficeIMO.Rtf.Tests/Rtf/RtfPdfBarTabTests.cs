@@ -14,10 +14,10 @@ public class RtfPdfBarTabTests {
         RtfDocument control = Source("BAR", bar: false, positionTab: false, parsed: parsed);
         RtfDocument source = Source("BAR", bar: true, positionTab: false, parsed: parsed);
         string before = Snapshot(source);
-        PdfCore.PdfDocumentConversionResult baseline = control.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
         baseline.RequireNoLoss();
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
         byte[] bytes = result.ToBytes();
 
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5), StringComparison.Ordinal);
@@ -36,10 +36,10 @@ public class RtfPdfBarTabTests {
         RtfDocument control = Source("A\tB", bar: false, positionTab: true, parsed: false);
         RtfDocument source = Source("A\tB", bar: true, positionTab: true, parsed: false);
         string before = Snapshot(source);
-        PdfCore.PdfDocumentConversionResult baseline = control.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
         baseline.RequireNoLoss();
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
 
         using var expected = PdfPigDocument.Open(baseline.ToBytes());
         using var actual = PdfPigDocument.Open(result.ToBytes());
@@ -63,7 +63,7 @@ public class RtfPdfBarTabTests {
 
         RtfToPdfOptions options = Options();
         if (plainPresentation) options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Right;
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
         using var actual = PdfPigDocument.Open(result.ToBytes());
         if (plainPresentation) {
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "BarTabOmitted");
@@ -99,7 +99,7 @@ public class RtfPdfBarTabTests {
         nested.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("DEEP").SetStyle(7);
         string before = Snapshot(source);
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
 
         PdfCore.PdfConversionWarning[] omissions = result.Warnings.Where(item => item.Code == "BarTabOmitted").ToArray();
         Assert.Equal(3, omissions.Length);
@@ -143,7 +143,7 @@ public class RtfPdfBarTabTests {
     // Built-in Courier keeps the contract proof independent of installed fonts.
     private static RtfToPdfOptions Options() => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions {
+        PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = 12,
             CompressContentStreams = false
         }

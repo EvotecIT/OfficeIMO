@@ -36,8 +36,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.True(odtRun.SmallCaps);
 
         using WordDocument roundTrip = persisted.ToWordDocument();
-        WordRunSnapshot converted = Assert.Single(Assert.Single(roundTrip.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()).Runs);
+        WordRunInfo converted = Assert.Single(Assert.Single(roundTrip.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()).Runs);
         Assert.Equal(WordUnderlineStyle.WavyDouble, converted.UnderlineStyle);
         Assert.True(converted.DoubleStrike);
         Assert.Equal(nameof(WordVerticalTextPosition.Superscript), converted.VerticalTextAlignment);
@@ -125,7 +125,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         odsCell.SetString("MiXeD");
         odsCell.TextTransform = OdfTextTransform.Lowercase;
         using ExcelDocument roundTrip = OdsDocument.Load(new MemoryStream(persisted.ToBytes())).ToExcelDocument();
-        ExcelCellSnapshot converted = Assert.Single(roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo converted = Assert.Single(roundTrip.Inspect().Worksheets.Single().Cells);
         Assert.Equal("mixed", converted.Value);
         Assert.Equal(ExcelUnderlineStyle.Double, converted.Style!.UnderlineStyle);
         Assert.True(converted.Style.Strikethrough);
@@ -168,7 +168,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             }
 
             using ExcelDocument source = ExcelDocument.Load(path);
-            ExcelCellStyleSnapshot authored = source.Sheets[0].GetCellStyle(1, 1);
+            ExcelCellStyleInfo authored = source.Sheets[0].GetCellStyle(1, 1);
             OdsCell converted = source.ToOpenDocument().Sheets.Single().Cell(0, 0);
 
             Assert.False(authored.Underline);
@@ -189,8 +189,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddSpan("llo world").Italic = true;
 
         using WordDocument word = odt.ToWordDocument();
-        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("Hello World", converted.Text);
         Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
@@ -208,8 +208,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddSpan("Σ").Italic = true;
 
         using WordDocument word = odt.ToWordDocument();
-        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("ος", converted.Text);
         Assert.Equal(new[] { "ο", "ς" }, converted.Runs.Select(run => run.Text).ToArray());
@@ -318,7 +318,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         odsCell.SetString("iPhone eBOOK");
         odsCell.TextTransform = OdfTextTransform.Capitalize;
         using ExcelDocument excel = ods.ToExcelDocument();
-        Assert.Equal("IPhone EBOOK", Assert.Single(excel.CreateInspectionSnapshot().Worksheets.Single().Cells).Value);
+        Assert.Equal("IPhone EBOOK", Assert.Single(excel.Inspect().Worksheets.Single().Cells).Value);
 
         OdpPresentation odp = OdpPresentation.Create();
         OdpRun odpRun = odp.AddSlide("Text")

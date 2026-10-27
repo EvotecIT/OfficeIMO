@@ -7,7 +7,7 @@
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -59,10 +59,6 @@
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Text" />
@@ -77,4 +73,10 @@
         <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Tests" /></ItemGroup>
 </Project>

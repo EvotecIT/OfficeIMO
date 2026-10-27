@@ -47,11 +47,11 @@ public partial class Word {
                 paragraph.LineSpacingAfterPoints = 0;
             }
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Courier }
-        }));
+            PdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var alpha = Assert.Single(letters, x => x.Value == "A");
         var bravo = Assert.Single(letters, x => x.Value == "B");

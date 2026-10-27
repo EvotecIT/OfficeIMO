@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
                 && child.Bounds.Equals(new LegacyPptBounds(1958, 2880, 863, 575)));
             Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
                 diagnostic.Code == "PPT-GROUP-UNSUPPORTED"
-                || diagnostic.Code == "PPT-GROUP-TRUNCATED");
+                || diagnostic.Code == "ppt-group-truncated");
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             }
             Assert.Empty(presentation.ValidateDocument());
 
-            using MemoryStream pptx = presentation.ToStream();
+            using MemoryStream pptx = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointPresentation reopened = PowerPointPresentation.Load(pptx);
             Assert.Equal(9, reopened.Slides[0].Shapes.Count);
             Assert.Empty(reopened.ValidateDocument());
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(source, presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(source, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedConnector = saved.Slides[0].Shapes.Single(shape =>
                 shape.Kind == LegacyPptShapeKind.Connector && shape.OfficeArtShapeType == 32);
             LegacyPptShape savedGroup = saved.Slides[0].Shapes.Single(shape =>
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             LegacyPptShape savedGroup = Assert.Single(saved.Slides).Shapes
                 .Single(shape => shape.Kind == LegacyPptShapeKind.Group);
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(TransformFixturePath),
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -388,7 +388,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(saved.Slides).Shapes
                 .Single(item => item.Text == "Rotate 30");
             Assert.Equal(42D, savedShape.Transform.RotationDegrees);
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(ConnectedFixturePath),
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.Contains(preflight.Findings, finding => finding.Code == "ppt-write-import-loss");
         }
 
         [Fact]
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(-18000, shapes[1].Style.ShadowOffsetXEmus);
             Assert.Equal(18000, shapes[1].Style.ShadowOffsetYEmus);
             Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-SHAPE-STYLE-PARTIAL");
+                diagnostic.Code == "ppt-shape-style-partial");
         }
 
         [Fact]
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(ShadowFixturePath),
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -537,7 +537,7 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.Contains(preflight.Findings, finding => finding.Code == "ppt-write-import-loss");
         }
 
         [Fact]
@@ -555,7 +555,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(AdjustedShapesFixturePath),
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 originalBytes);
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             LegacyPptShape originalRound = Assert.Single(original.Slides)
                 .Shapes.Single(item => item.Text == "Round");

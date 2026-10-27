@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(bodies.SelectMany(body => body.LanguageRuns),
                 run => run.Language == "pl-PL");
             Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-TEXT-SPECIAL-INFO-TRUNCATED");
+                diagnostic.Code == "ppt-text-special-info-truncated");
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptTextBody textBody = Assert.Single(Assert.Single(
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
                 .NoProof!.Value);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(bytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptTextBody binary = Assert.Single(Assert.Single(
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
                 .Language!.Value);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(bytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Editable language", 30, 30, 240, 60)
                     .SetLanguage("en-US");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(
                 sourceBytes);
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.EndParagraphRunProperties>()!
                 .Language!.Value);
             Assert.Equal(savedBytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Theory]
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
             Assert.False(preflight.CanWrite);
             LegacyPptWriteFinding finding = Assert.Single(
                 preflight.Findings, item =>
-                    item.Code == "PPT-WRITE-RICH-TEXT");
+                    item.Code == "ppt-write-rich-text");
             Assert.Contains("no classic PowerPoint LCID mapping",
                 finding.Description);
         }
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
                 shape.TextBody.Elements<A.Paragraph>().Single()
                     .GetFirstChild<A.EndParagraphRunProperties>()!
                     .SpellingError = true;
-                generatedBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                generatedBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation generated = LegacyPptPresentation.Load(
@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
                 original.Slides).Shapes).TextBody;
             Assert.True(originalText.HasUnprojectedTextSpecialInfo);
             Assert.Contains(original.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-TEXT-SPECIAL-INFO-PARTIAL"
+                diagnostic.Code == "ppt-text-special-info-partial"
                 && diagnostic.Severity
                     == LegacyPptDiagnosticSeverity.Information);
 
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                movedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                movedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation moved = LegacyPptPresentation.Load(
                 movedBytes);
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(rewritePreflight.CanWrite);
             Assert.Contains(rewritePreflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                finding.Code == "ppt-write-import-loss");
         }
 
         [Fact]

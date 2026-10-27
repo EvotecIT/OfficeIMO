@@ -1,8 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Html;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,24 +10,17 @@ namespace OfficeIMO.Word.Markdown {
         private bool TryRenderHtmlFallbackViaMarkdownAst(
             string html,
             IWordBlockRenderHost host,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
-            Omd.ColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment) {
             if (string.IsNullOrWhiteSpace(html)) {
                 return true;
             }
 
-            Omd.MarkdownDoc htmlDocument;
-            try {
-                var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
-                htmlOptions.PreserveUnsupportedBlocks = false;
-                htmlOptions.PreserveUnsupportedInlineHtml = false;
-                htmlDocument = HtmlConversionDocument.Parse(html).ToMarkdownDocument(htmlOptions);
-            } catch {
-                return false;
-            }
+            Omd.MarkdownDocument? htmlDocument = options.RawHtmlParser?.Invoke(html, options.DiagnosticSink);
+            if (htmlDocument == null) return false;
 
             if (htmlDocument.DocumentHeader != null) {
                 RenderSharedBlockOmd(
@@ -70,7 +60,7 @@ namespace OfficeIMO.Word.Markdown {
         private bool TryRenderWordHeaderFooterSemanticBlock(
             Omd.SemanticFencedBlock block,
             IWordBlockRenderHost currentHost,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
             if (block == null || currentHost is not DocumentWordBlockRenderHost) {
@@ -85,7 +75,7 @@ namespace OfficeIMO.Word.Markdown {
             if (!string.IsNullOrWhiteSpace(block.Content)) {
                 var readerOptions = CreateEffectiveReaderOptions(options);
                 readerOptions.FrontMatter = false;
-                var fragment = Omd.MarkdownReader.Parse(block.Content, readerOptions);
+                var fragment = Omd.MarkdownDocument.Parse(block.Content, readerOptions);
 
                 if (fragment.DocumentHeader != null) {
                     RenderSharedBlockOmd(
@@ -97,7 +87,7 @@ namespace OfficeIMO.Word.Markdown {
                         listLevel: 0,
                         quoteDepth: 0,
                         pageContentWidthPixels: pageContentWidthPixels,
-                        alignment: Omd.ColumnAlignment.None);
+                        alignment: Omd.MarkdownColumnAlignment.None);
                 }
 
                 foreach (var nested in fragment.Blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
@@ -110,7 +100,7 @@ namespace OfficeIMO.Word.Markdown {
                         listLevel: 0,
                         quoteDepth: 0,
                         pageContentWidthPixels: pageContentWidthPixels,
-                        alignment: Omd.ColumnAlignment.None);
+                        alignment: Omd.MarkdownColumnAlignment.None);
                 }
             }
 
@@ -125,7 +115,7 @@ namespace OfficeIMO.Word.Markdown {
             Omd.SemanticFencedBlock block,
             IWordBlockRenderHost host,
             int quoteDepth,
-            Omd.ColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment) {
             if (block == null ||
                 !string.Equals(block.SemanticKind, WordMarkdownSemanticBlocks.PageBreakSemanticKind, StringComparison.OrdinalIgnoreCase)) {
                 return false;
@@ -146,7 +136,7 @@ namespace OfficeIMO.Word.Markdown {
         private static bool TryResolveWordHeaderFooterTarget(
             Omd.SemanticFencedBlock block,
             WordDocument document,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             out WordHeaderFooter target) {
             target = null!;
             if (block == null) {
@@ -181,7 +171,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static WordHeaderFooterType ResolveHeaderFooterType(
             string? slot,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             Omd.SemanticFencedBlock block) {
             if (string.IsNullOrWhiteSpace(slot)) {
                 return WordHeaderFooterType.Default;
@@ -199,7 +189,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static WordHeaderFooterType WarnAndReturnDefault(
             string slot,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             Omd.SemanticFencedBlock block) {
             options.OnWarning?.Invoke($"Semantic {block.SemanticKind} block requested unsupported slot '{slot}'. Falling back to default header or footer.");
             return WordHeaderFooterType.Default;
@@ -208,11 +198,11 @@ namespace OfficeIMO.Word.Markdown {
         private void ProcessTableCellBlocksOmd(
             Omd.TableCell? tableCell,
             WordTableCell wordCell,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
-            Omd.ColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment) {
             if (tableCell == null || tableCell.ChildBlocks.Count == 0) {
                 return;
             }
@@ -224,12 +214,12 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedBlocksOmd(
             IEnumerable<Omd.IMarkdownBlock> blocks,
             IWordBlockRenderHost host,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             int listLevel = 0,
             int quoteDepth = 0,
             double pageContentWidthPixels = 0,
-            Omd.ColumnAlignment alignment = Omd.ColumnAlignment.None) {
+            Omd.MarkdownColumnAlignment alignment = Omd.MarkdownColumnAlignment.None) {
             if (blocks == null) {
                 return;
             }
@@ -246,11 +236,11 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedDefinitionListEntryOmd(
             Omd.DefinitionListEntry entry,
             IWordBlockRenderHost host,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
-            Omd.ColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment) {
             if (entry == null) {
                 return;
             }
@@ -309,7 +299,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedTableBlockOmd(
             Omd.TableBlock table,
             IWordBlockRenderHost host,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
             var headerCells = table.HeaderCells;
@@ -323,7 +313,7 @@ namespace OfficeIMO.Word.Markdown {
 
             if (headerCells.Count > 0) {
                 for (int columnIndex = 0; columnIndex < headerCells.Count; columnIndex++) {
-                    var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.ColumnAlignment.None;
+                    var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.MarkdownColumnAlignment.None;
                     var cellHost = new TableCellWordBlockRenderHost(wordTable.Rows[rowIndex].Cells[columnIndex]);
                     RenderSharedBlocksOmd(
                         headerCells[columnIndex].ChildBlocks,
@@ -340,7 +330,7 @@ namespace OfficeIMO.Word.Markdown {
             for (int sourceRowIndex = 0; sourceRowIndex < rowCells.Count; sourceRowIndex++) {
                 var row = rowCells[sourceRowIndex];
                 for (int columnIndex = 0; columnIndex < row.Count && columnIndex < wordTable.Rows[rowIndex].Cells.Count; columnIndex++) {
-                    var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.ColumnAlignment.None;
+                    var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.MarkdownColumnAlignment.None;
                     var cellHost = new TableCellWordBlockRenderHost(wordTable.Rows[rowIndex].Cells[columnIndex]);
                     RenderSharedBlocksOmd(
                         row[columnIndex].ChildBlocks,
@@ -360,11 +350,11 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedCalloutBlockOmd(
             Omd.CalloutBlock callout,
             IWordBlockRenderHost host,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
-            Omd.ColumnAlignment alignment) {
+            Omd.MarkdownColumnAlignment alignment) {
             var titleParagraph = host.CreateParagraph();
             ApplyBlockParagraphFormatting(titleParagraph, quoteDepth, alignment);
             if (callout.TitleInlines != null && callout.TitleInlines.Nodes.Count > 0) {

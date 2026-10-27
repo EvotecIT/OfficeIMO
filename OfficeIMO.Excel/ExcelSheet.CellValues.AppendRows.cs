@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
                     int existingColumnIndex = 0;
                     string? reference = existingCell.CellReference?.Value;
                     if (!string.IsNullOrEmpty(reference)) {
-                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                        existingColumnIndex = ExcelA1.ParseColumnIndexFromCellReference(reference!);
                     }
 
                     if (existingColumnIndex <= 0) {
@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel {
 
             for (int i = 0; i < source.Count; i++) {
                 var item = source[i];
-                if (item.Row <= 0 || item.Column <= 0 || item.Column > A1.MaxColumns || item.Row < currentRow) {
+                if (item.Row <= 0 || item.Column <= 0 || item.Column > ExcelA1.MaxColumns || item.Row < currentRow) {
                     return false;
                 }
 
@@ -194,8 +194,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            string start = A1.CellReference(minRow, minColumn);
-            string end = A1.CellReference(maxRow, maxColumn);
+            string start = ExcelA1.CellReference(minRow, minColumn);
+            string end = ExcelA1.CellReference(maxRow, maxColumn);
             string reference = start == end ? start : start + ":" + end;
             if (dimension == null) {
                 InsertSheetDimensionInSchemaOrder(worksheet, new SheetDimension { Reference = reference });

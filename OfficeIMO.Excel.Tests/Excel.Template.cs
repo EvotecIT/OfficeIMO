@@ -180,10 +180,10 @@ namespace OfficeIMO.Tests {
 
             using var document = ExcelDocument.Create(filePath);
             var sheet = document.AddWorksheet("Invoice");
-            sheet.CellAt(A1.MaxRows, 1).SetValue("{{Name}}");
+            sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("{{Name}}");
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                sheet.ApplyTemplateRows(A1.MaxRows, new[] {
+                sheet.ApplyTemplateRows(ExcelA1.MaxRows, new[] {
                     new Dictionary<string, object?> { ["Name"] = "One" },
                     new Dictionary<string, object?> { ["Name"] = "Two" }
                 }));

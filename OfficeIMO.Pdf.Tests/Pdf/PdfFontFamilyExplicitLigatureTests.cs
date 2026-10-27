@@ -23,7 +23,7 @@ public class PdfFontFamilyExplicitLigatureTests {
         Assert.True(info.ContainsUnicodeScalar(0xFB04));
 
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }
@@ -57,7 +57,7 @@ public class PdfFontFamilyExplicitLigatureTests {
         Assert.True(fontProgram.TryGetGlyphId(0xFB04, out int fflGlyphId));
 
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }
@@ -114,7 +114,7 @@ public class PdfFontFamilyExplicitLigatureTests {
         var fallbackSet = new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("OfficeIMO Fallback Font", fallbackFontBytes) },
             new[] { PdfStandardFont.TimesRoman });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }
@@ -124,7 +124,7 @@ public class PdfFontFamilyExplicitLigatureTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("office" + fallbackText))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -140,7 +140,7 @@ public class PdfFontFamilyExplicitLigatureTests {
 
         byte[] fontBytes = File.ReadAllBytes(fontPath!);
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }

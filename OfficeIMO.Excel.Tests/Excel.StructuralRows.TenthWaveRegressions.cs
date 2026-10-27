@@ -162,9 +162,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             var selection = new Selection {
-                ActiveCell = $"A{A1.MaxRows}",
+                ActiveCell = $"A{ExcelA1.MaxRows}",
                 SequenceOfReferences = new ListValue<StringValue> {
-                    InnerText = $"A{A1.MaxRows}"
+                    InnerText = $"A{ExcelA1.MaxRows}"
                 }
             };
             var sheetViews = new SheetViews(
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", selection.ActiveCell!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", selection.ActiveCell!.Value);
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
         }
     }

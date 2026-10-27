@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
         public async Task LoadAsync_HonorsPreCanceledTokenAndRestoresCallerPosition() {
             using var source = PowerPointPresentation.Create();
             source.AddSlide();
-            using var stream = source.ToStream();
+            using var stream = new System.IO.MemoryStream(source.ToBytes());
             stream.Position = 7;
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();

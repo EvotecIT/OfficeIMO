@@ -955,8 +955,8 @@ public sealed class WordOdtNotesConversionTests {
         using WordDocument word = toWord.Value;
         Assert.Empty(word.ValidateDocument());
         using WordDocument saved = WordDocument.Load(new MemoryStream(word.ToBytes()));
-        WordParagraphSnapshot snapshot = Assert.Single(saved.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo snapshot = Assert.Single(saved.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         Assert.Equal("Footnote text", Assert.Single(snapshot.Runs, run => run.Footnote != null)
             .Footnote!.Paragraphs[0].Text);
         Assert.Equal("Endnote text", Assert.Single(snapshot.Runs, run => run.Endnote != null)

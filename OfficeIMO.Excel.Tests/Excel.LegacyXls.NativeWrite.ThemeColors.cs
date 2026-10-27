@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.Border!.TopColorIndex, out string? topBorderColor));
                 Assert.Equal("FFCD7371", topBorderColor);
 
-                ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
                 Assert.Equal("FF2C4D75", projectedStyle.FontColorArgb);
                 Assert.Equal("FF666666", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);

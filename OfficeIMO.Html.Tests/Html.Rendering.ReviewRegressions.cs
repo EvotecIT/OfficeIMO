@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<p>Before image</p><img width='16' height='16' alt='"
             + alternativeText + "' src='data:image/png;base64," + image + "'><p>After image</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
 
         Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
         Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount > 1);
@@ -244,7 +244,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_MapsSansSerifToHelvetica() {
         const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Helvetica", rawPdf, StringComparison.Ordinal);

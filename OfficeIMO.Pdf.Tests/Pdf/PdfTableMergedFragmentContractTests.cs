@@ -141,7 +141,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void MergedTailReflowsAcrossUnequalSequentialColumns() {
         string[] tokens = Enumerable.Range(1, 200).Select(n => $"Word{n:D3}").ToArray();
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 460, PageHeight = 140, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
         }).Columns(content => content.Table(new[] {
@@ -187,7 +187,7 @@ public partial class PdfDocumentVisualQualityTests {
         else Assert.True(pages.Distinct().Count() > 1, "An oversized kept paragraph must relax within the usable body capacity.");
     }
 
-    private static PdfOptions Options(double height) => new() {
+    private static PdfCreateOptions Options(double height) => new() {
         PageWidth = 300, PageHeight = height, MarginLeft = 20, MarginRight = 20,
         MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, CompressContentStreams = false
     };

@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
             document.AddWorksheet("Other");
             var otherSheetSource = new DataReference {
                 Sheet = "Other",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             var externalSource = new DataReference {
                 Id = "rIdExternal",
                 Sheet = "Data",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             data.WorksheetPart.Worksheet.Append(
                 new DataConsolidate(
@@ -32,8 +32,8 @@ namespace OfficeIMO.Tests {
 
             data.InsertRows(1);
 
-            Assert.Equal($"A{A1.MaxRows}", otherSheetSource.Reference!.Value);
-            Assert.Equal($"A{A1.MaxRows}", externalSource.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", otherSheetSource.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", externalSource.Reference!.Value);
         }
 
         [Fact]
@@ -111,14 +111,14 @@ namespace OfficeIMO.Tests {
             }
             XNamespace excel = "urn:schemas-microsoft-com:office:excel";
             XElement anchor = vmlDocument.Descendants(excel + "Anchor").Single();
-            string originalAnchor = $"1, 0, {A1.MaxRows - 1}, 0, 3, 0, {A1.MaxRows}, 0";
+            string originalAnchor = $"1, 0, {ExcelA1.MaxRows - 1}, 0, 3, 0, {ExcelA1.MaxRows}, 0";
             anchor.Value = originalAnchor;
             using (Stream stream = vmlPart.GetStream(FileMode.Create, FileAccess.Write)) {
                 vmlDocument.Save(stream);
             }
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                () => sheet.InsertRows(A1.MaxRows));
+                () => sheet.InsertRows(ExcelA1.MaxRows));
 
             Assert.Contains("note anchor", exception.Message);
             Assert.Equal("keep", sheet.CellAt(1, 1).GetValue<string>());

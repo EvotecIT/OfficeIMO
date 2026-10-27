@@ -20,7 +20,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(3, 2, 216, 3)]
     [InlineData(2, 0, 216, 3)]
     public void ShortWidowParagraphMovesBeforeOpeningItsPanel(int lineCount, int orphanLines, double pageHeight, int wrapper) {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = pageHeight, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = pageHeight, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 10 };
         var paragraphStyle = new PdfParagraphStyle { FontSize = 10, LineHeight = 1, SpacingBefore = 0,
             SpacingAfter = 0, MinimumOrphanLines = orphanLines, MinimumWidowLines = 2 };
@@ -56,7 +56,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PaddedFixedObjectsRejectHeightBeyondTheirResumedFrame(bool column) {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         var style = new PdfPanelStyle { PaddingY = 12, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 };
         PdfDocument document = PdfDocument.Create(options);
         if (column) document.Compose(d => d.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, col => col.Panel(panel => panel
@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false, true, true, true)]
     [InlineData(true, true, true, true)]
     public void PaddedImageScalingFitsTheResumedFrame(bool column, bool firstChild, bool nested, bool keepTogether) {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         var style = new PdfPanelStyle { PaddingY = 12, PaddingX = 5, KeepTogether = keepTogether, SpacingAfter = 0 };
         var imageStyle = new PdfImageStyle { ScaleDownToFit = true, SpacingAfter = 0 };
         PdfDocument document = PdfDocument.Create(options);
@@ -103,7 +103,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PaddedRepeatedTableHeaderReservesTheWholeFixedRow() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 240, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Table(new[] { new[] { "Header" }, new[] { "First" }, new[] { "Final" } }, style: new PdfTableStyle {
@@ -129,7 +129,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(220, 240)]
     [InlineData(400, 160)]
     public void NestedPaddedHeadingPreservesTextLinksAndOneHeadingTag(double pageWidth, double pageHeight) {
-        var options = new PdfOptions { PageWidth = pageWidth, PageHeight = pageHeight, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = pageWidth, PageHeight = pageHeight, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         string heading = string.Join(" ", Enumerable.Repeat("Heading text", 24)) + " FINAL-MARKER";
         var outer = new PdfPanelStyle { PaddingY = 12, PaddingX = 8, KeepTogether = false, SpacingAfter = 0, Background = PdfColor.FromRgb(235, 240, 248) };
         var inner = new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = false, SpacingAfter = 0, BorderColor = PdfColor.FromRgb(60, 90, 140) };
@@ -165,7 +165,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PaddedParagraphMakesProgressWhenOrphanPreferenceExceedsFrameCapacity() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Paragraph(p => { for (int i = 1; i <= 6; i++) { if (i > 1) p.LineBreak(); p.Text("Line" + i); } },
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PaddedColumnParagraphRelaxesAnImpossibleOrphanPreferenceAtFrameStart() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 170, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 170, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         byte[] bytes = PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content => content
             .Row(row => row.PercentColumn(100, column => column.Panel(panel => panel
                 .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
@@ -194,7 +194,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OversizedPaddedTableLineCannotOverflowThePage() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Table(new[] { new[] { "A" } }, style: new PdfTableStyle { FontSize = 60, HeaderRowCount = 0, CellPaddingY = 0 }),
@@ -206,7 +206,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TableHeightRequirementsMustFitThePaddedFrame(bool fixedHeight) {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingY = 0 };
         if (fixedHeight) style.FixedRowHeights = new System.Collections.Generic.List<double?> { 75 };
         else style.MinRowHeight = 75;
@@ -219,7 +219,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void NestedPaddedHeadingAccountsForCumulativePaddingAndRequiredSpacing() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Panel(nested => nested.Paragraph(p => p.Text("Inner"), style: new PdfParagraphStyle { SpacingAfter = 0 })
@@ -231,7 +231,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ParagraphAfterContentRejectsALineThatCannotFitThePaddedFrame() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Paragraph(p => p.FontSize(55).Text("A"), style: new PdfParagraphStyle { SpacingAfter = 0 }),
@@ -241,7 +241,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OversizedPaddedListCannotSilentlyDiscardText() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .RichBullets(new[] { PdfListItem.Rich(new[] { PdfTextRun.Normal("A") }) }, style: new PdfListStyle { FontSize = 75, LineHeight = 1 }),
@@ -251,7 +251,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OversizedPaddedRowHeadingIsRejectedAsUnrenderableInput() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Row(row => row.PercentColumn(100, column => column.H1("A", style: new PdfHeadingStyle { FontSize = 75, LineHeight = 1, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false }))),
@@ -261,7 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void HeadingAfterContentRejectsALineThatCannotFitThePaddedFrame() {
-        var options = new PdfOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .H1("A", style: new PdfHeadingStyle { FontSize = 75, LineHeight = 1, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false }),

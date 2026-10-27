@@ -47,9 +47,9 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
             Assert.Empty(document.ValidateDocument());
             string authoredDocument = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
             string authoredStyles = document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml;
-            byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
-                IncludePageNumbers = false, PageSize = new PageSize(300D, 300D),
-                Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica"
+            byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+                IncludePageNumbers = false, PageSize = new PdfPageSize(300D, 300D),
+                Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica"
             }).ToBytes();
             Assert.Equal(authoredDocument, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
             Assert.Equal(authoredStyles, document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
@@ -108,8 +108,8 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         if (scenario == "both-break") target._paragraph.Append(new W.Run(new W.Break()), Run("Short final words"));
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
-            PageSize = new PageSize(300D, 300D), Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
+            PageSize = new PdfPageSize(300D, 300D), Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         RetainEvidence(bytes, "heading-policy-" + scenario + "-" + (heading ? "heading" : "body") + "-" + (left ? "left" : "source"));
         using var pdf = PdfPigDocument.Open(bytes);

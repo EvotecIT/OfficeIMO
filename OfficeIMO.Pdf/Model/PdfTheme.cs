@@ -83,7 +83,7 @@ public sealed class PdfTheme {
         PdfColor headingText = PdfColor.FromRgb(17, 24, 39);
         PdfColor ruleColor = PdfColor.FromRgb(203, 213, 225);
 
-        var tableStyle = TableStyles.ListTable1Light();
+        var tableStyle = PdfTableStyles.ListTable1Light();
         tableStyle.TextColor = bodyText;
         tableStyle.HeaderTextColor = headingText;
         tableStyle.CellPaddingX = 5;
@@ -174,7 +174,7 @@ public sealed class PdfTheme {
     /// </summary>
     public static PdfTheme TechnicalDocument() {
         PdfTheme theme = WordLike();
-        theme.TableStyle = TableStyles.TechnicalDocument();
+        theme.TableStyle = PdfTableStyles.TechnicalDocument();
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
@@ -219,7 +219,7 @@ public sealed class PdfTheme {
             SpacingAfter = 4,
             Color = bodyText
         };
-        theme.TableStyle = TableStyles.Compact();
+        theme.TableStyle = PdfTableStyles.Compact();
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
@@ -281,7 +281,7 @@ public sealed class PdfTheme {
                 KeepWithNext = true
             }
         };
-        theme.TableStyle = TableStyles.Report();
+        theme.TableStyle = PdfTableStyles.Report();
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(239, 246, 255),
             BorderColor = Color(191, 219, 254),
@@ -317,7 +317,7 @@ public sealed class PdfTheme {
         };
     }
 
-    internal void ApplyTo(PdfOptions options) {
+    internal void ApplyTo(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         _textStyle?.ApplyTo(options);
         if (_paragraphStyle != null) {

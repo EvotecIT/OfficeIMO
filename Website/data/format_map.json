@@ -227,6 +227,62 @@
       "family": "other"
     },
     {
+      "name": "DOCM",
+      "family": "other"
+    },
+    {
+      "name": "DOTM",
+      "family": "other"
+    },
+    {
+      "name": "DOTX",
+      "family": "other"
+    },
+    {
+      "name": "Excel",
+      "family": "other"
+    },
+    {
+      "name": "POT",
+      "family": "other"
+    },
+    {
+      "name": "POTM",
+      "family": "other"
+    },
+    {
+      "name": "POTX",
+      "family": "other"
+    },
+    {
+      "name": "PowerPoint",
+      "family": "other"
+    },
+    {
+      "name": "PPAM",
+      "family": "other"
+    },
+    {
+      "name": "PPS",
+      "family": "other"
+    },
+    {
+      "name": "PPSM",
+      "family": "other"
+    },
+    {
+      "name": "PPSX",
+      "family": "other"
+    },
+    {
+      "name": "PPT",
+      "family": "other"
+    },
+    {
+      "name": "PPTM",
+      "family": "other"
+    },
+    {
       "name": "Publisher",
       "family": "other"
     },
@@ -240,6 +296,34 @@
     },
     {
       "name": "VSTX",
+      "family": "other"
+    },
+    {
+      "name": "Word",
+      "family": "other"
+    },
+    {
+      "name": "XLAM",
+      "family": "other"
+    },
+    {
+      "name": "XLS",
+      "family": "other"
+    },
+    {
+      "name": "XLSB",
+      "family": "other"
+    },
+    {
+      "name": "XLSM",
+      "family": "other"
+    },
+    {
+      "name": "XLTM",
+      "family": "other"
+    },
+    {
+      "name": "XLTX",
       "family": "other"
     }
   ],
@@ -798,10 +882,10 @@
       "id": "doc-pdf",
       "source": "DOC",
       "target": "PDF",
-      "package": "OfficeIMO.Word.Pdf",
+      "package": "OfficeIMO",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)",
+      "api": "OfficeConverter.Convert(sourcePath, destinationPath, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -842,7 +926,7 @@
       "package": "OfficeIMO.Word.Html",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "WordDocument.Load(stream).ToHtmlResult(options)",
+      "api": "WordDocument.Load(stream).SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -872,7 +956,7 @@
       "package": "OfficeIMO.Word.Markdown",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "WordDocument.Load(stream).ToMarkdownDocumentResult(options)",
+      "api": "WordDocument.Load(stream).SaveAsMarkdown(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -902,7 +986,7 @@
       "package": "OfficeIMO.Word.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "WordDocument.Load(stream).ToPdfDocumentResult(options)",
+      "api": "WordDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -1136,6 +1220,18 @@
       "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.dat -Format Tnef"
     },
     {
+      "id": "email-pdf",
+      "source": "Email",
+      "target": "PDF",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "email-png",
       "source": "Email",
       "target": "PNG",
@@ -1236,6 +1332,18 @@
       "support": "Targeted",
       "fidelity": "FixedLayout",
       "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-pdf",
+      "source": "EPUB",
+      "target": "PDF",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1358,7 +1466,7 @@
       "package": "OfficeIMO.Word.Html",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToWordDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1397,7 +1505,7 @@
       "package": "OfficeIMO.Markdown.Html",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsMarkdown(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -1422,10 +1530,10 @@
       "id": "html-pdf",
       "source": "HTML",
       "target": "PDF",
-      "package": "OfficeIMO.Html",
+      "package": "OfficeIMO.Html.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -1600,7 +1708,7 @@
       "package": "OfficeIMO.AsciiDoc.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "MarkdownDoc.Parse(markdown).ToAsciiDocDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).ToAsciiDocDocumentResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1630,7 +1738,7 @@
       "package": "OfficeIMO.Word.Markdown",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "MarkdownReader.Parse(markdown).ToWordDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -1655,10 +1763,10 @@
       "id": "markdown-html",
       "source": "Markdown",
       "target": "HTML",
-      "package": "OfficeIMO.MarkdownRenderer",
+      "package": "OfficeIMO.Markdown",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "MarkdownRenderer.RenderBodyHtml(markdown, options)",
+      "api": "MarkdownDocument.Parse(markdown).SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -1674,7 +1782,7 @@
       "package": "OfficeIMO.Latex.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "MarkdownDoc.Parse(markdown).ToLatexDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).ToLatexDocumentResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1689,7 +1797,7 @@
       "package": "OfficeIMO.Markdown.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "MarkdownDoc.Parse(markdown).ToPdfDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -1706,7 +1814,7 @@
       "package": "OfficeIMO.Rtf.Markdown",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "MarkdownDoc.Parse(markdown).ToRtfDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).ToRtfDocumentResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1722,6 +1830,270 @@
       "support": "Targeted",
       "fidelity": "FixedLayout",
       "api": "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xlam",
+      "source": "Excel",
+      "target": "XLAM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xls",
+      "source": "Excel",
+      "target": "XLS",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xlsb",
+      "source": "Excel",
+      "target": "XLSB",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xlsm",
+      "source": "Excel",
+      "target": "XLSM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xlsx",
+      "source": "Excel",
+      "target": "XLSX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xltm",
+      "source": "Excel",
+      "target": "XLTM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-excel-xltx",
+      "source": "Excel",
+      "target": "XLTX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-pot",
+      "source": "PowerPoint",
+      "target": "POT",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-potm",
+      "source": "PowerPoint",
+      "target": "POTM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-potx",
+      "source": "PowerPoint",
+      "target": "POTX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-ppam",
+      "source": "PowerPoint",
+      "target": "PPAM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-pps",
+      "source": "PowerPoint",
+      "target": "PPS",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-ppsm",
+      "source": "PowerPoint",
+      "target": "PPSM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-ppsx",
+      "source": "PowerPoint",
+      "target": "PPSX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-ppt",
+      "source": "PowerPoint",
+      "target": "PPT",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-pptm",
+      "source": "PowerPoint",
+      "target": "PPTM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-powerpoint-pptx",
+      "source": "PowerPoint",
+      "target": "PPTX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-word-doc",
+      "source": "Word",
+      "target": "DOC",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-word-docm",
+      "source": "Word",
+      "target": "DOCM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-word-docx",
+      "source": "Word",
+      "target": "DOCX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-word-dotm",
+      "source": "Word",
+      "target": "DOTM",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "native-word-dotx",
+      "source": "Word",
+      "target": "DOTX",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2208,10 +2580,10 @@
       "id": "pdf-docx",
       "source": "PDF",
       "target": "DOCX",
-      "package": "OfficeIMO.Word.Pdf",
+      "package": "OfficeIMO.Pdf.Word",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToWordDocumentResult(options)",
+      "api": "PdfDocument.Load(stream).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2229,7 +2601,7 @@
       "package": "OfficeIMO.Html.Pdf",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "PdfDocument.Load(stream).ToHtmlResult(options)",
+      "api": "PdfDocument.Load(stream).SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2311,10 +2683,10 @@
       "id": "pdf-pptx",
       "source": "PDF",
       "target": "PPTX",
-      "package": "OfficeIMO.PowerPoint.Pdf",
+      "package": "OfficeIMO.Pdf.PowerPoint",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToPowerPointPresentationResult(options)",
+      "api": "PdfDocument.Load(stream).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2389,10 +2761,10 @@
       "id": "pdf-xlsx",
       "source": "PDF",
       "target": "XLSX",
-      "package": "OfficeIMO.Excel.Pdf",
+      "package": "OfficeIMO.Pdf.Excel",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ImportTablesToExcelDocumentResult(options)",
+      "api": "PdfDocument.Load(stream).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2402,6 +2774,18 @@
       ],
       "cmdlet": "ConvertTo-OfficePdfExcel",
       "example": "ConvertTo-OfficePdfExcel -Path ./in.pdf -OutputPath ./out.xlsx"
+    },
+    {
+      "id": "ppt-pdf",
+      "source": "PPT",
+      "target": "PDF",
+      "package": "OfficeIMO.PowerPoint.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(source, options, out var importReport).SaveAsPdf(destination)",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "pptx-google-slides",
@@ -2467,7 +2851,7 @@
       "package": "OfficeIMO.PowerPoint.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)",
+      "api": "PowerPointPresentation.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2553,6 +2937,18 @@
       ]
     },
     {
+      "id": "reader-visio-pdf",
+      "source": "Visio",
+      "target": "PDF",
+      "package": "OfficeIMO",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "rtf-docx",
       "source": "RTF",
       "target": "DOCX",
@@ -2604,7 +3000,7 @@
       "package": "OfficeIMO.Rtf.Pdf",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToPdfDocumentResult(options)",
+      "api": "RtfDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2618,10 +3014,10 @@
       "id": "txt-pdf",
       "source": "Plain text",
       "target": "PDF",
-      "package": "OfficeIMO.Pdf",
+      "package": "OfficeIMO",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "PdfPlainTextConverter.ToPdfDocumentResult(bytes, options)",
+      "api": "OfficeConverter.Convert(sourcePath, destinationPath, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2778,6 +3174,30 @@
       "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Webp"
     },
     {
+      "id": "xls-pdf",
+      "source": "XLS",
+      "target": "PDF",
+      "package": "OfficeIMO.Excel.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(source, options, out var importReport).SaveAsPdf(destination)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsb-pdf",
+      "source": "XLSB",
+      "target": "PDF",
+      "package": "OfficeIMO.Excel.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(source, options, out var importReport).SaveAsPdf(destination)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
       "id": "xlsx-csv",
       "source": "XLSX",
       "target": "CSV",
@@ -2856,7 +3276,7 @@
       "package": "OfficeIMO.Excel.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "ExcelDocument.Load(stream).ToPdfDocumentResult(options)",
+      "api": "ExcelDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "browser",

@@ -11,7 +11,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void HeaderFooterImageAlternativeTextEmitsMarkedFigureContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12, alternativeText: "Header logo"))
@@ -27,7 +27,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void DecorativeBackgroundAndWatermarkImagesEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .BackgroundImage(CreateMinimalRgbPng(), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
@@ -43,7 +43,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedHeaderFooterImagesWithoutAlternativeTextEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -60,7 +60,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedDecorativePageChromeEmitsArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -83,7 +83,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TaggedRunningHeaderFooterTextEmitsArtifactMarkedContent(bool contentStory) {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -109,7 +109,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRunningHeaderFooterShapesArePaginationArtifacts() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Header(header => header.Shape(CreateComplianceShape()))
             .Footer(footer => footer.Shape(CreateComplianceShape()))
@@ -124,7 +124,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedHorizontalRulesEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -154,7 +154,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             PaddingX = 10,
             PaddingY = 8
         };
-        PdfTableStyle tableStyle = TableStyles.Minimal();
+        PdfTableStyle tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 1;
         tableStyle.HeaderFill = PdfColor.FromRgb(229, 231, 235);
         tableStyle.RowStripeFill = PdfColor.FromRgb(248, 250, 252);
@@ -172,7 +172,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             }
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -200,7 +200,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         OfficeDrawing drawing = new OfficeDrawing(36, 18)
             .AddShape(CreateComplianceShape(36, 18), 0, 0);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -232,7 +232,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
             .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Drawing(drawing, style: new PdfDrawingStyle { AlternativeText = "Composite drawing alternative text" })
             .ToBytes();
@@ -251,7 +251,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         OfficeDrawing drawing = new OfficeDrawing(48D, 24D)
             .AddEffectDrawing(source, OfficeTransform.Scale(2D, 2D));
 
-        PdfDocument document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Drawing(drawing);
         byte[] pdf = document.ToBytes();
@@ -291,7 +291,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
             .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing, style: new PdfDrawingStyle { Decorative = true })
             .ToBytes();
 
@@ -305,7 +305,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         OfficeDrawing drawing = new OfficeDrawing(36, 18)
             .AddShape(CreateComplianceShape(36, 18), 0, 0);
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()

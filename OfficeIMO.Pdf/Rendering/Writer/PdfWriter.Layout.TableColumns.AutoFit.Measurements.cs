@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
         return new OfficeIMO.Drawing.OfficeFontInfo(family, size, style);
     }
 
-    private static AutoFitTableMeasurements MeasureAutoFitTableColumns(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
+    private static AutoFitTableMeasurements MeasureAutoFitTableColumns(TableBlock table, PdfCreateOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
         int cols = GetTableColumnCount(table);
         var containsStructuredKeyValuePathText = new bool[cols];
         var containsQualifiedIdentifierText = new bool[cols];

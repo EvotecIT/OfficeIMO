@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
         }
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedContainingOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(FixedContainingOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(FixedContainingOptions()))).ToBytes();
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(140, 65));
         Assert.Empty(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedContainingUri));
@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
     private static void AssertFixedContainingPaintAndPdf(string html, double x, double y, double width, double height) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedContainingOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(FixedContainingOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(FixedContainingOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedContainingUri));
 
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), raster.GetPixel((int)x + 5, (int)y + 5));

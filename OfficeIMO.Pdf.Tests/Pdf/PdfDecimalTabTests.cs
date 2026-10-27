@@ -13,7 +13,7 @@ public sealed class PdfDecimalTabTests {
     public void ExplicitDecimalSeparatorSurvivesStyleCopyAndIgnoresGrouping(PdfTextWhitespaceMode mode, char separator, string grouped, string control) {
         var style = new PdfParagraphStyle();
         style.AddTabStop(200, PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
-        var options = new PdfOptions { PageWidth = 500, PageHeight = 300, MarginLeft = 20, MarginRight = 20,
+        var options = new PdfCreateOptions { PageWidth = 500, PageHeight = 300, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, TextWhitespaceMode = mode, DefaultParagraphStyle = style };
         PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.Text("Grouped\t" + grouped))
             .Paragraph(p => p.Text("Control\t" + control));

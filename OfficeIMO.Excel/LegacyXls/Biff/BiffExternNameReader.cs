@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 7) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-EXTERNNAME-SHORT",
+                        "xls-biff-externname-short",
                         "An ExternName record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-EXTERNNAME-INVALID",
+                    "xls-biff-externname-invalid",
                     $"An ExternName record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));

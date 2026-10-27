@@ -19,12 +19,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument direct = CreateDirectDateDocument(rows, dateSystem, dataTable);
             var diagnostics = new List<string>();
             direct.Execution.OnInfo = diagnostics.Add;
-            byte[] bytes = direct.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+            byte[] bytes = direct.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
 
             Assert.True(direct.LastSaveDiagnostics.Writer == ExcelSavePackageWriter.NativeBinaryDirectPackage,
                 string.Join("; ", diagnostics));
             Assert.True(direct.HasDeferredDirectDataSetImport);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(new[] { "Name", "When", "Value" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             foreach (DirectDateRecord row in rows) {
                 Assert.True(reader.Read());
@@ -36,8 +36,7 @@ namespace OfficeIMO.Tests {
             Assert.False(reader.NextResult());
 
             using ExcelDocument standard = CreateDirectDateDocument(rows, dateSystem, dataTable);
-            byte[] standardBytes = standard.ToBytes(ExcelFileFormat.Xlsb,
-                new ExcelSaveOptions { DisableFastPackageWriter = true, XlsbUseSharedStrings = sharedStrings });
+            byte[] standardBytes = standard.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  DisableFastPackageWriter = true, XlsbUseSharedStrings = sharedStrings });
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(bytes, writable: false));
             using ExcelDocument loadedStandard = ExcelDocument.Load(new MemoryStream(standardBytes, writable: false));
             Assert.Equal(dateSystem, loaded.DateSystem);
@@ -72,7 +71,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(destination.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(destination.ToArray());
             Assert.True(reader.Read());
             Assert.Equal(date, reader.GetDateTime(0));
             Assert.True(reader.Read());

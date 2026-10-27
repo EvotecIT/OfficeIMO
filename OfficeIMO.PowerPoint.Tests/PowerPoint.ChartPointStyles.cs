@@ -138,7 +138,7 @@ public sealed class PowerPointChartPointStylesTests {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions { ExportProfile = PowerPointHtmlExportProfile.VisualReview });
         Assert.Contains("clipPath", html, StringComparison.Ordinal);
         Assert.Contains("#7300A3", html, StringComparison.OrdinalIgnoreCase);
-        byte[] pdf = presentation.ToPdfBytes();
+        byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var page = Assert.Single(OfficeIMO.Pdf.PdfDocument.Load(pdf).Render.Pages(options:
             new OfficeIMO.Pdf.PdfPageRenderOptions { Dpi = 72, MaxPages = 1, ContinueOnError = false }));
         Assert.True(OfficePngReader.TryDecode(page.Bytes!, out raster));

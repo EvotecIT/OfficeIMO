@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void PdfA3BReadinessReportsSatisfiedGroundworkAndUnsupportedProfileGates() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }
@@ -32,12 +32,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessSeparatesOutputIntentPresenceFromApprovedPolicy() {
-        var genericOptions = new PdfOptions {
+        var genericOptions = new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17
             }
             .SetPdfAIdentification(3, "B")
             .SetOutputIntent(CreateMinimalIccProfile(), "OfficeIMO RGB");
-        var policyOptions = new PdfOptions {
+        var policyOptions = new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17
             }
             .SetPdfAIdentification(3, "B")
@@ -56,10 +56,10 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessRejectsMismatchedOutputIntentPolicy() {
-        var cmykOptions = new PdfOptions()
+        var cmykOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetOutputIntent(CreateMinimalIccProfile("CMYK"), policy: PdfOutputIntentPolicy.SrgbIec6196621);
-        var identifierOptions = new PdfOptions()
+        var identifierOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetOutputIntent(CreateMinimalIccProfile(), "OfficeIMO RGB", PdfOutputIntentPolicy.SrgbIec6196621);
 
@@ -78,7 +78,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessReportsMissingPdf17FileVersionGroundwork() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             }
             .SetPdfAIdentification(3, "B")
@@ -92,7 +92,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessReportsMissingGeneratedStandardFontEmbedding() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent();
 
@@ -114,7 +114,7 @@ public partial class PdfComplianceAnalyzerTests {
             return;
         }
 
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "HelveticaAudit");
@@ -129,7 +129,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessRejectsInvalidEmbeddedMappingsForGeneratedStandardFonts() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .EmbedStandardFont(PdfStandardFont.Helvetica, new byte[] { 1 }, "HelveticaAudit");
@@ -146,7 +146,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessTreatsNoGeneratedStandardFontsAsSatisfied() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent();
 
@@ -160,7 +160,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3BReadinessRejectsStandardEncryption() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .SetEncryption("open", "owner");
 
@@ -176,7 +176,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3UReadinessReportsWrongIdentificationAndMissingUnicodeMaps() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetOutputIntent(CreateMinimalIccProfile(), "OfficeIMO RGB");
 
@@ -196,7 +196,7 @@ public partial class PdfComplianceAnalyzerTests {
             return;
         }
 
-        PdfDocument document = PdfDocument.Create(new PdfOptions()
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "U")
                 .SetSrgbOutputIntent())
             .UseFontFamily("Unicode readiness font", fontPath)
@@ -211,7 +211,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfA3AReadinessKeepsPdfUaSpecificChecksOutOfPdfAAccessibility() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 Language = "en-US",
                 IncludeStandardFontToUnicodeMaps = true
@@ -258,7 +258,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void PdfAGroundworkHelperSatisfiesConfiguredPdfAAccessibilityReadinessWithoutEnablingProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-US");
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfA3A, options);

@@ -6,19 +6,19 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Parses Markdown text into OfficeIMO.Markdown's typed object model (<see cref="MarkdownDoc"/>, blocks, and inlines).
+/// Parses Markdown text into OfficeIMO.Markdown's typed object model (<see cref="MarkdownDocument"/>, blocks, and inlines).
 ///
 /// Scope: profile-driven and extension-aware. The core reader can be shaped into OfficeIMO,
 /// CommonMark-style, GitHub Flavored Markdown-style, or portable behavior via
-/// <see cref="MarkdownReaderOptions"/>, including explicit block parser extension registrations.
+/// <see cref="MarkdownLoadOptions"/>, including explicit block parser extension registrations.
 /// </summary>
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
-    /// Parses Markdown text into a <see cref="MarkdownDoc"/> with typed blocks and basic inlines.
+    /// Parses Markdown text into a <see cref="MarkdownDocument"/> with typed blocks and basic inlines.
     /// </summary>
-    public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
+    public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
 
         // Without document transforms the syntax captured by ParseInternal already describes
         // the returned object model. Avoid rebuilding and rebinding an identical final tree,
@@ -38,7 +38,7 @@ public static partial class MarkdownReader {
                 transformDiagnostics: null,
                 applyDocumentTransforms: false);
             var capturedSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-            _ = new MarkdownParseResult(
+            _ = new MarkdownParseInfo(
                 document,
                 capturedSyntaxTree,
                 capturedSyntaxTree,
@@ -56,13 +56,13 @@ public static partial class MarkdownReader {
 
     /// <summary>
     /// Parses Markdown into the typed semantic document without capturing source spans or a syntax tree.
-    /// Use <see cref="Parse(string, MarkdownReaderOptions?)"/> or
-    /// <see cref="ParseWithSyntaxTree(string, MarkdownReaderOptions?)"/> when source-aware writing,
+    /// Use <see cref="Parse(string, MarkdownLoadOptions?)"/> or
+    /// <see cref="ParseWithSyntaxTree(string, MarkdownLoadOptions?)"/> when source-aware writing,
     /// source spans, or trivia are required.
     /// </summary>
-    public static MarkdownDoc ParseSemantic(string markdown, MarkdownReaderOptions? options = null) {
+    public static MarkdownDocument ParseSemantic(string markdown, MarkdownLoadOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState();
         var document = ParseInternal(
             markdown,
@@ -83,9 +83,9 @@ public static partial class MarkdownReader {
     /// block and inline values needed for projection, but omits table cell navigation models and
     /// object-tree binding that the caller will discard.
     /// </summary>
-    internal static MarkdownDoc ParseSemanticProjection(string markdown, MarkdownReaderOptions? options = null) {
+    internal static MarkdownDocument ParseSemanticProjection(string markdown, MarkdownLoadOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState { BuildTableCellModels = false };
         return ParseInternal(
             markdown,
@@ -104,11 +104,11 @@ public static partial class MarkdownReader {
     /// Rich table-cell models and object-tree navigation are omitted because the owning
     /// projection layer consumes the simple table values and block locations directly.
     /// </summary>
-    internal static MarkdownDoc ParseProjectionWithBlockSpans(
+    internal static MarkdownDocument ParseProjectionWithBlockSpans(
         string markdown,
-        MarkdownReaderOptions? options = null) {
+        MarkdownLoadOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
 
         if (BuildEffectiveDocumentTransforms(
                 options,
@@ -137,22 +137,22 @@ public static partial class MarkdownReader {
     /// <summary>
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
-    public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
+    public static MarkdownParseInfo ParseWithSyntaxTree(string markdown, MarkdownLoadOptions? options = null) {
         return ParseWithSyntaxTreeCore(markdown, options);
     }
 
     /// <summary>
     /// Parses Markdown text into the object model, original syntax tree, and document-transform diagnostics.
     /// </summary>
-    public static MarkdownParseResult ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions? options = null) {
+    public static MarkdownParseInfo ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownLoadOptions? options = null) {
         return ParseWithSyntaxTreeCore(markdown, options);
     }
 
-    private static MarkdownParseResult ParseWithSyntaxTreeCore(
+    private static MarkdownParseInfo ParseWithSyntaxTreeCore(
         string markdown,
-        MarkdownReaderOptions? options) {
+        MarkdownLoadOptions? options) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
         var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
@@ -173,7 +173,7 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(
+        return new MarkdownParseInfo(
             document,
             originalSyntaxTree,
             finalSyntaxTree,
@@ -187,9 +187,9 @@ public static partial class MarkdownReader {
 
     internal static IReadOnlyList<IMarkdownBlock> ParseBlockFragment(
         string markdown,
-        MarkdownReaderOptions? options = null,
+        MarkdownLoadOptions? options = null,
         MarkdownReaderState? state = null) {
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
         state ??= new MarkdownReaderState();
         var (blocks, _) = ParseNestedMarkdownBlocks(markdown ?? string.Empty, options, state, state.SourceLineOffset);
         return blocks;
@@ -199,7 +199,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int startIndex,
         int lineCount,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (lines == null || lines.Length == 0 || lineCount <= 0 || startIndex < 0 || startIndex >= lines.Length) {
             return Array.Empty<IMarkdownBlock>();
@@ -215,7 +215,7 @@ public static partial class MarkdownReader {
         }
 
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(sourceLines, options, state);
-        var nestedDocument = MarkdownDoc.Create();
+        var nestedDocument = MarkdownDocument.Create();
         using var objectTreeBindingDeferral = nestedDocument.DeferObjectTreeBinding();
         for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
             nestedDocument.Add(blocks[blockIndex]);
@@ -226,9 +226,9 @@ public static partial class MarkdownReader {
         return nestedDocument.Blocks;
     }
 
-    private static MarkdownDoc ParseInternal(
+    private static MarkdownDocument ParseInternal(
         string markdown,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         bool allowFrontMatter,
         out MarkdownSyntaxNode? syntaxTree,
@@ -237,7 +237,7 @@ public static partial class MarkdownReader {
         int lineOffset = 0,
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         bool applyDocumentTransforms = true) {
-        var doc = MarkdownDoc.Create();
+        var doc = MarkdownDocument.Create();
         state.CaptureSyntaxTree = syntaxNodes != null;
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
@@ -345,7 +345,7 @@ public static partial class MarkdownReader {
     }
 
     private static void AssignBlockSourceSpans(
-        MarkdownDoc document,
+        MarkdownDocument document,
         int previousBlockCount,
         int startLine,
         int endExclusiveLine,
@@ -363,7 +363,7 @@ public static partial class MarkdownReader {
 
     private static string PrepareMarkdownForParsing(
         string markdown,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool normalizeLineEndings = true) {
         markdown ??= string.Empty;
         if (options.MaxNestingDepth < 1) {

@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     ComparisonOptions = new WordComparisonOptions { CompareGeneratedIds = false }
                 });
             Assert.Contains(inPlace.Limitations, limitation =>
-                limitation.Code == "Redline.Shape.InPlaceTextFallback");
+                limitation.Code == "redline-shape-in-place-text-fallback");
             using WordDocument redline = WordDocument.Load(inPlacePath);
             Assert.Contains(redline.Paragraphs, paragraph =>
                 paragraph.Text.Contains("Shape Modified", System.StringComparison.Ordinal));

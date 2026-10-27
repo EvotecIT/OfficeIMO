@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TextAnnotations_RenderFromFlowAndCanvas() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 Debug = new PdfDebugOptions {
                     ShowFlowObjectBoxes = true,
@@ -99,7 +99,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TextAnnotations_EncodeContentsAsPdfTextStrings() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TextAnnotation("Zażółć 漢字", width: 24, height: 24)
@@ -119,7 +119,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VisualAnnotations_FlattenIntoPageContentWhenRequested() {
-        PdfOptions options = new PdfOptions {
+        PdfCreateOptions options = new PdfCreateOptions {
             CompressContentStreams = false,
             FlattenVisualAnnotations = true
         };
@@ -160,7 +160,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ExistingVisualAnnotations_FlattenFromAppearanceStreams() {
-        byte[] annotated = PdfDocument.Create(new PdfOptions {
+        byte[] annotated = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .FreeTextAnnotation(
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ExistingVisualAnnotations_FlattenFromAppearanceStateDictionaries() {
-        byte[] annotated = PdfDocument.Create(new PdfOptions {
+        byte[] annotated = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .FreeTextAnnotation(
@@ -266,7 +266,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(PdfTextAnnotationIcon.Paragraph)]
     [InlineData(PdfTextAnnotationIcon.Insert)]
     public void ExistingTextAnnotation_FlattenSynthesizesTheSelectedStandardIcon(PdfTextAnnotationIcon icon) {
-        byte[] annotated = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] annotated = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TextAnnotation("Selected icon", width: 18D, height: 18D, icon: icon)
             .ToBytes();
         string beforePdf = Encoding.ASCII.GetString(annotated);
@@ -283,7 +283,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void ExistingTextAnnotation_FlattenRejectsAnUnsupportedIconName() {
-        byte[] annotated = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] annotated = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TextAnnotation("Unsupported icon", width: 18D, height: 18D, icon: PdfTextAnnotationIcon.Comment)
             .ToBytes();
         string pdf = PdfEncoding.Latin1GetString(annotated);

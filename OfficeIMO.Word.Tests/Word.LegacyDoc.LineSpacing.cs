@@ -21,7 +21,7 @@ public partial class Word {
         second.LineSpacing = value;
         second.LineSpacingRule = rule;
         second.LineSpacingAfter = 160;
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] document = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int bins = BitConverter.ToInt32(document, 0x102);
@@ -102,7 +102,7 @@ public partial class Word {
             source.AddParagraph(text);
             characters += text.Length + 1;
         }
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] document = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int binOffset = BitConverter.ToInt32(document, 0x102);
@@ -131,7 +131,7 @@ public partial class Word {
             source.AddHeadersAndFooters();
             source.Header.Default!.AddParagraph("Header");
         }
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] document = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int textCharacters = BitConverter.ToInt32(document, 0x4C);
@@ -155,7 +155,7 @@ public partial class Word {
             Assert.Equal("160", spacing.After!.Value);
         }
         AssertSpacing(word);
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         AssertSpacing(reopened);
     }
 }

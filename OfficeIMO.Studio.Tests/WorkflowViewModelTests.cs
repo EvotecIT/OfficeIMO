@@ -135,7 +135,7 @@ public sealed class WorkflowViewModelTests {
         await assembly.RunCommand.ExecuteAsync(null);
 
         Assert.True(assembly.HasOutput);
-        Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(assembly.PublishedPath!)).Pages.Count);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(assembly.PublishedPath!))).Pages.Count);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public sealed class WorkflowViewModelTests {
             Assert.Equal("Completed", job.Status);
             Assert.NotNull(job.OutputPath);
             Assert.True(File.Exists(job.OutputPath));
-            Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
             Assert.Contains("1 completed", viewModel.Status, StringComparison.OrdinalIgnoreCase);
             return true;
         }, CancellationToken.None);

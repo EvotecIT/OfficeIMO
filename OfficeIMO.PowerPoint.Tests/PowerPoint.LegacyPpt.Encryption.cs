@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             Assert.True(legacy.CreateImportReport()
                 .EncryptedDocumentProperties);
             Assert.Contains(legacy.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-ENCRYPTION-DECRYPTED");
+                diagnostic.Code == "ppt-encryption-decrypted");
             Assert.Contains(legacy.Slides[0].Shapes,
                 shape => shape.Text == "Encrypted binary deck");
             Assert.Equal(imageBytes, Assert.Single(legacy.BlipStoreEntries)
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(PowerPointFileFormat.Ppt, presentation.SourceFormat);
             Assert.Contains(presentation.LegacyPptImportDiagnostics,
-                diagnostic => diagnostic.Code == "PPT-ENCRYPTION-DECRYPTED");
+                diagnostic => diagnostic.Code == "ppt-encryption-decrypted");
             Assert.Contains(presentation.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Original secret");
         }
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Plain binary deck");
-                plainBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                plainBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using (var stream = new MemoryStream(plainBytes)) {
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
                     });
 
             Assert.Equal(encryptedBytes,
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide().AddTextBox("Original secret", 100000,
                     100000, 2200000, 600000);
-                plainBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                plainBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation plain = LegacyPptPresentation.Load(plainBytes);
             byte[] opaqueBytes = "opaque-vendor-stream"u8.ToArray();

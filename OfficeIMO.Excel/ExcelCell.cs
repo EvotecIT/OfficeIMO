@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the 1-based column index.</summary>
         public int Column { get; }
         /// <summary>Gets the A1 cell address.</summary>
-        public string Address => A1.CellReference(Row, Column);
+        public string Address => ExcelA1.CellReference(Row, Column);
 
         /// <summary>
         /// Gets a typed snapshot of the cell value.
@@ -608,11 +608,11 @@ namespace OfficeIMO.Excel {
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
             string normalizedAddress = address.Replace("$", string.Empty);
-            if (A1.TryParseRange(normalizedAddress, out int r1, out int c1, out int r2, out int c2)) {
+            if (ExcelA1.TryParseRange(normalizedAddress, out int r1, out int c1, out int r2, out int c2)) {
                 return (r1, c1, r2, c2);
             }
 
-            var cell = A1.ParseCellRef(normalizedAddress);
+            var cell = ExcelA1.ParseCellRef(normalizedAddress);
             if (cell.Row <= 0 || cell.Col <= 0) {
                 throw new ArgumentException($"Invalid A1 range or cell reference '{address}'.", nameof(address));
             }
@@ -621,8 +621,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ToRangeAddress(int r1, int c1, int r2, int c2) {
-            string start = A1.CellReference(r1, c1);
-            string end = A1.CellReference(r2, c2);
+            string start = ExcelA1.CellReference(r1, c1);
+            string end = ExcelA1.CellReference(r2, c2);
             return $"{start}:{end}";
         }
     }
@@ -641,7 +641,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the table name, display name, or A1 range used to locate the table.</summary>
         public string NameOrRange { get; }
         /// <summary>Gets the table range when it can be resolved.</summary>
-        public string? Range => Sheet.GetTableRange(NameOrRange) ?? (A1.TryParseRange(NameOrRange, out _, out _, out _, out _) ? NameOrRange : null);
+        public string? Range => Sheet.GetTableRange(NameOrRange) ?? (ExcelA1.TryParseRange(NameOrRange, out _, out _, out _, out _) ? NameOrRange : null);
 
         /// <summary>
         /// Returns the table as a range wrapper.

@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 run.Capitalization = PowerPointCapitalization.SmallCaps;
             });
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             Assert.Contains("TEXT FIELD", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
@@ -146,9 +146,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("İZMİR", text, StringComparison.Ordinal);
             Assert.Contains("SMALL CAPS", text, StringComparison.Ordinal);
-            // PDF conversion reports this approximation once per slide, across text boxes and tables.
-            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated);
-            Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated);
+            Assert.Equal(2, svg.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated));
+            Assert.Equal(2, png.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated));
             Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);

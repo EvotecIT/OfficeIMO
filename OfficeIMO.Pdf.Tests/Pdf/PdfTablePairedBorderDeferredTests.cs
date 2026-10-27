@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableCell[][] rows = Enumerable.Range(0, rowCount).Select(row => mode == "merged-bottom" && row == 0
             ? new[] { new PdfTableCell("gyp00A", columnSpan: 2) }
             : new[] { new PdfTableCell($"gyp{row:D2}A"), new PdfTableCell($"gyp{row:D2}B") }).ToArray();
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 320, PageHeight = pageHeight, MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
             CompressContentStreams = false
         });

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void VectorRoundedRectangle_RendersBezierCornersFromSharedShapeDescriptor() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -48,7 +48,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorLine_RendersStrokeOperatorFromSharedShapeDescriptor() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorLine_RendersConfiguredStrokeCapAndJoin() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -117,7 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1.5;
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -173,7 +173,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillOpacity = 0.35;
         shape.StrokeOpacity = 0.75;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -199,7 +199,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.FromRgba(70, 130, 180, 153);
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -224,7 +224,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1.5;
         shape.ClipPath = OfficeClipPath.Rectangle(45, 20);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -249,7 +249,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.Transform = OfficeTransform.Translate(10, 5);
         shape.ClipPath = OfficeClipPath.Empty();
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -275,7 +275,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.ClipPath = OfficeClipPath.RoundedRectangle(40, 20, 6);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -302,7 +302,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.Black;
         shape.StrokeWidth = 1.25;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -338,7 +338,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -373,7 +373,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1D, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -410,7 +410,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1D, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -431,7 +431,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(0.5D, projectedGradient.EndRadiusY, 3);
 
         shape.Transform = OfficeTransform.Translate(5D, 3D);
-        string transformedContent = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions {
+        string transformedContent = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -450,7 +450,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -474,7 +474,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillRadialGradient = OfficeRadialGradient.Centered(OfficeColor.Red, OfficeColor.Blue);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -510,7 +510,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1;
         shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.22, 3, 4);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -538,7 +538,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 0D;
         shape.Shadow = new OfficeShadow(OfficeColor.FromRgba(255, 0, 0, 128), 0.5D, 3D, 4D, 4D);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -563,7 +563,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorRectangle_RendersConfiguredDashStyle() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -597,7 +597,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 2;
         shape.StrokeDashStyle = OfficeStrokeDashStyle.Dot;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -630,7 +630,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -662,7 +662,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 2;
         shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -692,7 +692,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -724,7 +724,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -760,7 +760,7 @@ public partial class PdfDocumentVisualQualityTests {
             .AddShape(background, 0, 0)
             .AddShape(marker, 20, 15);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -803,7 +803,7 @@ public partial class PdfDocumentVisualQualityTests {
         var scaled = new OfficeDrawing(100, 40)
             .AddEffectDrawing(source, OfficeTransform.Scale(0.5D, 0.5D));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 180D,
                 PageHeight = 120D,
                 MarginLeft = 20D,
@@ -939,7 +939,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorShapeAndDrawing_RejectFlowBlocksTallerThanContentArea() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 140,
             MarginLeft = 20,
@@ -966,7 +966,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorShapeAndDrawing_RejectFlowBlocksWiderThanContentArea() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 220,
             PageHeight = 180,
             MarginLeft = 20,

@@ -89,7 +89,7 @@ public sealed class PdfPageInfo {
     public bool HasFormWidgets => FormWidgets.Count > 0;
 
     /// <summary>Page size in PDF points.</summary>
-    public PageSize Size => new PageSize(Width, Height);
+    public PdfPageSize Size => new PdfPageSize(Width, Height);
 
     /// <summary>True when the page is wider than it is tall.</summary>
     public bool IsLandscape => Width > Height;

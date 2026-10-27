@@ -159,7 +159,7 @@ internal static class ReaderBenchmarkCorpus {
             slide.AddTextBox("Representative PowerPoint 97-2003 content with notes and normalized extraction.");
             slide.Notes.Text = "Speaker notes for binary slide " + slideNumber;
         }
-        return presentation.ToBytes(PowerPointFileFormat.Ppt);
+        return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
     }
 
     private static byte[] BuildPdf() {

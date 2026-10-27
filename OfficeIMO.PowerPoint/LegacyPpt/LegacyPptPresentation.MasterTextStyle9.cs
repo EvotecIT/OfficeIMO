@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .SelectMany(record => record.Children)
                 .Where(IsPpt9BinaryTag).ToArray();
             if (tags.Length > 1) {
-                AddDiagnostic("PPT-TEXT-MASTER-STYLE9-DUPLICATE",
+                AddDiagnostic("ppt-text-master-style9-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A master has multiple PPT9 extended-style tags; they remain preserve-only.",
                     tags[1].Offset);
@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordBinaryTagDataBlob).ToArray();
             if (blobs.Length != 1 || blobs[0].Version != 0
                 || blobs[0].Instance != 0) {
-                AddDiagnostic("PPT-TEXT-MASTER-STYLE9-DATA",
+                AddDiagnostic("ppt-text-master-style9-data",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A master PPT9 tag has no unique valid data blob; its text defaults remain preserve-only.",
                     tags[0].Offset);
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                                      == RecordTextMasterStyle9Atom),
                              record => {
                         AddDiagnostic(
-                            "PPT-TEXT-MASTER-STYLE9-TYPE-DUPLICATE",
+                            "ppt-text-master-style9-type-duplicate",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"A master has multiple TextMasterStyle9Atom records for instance {record.Instance}; that extended style remains preserve-only.",
                             record.Offset);
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             } catch (Exception exception) when (exception
                 is InvalidDataException or OverflowException
                     or ArgumentOutOfRangeException) {
-                AddDiagnostic("PPT-TEXT-MASTER-STYLE9-TRUNCATED",
+                AddDiagnostic("ppt-text-master-style9-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A master PPT9 tag is malformed or truncated; its extended text defaults remain preserve-only.",
                     blobs[0].Offset);

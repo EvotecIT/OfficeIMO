@@ -120,7 +120,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         return img + caption;
     }
 
-    private string GetRenderedFallbackImagePath(HtmlOptions? options) {
+    private string GetRenderedFallbackImagePath(MarkdownHtmlExportOptions? options) {
         if (!string.IsNullOrWhiteSpace(PictureFallbackPath) && UrlOriginPolicy.IsAllowedHttpImage(options, PictureFallbackPath!)) {
             return PictureFallbackPath!;
         }
@@ -128,7 +128,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         return Path;
     }
 
-    private string BuildPictureHtml(HtmlOptions? options, string imgHtml) {
+    private string BuildPictureHtml(MarkdownHtmlExportOptions? options, string imgHtml) {
         var sb = new System.Text.StringBuilder();
         sb.Append("<picture>");
         for (int i = 0; i < PictureSources.Count; i++) {
@@ -219,7 +219,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             source.LinkTitleSyntaxSpan);
     }
 
-    private static string BuildLinkHtmlAttributes(HtmlOptions? options, string url, string? explicitTarget, string? explicitRel) {
+    private static string BuildLinkHtmlAttributes(MarkdownHtmlExportOptions? options, string url, string? explicitTarget, string? explicitRel) {
         var generated = LinkHtmlAttributes.BuildExternalLinkAttributes(options, url);
         var target = NormalizeAttributeValue(explicitTarget);
         var rel = NormalizeAttributeValue(explicitRel);
@@ -297,7 +297,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         return string.IsNullOrWhiteSpace(value) ? token : value + " " + token;
     }
 
-    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value, HtmlOptions? options) {
+    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value, MarkdownHtmlExportOptions? options) {
         if (string.IsNullOrEmpty(value)) {
             return;
         }

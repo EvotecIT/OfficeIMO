@@ -121,14 +121,14 @@ ExcelDocument.WriteRows(
     },
     new[] { "Id", "Name" },
     static (writer, row) => writer.Write(row.Id).Write(row.Name),
-    new ExcelTabularWriteOptions {
+    new ExcelWriterOptions {
         IncludeCellReferences = false,
         UseSharedStrings = false
     });
 excelSourceStream.Position = 0;
-using var excelSourceReader = ExcelDocument.OpenDataReader(
+using var excelSourceReader = ExcelDocument.OpenReader(
     excelSourceStream,
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         SheetName = "Data",
         InferSchema = true
     });
@@ -136,14 +136,14 @@ using var excelStream = new System.IO.MemoryStream();
 ExcelDocument.WriteDataReader(
     excelStream,
     excelSourceReader,
-    new ExcelTabularWriteOptions {
+    new ExcelWriterOptions {
         IncludeCellReferences = false,
         UseSharedStrings = false
     });
 excelStream.Position = 0;
-using var excelReader = ExcelDocument.OpenDataReader(
+using var excelReader = ExcelDocument.OpenReader(
     excelStream,
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         SheetName = "Data",
         InferSchema = true
     });

@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
     private readonly record struct PictureParagraphPlanKey(IPdfBlock Block, string Story, int Page,
         double X, double Width, double FirstLineX, double FirstLineWidth, double Top, double Size);
     private sealed record PictureParagraphPlan(List<List<RichSeg>> Lines, List<double> Heights,
-        TextExclusionBounds[] Exclusions, PdfOptions Fonts);
+        TextExclusionBounds[] Exclusions, PdfCreateOptions Fonts);
 
     private static bool PictureAnchorsEqual(IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement>? previous,
         IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement> actual) {

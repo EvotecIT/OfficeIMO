@@ -76,7 +76,7 @@ public sealed class PdfSearchableTextRunTests {
     [InlineData(1, true)]
     [InlineData(2, true)]
     public void TransformedClustersRetainIndividualAdvancesAndOffsets(int fontKind, bool gap) {
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         if (fontKind != 0) {
             string? path = fontKind == 1 ? PdfComplianceTestFonts.FindBundledTrueTypeFont() : PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
             Assert.NotNull(path);
@@ -114,7 +114,7 @@ public sealed class PdfSearchableTextRunTests {
     [InlineData(.2214321D)]
     [InlineData(.0044321D)]
     public void ContiguousClustersPreserveFractionalHeightAndTotalAdvance(double height) {
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(fontPath);
         options.EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!));

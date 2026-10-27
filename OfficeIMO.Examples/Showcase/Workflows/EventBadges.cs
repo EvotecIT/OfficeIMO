@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                         .PanelParagraph(p => p.Text("14 OCT 2026  |  COPENHAGEN"),
                             new PdfPanelStyle { Background = PdfColor.FromRgb(234, 241, 251), PaddingX = 10, PaddingY = 10 });
                 }
-            }), new PdfOptions { PageWidth = 340, PageHeight = 255, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10 })
+            }), new PdfCreateOptions { PageWidth = 340, PageHeight = 255, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10 })
                 .Meta(title: "Workshop event badges", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

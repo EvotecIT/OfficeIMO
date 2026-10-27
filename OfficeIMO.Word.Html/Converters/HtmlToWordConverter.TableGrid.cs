@@ -4,22 +4,22 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, HtmlToWordOptions options) {
+        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, WordHtmlImportOptions options) {
             var occupied = new HashSet<long>();
             int columns = 0;
             int rowIndex = 0;
 
             void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
                 int groupRowCount = htmlRows.Length;
-                for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
-                    IHtmlTableRowElement htmlRow = htmlRows[localRowIndex];
+                int localRowIndex = 0;
+                foreach (IHtmlTableRowElement htmlRow in htmlRows) {
                     int columnIndex = 0;
-                    for (int cellIndex = 0; cellIndex < htmlRow.Cells.Length; cellIndex++) {
+                    foreach (var cell in htmlRow.Cells) {
                         while (occupied.Contains(GetTableGridKey(rowIndex, columnIndex))) {
                             columnIndex++;
                         }
 
-                        var htmlCell = htmlRow.Cells[cellIndex] as IHtmlTableCellElement;
+                        var htmlCell = cell as IHtmlTableCellElement;
                         int rowSpan = GetHtmlRowSpan(htmlCell, options.MaxTableCells.HasValue);
                         int columnSpan = GetHtmlColumnSpan(htmlCell, options.MaxTableCells.HasValue);
                         if (rowSpan == 0) {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html {
                         if (proposedColumns > int.MaxValue) {
                             ThrowLimitExceeded(
                                 options,
-                                "TableSizeLimitExceeded",
+                                "table-size-limit-exceeded",
                                 "HTML table column count exceeded the native Word table limit.",
                                 "WordTableColumns",
                                 proposedColumns,
@@ -51,6 +51,7 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     rowIndex++;
+                    localRowIndex++;
                 }
             }
 

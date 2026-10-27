@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                     spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL")
                 };
 
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(A1.MaxRows, A1.MaxColumns, "Omega");
+                sheet.CellValue(ExcelA1.MaxRows, ExcelA1.MaxColumns, "Omega");
                 document.Save(memory);
             }
 
@@ -244,8 +244,8 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Alpha", cell.Value);
                 },
                 cell => {
-                    Assert.Equal(A1.MaxRows, cell.Row);
-                    Assert.Equal(A1.MaxColumns, cell.Column);
+                    Assert.Equal(ExcelA1.MaxRows, cell.Row);
+                    Assert.Equal(ExcelA1.MaxColumns, cell.Column);
                     Assert.Equal("Omega", cell.Value);
                 });
         }
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests {
                     worksheetPart.Worksheet.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { FillBlanksInRanges = false });
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { FillBlanksInRanges = false });
                 var cells = reader.GetSheet("Data").EnumerateRange("A1:C1").ToList();
 
                 Assert.Contains(cells, c => c.Row == 1 && c.Column == 1 && Equals(c.Value, "Header"));
@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     FillBlanksInRanges = true,
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
 
                 SetWorksheetCellToExplicitBlank(filePath, "C1");
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" || context.RawText == string.Empty
                         ? new ExcelCellValue(null)
                         : ExcelCellValue.NotHandled
@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
+                var options = new ExcelReaderOptions { InferDataTableColumnTypes = false };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B2", headersInFirstRow: false, mode: ExcelExecutionMode.Sequential);
 
@@ -634,7 +634,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
+                var options = new ExcelReaderOptions { InferDataTableColumnTypes = false };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExcelExecutionMode.Sequential);
 
@@ -801,7 +801,7 @@ namespace OfficeIMO.Tests {
 
                 AppendDuplicateWorksheetRowWithoutCell(filePath, 1U, "A1");
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == string.Empty
                         ? new ExcelCellValue(null)
                         : ExcelCellValue.NotHandled
@@ -838,7 +838,7 @@ namespace OfficeIMO.Tests {
 
                 AppendDuplicateWorksheetRowWithExplicitBlank(filePath, 1U, "A1");
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == string.Empty
                         ? new ExcelCellValue(null)
                         : ExcelCellValue.NotHandled
@@ -911,7 +911,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -940,7 +940,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -967,7 +967,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -1003,7 +1003,7 @@ namespace OfficeIMO.Tests {
                     spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL"),
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
@@ -1040,7 +1040,7 @@ namespace OfficeIMO.Tests {
                     spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL"),
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -1107,7 +1107,7 @@ namespace OfficeIMO.Tests {
                     spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL"),
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
@@ -1139,7 +1139,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
                 };
                 using var reader = ExcelDocumentReader.Open(filePath, options);
@@ -1178,7 +1178,7 @@ namespace OfficeIMO.Tests {
                     spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
                 }
 
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL"),
                     CellValueConverter = static _ => ExcelCellValue.NotHandled
                 };
@@ -1266,7 +1266,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = false });
                 var cell = reader.GetSheet("data").EnumerateCells().Single(c => c.Row == 3 && c.Column == 1);
 
                 Assert.Equal("SUM(A1:A2)", cell.Value);
@@ -1314,7 +1314,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = false });
                 object?[,] values = reader.GetSheet("Data").ReadRange("A3:A3", ExcelExecutionMode.Sequential);
 
                 Assert.Equal("SUM(A1:A2)", values[0, 0]);
@@ -1338,7 +1338,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = false });
                 object?[,] values = reader.GetSheet("Data").ReadRange("A1:A3");
 
                 Assert.Equal(2D, values[0, 0]);
@@ -1375,7 +1375,7 @@ namespace OfficeIMO.Tests {
                 object?[,] cachedValues = cachedReader.GetSheet("Data").ReadRange("A3:A3");
                 Assert.Equal(5D, cachedValues[0, 0]);
 
-                using var formulaReader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                using var formulaReader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = false });
                 object?[,] formulaValues = formulaReader.GetSheet("Data").ReadRange("A3:A3");
                 Assert.Equal("SUM(A1:A2)", formulaValues[0, 0]);
             } finally {
@@ -1565,7 +1565,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OperationThresholds["ReadRange"] = 1;
                 options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
 
@@ -1598,7 +1598,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OperationThresholds["ReadRangeStream"] = 1;
                 options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
 
@@ -1632,7 +1632,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
                 options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
 
@@ -1669,7 +1669,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                var options = new ExcelReadOptions();
+                var options = new ExcelReaderOptions();
                 options.Execution.OnDecision = (operation, items, actual) => decisions.Add((operation, items, actual));
                 using var reader = ExcelDocumentReader.Open(filePath, options);
                 var sheetReader = reader.GetSheet("Data");

@@ -8,7 +8,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private static HtmlTextFaceMetrics? ResolveStandardFaceMetrics(PdfCore.PdfOptions options,
+    private static HtmlTextFaceMetrics? ResolveStandardFaceMetrics(PdfCore.PdfCreateOptions options,
         string family, string text, double size, bool bold, bool italic) {
         PdfCore.PdfStandardFont slot = PdfCore.PdfStandardFontMapper.GetStyledFont(MapStandardFont(family), bold, italic);
         if (options.TryGetEmbeddedStandardFontProgram(slot, out PdfCore.PdfTrueTypeFontProgram? trueType)
@@ -48,7 +48,7 @@ internal static partial class HtmlPdfRenderedConverter {
         string family,
         bool bold,
         bool italic,
-        PdfCore.PdfOptions options) {
+        PdfCore.PdfCreateOptions options) {
         if (text.Length == 0) return new[] { new NamedFaceStyleRun(text, bold, italic, true) };
         if (NamedFontCoversText(options, family, text, bold, italic)) {
             return new[] { new NamedFaceStyleRun(text, bold, italic, true) };
@@ -97,7 +97,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool NamedFontCoversTextWithStyleFallback(
-        PdfCore.PdfOptions options,
+        PdfCore.PdfCreateOptions options,
         string family,
         string text,
         bool bold,
@@ -106,7 +106,7 @@ internal static partial class HtmlPdfRenderedConverter {
         && PlanNamedFaceStyleRuns(text, family, bold, italic, options).All(run => run.Covered);
 
     private static double? MeasureNamedFaceStyledText(
-        PdfCore.PdfOptions options,
+        PdfCore.PdfCreateOptions options,
         string family,
         string text,
         double fontSize,
@@ -125,7 +125,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static HtmlTextFaceMetrics? ResolveNamedFaceMetrics(
-        PdfCore.PdfOptions options,
+        PdfCore.PdfCreateOptions options,
         string family,
         string text,
         double fontSize,

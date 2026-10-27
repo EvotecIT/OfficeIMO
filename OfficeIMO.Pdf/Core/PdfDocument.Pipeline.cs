@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocument {
     internal PdfPipelineReport AppendOutputStep(
         string operation,
-        PdfArtifactSnapshot? output,
+        PdfArtifactInfo? output,
         TimeSpan duration,
         Exception? exception = null) {
         IReadOnlyList<string> diagnostics = exception is null

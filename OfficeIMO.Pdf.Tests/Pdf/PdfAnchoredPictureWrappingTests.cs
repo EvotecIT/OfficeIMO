@@ -253,7 +253,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         using var pdf = ReadEvidence("active-story-diagnostics", document);
         Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "HEADER");
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text.Contains(new string('M', 20)));
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterContentOverflow");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "header-footer-content-overflow");
     }
 
     [Theory]
@@ -347,7 +347,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         Assert.StartsWith(movingPicture ? "Anchored picture layout" : "Running PDF content", error.Message);
     }
 
-    private static PdfOptions Options(double height = 400D) => new PdfOptions {
+    private static PdfCreateOptions Options(double height = 400D) => new PdfCreateOptions {
         PageWidth = 360D, PageHeight = height, MarginLeft = 30D, MarginRight = 30D,
         MarginTop = 30D, MarginBottom = 30D, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = 12D, ShowHeader = false, ShowPageNumbers = false

@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static string BuildFooter(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont footerFont, string footerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
+    private static string BuildFooter(PdfCreateOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont footerFont, string footerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs;
         var footerSegments = opts.GetFooterSegmentsForPage(variantPage);
         var footerZones = opts.GetFooterZonesForPage(variantPage);
@@ -34,7 +34,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string BuildHeader(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont headerFont, string headerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
+    private static string BuildHeader(PdfCreateOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont headerFont, string headerFontResource, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources) {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs;
         var headerSegments = opts.GetHeaderSegmentsForPage(variantPage);
         var headerZones = opts.GetHeaderZonesForPage(variantPage);
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
     }
 
     private static void EnsurePageTextFontResources(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         int variantPage,
         int page,
         int pages,
@@ -102,7 +102,7 @@ internal static partial class PdfWriter {
     }
 
     private static void EnsurePageTextZoneFontResources(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         (string? Left, string? Center, string? Right) zones,
         int page,
         int pages,
@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
     }
 
     private static void EnsurePageTextZoneSegmentFontResources(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         PdfPageTextZoneSegments zones,
         int page,
         int pages,
@@ -136,7 +136,7 @@ internal static partial class PdfWriter {
         string? fontFamily,
         Func<PdfStandardFont, string, string> ensureFontResource,
         Action<PdfNamedFontFace> ensureNamedFontResource) {
-        foreach (System.Collections.Generic.IReadOnlyList<FooterSegment>? segments in new[] { zones.Left, zones.Center, zones.Right }) {
+        foreach (System.Collections.Generic.IReadOnlyList<PdfFooterSegment>? segments in new[] { zones.Left, zones.Center, zones.Right }) {
             if (segments == null || segments.Count == 0) continue;
             EnsurePageTextRunFontResources(
                 BuildPageTextRunsFromSegments(segments, page, pages, documentPages, font, fontSize, color: null, opts, fontFamily),
@@ -144,7 +144,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void EnsurePageTextRunFontResources(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions opts, Func<PdfStandardFont, string, string> ensureFontResource, Action<PdfNamedFontFace> ensureNamedFontResource) {
+    private static void EnsurePageTextRunFontResources(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, PdfCreateOptions opts, Func<PdfStandardFont, string, string> ensureFontResource, Action<PdfNamedFontFace> ensureNamedFontResource) {
         PdfStandardFont normalFont = ChooseNormal(opts.DefaultFont);
         foreach (PdfTextRun run in runs) {
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
@@ -162,7 +162,7 @@ internal static partial class PdfWriter {
         !string.IsNullOrEmpty(zones.Right);
 
     private static string BuildPageTextZones(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         (string? Left, string? Center, string? Right) zones,
         int variantPage,
         int page,
@@ -196,7 +196,7 @@ internal static partial class PdfWriter {
     }
 
     private static string BuildPageTextSegmentZones(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         PdfPageTextZoneSegments zones,
         int variantPage,
         int page,
@@ -223,7 +223,7 @@ internal static partial class PdfWriter {
     }
 
     private static System.Collections.Generic.List<PageTextRichZoneLayout> BuildPageTextSegmentZoneLayouts(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         PdfPageTextZoneSegments zones,
         int variantPage,
         int page,
@@ -247,7 +247,7 @@ internal static partial class PdfWriter {
         ValidatePageTextRichZoneLayouts(opts, layouts, isHeader);
         return layouts;
 
-        void Add(PdfAlign align, System.Collections.Generic.IReadOnlyList<FooterSegment>? segments) {
+        void Add(PdfAlign align, System.Collections.Generic.IReadOnlyList<PdfFooterSegment>? segments) {
             if (segments == null || segments.Count == 0) return;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRunsFromSegments(segments, page, pages, documentPages, font, fontSize, color, opts, fontFamily);
             double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
@@ -260,7 +260,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void ValidatePageTextRichZoneLayouts(PdfOptions options, System.Collections.Generic.List<PageTextRichZoneLayout> layouts, bool isHeader) {
+    private static void ValidatePageTextRichZoneLayouts(PdfCreateOptions options, System.Collections.Generic.List<PageTextRichZoneLayout> layouts, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         foreach (PageTextRichZoneLayout zone in layouts) {
             if (zone.TextWidth > 0D) ReportHeaderFooterBounds(options, source, "text", zone.X, zone.TextBottom, zone.TextWidth, zone.TextHeight);
@@ -268,7 +268,7 @@ internal static partial class PdfWriter {
     }
 
     private static System.Collections.Generic.List<PageTextZoneLayout> BuildPageTextZoneLayouts(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         (string? Left, string? Center, string? Right) zones,
         int variantPage,
         int page,
@@ -330,7 +330,7 @@ internal static partial class PdfWriter {
         return layouts;
     }
 
-    private static void ValidatePageTextZoneLayouts(PdfOptions options, System.Collections.Generic.List<PageTextZoneLayout> layouts, bool isHeader) {
+    private static void ValidatePageTextZoneLayouts(PdfCreateOptions options, System.Collections.Generic.List<PageTextZoneLayout> layouts, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         foreach (var zone in layouts) {
             if (zone.TextWidth > 0D) {
@@ -340,7 +340,7 @@ internal static partial class PdfWriter {
     }
 
     private static void ValidateHeaderFooterGroupLayouts(
-        PdfOptions options,
+        PdfCreateOptions options,
         int variantPage,
         int page,
         int pages,
@@ -371,7 +371,7 @@ internal static partial class PdfWriter {
             layouts.Add(layout);
             if (layout.X < contentLeft - tolerance || layout.X + layout.Width > contentRight + tolerance) {
                 options.AddLayoutDiagnostic(
-                    "HeaderFooterContentOverflow",
+                    "header-footer-content-overflow",
                     source,
                     source + " zone content exceeds the page content frame and was preserved as authored.",
                     PdfLayoutDiagnosticKind.Overflow,
@@ -387,7 +387,7 @@ internal static partial class PdfWriter {
             var current = ordered[i];
             if (previous.X + previous.Width + minimumGap > current.X + tolerance) {
                 options.AddLayoutDiagnostic(
-                    "HeaderFooterZoneOverlap",
+                    "header-footer-zone-overlap",
                     source,
                     source + " zones overlap and were preserved as authored.",
                     PdfLayoutDiagnosticKind.Overflow,
@@ -397,7 +397,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryGetHeaderFooterGroupVisibleHorizontalBounds(
-        PdfOptions options,
+        PdfCreateOptions options,
         int variantPage,
         int page,
         int pages,
@@ -478,7 +478,7 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasureHeaderFooterTextWidth(
-        PdfOptions opts,
+        PdfCreateOptions opts,
         int variantPage,
         int page,
         int pages,
@@ -493,7 +493,7 @@ internal static partial class PdfWriter {
         double fontSize = isHeader ? opts.HeaderFontSize : opts.FooterFontSize;
         var zones = isHeader ? opts.GetHeaderZonesForPage(variantPage) : opts.GetFooterZonesForPage(variantPage);
         PdfPageTextZoneSegments? zoneSegments = isHeader ? opts.GetHeaderZoneSegmentsForPage(variantPage) : opts.GetFooterZoneSegmentsForPage(variantPage);
-        System.Collections.Generic.List<FooterSegment>? alignedZoneSegments = align switch {
+        System.Collections.Generic.List<PdfFooterSegment>? alignedZoneSegments = align switch {
             PdfAlign.Center => zoneSegments?.Center,
             PdfAlign.Right => zoneSegments?.Right,
             _ => zoneSegments?.Left

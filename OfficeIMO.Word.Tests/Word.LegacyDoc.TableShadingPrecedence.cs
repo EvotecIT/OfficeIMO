@@ -42,7 +42,7 @@ public partial class Word {
                 new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "auto" })) { Type = W.TableStyleOverrideValues.FirstRow });
         }
         Assert.Empty(source.DocumentValidationErrors);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
             bool cleared = kind is "child" or "grandchild" || (row == 0 && (kind != "direct" || column == 0));
             Assert.Equal(cleared ? string.Empty : "FFFF00", restored.Tables[0].Rows[row].Cells[column].ShadingFillColorHex);
@@ -63,7 +63,7 @@ public partial class Word {
         if (direct == "foreground") table.StyleDetails!.ShadingColorHex = "FF0000";
         else table.StyleDetails!.ShadingFillColorHex = direct == "auto" ? "auto" : "FF0000";
         table.StyleDetails!.CellSpacing = direct == "red" ? (short)0 : (short)120;
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.All(restored.Tables[0].Rows.SelectMany(row => row.Cells), cell => Assert.Equal("FFFF00", cell.ShadingFillColorHex));
         Assert.Equal(direct == "red" ? (short)0 : (short)120, restored.Tables[0].StyleDetails!.CellSpacing);
         Assert.Empty(restored.DocumentValidationErrors);
@@ -75,7 +75,7 @@ public partial class Word {
         WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table.StyleDetails!.CellSpacing = 0;
         table.StyleDetails.ShadingFillColorHex = "FF0000";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
     }
 
@@ -90,7 +90,7 @@ public partial class Word {
             .Elements<W.Style>().Single(s => s.StyleId?.Value == "TableGrid");
         grid.Append(new W.TableStyleProperties(new W.TableStyleConditionalFormattingTableCellProperties(
             new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "00FF00" })) { Type = W.TableStyleOverrideValues.FirstRow });
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("FFFFFF", restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Equal("00FF00", restored.Tables[0].Rows[0].Cells[1].ShadingFillColorHex);
         Assert.All(restored.Tables[0].Rows[1].Cells, cell => Assert.Equal("FFFF00", cell.ShadingFillColorHex));

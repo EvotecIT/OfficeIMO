@@ -47,7 +47,7 @@ public static partial class HtmlComputedStyleEngine {
                 // component before asking the retained background grammar again.
                 IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(layer);
                 string normalized = string.Join(" ", tokens.Select(token =>
-                    token.IndexOf('(') >= 0 && OfficeIMO.Drawing.OfficeColor.TryParseCss(token, out OfficeIMO.Drawing.OfficeColor color)
+                    token.IndexOf('(') >= 0 && OfficeIMO.OfficeColor.TryParseCss(token, out OfficeIMO.OfficeColor color)
                         ? FormatComputedColor(color, color.A / 255D) : token));
                 if (normalized != layer) parsed = new CssParser().ParseDeclaration("background:" + normalized);
             }

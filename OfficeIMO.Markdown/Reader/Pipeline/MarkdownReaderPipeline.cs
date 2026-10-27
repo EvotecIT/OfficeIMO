@@ -32,8 +32,8 @@ public sealed class MarkdownReaderPipeline {
     public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) { _parsers.Insert(index, parser); return this; }
 
     /// <summary>Default pipeline covering the syntax OfficeIMO.Markdown emits today.</summary>
-    public static MarkdownReaderPipeline Default(MarkdownReaderOptions? options = null) {
-        options ??= new MarkdownReaderOptions();
+    public static MarkdownReaderPipeline Default(MarkdownLoadOptions? options = null) {
+        options ??= new MarkdownLoadOptions();
         var p = new MarkdownReaderPipeline();
         if (options.FrontMatter) p.Add(FrontMatterParser);
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
@@ -61,7 +61,7 @@ public sealed class MarkdownReaderPipeline {
 
     private static void AddExtensions(
         MarkdownReaderPipeline pipeline,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownBlockParserPlacement placement) {
         var extensions = options.BlockParserExtensions;
         if (extensions.Count == 0) {

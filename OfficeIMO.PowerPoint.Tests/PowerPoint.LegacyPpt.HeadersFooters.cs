@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 source.EnsureLayoutSlideNumberPlaceholderTextBox(text: "1");
 
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                     SlideNumber = true
                 });
 
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 source.AddSlide();
                 source.EnsureLayoutFooterPlaceholderTextBox(text: "Original footer");
                 source.EnsureLayoutSlideNumberPlaceholderTextBox(text: "1");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
 
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                 text.Text = "Updated footer with more text";
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,22 +10,22 @@ namespace OfficeIMO.Word.Markdown {
         private sealed class BlockRenderer : Omd.MarkdownVisitor {
             private readonly MarkdownToWordConverter _converter;
             private readonly IWordBlockRenderHost _host;
-            private readonly MarkdownToWordOptions _options;
+            private readonly WordMarkdownImportOptions _options;
             private readonly WordDocument _document;
             private readonly int _listLevel;
             private readonly int _quoteDepth;
             private readonly double _pageContentWidthPixels;
-            private readonly Omd.ColumnAlignment _alignment;
+            private readonly Omd.MarkdownColumnAlignment _alignment;
 
             public BlockRenderer(
                 MarkdownToWordConverter converter,
                 IWordBlockRenderHost host,
-                MarkdownToWordOptions options,
+                WordMarkdownImportOptions options,
                 WordDocument document,
                 int listLevel,
                 int quoteDepth,
                 double pageContentWidthPixels,
-                Omd.ColumnAlignment alignment) {
+                Omd.MarkdownColumnAlignment alignment) {
                 _converter = converter ?? throw new ArgumentNullException(nameof(converter));
                 _host = host ?? throw new ArgumentNullException(nameof(host));
                 _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -60,7 +58,7 @@ namespace OfficeIMO.Word.Markdown {
                 int? listLevel = null,
                 int? quoteDepth = null,
                 double? pageContentWidthPixels = null,
-                Omd.ColumnAlignment? alignment = null) {
+                Omd.MarkdownColumnAlignment? alignment = null) {
                 new BlockRenderer(
                     _converter,
                     _host,
@@ -169,15 +167,15 @@ namespace OfficeIMO.Word.Markdown {
                 RenderListBlock(block.Items, WordListStyle.Numbered, block.Start);
 
             protected override void VisitTocBlock(Omd.TocBlock block) {
-                if (block.Scope != Omd.TocScope.Document) {
+                if (block.Scope != Omd.MarkdownTocScope.Document) {
                     RenderTocFallback(block);
                     return;
                 }
 
-                int minLevel = NormalizeTocLevel(block.MinLevel, Omd.TocOptions.DefaultMinLevel);
-                int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.TocOptions.DefaultMaxLevel);
-                if (block.RequireTopLevel && minLevel > Omd.TocOptions.DefaultMinLevel) {
-                    minLevel = Omd.TocOptions.DefaultMinLevel;
+                int minLevel = NormalizeTocLevel(block.MinLevel, Omd.MarkdownTocOptions.DefaultMinLevel);
+                int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.MarkdownTocOptions.DefaultMaxLevel);
+                if (block.RequireTopLevel && minLevel > Omd.MarkdownTocOptions.DefaultMinLevel) {
+                    minLevel = Omd.MarkdownTocOptions.DefaultMinLevel;
                 }
 
                 if (maxLevel < minLevel) {
@@ -236,8 +234,8 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitTocMarkerBlock(Omd.TocMarkerBlock block) {
-                int minLevel = NormalizeTocLevel(block.MinLevel, Omd.TocOptions.DefaultMinLevel);
-                int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.TocOptions.DefaultMaxLevel);
+                int minLevel = NormalizeTocLevel(block.MinLevel, Omd.MarkdownTocOptions.DefaultMinLevel);
+                int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.MarkdownTocOptions.DefaultMaxLevel);
                 if (maxLevel < minLevel) {
                     maxLevel = minLevel;
                 }
@@ -266,6 +264,10 @@ namespace OfficeIMO.Word.Markdown {
                     var htmlParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment);
                     htmlParagraph.AddText(((Omd.IMarkdownBlock)block).RenderMarkdown());
+                    _options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(
+                        OfficeDiagnosticCodes.HtmlBlockAsText,
+                        "Raw HTML was retained as literal text because no HTML renderer was configured.",
+                        OfficeConversionLossKind.Approximation));
                     ApplyBodyTextTheme(htmlParagraph, _options);
                 }
             }
@@ -357,7 +359,7 @@ namespace OfficeIMO.Word.Markdown {
 
             private static int NormalizeTocTitleLevel(int level) {
                 if (level < 1) {
-                    return Omd.TocOptions.DefaultTitleLevel;
+                    return Omd.MarkdownTocOptions.DefaultTitleLevel;
                 }
 
                 return level > 6 ? 6 : level;

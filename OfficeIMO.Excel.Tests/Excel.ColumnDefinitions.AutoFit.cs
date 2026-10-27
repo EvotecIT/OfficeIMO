@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             if (selectedOnly) sheet.AutoFitColumnsFor(new[] { 1 });
             else sheet.AutoFitColumns();
 
-            ExcelColumnSnapshot[] beforeSave = sheet.GetColumnDefinitions().ToArray();
+            ExcelColumnInfo[] beforeSave = sheet.GetColumnDefinitions().ToArray();
             Assert.Equal(selectedOnly ? new[] { 1 } : new[] { 1, 2, 3 },
                 beforeSave.Select(column => column.StartIndex));
             Assert.All(beforeSave, column => {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(beforeSave[0].Width > 20D);
             if (!selectedOnly) Assert.True(beforeSave[0].Width > beforeSave[1].Width);
 
-            ExcelColumnSnapshot[] inspected = Assert.Single(document.CreateInspectionSnapshot().Worksheets).Columns.ToArray();
+            ExcelColumnInfo[] inspected = Assert.Single(document.Inspect().Worksheets).Columns.ToArray();
             Assert.Equal(beforeSave.Select(column => (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)),
                 inspected.Select(column => (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)));
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             if (!streamBacked) Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             output.Position = 0;
             using var reopened = ExcelDocument.Load(output);
-            ExcelColumnSnapshot[] afterSave = reopened.Sheets[0].GetColumnDefinitions().ToArray();
+            ExcelColumnInfo[] afterSave = reopened.Sheets[0].GetColumnDefinitions().ToArray();
             Assert.Equal(beforeSave.Length, afterSave.Length);
             for (int i = 0; i < beforeSave.Length; i++) {
                 Assert.Equal(beforeSave[i].StartIndex, afterSave[i].StartIndex);

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static int AddTrueTypeFontFileObject(IList<byte[]> list, PdfTrueTypeFontProgram fontProgram,
-        bool compress, PdfOptions options, string source, CancellationToken cancellationToken) {
+        bool compress, PdfCreateOptions options, string source, CancellationToken cancellationToken) {
         byte[] data = fontProgram.BuildSubsetFontFile(compress, out int uncompressedLength, cancellationToken);
         string filter = compress ? " /Filter /FlateDecode" : string.Empty;
         int id = AddStreamObject(list,
@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
     }
 
     private static int AddOpenTypeCffFontFileObject(IList<byte[]> list, PdfOpenTypeCffFontProgram fontProgram,
-        PdfOpenTypeCffCompactFontFile plan, bool compress, PdfOptions options, string source, CancellationToken cancellationToken) {
+        PdfOpenTypeCffCompactFontFile plan, bool compress, PdfCreateOptions options, string source, CancellationToken cancellationToken) {
         byte[] data = compress ? DeflateZlib(plan.Data, cancellationToken) : plan.Data;
         string filter = compress ? " /Filter /FlateDecode" : string.Empty;
         int id = AddStreamObject(list,

@@ -1,6 +1,6 @@
 using System;
 using OfficeIMO.Excel;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Excel {
     public static class ConditionalFormatting {

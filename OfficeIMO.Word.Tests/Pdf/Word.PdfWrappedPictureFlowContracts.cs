@@ -24,7 +24,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         double remaining = paragraphHeight + Line / 2D;
         Assert.True(2D * Line <= remaining && paragraphHeight <= remaining && paragraphHeight + Line > remaining);
         using var control = KeepDocument(WordImageTextWrapping.InFrontOfText, remaining);
-        var controlResult = control.ToPdfDocumentResult(Options());
+        var controlResult = control.ConvertToPdfWithEvidence(Options());
         byte[] controlBytes = Save("keep-control-" + wrapping, control, controlResult);
         using var controlPdf = PdfPigDocument.Open(controlBytes);
         Assert.Equal(1, TokenPage(controlPdf, "ANCHOR"));
@@ -32,7 +32,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         using var word = KeepDocument(wrapping, remaining);
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         byte[] bytes = Save("keep-" + wrapping, word, result);
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -62,7 +62,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         Configure(word.AddParagraph(), "BODY");
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         byte[] bytes = Save("heading-" + header + "-" + wrapping, word, result);
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -92,7 +92,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         anchor.KeepWithNextOverride = false;
         Assert.Empty(word.ValidateDocument());
         string source = SourceXml(word);
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("keep-together", word, result));
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -114,7 +114,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         anchor.AvoidWidowAndOrphan = true;
         Assert.Empty(word.ValidateDocument());
         string source = SourceXml(word);
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("widow-rows", word, result));
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -145,7 +145,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         File.WriteAllBytes(Path.Combine(output, "crosspage-continuation.docx"), word.ToBytes());
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("crosspage-continuation", word, result));
         File.WriteAllText(Path.Combine(output, "crosspage-continuation.report.json"), JsonSerializer.Serialize(result.Warnings));
         Assert.Equal(source, SourceXml(word));
@@ -217,16 +217,16 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         foreach (var extent in anchor.Descendants<DW.EffectExtent>()) extent.LeftEdge = extent.TopEdge = extent.RightEdge = extent.BottomEdge = 0L;
     }
 
-    private static WordToPdfOptions Options() {
-        var pdf = new PdfOptions();
+    private static WordPdfExportOptions Options() {
+        var pdf = new PdfCreateOptions();
         pdf.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, Enumerable.Range(32, 95).ToArray())));
-        return new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf };
+        return new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf };
     }
 
     private static int TokenPage(PdfPigDocument pdf, string token) => Assert.Single(pdf.GetPages(), page => page.GetWords().Any(word => word.Text == token)).Number;
     private static void AssertAdmitted(PdfDocumentConversionResult result) => Assert.DoesNotContain(result.Warnings,
-        warning => warning.Code is "NativeAnchoredImageFlowed" or "NativeAnchoredImageWrapApproximated");
+        warning => warning.Code is "native-anchored-image-flowed" or "native-anchored-image-wrap-approximated");
     private static string SourceXml(WordDocument word) {
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         return main.Document!.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml +

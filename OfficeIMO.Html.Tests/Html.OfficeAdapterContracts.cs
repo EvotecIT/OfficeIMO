@@ -16,7 +16,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? value));
+        Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? value));
         Assert.Equal("• Parent\n  1. Child", value!.Text);
     }
 

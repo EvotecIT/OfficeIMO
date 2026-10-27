@@ -11,10 +11,10 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentDeferredTableTests {
     [Fact]
     public void TableDeferred_NonFlowBatchesRetainTheirOwnRowPositions() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ConsumesVerticalFlow = false;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 500,
                 MarginLeft = 24,
@@ -40,10 +40,10 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_NonFlowBatchesThatSpanPagesKeepFollowingTextBelowLastRow() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ConsumesVerticalFlow = false;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 150,
                 MarginLeft = 20,
@@ -72,13 +72,13 @@ public class PdfDocumentDeferredTableTests {
     [Fact]
     public void TableDeferred_DefersReplayableFactoryAndKeepsLogicalEdgesSingle() {
         int factoryCalls = 0;
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
         style.Caption = "Deferred caption";
         style.SpacingAfter = 8;
 
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 500,
                 MarginLeft = 24,
@@ -118,11 +118,11 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_RepeatsHeaderOnNewPagesWithoutRepeatingAtBatchBoundary() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 260,
                 PageHeight = 150,
                 MarginLeft = 20,
@@ -151,7 +151,7 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_RejectsGlobalAutoFitAndInvalidBatchSize() {
-        var autoFit = TableStyles.Minimal();
+        var autoFit = PdfTableStyles.Minimal();
         autoFit.AutoFitColumns = true;
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -166,7 +166,7 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_RejectsRoleCountsBeyondReplayableRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 2;
         PdfDocument document = PdfDocument.Create()
@@ -181,7 +181,7 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_RejectsColumnGrowthInLaterBatch() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         PdfDocument document = PdfDocument.Create()
             .TableDeferred(() => new[] {
@@ -214,7 +214,7 @@ public class PdfDocumentDeferredTableTests {
 
     [Fact]
     public void TableDeferred_ParticipatesInPrecedingKeepWithNextMeasurement() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 260,
             PageHeight = 170,
             MarginLeft = 30,

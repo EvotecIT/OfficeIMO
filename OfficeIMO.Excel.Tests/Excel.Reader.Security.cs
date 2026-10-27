@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             try {
                 CreateSharedStringWorkbook(filePath, "<si><t>safe</t></si>", "2147483647", "2147483647");
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     MaxSharedStringItems = 4
                 });
                 object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
@@ -32,12 +32,12 @@ namespace OfficeIMO.Tests {
             try {
                 CreateSharedStringWorkbook(filePath, "<si><t>one</t></si><si><t>two</t></si><si><t>three</t></si>", "3", "3");
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     MaxSharedStringItems = 2
                 });
 
                 var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
-                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -52,12 +52,12 @@ namespace OfficeIMO.Tests {
             try {
                 CreateSharedStringWorkbook(filePath, "<si><r><t>ab</t></r><r><t>cd</t></r></si>", "1", "1");
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     MaxSharedStringItemCharacters = 3
                 });
 
                 var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
-                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), error.LimitName); Assert.Equal(3, error.Maximum);
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxSharedStringItemCharacters), error.LimitName); Assert.Equal(3, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -72,12 +72,12 @@ namespace OfficeIMO.Tests {
             try {
                 CreateSharedStringWorkbook(filePath, "<si><t>one</t></si><si><t>two</t></si>", "2", "2");
 
-                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions {
                     MaxSharedStringCharacters = 5
                 });
 
                 var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => reader.GetSheet("Data").ReadRange("A1:A1"));
-                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringCharacters), error.LimitName); Assert.Equal(5, error.Maximum);
+                Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxSharedStringCharacters), error.LimitName); Assert.Equal(5, error.Maximum);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             byte[] payload = Encoding.UTF8.GetBytes(xml.ToString());
             var cache = SharedStringCache.Build(
                 () => new MemoryStream(payload, writable: false),
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     MaxSharedStringItems = SharedStringCache.Utf8CacheSlotCount + 2,
                     MaxSharedStringItemCharacters = largeValue.Length
                 });

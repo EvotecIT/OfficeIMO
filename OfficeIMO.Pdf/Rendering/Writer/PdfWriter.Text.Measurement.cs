@@ -25,10 +25,10 @@ internal static partial class PdfWriter {
         line[lastIndex] = line[lastIndex].WithEndsWithHardBreak();
     }
 
-    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfOptions? options = null) =>
+    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfCreateOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, fontSize, options);
 
-    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options = null) =>
+    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfCreateOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, namedFont, fontSize, options);
 
     private static double EffectiveRichFontSize(double fontSize, PdfTextBaseline baseline) =>
@@ -40,10 +40,10 @@ internal static partial class PdfWriter {
         _ => 0
     };
 
-    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
+    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfCreateOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
-    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, bool preservesPaintedGlyphs = false) {
+    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfCreateOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, bool preservesPaintedGlyphs = false) {
         text = WithoutOptionalBreaks(text);
         double effectiveFontSize = EffectiveRichFontSize(fontSize, baseline);
         if (!preservesPaintedGlyphs && horizontalTextScaling == 100D && characterSpacing == 0D && fontMetricScale == 1D) {
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
         return command.NegativeTracking ? -advance : advance;
     }
 
-    private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line, PdfOptions? options = null) {
+    private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line, PdfCreateOptions? options = null) {
         double width = 0D;
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, nextStop - lineWidth);
     }
 
-    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null, PdfTabStop? explicitTabStop = null, double lineOriginOffset = 0D, PdfNamedFontFace? followingNamedFont = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, double? decimalAnchorWidthOverride = null) {
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfCreateOptions? options = null, double? maxWidth = null, PdfTabStop? explicitTabStop = null, double lineOriginOffset = 0D, PdfNamedFontFace? followingNamedFont = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, double? decimalAnchorWidthOverride = null) {
         if (explicitTabStop == null && alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
         }

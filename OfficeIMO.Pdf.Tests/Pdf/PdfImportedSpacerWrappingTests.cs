@@ -17,7 +17,7 @@ public class PdfImportedSpacerWrappingTests {
             PdfTextRun.Inline(new PdfInlineBox(spacerWidth, 0.01D, borderWidth: 0D) { IsTextSpacer = true }),
             PdfTextRun.Normal(text, fontSize: 1D, font: PdfStandardFont.Helvetica)
         });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 200D, PageHeight = 200D,
             MarginLeft = 40D, MarginRight = 40D, MarginTop = 40D, MarginBottom = 40D
         };

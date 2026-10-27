@@ -30,7 +30,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             File.Delete(path);
             File.Move(replacementPath, path);
 
@@ -66,7 +66,7 @@ public partial class Excel {
             worksheetXml = worksheetXml.Insert(worksheetEnd, "<broken>");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -103,7 +103,7 @@ public partial class Excel {
                 Encoding.UTF8.GetBytes(worksheet.ToString(SaveOptions.DisableFormatting)));
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("only text", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
             File.Delete(path);
@@ -134,20 +134,20 @@ public partial class Excel {
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
                 root + "<si><t>Value</t></si><si><t>Plain</t></si>" + suffix));
 
-            using (DbDataReader reader = ExcelDocument.OpenDataReader(path)) {
+            using (DbDataReader reader = ExcelDocument.OpenReader(path)) {
                 Assert.True(reader.Read());
                 Assert.Equal("Plain", reader.GetString(0));
                 Assert.True(reader.Read());
                 Assert.Equal("Trailing ", reader.GetString(0));
                 Assert.False(reader.Read());
             }
-            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(
-                path, new ExcelReadOptions { MaxSharedStringItems = 2 }));
-            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(
+                path, new ExcelReaderOptions { MaxSharedStringItems = 2 }); _ = reader.FieldCount; });
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(2, error.Maximum);
 
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
                 root + "<si><t>Value</t></si><si><t>" + encoded + "</t></si>" + suffix));
-            using DbDataReader fallbackReader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader fallbackReader = ExcelDocument.OpenReader(path);
             Assert.True(fallbackReader.Read());
             Assert.Equal(expected, fallbackReader.GetString(0));
             Assert.True(fallbackReader.Read());
@@ -180,7 +180,7 @@ public partial class Excel {
 
             foreach (string prefix in new[] { string.Empty, new string(' ', 9000) }) {
                 ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(declaration + prefix + table));
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+                using DbDataReader reader = ExcelDocument.OpenReader(path);
                 Assert.True(reader.Read());
                 Assert.Equal(string.Empty, reader.GetString(0));
                 Assert.True(reader.Read());
@@ -224,7 +224,7 @@ public partial class Excel {
                 Encoding.UTF8.GetBytes(worksheet.ToString(SaveOptions.DisableFormatting)));
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("SpreadsheetML namespace", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
             File.Delete(path);
@@ -276,9 +276,9 @@ public partial class Excel {
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(worksheetXml));
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     path,
-                    new ExcelReadOptions { UseCachedFormulaResult = useCachedFormulaResult }));
+                    new ExcelReaderOptions { UseCachedFormulaResult = useCachedFormulaResult }); _ = reader.FieldCount; });
             Assert.Contains("shared-formula follower", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("A3", exception.Message, StringComparison.Ordinal);
         } finally {
@@ -319,7 +319,7 @@ public partial class Excel {
 
             if (invalidSheetIndex == 0) {
                 InvalidDataException openException = Assert.Throws<InvalidDataException>(
-                    () => ExcelDocument.OpenDataReader(path));
+                    () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
                 Assert.Contains(
                     "missing cell style",
                     openException.Message,
@@ -327,7 +327,7 @@ public partial class Excel {
                 return;
             }
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             InvalidDataException nextResultException = Assert.Throws<InvalidDataException>(
                 () => reader.NextResult());
             Assert.Contains(
@@ -363,7 +363,7 @@ public partial class Excel {
 
             using ExcelDocument loadedDocument = ExcelDocument.Load(path);
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => loadedDocument.CreateDataReader());
+                () => { using var reader = loadedDocument.CreateDataReader(); _ = reader.FieldCount; });
             Assert.Contains(
                 "missing cell style",
                 exception.Message,
@@ -407,7 +407,7 @@ public partial class Excel {
 
             if (invalidSheetIndex == 0) {
                 InvalidDataException openException = Assert.Throws<InvalidDataException>(
-                    () => ExcelDocument.OpenDataReader(path));
+                    () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
                 Assert.Contains(
                     "missing shared string",
                     openException.Message,
@@ -415,7 +415,7 @@ public partial class Excel {
                 return;
             }
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             InvalidDataException nextResultException = Assert.Throws<InvalidDataException>(
                 () => reader.NextResult());
             Assert.Contains(
@@ -441,7 +441,7 @@ public partial class Excel {
                 ExcelSheet second = document.AddWorksheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Never delivered");
-                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+                File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             ReplaceXlsbTextCellWithSharedStringIndex(
                 path,
@@ -449,9 +449,9 @@ public partial class Excel {
                 occurrence: 2,
                 uint.MaxValue);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions { InferSchema = false });
+                new ExcelReaderOptions { InferSchema = false });
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
 
@@ -495,7 +495,7 @@ public partial class Excel {
             }
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
 
             Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -524,7 +524,7 @@ public partial class Excel {
             }
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
 
             Assert.Contains("unsupported internal part", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -567,7 +567,7 @@ public partial class Excel {
                 workbookPart.Workbook.Save();
             }
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             Assert.Equal(1, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
@@ -591,9 +591,9 @@ public partial class Excel {
                 endRecordType: 616,
                 targetEndRecordType: 618);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+                new ExcelReaderOptions { TreatDatesUsingNumberFormat = true });
 
             Assert.True(reader.Read());
             Assert.Equal(new DateTime(2024, 2, 29), reader.GetDateTime(0));
@@ -630,7 +630,7 @@ public partial class Excel {
 
         using ExcelDocumentReader owner = ExcelDocumentReader.Open(
             memory.ToArray(),
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 TreatDatesUsingNumberFormat = true,
                 NumericAsDecimal = true
             });
@@ -660,7 +660,7 @@ public partial class Excel {
         sheet.CellAt(2, 2).SetNumberFormat("yyyy-mm-dd");
 
         using DbDataReader reader = document.CreateDataReader(
-            new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            new ExcelReaderOptions { TreatDatesUsingNumberFormat = true });
 
         Assert.True(reader.Read());
         Assert.Equal(45351D, reader.GetDouble(0));
@@ -682,7 +682,7 @@ public partial class Excel {
             DuplicateXlsbWorkbookRelationship(path, relationshipSuffix);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
 
             Assert.Contains("multiple internal", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);

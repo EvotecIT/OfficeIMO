@@ -43,7 +43,7 @@ public sealed class SetOfficePdfComplianceCommand : PSCmdlet
         });
     }
 
-    private void ApplyGroundwork(PdfOptions options)
+    private void ApplyGroundwork(PdfCreateOptions options)
     {
         switch (Profile)
         {

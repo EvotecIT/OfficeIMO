@@ -31,7 +31,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
     public const string GitHubAttributedInlineMarkdownName = "GitHub.AttributedInline.Markdown";
 
     /// <summary>Adds CommonMark-compatible markdown fallbacks for GFM-only inline constructs.</summary>
-    public static void AddCommonMarkGfmInlineMarkdownFallbacks(MarkdownWriteOptions options) {
+    public static void AddCommonMarkGfmInlineMarkdownFallbacks(MarkdownSaveOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -50,7 +50,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
     }
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for attributed inline nodes by emitting raw HTML.</summary>
-    public static void AddCommonMarkAttributedInlineMarkdownFallback(MarkdownWriteOptions options) {
+    public static void AddCommonMarkAttributedInlineMarkdownFallback(MarkdownSaveOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -59,7 +59,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
     }
 
     /// <summary>Adds GitHub-compatible markdown fallbacks for OfficeIMO-only inline constructs.</summary>
-    public static void AddGitHubOfficeInlineMarkdownFallbacks(MarkdownWriteOptions options) {
+    public static void AddGitHubOfficeInlineMarkdownFallbacks(MarkdownSaveOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -75,7 +75,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
     }
 
     /// <summary>Adds a GitHub-compatible markdown fallback for attributed inline nodes by emitting raw HTML.</summary>
-    public static void AddGitHubAttributedInlineMarkdownFallback(MarkdownWriteOptions options) {
+    public static void AddGitHubAttributedInlineMarkdownFallback(MarkdownSaveOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -99,7 +99,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
         extensions.Add(new MarkdownInlineMarkdownRenderExtension(name, inlineType, renderer));
     }
 
-    private static string? RenderHtmlFallback(IMarkdownInline inline, MarkdownWriteOptions _) {
+    private static string? RenderHtmlFallback(IMarkdownInline inline, MarkdownSaveOptions _) {
         string? html = inline switch {
             StrikethroughInline strikethrough => strikethrough.RenderHtml(),
             StrikethroughSequenceInline strikethrough => strikethrough.RenderHtml(),
@@ -120,7 +120,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
             : RenderHtmlWithAttributes(inline, html);
     }
 
-    private static string? RenderAttributedHtmlFallback(IMarkdownInline inline, MarkdownWriteOptions _) {
+    private static string? RenderAttributedHtmlFallback(IMarkdownInline inline, MarkdownSaveOptions _) {
         if (inline is not MarkdownObject markdownObject
             || markdownObject.Attributes.IsEmpty
             || inline is not IRenderableMarkdownInline renderable) {

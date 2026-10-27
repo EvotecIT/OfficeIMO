@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (tags.Length == 0) return null;
             if (tags.Length != 1) {
                 if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-TABLE-STYLE-TAG-DUPLICATE",
+                    AddDiagnostic("ppt-table-style-tag-duplicate",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A native table has duplicate OfficeIMO style metadata; its semantic style flags were ignored.",
                         tags[1].Offset);
@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || data[0].Instance != 0 || data[0].PayloadLength != 2
                 || data[0].ReadByte(0) != LegacyPptTableMetadata.Version) {
                 if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-TABLE-STYLE-TAG-DATA",
+                    AddDiagnostic("ppt-table-style-tag-data",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A native table has malformed OfficeIMO style metadata; its semantic style flags were ignored.",
                         tags[0].Offset);

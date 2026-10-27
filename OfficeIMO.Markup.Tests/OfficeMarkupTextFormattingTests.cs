@@ -160,19 +160,19 @@ public class OfficeMarkupTextFormattingTests {
         source.Blocks.Add(section);
 
         using WordDocument word = source.ToWordDocumentResult().RequireValue();
-        WordParagraphSnapshot[] paragraphs = word.CreateInspectionSnapshot().Sections
-            .SelectMany(item => item.Elements).OfType<WordParagraphSnapshot>()
+        WordParagraphInfo[] paragraphs = word.Inspect().Sections
+            .SelectMany(item => item.Elements).OfType<WordParagraphInfo>()
             .Where(item => item.Text.Contains("item", StringComparison.Ordinal))
             .ToArray();
 
         Assert.Equal(4, paragraphs.Length);
         Assert.All(paragraphs.Where(item => item.Text.Contains("Root", StringComparison.Ordinal)), paragraph => {
-            WordRunSnapshot run = Assert.Single(paragraph.Runs);
+            WordRunInfo run = Assert.Single(paragraph.Runs);
             Assert.Equal("Consolas", run.FontFamily);
             Assert.Equal(WordUnderlineStyle.Double, run.UnderlineStyle);
         });
         Assert.All(paragraphs.Where(item => item.Text.Contains("Nested", StringComparison.Ordinal)), paragraph => {
-            WordRunSnapshot run = Assert.Single(paragraph.Runs);
+            WordRunInfo run = Assert.Single(paragraph.Runs);
             Assert.True(run.Italic);
             Assert.Equal("336699", run.ColorHex);
         });
@@ -186,9 +186,9 @@ public class OfficeMarkupTextFormattingTests {
         source.Blocks.Add(paragraph);
 
         using WordDocument word = source.ToWordDocumentResult().RequireValue();
-        WordParagraphSnapshot paragraphSnapshot = Assert.IsType<WordParagraphSnapshot>(
-            Assert.Single(Assert.Single(word.CreateInspectionSnapshot().Sections).Elements));
-        WordRunSnapshot run = Assert.Single(paragraphSnapshot.Runs);
+        WordParagraphInfo paragraphSnapshot = Assert.IsType<WordParagraphInfo>(
+            Assert.Single(Assert.Single(word.Inspect().Sections).Elements));
+        WordRunInfo run = Assert.Single(paragraphSnapshot.Runs);
 
         Assert.Equal("MIXED CASE", run.Text);
         Assert.True(run.Bold);
@@ -224,7 +224,7 @@ public class OfficeMarkupTextFormattingTests {
 
         using ExcelDocument workbook = source.ToExcelDocumentResult().RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCellStyleSnapshot style = sheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo style = sheet.GetCellStyle(1, 1);
 
         Assert.Equal("mIXED CASE", sheet.CellAt(1, 1).GetValue().Value?.ToString());
         Assert.Equal("Aptos", style.FontName);

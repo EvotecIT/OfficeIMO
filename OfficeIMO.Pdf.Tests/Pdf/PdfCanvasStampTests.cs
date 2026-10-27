@@ -139,7 +139,7 @@ public class PdfCanvasStampTests {
     public void ContentRejectsTaggedStructureThatVisualImportCannotPreserve() {
         PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
         var taggedOptions = new PdfCanvasStampOptions().UseRenderingOptions(
-            new PdfOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
+            new PdfCreateOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
 
         NotSupportedException renderingException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Text("Tagged text", 10D, 10D, 120D, 30D), taggedOptions));
@@ -157,7 +157,7 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void ContentIgnoresDocumentChromeFromRenderingOptions() {
-        var renderingOptions = new PdfOptions {
+        var renderingOptions = new PdfCreateOptions {
             ShowHeader = true,
             HeaderFormat = "Rendering-options header",
             ShowPageNumbers = true,
@@ -205,7 +205,7 @@ public class PdfCanvasStampTests {
         }
 
         const string familyName = "Canvas Stamp Family";
-        var renderingOptions = new PdfOptions()
+        var renderingOptions = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
         var stampOptions = new PdfCanvasStampOptions()
             .UseRenderingOptions(renderingOptions);
@@ -234,7 +234,7 @@ public class PdfCanvasStampTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
     }

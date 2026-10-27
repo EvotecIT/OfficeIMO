@@ -141,7 +141,7 @@ public sealed class PdfDrawingFlowWidthTests {
     [InlineData(2000, 0)]
     [InlineData(800, 300)]
     public void PanelDrawingThatCannotFitAnyColumnFailsWithoutRetryingPages(double height, double spacingAfter) {
-        PdfOptions options = Options(460, 300);
+        PdfCreateOptions options = Options(460, 300);
         options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options);
         PdfDrawingStyle style = Constrained();
@@ -156,7 +156,7 @@ public sealed class PdfDrawingFlowWidthTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TerminalPanelPaddingThatCannotFitAnyColumnFailsWithoutRetryingPages(bool leadingBookmark) {
-        PdfOptions options = Options(460, 300);
+        PdfCreateOptions options = Options(460, 300);
         options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options);
         PdfPanelStyle panelStyle = PlainPanel(0);
@@ -334,7 +334,7 @@ public sealed class PdfDrawingFlowWidthTests {
         PaddingX = paddingX, PaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
     };
 
-    private static PdfOptions Options(double width, double height) => new() {
+    private static PdfCreateOptions Options(double width, double height) => new() {
         PageWidth = width, PageHeight = height, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
     };
 

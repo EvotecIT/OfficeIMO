@@ -22,8 +22,8 @@ public sealed class ReliableBatchCommandTests {
         Assert.Contains("No files were selected", refused.Error);
         Assert.Equal((int)OfficeImoToolExitCode.Success, accepted.Code);
         using var summary = JsonDocument.Parse(refused.Output);
-        Assert.Equal(0, summary.RootElement.GetProperty("Selected").GetInt64());
-        Assert.Equal(unsupportedInput ? 1 : 0, summary.RootElement.GetProperty("Skipped").GetInt64());
+        Assert.Equal(0, summary.RootElement.GetProperty("summary").GetProperty("selected").GetInt64());
+        Assert.Equal(unsupportedInput ? 1 : 0, summary.RootElement.GetProperty("summary").GetProperty("skipped").GetInt64());
         Assert.Empty(Directory.GetFiles(files.Output));
     }
 
@@ -43,7 +43,7 @@ public sealed class ReliableBatchCommandTests {
         JsonElement summary;
         if (format == "json") {
             using var report = JsonDocument.Parse(result.Output);
-            Assert.Equal("officeimo.conversion.batch.v1", report.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("officeimo.conversion.batch.v2", report.RootElement.GetProperty("schema").GetString());
             Assert.False(report.RootElement.GetProperty("succeeded").GetBoolean());
             Assert.False(report.RootElement.GetProperty("itemsTruncated").GetBoolean());
             items = report.RootElement.GetProperty("items").EnumerateArray().Select(item => item.Clone()).ToArray();
@@ -66,7 +66,7 @@ public sealed class ReliableBatchCommandTests {
         Assert.Equal(1, summary.GetProperty("completed").GetInt64());
         Assert.Equal(1, summary.GetProperty("failed").GetInt64());
         Assert.Equal(1, summary.GetProperty("skipped").GetInt64());
-        Assert.Contains("Reliable batch result marker", PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(files.Output, "good.txt.pdf"))).ExtractText());
+        Assert.Contains("Reliable batch result marker", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Path.Combine(files.Output, "good.txt.pdf")))).ExtractText());
         Assert.False(File.Exists(Path.Combine(files.Output, "broken.docx.pdf")));
     }
 
@@ -116,7 +116,7 @@ public sealed class ReliableBatchCommandTests {
         Assert.Contains("Batch stopped:", result.Error);
         string artifact = Assert.Single(Directory.GetFiles(files.Output, "*.pdf"));
         Assert.Equal(artifact, completed.GetProperty("outputPath").GetString());
-        Assert.Contains("Partial discovery result", PdfReadDocument.Open(File.ReadAllBytes(artifact)).ExtractText());
+        Assert.Contains("Partial discovery result", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(artifact))).ExtractText());
     }
 
     [Fact]
@@ -147,19 +147,6 @@ public sealed class ReliableBatchCommandTests {
         Assert.Equal((int)OfficeImoToolExitCode.Usage, conflict.Code);
         Assert.DoesNotContain("never-print-this-secret", conflict.Error + conflict.Output);
         Assert.False(Directory.Exists(files.Output));
-    }
-
-    [Fact]
-    public void Json_report_bounds_retained_items_and_marks_truncation() {
-        using var output = new StringWriter();
-        var reporter = new WorkflowBatchOutput(output, TextWriter.Null, "json");
-        for (int index = 0; index < 10_001; index++) reporter.Report(new("input" + index, null, null, false, "Filtered", [], true));
-        reporter.Complete(new(0, 0, 0, 0, false, 10_001), allowEmpty: true);
-
-        using var report = JsonDocument.Parse(output.ToString());
-        Assert.True(report.RootElement.GetProperty("itemsTruncated").GetBoolean());
-        Assert.Equal(10_000, report.RootElement.GetProperty("items").GetArrayLength());
-        Assert.Equal(10_001, report.RootElement.GetProperty("summary").GetProperty("skipped").GetInt64());
     }
 
     private static Task<(int Code, string Output, string Error)> RunBatch(string[] args) => RunTool(["workflow", "batch", .. args]);

@@ -46,7 +46,7 @@ public partial class Word {
 
         // This path uses the package and PDF directly. A failing public note
         // Paragraphs getter must not prevent observing a conversion omission.
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         byte[] bytes = result.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -69,7 +69,7 @@ public partial class Word {
                 destination.PageNumber);
         }
         else AssertPdfFootnoteAssociation(pdf, ZeroNotePrefix, ZeroNoteBody, "1");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
 
         Assert.Equal(xmlBefore, OrdinaryZeroNoteSourceXml(document, endnote));
         Assert.Equal(hashBefore, OrdinaryZeroNoteSourceHash(path));
@@ -108,16 +108,16 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         string[] xmlBefore = OrdinaryZeroNoteSourceXml(document, endnote);
 
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in new[] { ZeroNotePrefix, ZeroNoteSuffix, ZeroNoteBody, ZeroNoteFollowingBody })
             Assert.Single(Regex.Matches(visible, Regex.Escape(token)));
         AssertZeroNoteInlineReferencePosition(pdf);
         Assert.Contains(ZeroNotePrefix + "1" + ZeroNoteSuffix, visible, StringComparison.Ordinal);
-        if (endnote) Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        if (endnote) Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         else {
-            var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
+            var warning = Assert.Single(result.Warnings, item => item.Code == "native-footnote-placement-approximated");
             Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         }
         Assert.Equal(xmlBefore, OrdinaryZeroNoteSourceXml(document, endnote));
@@ -148,7 +148,7 @@ public partial class Word {
         Assert.Equal(new[] { ZeroNotePrefix, "MATH", "reference:" + sourceId, ZeroNoteSuffix }, sourceOrder);
         string[] xmlBefore = OrdinaryZeroNoteSourceXml(document, endnote: true);
 
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in new[] { ZeroNotePrefix, "MATH", ZeroNoteSuffix, ZeroNoteBody, ZeroNoteFollowingBody })
@@ -160,7 +160,7 @@ public partial class Word {
         Assert.True(equation[0].StartBaseLine.X >= prefix.Last().EndBaseLine.X - .15D);
         Assert.True(equation.Last().EndBaseLine.X <= reference.StartBaseLine.X + .15D);
         Assert.Contains(ZeroNotePrefix + "MATH1" + ZeroNoteSuffix, visible, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-body-equation-unsupported");
         Assert.Equal(xmlBefore, OrdinaryZeroNoteSourceXml(document, endnote: true));
         Assert.Empty(document.ValidateDocument());
     }

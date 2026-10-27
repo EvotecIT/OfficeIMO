@@ -161,7 +161,7 @@ internal static class PdfCommandUtilities
         return null;
     }
 
-    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfOptions> action)
+    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfCreateOptions> action)
     {
         RejectDeferredPassThru(cmdlet);
         var context = PdfDslContext.Require(cmdlet);
@@ -195,7 +195,7 @@ internal static class PdfCommandUtilities
             return null;
         }
 
-        var effective = readOptions ?? PdfLoadOptions.Default;
+        var effective = readOptions ?? new PdfLoadOptions();
         return new PdfLoadOptions
         {
             ParsingMode = effective.ParsingMode,
@@ -289,7 +289,7 @@ internal static class PdfCommandUtilities
         return options;
     }
 
-    internal static void ApplyEncryption(PdfOptions options, string? password, string? ownerPassword, int? permissions)
+    internal static void ApplyEncryption(PdfCreateOptions options, string? password, string? ownerPassword, int? permissions)
     {
         if (string.IsNullOrEmpty(password))
         {
@@ -327,15 +327,15 @@ internal static class PdfCommandUtilities
     internal static PdfColor? ParseColor(string? color)
         => OfficeColorUtilities.ToPdfColor(color);
 
-    internal static PageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)
+    internal static PdfPageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)
     {
         var pageSizeName = (pageSize ?? "Letter").Trim();
-        PageSize size = pageSizeName.ToUpperInvariant() switch
+        PdfPageSize size = pageSizeName.ToUpperInvariant() switch
         {
             "CUSTOM" => width.HasValue && height.HasValue
-                ? new PageSize(width.Value, height.Value)
+                ? new PdfPageSize(width.Value, height.Value)
                 : throw new PSArgumentException("Custom page size requires -Width and -Height."),
-            _ => PageSizes.TryGet(pageSizeName, out var resolved)
+            _ => PdfPageSizes.TryGet(pageSizeName, out var resolved)
                 ? resolved
                 : throw new PSArgumentException("PageSize must be a known OfficeIMO page size name or Custom.", nameof(pageSize))
         };

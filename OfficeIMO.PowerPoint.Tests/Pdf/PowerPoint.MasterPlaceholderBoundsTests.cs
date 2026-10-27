@@ -41,7 +41,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         deck.Save(saved);
         saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdfBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = pdf.GetPage(1).Text;
         Assert.DoesNotContain("TEMPLATE PROMPT", text, StringComparison.Ordinal);
         Assert.Contains("LAYOUT ARTWORK", text, StringComparison.Ordinal);
@@ -75,7 +75,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         }
         bytes.Position = 0;
         using var reopened = PowerPointPresentation.Load(bytes);
-        var conversion = reopened.ToPdfDocumentResult();
+        var conversion = reopened.ConvertToPdfWithEvidence();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(conversion.ToBytes());
         Assert.Contains("MASTER INHERITED TITLE", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "invalid-shape-bounds");

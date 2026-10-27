@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     internal void Validate(bool allowDerivedHorizontalOverflow = false) {
         ValidateEmbeddedFileLimits();
         if (PageWidth <= 0 || double.IsNaN(PageWidth) || double.IsInfinity(PageWidth)) {
@@ -243,7 +243,7 @@ public sealed partial class PdfOptions {
         }
     }
 
-    private static void ValidatePageTextSegments(System.Collections.Generic.List<FooterSegment>? segments, string scope) {
+    private static void ValidatePageTextSegments(System.Collections.Generic.List<PdfFooterSegment>? segments, string scope) {
         if (segments != null) {
             for (int i = 0; i < segments.Count; i++) {
                 var segment = segments[i];
@@ -251,21 +251,21 @@ public sealed partial class PdfOptions {
                     throw new System.ArgumentException("PDF " + scope + " segments cannot contain null entries.");
                 }
 
-                if (segment.Kind == FooterSegmentKind.Text && segment.Text == null) {
+                if (segment.Kind == PdfFooterSegmentKind.Text && segment.Text == null) {
                     throw new System.ArgumentException("PDF " + scope + " text segments cannot be null.");
                 }
 
-                if (segment.Kind != FooterSegmentKind.Text &&
-                    segment.Kind != FooterSegmentKind.PageNumber &&
-                    segment.Kind != FooterSegmentKind.TotalPages &&
-                    segment.Kind != FooterSegmentKind.DocumentPages) {
+                if (segment.Kind != PdfFooterSegmentKind.Text &&
+                    segment.Kind != PdfFooterSegmentKind.PageNumber &&
+                    segment.Kind != PdfFooterSegmentKind.TotalPages &&
+                    segment.Kind != PdfFooterSegmentKind.DocumentPages) {
                     throw new System.ArgumentException("PDF " + scope + " segments must use a supported segment kind.");
                 }
             }
         }
     }
 
-    private static void ValidateFooterSegments(System.Collections.Generic.List<FooterSegment>? segments) {
+    private static void ValidateFooterSegments(System.Collections.Generic.List<PdfFooterSegment>? segments) {
         if (segments != null) {
             for (int i = 0; i < segments.Count; i++) {
                 var segment = segments[i];
@@ -273,14 +273,14 @@ public sealed partial class PdfOptions {
                     throw new System.ArgumentException("PDF footer segments cannot contain null entries.");
                 }
 
-                if (segment.Kind == FooterSegmentKind.Text && segment.Text == null) {
+                if (segment.Kind == PdfFooterSegmentKind.Text && segment.Text == null) {
                     throw new System.ArgumentException("PDF footer text segments cannot be null.");
                 }
 
-                if (segment.Kind != FooterSegmentKind.Text &&
-                    segment.Kind != FooterSegmentKind.PageNumber &&
-                    segment.Kind != FooterSegmentKind.TotalPages &&
-                    segment.Kind != FooterSegmentKind.DocumentPages) {
+                if (segment.Kind != PdfFooterSegmentKind.Text &&
+                    segment.Kind != PdfFooterSegmentKind.PageNumber &&
+                    segment.Kind != PdfFooterSegmentKind.TotalPages &&
+                    segment.Kind != PdfFooterSegmentKind.DocumentPages) {
                     throw new System.ArgumentException("PDF footer segments must use a supported segment kind.");
                 }
             }

@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_IndexedReaderStillObservesConfiguredCancellation() {
             byte[] xls = CreateDenseIndexedWorkbook(("Data", 1));
             using var cancellation = new CancellationTokenSource();
-            var options = new ExcelReadOptions { CancellationToken = cancellation.Token };
+            var options = new ExcelReaderOptions { CancellationToken = cancellation.Token };
             using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(xls, options);
             using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
                 workbook.OpenTable("Data", hasHeaderRow: true, options, cancellation.Token));
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             if (sheets.Length == 1) {
                 Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             }
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertUsesIndexedDiscovery(byte[] workbookBytes, string sheetName) {
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(workbookBytes, options);
             using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
                 workbook.OpenTable(sheetName, hasHeaderRow: true, options));
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             byte[] workbookBytes,
             string sheetName,
             int firstValue) {
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(workbookBytes, options);
             using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
                 workbook.OpenTable(sheetName, hasHeaderRow: true, options));

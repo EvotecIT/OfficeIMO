@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 WordStructuredDocumentTag tag = document.AddParagraph("Client: ")
                     .AddStructuredDocumentTag("Placeholder", "Client Alias", "ClientName");
                 tag.Bold = true;
-                tag.Color = OfficeIMO.Drawing.OfficeColor.ParseHex("#7030A0");
+                tag.Color = OfficeIMO.OfficeColor.ParseHex("#7030A0");
 
                 int updated = document.FillContentControlValues(new Dictionary<string, object?> {
                     ["ClientName"] = "Northwind Traders"

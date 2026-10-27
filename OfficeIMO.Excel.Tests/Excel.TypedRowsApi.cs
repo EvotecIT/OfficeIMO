@@ -56,7 +56,7 @@ public partial class Excel {
 
         using var optionsCancellation = new CancellationTokenSource();
         optionsCancellation.Cancel();
-        var options = new ExcelReadOptions { CancellationToken = optionsCancellation.Token };
+        var options = new ExcelReaderOptions { CancellationToken = optionsCancellation.Token };
         Assert.Throws<OperationCanceledException>(() =>
             sheet.RowsAs<TypedSalesRow>(options).ToArray());
     }
@@ -77,7 +77,7 @@ public partial class Excel {
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "custom-value");
         sheet.CellValue(2, 2, 12.5m);
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             TypeConverter = static (value, targetType, _) =>
                 targetType == typeof(int) && Equals(value, "custom-value")
                     ? (true, 42)
@@ -114,7 +114,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddWorksheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         sheet.CellValue(2, 1, secret);
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact,
             TypeConverter = (_, _, _) => throw new InvalidOperationException($"failed for {secret}")
         };
@@ -136,7 +136,7 @@ public partial class Excel {
         sheet.CellValue(2, 2, "value");
 
         DataMappingException exception = Assert.Throws<DataMappingException>(() =>
-            sheet.RowsAs<TypedSalesRow>(new ExcelReadOptions { StrictTypedMapping = true }).ToArray());
+            sheet.RowsAs<TypedSalesRow>(new ExcelReaderOptions { StrictTypedMapping = true }).ToArray());
 
         Assert.Contains("Unexpected", exception.Message);
     }
@@ -243,9 +243,9 @@ public partial class Excel {
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetName = "Data",
                     InferSchema = true
                 });
@@ -298,7 +298,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 NormalizeHeaders = true,
                 TreatDatesUsingNumberFormat = true
             };
@@ -320,7 +320,7 @@ public partial class Excel {
 
             using (ExcelDocumentReader strictReader = ExcelDocumentReader.Open(
                        path,
-                       new ExcelReadOptions { StrictTypedMapping = true })) {
+                       new ExcelReaderOptions { StrictTypedMapping = true })) {
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => strictReader
                     .GetSheet("Data")
                     .ReadObjects<LargeParallelMappedRow>(

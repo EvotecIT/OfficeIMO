@@ -35,7 +35,7 @@ public sealed class WordContentsTitleParagraphTests {
         Assert.Equal(14, restored.TitleParagraph.FontSize);
         Assert.Equal("202428", restored.TitleParagraph.ColorHex);
         Assert.Single(restored.RefreshEntries().Entries);
-        PdfReadDocument pdf = PdfReadDocument.Open(reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes());
+        PdfReadDocument pdf = PdfReadDocument.Open(reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
         Assert.True(pdf.Pages.Count == 3, string.Join(" | ", pdf.Pages.Select(page => page.ExtractText())));
         Assert.Contains("Cover text", pdf.Pages[0].ExtractText());
         Assert.DoesNotContain("Contents", pdf.Pages[0].ExtractText());

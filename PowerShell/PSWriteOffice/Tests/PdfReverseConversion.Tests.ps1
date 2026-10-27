@@ -36,9 +36,9 @@ Describe 'PDF reverse conversion workflows' {
         $excelReport = ConvertTo-OfficePdfExcel -Path $pdfPath -OutputPath $excelPath -PassThruReport
         $powerPointReport = ConvertTo-OfficePdfPowerPoint -Path $pdfPath -OutputPath $powerPointPath -PassThruReport
 
-        $wordReport.GetType().FullName | Should -Be 'OfficeIMO.Word.Pdf.PdfWordConversionReport'
-        $excelReport.GetType().FullName | Should -Be 'OfficeIMO.Excel.Pdf.PdfExcelTableImportReport'
-        $powerPointReport.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport'
+        $wordReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
+        $excelReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
+        $powerPointReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
         Test-Path -LiteralPath $wordPath | Should -BeTrue
         Test-Path -LiteralPath $excelPath | Should -BeTrue
         Test-Path -LiteralPath $powerPointPath | Should -BeTrue
@@ -47,7 +47,7 @@ Describe 'PDF reverse conversion workflows' {
         $wordText | Should -Match 'Quarterly results'
         $wordText | Should -Match 'Revenue improved'
 
-        $excelReport.Entries.Count | Should -BeGreaterThan 0
+        $excelReport.ItemsWritten | Should -BeGreaterThan 0
         $excelSummary = Get-OfficeExcelSummary -Path $excelPath -IncludeSheets
         $rows = @(Import-OfficeExcel -Path $excelPath -WorksheetName $excelSummary.Sheets[0].Name)
         $rows | Should -HaveCount 3

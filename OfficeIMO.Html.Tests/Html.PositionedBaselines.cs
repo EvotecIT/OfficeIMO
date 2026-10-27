@@ -29,7 +29,7 @@ public sealed class HtmlPositionedBaselineTests {
         // including reduced script faces and authored baseline displacements.
         Assert.Equal("A2B3C", SvgPaintedText.Read(svg));
         HtmlRenderingTests.AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], svg);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var page = pdf.GetPage(1);
         Assert.Equal("A2B3C", string.Concat(page.Letters.Select(letter => letter.Value)));
         foreach (HtmlRenderText source in text) {

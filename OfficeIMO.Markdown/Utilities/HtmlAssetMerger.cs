@@ -1,15 +1,15 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Host-facing helper to merge multiple HtmlAsset manifests into deduplicated CSS/JS tags and inline blobs.
+/// Host-facing helper to merge multiple MarkdownHtmlAsset manifests into deduplicated CSS/JS tags and inline blobs.
 /// </summary>
-public static class HtmlAssetMerger {
+public static class MarkdownHtmlAssetMerger {
     /// <summary>
     /// Deduplicate by Id and build strings for head link/script tags and inline CSS/JS payloads.
     /// </summary>
     /// <param name="manifests">Asset manifests to merge in order.</param>
     /// <param name="options">Optional HTML rendering policy used for asset attribute encoding.</param>
-    public static (string headLinks, string inlineCss, string inlineJs) Build(IEnumerable<IEnumerable<HtmlAsset>> manifests, HtmlOptions? options = null) {
+    public static (string headLinks, string inlineCss, string inlineJs) Build(IEnumerable<IEnumerable<MarkdownHtmlAsset>> manifests, MarkdownHtmlExportOptions? options = null) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var head = new StringBuilder();
         var css = new StringBuilder();
@@ -17,7 +17,7 @@ public static class HtmlAssetMerger {
         foreach (var manifest in manifests) {
             foreach (var a in manifest) {
                 if (!seen.Add(a.Id)) continue;
-                if (a.Kind == HtmlAssetKind.Css) {
+                if (a.Kind == MarkdownHtmlAssetKind.Css) {
                     if (!string.IsNullOrEmpty(a.Href)) {
                         var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{HtmlTextEncoder.Encode(a.Media, options)}\"";
                         head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{HtmlTextEncoder.Encode(a.Id, options)}\" href=\"{HtmlAttributeUrlEncoder.Encode(a.Href, options)}\"{media}>\n");

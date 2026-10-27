@@ -31,7 +31,7 @@ public partial class Word {
         OpenXmlCompositeElement loadedNotes = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         Assert.Single(loadedNotes.Descendants<W.BookmarkStart>(), bookmark => bookmark.Name?.Value == "LoadedNoteTarget");
         string original = main.Document.OuterXml + loadedNotes.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -45,7 +45,7 @@ public partial class Word {
             Assert.InRange(top - letters[0].StartBaseLine.Y, 0D, 40D);
             if (numbered) Assert.Contains("1.", page.Text, StringComparison.Ordinal);
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-                "NativeFootnotePlacementApproximated" or "NativeEndnoteContinuationApproximated" or "NativeEndnoteContentApproximated");
+                "native-footnote-placement-approximated" or "native-endnote-continuation-approximated" or "native-endnote-content-approximated");
             Assert.Equal(original, main.Document.OuterXml + loadedNotes.OuterXml);
         }
         Assert.Empty(document.ValidateDocument());

@@ -30,7 +30,7 @@ public partial class Word {
         Style heading = main.StyleDefinitionsPart!.Styles!.Elements<Style>().Single(style => style.StyleId == "Heading1");
         heading.StyleRunProperties = new StyleRunProperties(NativeMajorThemeFonts(), new FontSize { Val = "32" });
         string before = main.StyleDefinitionsPart.Styles.OuterXml;
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int save = 0; save < 2; save++) {
             using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
             Style actual = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -38,7 +38,7 @@ public partial class Word {
             Assert.Equal("Courier New", actual.StyleRunProperties?.RunFonts?.Ascii?.Value);
             Assert.Equal("32", actual.StyleRunProperties?.FontSize?.Val?.Value);
             Assert.Empty(loaded.ValidateDocument());
-            if (save == 0) bytes = loaded.ToBytes(WordFileFormat.Doc);
+            if (save == 0) bytes = loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
         Assert.Equal(before, main.StyleDefinitionsPart.Styles.OuterXml);
         Assert.Empty(source.ValidateDocument());
@@ -55,7 +55,7 @@ public partial class Word {
         if (minor) { fonts.AsciiTheme = ThemeFontValues.MinorAscii; fonts.HighAnsiTheme = ThemeFontValues.MinorHighAnsi; }
         paragraph._run!.RunProperties = new RunProperties(fonts);
         string before = paragraph._paragraph.OuterXml;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(minor ? "Arial" : "Courier New", loaded.Paragraphs[0]._run!.RunProperties?.RunFonts?.Ascii?.Value);
         Assert.Equal(before, paragraph._paragraph.OuterXml);
         Assert.Empty(loaded.ValidateDocument());
@@ -76,7 +76,7 @@ public partial class Word {
         table._tableProperties!.TableStyle = new TableStyle { Val = "ThemeTable" };
         table._tableProperties.TableLook = new TableLook { FirstRow = true, NoHorizontalBand = true, NoVerticalBand = true };
         table.Rows[0].Cells[0].AddParagraph("Theme cell", removeExistingParagraphs: true);
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run run = loaded.Tables[0]._table.Descendants<Run>().Single(item => item.InnerText == "Theme cell");
         Assert.Equal("Courier New", run.RunProperties?.RunFonts?.Ascii?.Value);
         Assert.Empty(source.ValidateDocument());
@@ -94,7 +94,7 @@ public partial class Word {
             Type = StyleValues.Paragraph, StyleId = "ThemeRoot", CustomStyle = true
         });
         source.AddParagraph("Root theme font").SetStyleId("ThemeRoot");
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Style actual = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>()
             .Single(style => style.StyleName?.Val?.Value == "Theme root");
         Assert.Equal("Courier New", actual.StyleRunProperties?.RunFonts?.Ascii?.Value);
@@ -110,7 +110,7 @@ public partial class Word {
         RunFonts fonts = NativeMajorThemeFonts();
         fonts.HighAnsiTheme = ThemeFontValues.MinorHighAnsi;
         paragraph._run!.RunProperties = new RunProperties(fonts);
-        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 
     [Theory]
@@ -127,7 +127,7 @@ public partial class Word {
         }
         level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(NativeMajorThemeFonts());
         string before = numbering.OuterXml;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Numbering actual = loaded._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
         Level actualLevel = instanceOverride ? actual.Elements<NumberingInstance>().Single().Elements<LevelOverride>().Single().Level!
             : actual.Elements<AbstractNum>().Single().Elements<Level>().First();

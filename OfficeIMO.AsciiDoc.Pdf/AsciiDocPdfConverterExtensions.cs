@@ -32,7 +32,7 @@ public static class AsciiDocPdfConverterExtensions {
     /// <summary>Attempts to save an AsciiDoc PDF and returns structured failure evidence.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this AsciiDocDocument document, string path, AsciiDocToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -40,7 +40,7 @@ public static class AsciiDocPdfConverterExtensions {
     /// <summary>Attempts to write an AsciiDoc PDF to a caller-owned stream.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this AsciiDocDocument document, Stream stream, AsciiDocToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -60,7 +60,7 @@ public static class AsciiDocPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously save an AsciiDoc PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this AsciiDocDocument document, string path, AsciiDocToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -68,7 +68,7 @@ public static class AsciiDocPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously write an AsciiDoc PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this AsciiDocDocument document, Stream stream, AsciiDocToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }

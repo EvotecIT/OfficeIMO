@@ -13,14 +13,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptRecord atom = children[childIndex];
                 if (atom.Type != RecordFontEntityAtom) continue;
                 if (atom.PayloadLength != 68) {
-                    AddDiagnostic("PPT-FONT-ENTITY-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-font-entity-truncated", LegacyPptDiagnosticSeverity.Warning,
                         "A FontEntityAtom does not have the required 68-byte payload and was skipped.",
                         atom.Offset);
                     continue;
                 }
                 ushort index = atom.Instance;
                 if (_fontsByIndex.ContainsKey(index)) {
-                    AddDiagnostic("PPT-FONT-INDEX-DUPLICATE", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-font-index-duplicate", LegacyPptDiagnosticSeverity.Warning,
                         $"Font index {index} is defined more than once; the first definition is retained.",
                         atom.Offset);
                     continue;
@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (terminator >= 0) typeface = typeface.Substring(0, terminator);
                 typeface = LegacyPptXmlText.SanitizeAttributeValue(typeface) ?? string.Empty;
                 if (typeface.Length == 0) {
-                    AddDiagnostic("PPT-FONT-NAME-EMPTY", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-font-name-empty", LegacyPptDiagnosticSeverity.Warning,
                         $"Font index {index} has an empty typeface name and was skipped.", atom.Offset);
                     continue;
                 }
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 _fonts.Add(font);
                 _fontsByIndex.Add(index, font);
                 if (hasEmbeddedData && options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-FONT-EMBEDDED-PRESERVE-ONLY", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-font-embedded-preserve-only", LegacyPptDiagnosticSeverity.Warning,
                         $"Embedded data for typeface '{typeface}' is preserved but not projected to the Open XML package.",
                         atom.Offset);
                 }

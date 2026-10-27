@@ -37,7 +37,7 @@ public static class ChmPdfConverterExtensions {
             rendering.EmbeddedPackageResourceResolver = rendering.ResourcePolicy.AllowEmbeddedPackageResources ? document.CreateResourceResolver() : null;
             rendering.ResourceResolver = rendering.EmbeddedPackageResourceResolver;
             PdfDocumentConversionResult converted = await document.ParseConversionTopic(html, topic.Path, configured, ref nodes, cancellationToken)
-                .ToPdfDocumentResultAsync(rendering, cancellationToken).ConfigureAwait(false);
+                .ConvertToPdfWithEvidenceAsync(rendering, cancellationToken).ConfigureAwait(false);
             // Bound retained merge inputs before accumulating the entire publication.
             retainedBytes += converted.ToBytes(cancellationToken).LongLength;
             ChmDocument.EnforceOutput(retainedBytes, configured);

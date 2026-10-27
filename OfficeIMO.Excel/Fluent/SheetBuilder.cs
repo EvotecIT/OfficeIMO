@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using OfficeIMO.Data;
 using OfficeIMO.Spreadsheet;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
@@ -61,8 +61,8 @@ namespace OfficeIMO.Excel.Fluent {
             var options = new ObjectFlattenerOptions();
             configure?.Invoke(options);
             if (options.MaxRows <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRows));
-            options.MaxColumns = Math.Min(options.MaxColumns, A1.MaxColumns);
-            int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, A1.MaxRows - _currentRow));
+            options.MaxColumns = Math.Min(options.MaxColumns, ExcelA1.MaxColumns);
+            int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, ExcelA1.MaxRows - _currentRow));
             int startRow = _currentRow;
             if (configure == null && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
                 RowsFromSimpleTypePlan typePlan = GetRowsFromSimpleTypePlan(typeof(T));

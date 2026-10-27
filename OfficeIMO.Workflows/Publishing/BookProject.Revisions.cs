@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Epub;
 using System.Security.Cryptography;
 
@@ -17,14 +18,14 @@ public sealed partial class BookProject {
 
     /// <summary>Captures the current validated publication. Exhausted bounds reject capture without evicting earlier revisions.</summary>
     public BookProjectRevision CreateRevision(string name, CancellationToken cancellationToken = default) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if ((name == null || string.IsNullOrWhiteSpace(name))) throw new ArgumentException("A non-empty value is required.", nameof(name));
         if (name.Length > 256) throw new ArgumentException("Revision names cannot exceed 256 characters.", nameof(name));
         cancellationToken.ThrowIfCancellationRequested();
         if (_revisions.Count >= MaximumRevisionCount) throw new InvalidOperationException("The project revision-count bound is exhausted.");
         byte[] bytes = _publication.Write(cancellationToken: cancellationToken).Bytes;
         if (bytes.LongLength > MaximumRevisionBytes - _revisions.Sum(item => item.Bytes.LongLength))
             throw new InvalidOperationException("The project revision-byte bound is exhausted.");
-        var info = new BookProjectRevision(Guid.NewGuid().ToString("N"), name, DateTimeOffset.UtcNow, Convert.ToHexString(SHA256.HashData(bytes)), bytes.LongLength);
+        var info = new BookProjectRevision(Guid.NewGuid().ToString("N"), name, DateTimeOffset.UtcNow, OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes)), bytes.LongLength);
         cancellationToken.ThrowIfCancellationRequested();
         _revisions.Add((info, bytes));
         return info;
@@ -54,7 +55,7 @@ public sealed partial class BookProject {
     public void RemoveRevision(string revisionId) => _revisions.Remove(RequireRevision(revisionId));
 
     private (BookProjectRevision Info, byte[] Bytes) RequireRevision(string revisionId) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(revisionId);
+        if ((revisionId == null || string.IsNullOrWhiteSpace(revisionId))) throw new ArgumentException("A non-empty value is required.", nameof(revisionId));
         return _revisions.FirstOrDefault(item => item.Info.Id == revisionId) is var found && found.Info != null
             ? found : throw new KeyNotFoundException("The named revision does not exist in this project.");
     }

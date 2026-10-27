@@ -12,11 +12,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Export-OfficeDocumentPdf -InputPath .\Briefing.pptx -Path .\Briefing.pdf -PowerPointOptions $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPointPdfOptions")]
-[OutputType(typeof(PowerPointToPdfOptions))]
+[OutputType(typeof(PowerPointPdfExportOptions))]
 public sealed class NewOfficePowerPointPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the presentation does not specify one.</summary>
     [Parameter]
@@ -98,7 +98,7 @@ public sealed class NewOfficePowerPointPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointToPdfOptions();
+        var options = new PowerPointPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
         if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
         SetBoundSwitch(nameof(IncludePictures), IncludePictures, value => options.IncludePictures = value);

@@ -21,7 +21,7 @@ public class PdfInlineElementTests {
             CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
             FixedRowHeights = new() { 30 }, BorderColor = null, ShrinkTextToFit = true
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
             CompressContentStreams = false
@@ -40,7 +40,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_RendersInlineImageAndBoxInContentOrderWithTags() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
@@ -73,7 +73,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_InlineHeightAdvancesFollowingFlow() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -101,7 +101,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_RejectsInlineElementWiderThanItsFrame() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 160,
                 MarginLeft = 30,
                 MarginRight = 30
@@ -115,7 +115,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_DecorativeInlineImageDrawsOnceAsArtifact() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
@@ -136,7 +136,7 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_CentersInlineElementUsingItsWidth() {
         var fill = new PdfColor(0.13D, 0.57D, 0.91D);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 MarginLeft = 20,
                 MarginRight = 20,
@@ -153,7 +153,7 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_LeadingTabAdvancesInlineElementToNextTabStop() {
         var fill = new PdfColor(0.17D, 0.61D, 0.83D);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 MarginLeft = 20,
                 MarginRight = 20,
@@ -175,7 +175,7 @@ public class PdfInlineElementTests {
         var fill = new PdfColor(0.17D, 0.61D, 0.83D);
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
         style.AddTabStop(stop, leader: PdfTabLeaderStyle.Dots);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 240D, MarginLeft = margin, MarginRight = margin,
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D, CompressContentStreams = false
         }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(18, 12, background: fill), style: style)
@@ -195,7 +195,7 @@ public class PdfInlineElementTests {
     public void TableShrinkToFit_PreservesInlineElementRuns() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         var fill = new PdfColor(0.19D, 0.63D, 0.87D);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Table(new[] {

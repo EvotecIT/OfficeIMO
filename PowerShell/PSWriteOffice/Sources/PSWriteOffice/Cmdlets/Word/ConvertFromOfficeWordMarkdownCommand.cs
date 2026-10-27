@@ -52,7 +52,7 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
 
     /// <summary>Markdown document instance to convert.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Optional output path for the .docx file.</summary>
     [Parameter]
@@ -107,11 +107,11 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
 
     /// <summary>Optional Markdown reader options used before Word conversion.</summary>
     [Parameter]
-    public MarkdownReaderOptions? ReaderOptions { get; set; }
+    public MarkdownLoadOptions? ReaderOptions { get; set; }
 
     /// <summary>Named Markdown reader profile used when <see cref="ReaderOptions"/> is not supplied.</summary>
     [Parameter]
-    public MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; set; }
+    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
 
     /// <summary>Applies a built-in Markdown input normalization preset before parsing.</summary>
     [Parameter]
@@ -241,7 +241,7 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         }
     }
 
-    private MarkdownToWordOptions BuildOptions() {
+    private WordMarkdownImportOptions BuildOptions() {
         if (ReaderOptions != null && Profile.HasValue) {
             throw new PSArgumentException("Specify either -ReaderOptions or -Profile, not both.");
         }
@@ -254,11 +254,11 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
             options.RenderFrontMatter = true;
         }
 
-        if (options is MarkdownToWordTemplateOptions templateOptions) {
-            templateOptions.BookmarkName = NormalizeOptionalText(BookmarkName);
-            templateOptions.ContentControlTag = NormalizeOptionalText(ContentControlTag);
-            templateOptions.ContentControlAlias = NormalizeOptionalText(ContentControlAlias);
-            templateOptions.ReplacePlaceholder = !KeepPlaceholder.IsPresent;
+        if (!string.IsNullOrWhiteSpace(TemplatePath)) {
+            options.BookmarkName = NormalizeOptionalText(BookmarkName);
+            options.ContentControlTag = NormalizeOptionalText(ContentControlTag);
+            options.ContentControlAlias = NormalizeOptionalText(ContentControlAlias);
+            options.ReplacePlaceholder = !KeepPlaceholder.IsPresent;
         }
 
         if (!string.IsNullOrWhiteSpace(FontFamily)) {
@@ -286,12 +286,12 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         }
 
         var readerOptions = ReaderOptions ?? (Profile.HasValue
-            ? MarkdownReaderOptions.CreateProfile(Profile.Value)
+            ? MarkdownLoadOptions.CreateProfile(Profile.Value)
             : null);
         if (readerOptions != null && NormalizeInput.HasValue) {
             readerOptions.InputNormalization.ApplyPreset(NormalizeInput.Value);
         } else if (readerOptions == null && NormalizeInput.HasValue) {
-            readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+            readerOptions = MarkdownLoadOptions.CreateOfficeIMOProfile();
             readerOptions.InputNormalization.ApplyPreset(NormalizeInput.Value);
         }
 
@@ -315,31 +315,31 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         return options;
     }
 
-    private MarkdownToWordOptions CreateOptions() {
-        return string.IsNullOrWhiteSpace(TemplatePath)
-            ? new MarkdownToWordOptions()
-            : new MarkdownToWordTemplateOptions();
+    private WordMarkdownImportOptions CreateOptions() {
+        return new WordMarkdownImportOptions();
     }
 
-    private Task<WordDocument> ConvertMarkdownTextAsync(string markdown, MarkdownToWordOptions options) {
-        var markdownDocument = MarkdownReader.Parse(markdown, options.CreateReaderOptions());
+    private Task<WordDocument> ConvertMarkdownTextAsync(string markdown, WordMarkdownImportOptions options) {
+        var markdownDocument = MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
         return ConvertMarkdownDocumentAsync(markdownDocument, options);
     }
 
-    private async Task<WordDocument> ConvertMarkdownDocumentAsync(MarkdownDoc markdownDocument, MarkdownToWordOptions options) {
+    private async Task<WordDocument> ConvertMarkdownDocumentAsync(MarkdownDocument markdownDocument, WordMarkdownImportOptions options) {
         if (AllowRemoteImages.IsPresent) {
             await MarkdownRemoteImageService.ConfigureResolverAsync(markdownDocument, options, CancelToken).ConfigureAwait(false);
         }
 
-        if (options is not MarkdownToWordTemplateOptions templateOptions) {
-            return markdownDocument.ToWordDocument(options);
+        if (string.IsNullOrWhiteSpace(TemplatePath)) {
+            return markdownDocument.ToWord(options);
         }
 
         var templateDocument = WordDocument.Load(ResolveTemplatePath(), new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadWrite,
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
-        return markdownDocument.ToWordDocument(templateDocument, templateOptions);
+        options.Template = templateDocument;
+        try { return markdownDocument.ToWord(options); }
+        catch { templateDocument.Dispose(); throw; }
     }
 
     private void ValidateTemplateParameters() {

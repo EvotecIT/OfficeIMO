@@ -45,7 +45,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             Operation = OfficeProvenanceWorkflowOperation.Remove,
             InputPath = input,
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = inputBytes,
                 MaximumOutputBytes = outputBytes
             }
@@ -97,7 +97,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                Limits = new OfficeWorkflowLimits {
+                Limits = new OfficeOperationLimits {
                     MaximumInputBytes = inputBytes,
                     MaximumOutputBytes = inputBytes - 1L
                 }
@@ -123,7 +123,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                Limits = new OfficeWorkflowLimits {
+                Limits = new OfficeOperationLimits {
                     MaximumInputBytes = inputBytes,
                     MaximumOutputBytes = 16 * 1024
                 }
@@ -149,7 +149,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = input,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             progress);
 
@@ -209,14 +209,14 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = first,
                 OutputPath = requested,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+                ConflictPolicy = OfficePublicationPolicy.Rename
             },
             new OfficeProvenanceWorkflowRequest {
                 Id = "second",
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = second,
                 OutputPath = laterOutput,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             }
         ]);
 
@@ -239,7 +239,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = input,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             }
         ]);
 
@@ -260,7 +260,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = requested,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+                ConflictPolicy = OfficePublicationPolicy.Rename
             })
             .ToArray();
 
@@ -269,7 +269,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal(requested, prepared[0].OutputPath);
         Assert.Equal(Path.Combine(scope.Path, "cleaned (9999).html"), prepared[^1].OutputPath);
         Assert.Equal(10_000, prepared.Select(item => item.OutputPath).Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.All(prepared, item => Assert.Equal(OfficeWorkflowConflictPolicy.Rename, item.ConflictPolicy));
+        Assert.All(prepared, item => Assert.Equal(OfficePublicationPolicy.Rename, item.ConflictPolicy));
         Assert.Same(prepared[0].BatchBlockedOutputIdentities, prepared[^1].BatchBlockedOutputIdentities);
         Assert.Equal(10_001, prepared[0].BatchBlockedOutputIdentities!.Count);
     }
@@ -288,14 +288,14 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = first,
                 OutputPath = requested,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+                ConflictPolicy = OfficePublicationPolicy.Rename
             },
             new OfficeProvenanceWorkflowRequest {
                 Id = "second",
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = second,
                 OutputPath = requested,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+                ConflictPolicy = OfficePublicationPolicy.Rename
             }
         ], progress: progress);
 
@@ -321,14 +321,14 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                     Operation = OfficeProvenanceWorkflowOperation.Remove,
                     InputPath = first,
                     OutputPath = parentOutput,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                    ConflictPolicy = OfficePublicationPolicy.Replace
                 },
                 new OfficeProvenanceWorkflowRequest {
                     Id = "second",
                     Operation = OfficeProvenanceWorkflowOperation.Remove,
                     InputPath = second,
                     OutputPath = childOutput,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                    ConflictPolicy = OfficePublicationPolicy.Replace
                 }
             ]));
 
@@ -345,7 +345,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             Operation = OfficeProvenanceWorkflowOperation.Remove,
             InputPath = "not-inspected-input.html",
             OutputPath = "not-inspected-output.html",
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            ConflictPolicy = OfficePublicationPolicy.Rename
         };
 
         OfficeProvenanceWorkflowRequest[] prepared = OfficeWorkflowRunner.PrepareBatchRemovalPaths(
@@ -386,7 +386,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             Operation = OfficeProvenanceWorkflowOperation.Remove,
             InputPath = secondInput,
             OutputPath = secondOutput,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         };
         var progress = new MutatingBatchRequestProgress(second, firstOutput);
 
@@ -396,7 +396,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = firstInput,
                 OutputPath = firstOutput,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             second
         ], progress: progress);
@@ -744,7 +744,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             new OfficeProvenanceWorkflowRequest {
                 Operation = OfficeProvenanceWorkflowOperation.Assess,
                 InputPath = input,
-                Limits = new OfficeWorkflowLimits {
+                Limits = new OfficeOperationLimits {
                     MaximumInputBytes = (long)int.MaxValue + 4096L,
                     MaximumOutputBytes = (long)int.MaxValue + 4096L
                 }
@@ -815,7 +815,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = input,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             progress);
 
@@ -868,7 +868,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             progress,
             cancellation.Token);
@@ -892,7 +892,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             progress);
 
@@ -915,8 +915,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                Limits = new OfficeWorkflowLimits {
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                Limits = new OfficeOperationLimits {
                     MaximumInputBytes = 4096,
                     MaximumOutputBytes = 1024
                 }
@@ -1166,7 +1166,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             if (Mutated || value.RequestId != "first" || value.Stage != "validate") return;
             request.InputPath = conflictingOutputPath;
             request.OutputPath = conflictingOutputPath;
-            request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+            request.ConflictPolicy = OfficePublicationPolicy.Replace;
             request.Operation = OfficeProvenanceWorkflowOperation.Inspect;
             request.Limits.MaximumInputBytes = 1;
             Mutated = true;

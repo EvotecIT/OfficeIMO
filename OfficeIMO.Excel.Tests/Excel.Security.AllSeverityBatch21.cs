@@ -38,7 +38,7 @@ public class ExcelAllSeverityBatch21Tests {
         sheet.InsertObjects(
             new[] { new HeaderRow("Alpha") },
             ("RawHeader", row => row.Value));
-        ExcelReadOptions options = new() {
+        ExcelReaderOptions options = new() {
             CellValueConverter = _ => new ExcelCellValue("ConvertedHeader")
         };
 

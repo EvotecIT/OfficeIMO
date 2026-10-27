@@ -218,7 +218,7 @@ public sealed class WorkflowDirectoryInputTests {
     private sealed class Progress(Action<OfficeWorkflowProgress> callback) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => callback(value);
     }
-    private sealed class Guard(Func<bool> callback) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => ValueTask.FromResult(callback());
+    private sealed class Guard(Func<bool> callback) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => Task.FromResult(callback());
     }
 }

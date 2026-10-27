@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .ToArray();
             if (containers.Length == 0) return null;
             if (containers.Length != 1) {
-                AddDiagnostic("PPT-ANIMATION-DUPLICATE",
+                AddDiagnostic("ppt-animation-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A shape contains multiple classic animation containers; they remain preserve-only.",
                     shapeContainer.Offset);
@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             int soundOverrideCount = container.Children.Count(record =>
                 record.Type == RecordSound);
             if (soundOverrideCount > 0) {
-                AddDiagnostic("PPT-ANIMATION-SOUND-OVERRIDE",
+                AddDiagnostic("ppt-animation-sound-override",
                     LegacyPptDiagnosticSeverity.Warning,
                     soundOverrideCount == 1
                         ? "A classic animation contains an inline sound override; its atom and sound remain preservation-only."
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (container.Version != 0x0F || container.Instance != 0
                 || atoms.Length != 1 || atoms[0].Version != 1
                 || atoms[0].Instance != 0 || atoms[0].PayloadLength != 28) {
-                AddDiagnostic("PPT-ANIMATION-ATOM",
+                AddDiagnostic("ppt-animation-atom",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A classic animation container or atom has an invalid record header and remains preserve-only.",
                     container.Offset);
@@ -50,14 +50,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord atom = atoms[0];
             uint flags = atom.ReadUInt32(4);
             if (!HasValidTwoBitFlags(flags)) {
-                AddDiagnostic("PPT-ANIMATION-FLAGS",
+                AddDiagnostic("ppt-animation-flags",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A classic animation uses an undefined two-bit flag value and remains preserve-only.",
                     atom.Offset);
                 return null;
             }
             if (options.ReportUnsupportedContent && (flags & 0xFFFF0000U) != 0) {
-                AddDiagnostic("PPT-ANIMATION-RESERVED",
+                AddDiagnostic("ppt-animation-reserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A classic animation has nonzero reserved flags; the raw bits remain preserved.",
                     atom.Offset);
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             byte textBuildValue = atom.ReadByte(24);
             ushort rawUnused = atom.ReadUInt16(26);
             if (options.ReportUnsupportedContent && rawUnused != 0) {
-                AddDiagnostic("PPT-ANIMATION-UNUSED",
+                AddDiagnostic("ppt-animation-unused",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A classic animation has nonzero reserved trailing bytes; they remain preserved.",
                     atom.Offset);
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || !IsAnimationDirection(effectValue, direction)
                 || afterValue > (byte)LegacyPptAnimationAfterEffect.HideImmediately
                 || textBuildValue > (byte)LegacyPptTextBuildSubEffect.ByCharacter) {
-                AddDiagnostic("PPT-ANIMATION-VALUE",
+                AddDiagnostic("ppt-animation-value",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A classic animation contains an invalid trigger, order, build, effect, direction, or after-effect value and remains preserve-only.",
                     atom.Offset);

@@ -42,7 +42,7 @@ public sealed class PdfRichInlineLineHeightTests {
 
     [Fact]
     public void CompressedTextOnlySpacingRetainsItsAuthoredAdvance() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { DefaultFontSize = 8 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 8 })
             .Paragraph(p => p.FontSize(24).Text("A\n").FontSize(8).Text("B"),
                 style: new PdfParagraphStyle { FontSize = 8, LineSpacing = PdfLineSpacing.Multiple(.5) }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -52,7 +52,7 @@ public sealed class PdfRichInlineLineHeightTests {
     }
 
     internal static byte[] Render(string frame, bool boxFirst, PdfLineSpacing? spacing = null) {
-        var options = new PdfOptions { PageWidth = 300, PageHeight = 300, DefaultFontSize = 8,
+        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 300, DefaultFontSize = 8,
             MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30,
             CompressContentStreams = false };
         var text = new PdfTextRun("A", fontSize: 24, font: PdfStandardFont.Helvetica);
@@ -69,11 +69,11 @@ public sealed class PdfRichInlineLineHeightTests {
                 Background = null, BorderColor = null }));
         else {
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) });
-            var tableStyle = TableStyles.Minimal();
+            var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 8;
             tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
             document.Table(new[] { new[] { cell } }, style: tableStyle);
         }
-        return document.ToBytes();
+        return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

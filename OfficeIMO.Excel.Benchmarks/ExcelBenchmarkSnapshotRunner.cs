@@ -180,7 +180,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
     }
 
     private static int OfficeImoReadRows(byte[] workbookBytes) {
-        using var reader = ExcelDocument.OpenDataReader(workbookBytes);
+        using var reader = ExcelDocument.OpenReader(workbookBytes);
         int count = 0;
         while (reader.Read()) {
             _ = reader.GetInt32(0);

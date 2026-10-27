@@ -28,13 +28,13 @@ public sealed class PdfSaveFailureEvidenceTests {
             byte[] source = File.ReadAllBytes(input), destination = { 1, 2, 3 };
             File.WriteAllBytes(output, destination);
             // Portable hosts can deliberately disable font discovery and generated fallbacks.
-            var options = new OfficeWorkflowConversionOptions();
+            var options = new OfficeConversionOptions();
             if (extension == ".docx") options.Word = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".xlsx") options.Excel = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".pptx") options.PowerPoint = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = route, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = route, ConflictPolicy = OfficePublicationPolicy.Replace,
                 ConversionOptions = options
             });
             Assert.False(result.Succeeded);

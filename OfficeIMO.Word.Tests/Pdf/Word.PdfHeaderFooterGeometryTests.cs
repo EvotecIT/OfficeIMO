@@ -31,7 +31,7 @@ public partial class Word {
         body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
         body.LineSpacing = 240;
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var placements = PdfCore.PdfDocument.Load(bytes).Images.Placements();
         Assert.NotEmpty(placements);
@@ -72,7 +72,7 @@ public partial class Word {
             paragraph.FontSize = 12;
             paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
         }
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(3, pdf.NumberOfPages);
         var placements = PdfCore.PdfDocument.Load(bytes).Images.Placements();
@@ -94,15 +94,15 @@ public partial class Word {
         document.AddHeadersAndFooters();
         AddRunningGeometryPicture(document.Sections[0].Header.Default!.AddParagraph(), 96, 1200);
         document.AddParagraph("BodyMarker");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
             // An explicit projection typography override keeps the bounded
             // header-image path. Its oversized source box must report clipping.
-            PdfOptions = new PdfCore.PdfOptions { HeaderFontSize = 10D }
+            PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = 10D }
         });
         byte[] bytes = result.ToBytes();
         Assert.NotEmpty(bytes);
-        Assert.Contains(result.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped" && warning.Source == "Header");
+        Assert.Contains(result.Warnings, warning => warning.Code == "header-footer-page-bounds-clipped" && warning.Source == "Header");
     }
 
     private static void AddRunningGeometryPicture(WordParagraph paragraph, double width, double height) {

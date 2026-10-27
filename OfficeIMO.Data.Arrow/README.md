@@ -13,9 +13,9 @@ using OfficeIMO.Data.Arrow;
 using OfficeIMO.Excel;
 using System.Data.Common;
 
-using DbDataReader reader = ExcelDocument.OpenDataReader(
+using DbDataReader reader = ExcelDocument.OpenReader(
     "report.xlsx",
-    new ExcelReadOptions { InferSchema = true });
+    new ExcelReaderOptions { InferSchema = true });
 
 await foreach (RecordBatch batch in reader.ReadArrowBatchesAsync(
     new ArrowReadOptions { BatchSize = 65_536 },

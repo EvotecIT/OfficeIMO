@@ -69,8 +69,8 @@ public partial class Word {
         }
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         byte[] bytes = result.Value.ToBytes();
         using (var pdf = PdfPigDocument.Open(bytes)) {
             Assert.Equal(3, pdf.NumberOfPages);

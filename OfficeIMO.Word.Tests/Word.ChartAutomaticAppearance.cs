@@ -41,10 +41,10 @@ public sealed class WordChartAutomaticAppearanceTests {
     [Fact]
     public void EveryAutomaticChartConvertsToPdf() {
         using WordDocument document = WordDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.docx"));
-        OfficeIMO.Pdf.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(document.Charts, chart => !chart.TryGetOfficeSnapshot(out _));
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-body-chart-unsupported");
     }
 
     // The fills a chart draws in series order: filled series and visible markers per series,

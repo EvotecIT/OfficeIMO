@@ -16,12 +16,12 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Writes the Markdown artifact and keeps the document available for further changes.</para>
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficeMarkdown", SupportsShouldProcess = true)]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class SaveOfficeMarkdownCommand : PSCmdlet
     , IMarkdownWriteOptionSource {
     /// <summary>Markdown document to save.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Destination Markdown path.</summary>
     [Parameter(Mandatory = true, Position = 1)]
@@ -30,7 +30,7 @@ public sealed class SaveOfficeMarkdownCommand : PSCmdlet
 
     /// <summary>Optional Markdown writer options.</summary>
     [Parameter]
-    public MarkdownWriteOptions? WriteOptions { get; set; }
+    public MarkdownSaveOptions? WriteOptions { get; set; }
 
     /// <summary>Friendly Markdown writer profile.</summary>
     [Parameter]

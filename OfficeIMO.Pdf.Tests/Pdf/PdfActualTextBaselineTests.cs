@@ -14,7 +14,7 @@ public sealed class PdfActualTextBaselineTests {
         byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "NotoSansArabic-Regular.ttf"));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360D, PageHeight = 160D, MarginLeft = 24D, MarginRight = 24D,
             MarginTop = 24D, MarginBottom = 24D, DefaultFontSize = 20D, Language = "ar"
         };

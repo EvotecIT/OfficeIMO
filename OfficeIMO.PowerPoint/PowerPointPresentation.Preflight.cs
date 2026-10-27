@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
             IList<PowerPointDeckPreflightFinding> findings) {
             PowerPointLayoutBox bounds = shape.Bounds;
             if (bounds.Width <= 0L || bounds.Height <= 0L) {
-                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Layout.InvalidBounds",
+                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "layout-invalid-bounds",
                     "Shape has a non-positive width or height.", slideIndex, shapeIndex, shape, bounds));
                 return;
             }
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
                 if (allowedDecorativeBleed) {
                     return;
                 }
-                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Layout.ShapeOffSlide",
+                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "layout-shape-off-slide",
                     "Shape extends beyond its slide or group canvas.", slideIndex, shapeIndex, shape, bounds));
             }
         }
@@ -164,13 +164,13 @@ namespace OfficeIMO.PowerPoint {
 
             if (options.DetectTextOverflow && layout.Clipped &&
                 textBox.TextAutoFit != PowerPointTextAutoFit.Shape) {
-                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Text.Clipped",
+                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "text-clipped",
                     "Measured text does not fit inside the authored text box.", slideIndex, shapeIndex, textBox,
                     textBox.Bounds, resolvedFontSize));
             }
 
             if (options.DetectUnreadableFontReduction && resolvedFontSize < options.MinimumReadableFontSizePoints) {
-                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "Text.UnreadableFontReduction",
+                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "text-unreadable-font-reduction",
                     "Text fit resolves to " + resolvedFontSize.ToString("0.##", CultureInfo.InvariantCulture) +
                     " pt, below the configured " +
                     options.MinimumReadableFontSizePoints.ToString("0.##", CultureInfo.InvariantCulture) +
@@ -207,14 +207,14 @@ namespace OfficeIMO.PowerPoint {
             IList<PowerPointDeckPreflightFinding> findings) {
             try {
                 if (string.IsNullOrWhiteSpace(picture.ContentType)) {
-                    findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Asset.MissingImagePart",
+                    findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "asset-missing-image-part",
                         "Picture does not resolve to an embedded image part.", slideIndex, shapeIndex, picture,
                         picture.Bounds));
                 }
             } catch (Exception exception) when (exception is ArgumentOutOfRangeException ||
                                                 exception is KeyNotFoundException ||
                                                 exception is InvalidOperationException) {
-                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Asset.BrokenImageRelationship",
+                findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "asset-broken-image-relationship",
                     "Picture relationship cannot be resolved: " + exception.Message, slideIndex, shapeIndex,
                     picture, picture.Bounds));
             }
@@ -257,7 +257,7 @@ namespace OfficeIMO.PowerPoint {
                     string rightLabel = string.IsNullOrWhiteSpace(right.Name)
                         ? "shape " + rightIndex.ToString(CultureInfo.InvariantCulture)
                         : "'" + right.Name + "'";
-                    findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "Layout.ShapeCollision",
+                    findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "layout-shape-collision",
                         "Shape significantly overlaps " + rightLabel + ".", slideIndex,
                         containingShapeIndex ?? leftIndex, left,
                         leftBounds));
@@ -276,7 +276,7 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectVisualSnapshot(PowerPointSlide slide, int slideIndex,
             IList<PowerPointDeckPreflightFinding> findings) {
             try {
-                PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+                PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
                 for (int index = 0; index < snapshot.Diagnostics.Count; index++) {
                     OfficeImageExportDiagnostic diagnostic = snapshot.Diagnostics[index];
                     PowerPointDeckPreflightSeverity severity = diagnostic.Severity switch {
@@ -292,7 +292,7 @@ namespace OfficeIMO.PowerPoint {
                                                 exception is InvalidOperationException ||
                                                 exception is NotSupportedException) {
                 findings.Add(new PowerPointDeckPreflightFinding(PowerPointDeckPreflightSeverity.Error,
-                    "VisualSnapshot.Failed", "Shared visual snapshot failed: " + exception.Message, slideIndex));
+                    "visual-snapshot-failed", "Shared visual snapshot failed: " + exception.Message, slideIndex));
             }
         }
 

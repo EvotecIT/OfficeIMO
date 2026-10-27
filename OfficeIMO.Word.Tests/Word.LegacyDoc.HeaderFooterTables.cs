@@ -29,7 +29,7 @@ public partial class Word {
         }
         story.AddParagraph("AFTERTABLE");
 
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? RequireSectionFooter(restored, 0, type) : RequireSectionHeader(restored, 0, type);
         AssertHeaderFooterTableCells(restoredStory);
         Assert.Contains(restoredStory.Paragraphs, paragraph => paragraph.Text == "AFTERTABLE");
@@ -46,7 +46,7 @@ public partial class Word {
         story.AddTable(1, 2, WordTableStyle.TableNormal);
         WordTable second = story.AddTable(1, 1, WordTableStyle.TableNormal);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "SECOND";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         Assert.Equal(2, restoredStory.Tables.Count);
         Assert.Equal(2, Assert.Single(restoredStory.Tables[0].Rows).Cells.Count);
@@ -72,7 +72,7 @@ public partial class Word {
             link.Remove();
             paragraph._paragraph.Append(new SdtRun(new SdtContentRun(link)));
         }
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         Assert.Contains(Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
             run => run.IsHyperLink && run.Hyperlink!.Uri == target);
@@ -90,7 +90,7 @@ public partial class Word {
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable target = nested ? table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal) : table;
         target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTable restoredTable = Assert.Single(restoredStory.Tables);
         WordTable restoredTarget = nested ? Assert.Single(restoredTable.Rows[0].Cells[0].NestedTables) : restoredTable;
@@ -110,7 +110,7 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "OUTER";
         WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal);
         nested.Rows[0].Cells[0].Paragraphs[0].Text = "NESTED";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTable outer = Assert.Single(restoredStory.Tables);
         Assert.Contains(outer.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "OUTER");
@@ -131,7 +131,7 @@ public partial class Word {
         cell.Borders.BottomStyle = WordBorderStyle.Double;
         cell.Borders.BottomColorHex = "00FF00";
         cell.Borders.BottomSize = 8;
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTableCell restoredCell = Assert.Single(restoredStory.Tables).Rows[0].Cells[0];
         Assert.Equal("FFFF00", restoredCell.ShadingFillColorHex);
@@ -151,7 +151,7 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new BookmarkStart { Id = "51", Name = "StoryCellBookmark" },
             new Run(new Text("MARKED")), new BookmarkEnd { Id = "51" });
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         Paragraph restoredParagraph = Assert.Single(Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs,
             candidate => candidate.Bookmark?.Name == "StoryCellBookmark")._paragraph;
@@ -196,13 +196,13 @@ public partial class Word {
         story.AddParagraph("AFTER");
         if (trailingBlank) story.AddParagraph();
         string[] expected = trailingBlank ? new[] { "AFTER", "" } : new[] { "AFTER" };
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 3; cycle++) {
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
             Assert.Equal(expected, restoredStory.Paragraphs.Select(paragraph => paragraph.Text));
             Assert.Equal("CELL", Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs[0].Text);
-            bytes = restored.ToBytes(WordFileFormat.Doc);
+            bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
     }
 
@@ -218,7 +218,7 @@ public partial class Word {
             : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 2, WordTableStyle.TableNormal);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[0].Cells[1].Paragraphs[0].AddBookmark("EmptyCell");
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 3; cycle++) {
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             WordTable restoredTable = storyKind == 0 ? Assert.Single(restored.Tables)
@@ -227,7 +227,7 @@ public partial class Word {
             Assert.Equal("", empty.Text);
             Assert.Equal("EmptyCell", empty.Bookmark?.Name);
             Assert.Equal("FIRST", restoredTable.Rows[0].Cells[0].Paragraphs[0].Text);
-            bytes = restored.ToBytes(WordFileFormat.Doc);
+            bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
     }
 
@@ -252,7 +252,7 @@ public partial class Word {
             cell.Paragraphs[0].Text = $"CELL{row}{column}";
             cell.AddParagraph("SECOND");
         }
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 2; cycle++) {
             byte[] stream = ReadCompoundStream(bytes, "WordDocument");
             Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x02));
@@ -274,7 +274,7 @@ public partial class Word {
                 for (int column = 0; column < 2; column++) Assert.Equal(new[] { $"CELL{row}{column}", "SECOND" },
                     restoredNested.Rows[row].Cells[column].Paragraphs.Select(paragraph => paragraph.Text));
             }
-            bytes = restored.ToBytes(WordFileFormat.Doc);
+            bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
     }
 
@@ -282,7 +282,7 @@ public partial class Word {
     public void LegacyDoc_SimpleDocumentKeepsMatchingWord97FormatHeader() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("PLAIN");
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] stream = ReadCompoundStream(bytes, "WordDocument");
         Assert.Equal(0x00C1, BitConverter.ToUInt16(stream, 0x02));
         Assert.Equal(0, (BitConverter.ToUInt16(stream, 0x0A) >> 4) & 0xF);

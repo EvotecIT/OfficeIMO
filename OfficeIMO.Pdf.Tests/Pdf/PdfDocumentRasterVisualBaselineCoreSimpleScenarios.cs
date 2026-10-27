@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
     private static byte[] CreateHelloWorld() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -36,7 +36,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateCoreLayout() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -91,7 +91,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Total", "", "", "$467.50", "Ready for approval." }
         };
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -132,7 +132,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "PowerShell wrapper", "PSWriteOffice", "Expose safe PDF operations" }
         };
 
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -146,7 +146,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
-                DefaultTableStyle = TableStyles.Light()
+                DefaultTableStyle = PdfTableStyles.Light()
             })
             .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")
             .H1("Default Styles", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
@@ -164,7 +164,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateStyledRuns() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -221,7 +221,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateTabsLeaders() {
-        return CreateVisualBaselineDocument(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

@@ -37,7 +37,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             new[] { "Task", "Owner" },
             new[] { "Send the report", "Operations" },
             new[] { "Review next month", "Service team" }
-        })), new PdfOptions {
+        })), new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 11
         })
@@ -45,7 +45,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("service-review.pdf");
 ```
 
-`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
+`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
 ## Find your next task
 
@@ -78,7 +78,7 @@ PdfDocument report = PdfDocument.Load(input, new PdfLoadOptions {
     Limits = new PdfReadLimits { MaxInputBytes = 32L * 1024 * 1024 }
 }, stop.Token);
 PdfDocument selected = report.Pages.Extract(stop.Token, 1, 2);
-selected.Save("selected-pages.pdf", stop.Token).RequireSuccess();
+selected.Save("selected-pages.pdf", cancellationToken: stop.Token);
 ```
 
 Input streams are read from their current position and remain open. Cancellation
@@ -94,7 +94,7 @@ that preparation; once saving begins, the prepared files are published one at a 
 ## Output size and images
 
 Page content is Flate-compressed by default, including direct `PdfDocument.Create`
-authoring. `PdfOptions.CompressContentStreams = false` keeps page operators plain.
+authoring. `PdfCreateOptions.CompressContentStreams = false` keeps page operators plain.
 ICC profiles, embedded files and widget appearances are compressed independently;
 XMP packets remain uncompressed. Identical graphics states, shadings, functions and
 untagged Form resources are shared within the document. Byte-identical page programs
@@ -203,19 +203,25 @@ Rules can also be composed inside footnote separator callbacks. For example, `ne
 ```csharp
 using OfficeIMO.Pdf;
 
+using OfficeIMO;
+
 using var source = File.OpenRead("report.txt");
-var conversion = PdfPlainTextConverter.ToPdfDocumentResult(source,
-    new PdfPlainTextOptions { TabSize = 4 }, maximumInputBytes: 64L * 1024 * 1024);
-conversion.SaveResult("report.pdf").RequireSuccess();
+using var destination = File.Create("report.pdf");
+OfficeConversionReport report = OfficeConverter.Convert(source, OfficeDocumentFormat.Text,
+    destination, OfficeDocumentFormat.Pdf,
+    new OfficeConversionOptions {
+        PlainText = new PdfTextImportOptions { TabSize = 4 },
+        MaximumInputBytes = 64L * 1024 * 1024
+    });
 ```
 
 The converter detects UTF-8, UTF-16 and UTF-32 byte order marks and otherwise decodes strict UTF-8. `EncodingName` selects an explicit encoding available in the host; a conflicting BOM or invalid byte sequence fails conversion. Seekable input position is restored and the caller's stream remains open.
 
-Lines, blank lines and repeated spaces are preserved. Tabs advance to source-column stops, form feeds start pages, long lines wrap, and empty input produces one blank page. Defaults are ten-point Courier, 16 million decoded/expanded characters and 10,000 generated pages. `PdfPlainTextOptions.PdfOptions` controls fonts and page geometry. Supply embedded font bytes for characters outside the selected font's coverage; unsupported glyphs fail output rather than publishing replacement text.
+Lines, blank lines and repeated spaces are preserved. Tabs advance to source-column stops, form feeds start pages, long lines wrap, and empty input produces one blank page. Defaults are ten-point Courier, 16 million decoded/expanded characters and 10,000 generated pages. `PdfTextImportOptions.PdfOptions` controls fonts and page geometry. Supply embedded font bytes for characters outside the selected font's coverage; unsupported glyphs fail output rather than publishing replacement text.
 
 ## Paragraph font size and line spacing
 
-`PdfOptions.TextWhitespaceMode` controls ordinary spaces in flow text.
+`PdfCreateOptions.TextWhitespaceMode` controls ordinary spaces in flow text.
 `Collapse`, the default, keeps one separator between words and discards leading
 spaces. `Preserve` retains leading and repeated spaces within a line, counts each
 space during justification, and discards excess spacing at an automatic wrap.
@@ -223,7 +229,7 @@ space during justification, and discards excess spacing at an automatic wrap.
 lines. Tabs and explicit line breaks keep their separate behavior.
 
 ```csharp
-var options = new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
+var options = new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
 var document = PdfDocument.Create(options);
 document.Content.Paragraph(p => p.Text("  First   second"));
 document.Save("preserved-spacing.pdf");
@@ -235,7 +241,7 @@ The existing `PreserveTextWhitespace` property remains available. Setting it to
 Paragraphs can use a fallback font size independently of the document default:
 
 ```csharp
-var document = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 });
+var document = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 12 });
 document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
     FontSize = 8,
     LineSpacing = PdfLineSpacing.Exactly(14),
@@ -323,8 +329,8 @@ An explicit decimal tab can select its decimal separator independently of groupi
 ```csharp
 var style = new PdfParagraphStyle();
 style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
-var pdf = PdfDocument.Create(new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve })
-    .Paragraph(p => p.Text("Total\t1,234.56"), style: style);
+using var pdf = PdfDocument.Create(new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve });
+pdf.Content.Paragraph(p => p.Text("Total\t1,234.56"), style: style);
 ```
 
 This aligns the period at 180 points from the paragraph frame. A value without the selected separator is right-aligned at that stop. Leaving `DecimalSeparator` unset retains the first-period-or-comma behavior. The setting survives paragraph-style copies and table layout.
@@ -338,9 +344,9 @@ var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
     .WithHorizontalTextScaling(75)
     .WithCharacterSpacing(0.5);
 
-PdfDocument.Create()
-    .Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }))
-    .Save("run-spacing.pdf");
+using var pdf = PdfDocument.Create();
+pdf.Content.Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }));
+pdf.Save("run-spacing.pdf");
 ```
 
 `HorizontalTextScaling` is a positive percentage; 100 retains the font's normal
@@ -366,9 +372,8 @@ Image-file pages and image stamps accept at most 128 MiB of encoded data per
 image by default. Increase the limit for a trusted source when needed:
 
 ```csharp
-var images = PdfDocument.CreateFromImages(
-    new[] { "scan-1.png", "scan-2.png" },
-    new PdfImageDocumentOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
+using var images = new[] { "scan-1.png", "scan-2.png" }.ToPdf(
+    new PdfImageImportOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
 
 using var imageStream = System.IO.File.OpenRead("stamp.png");
 var stamped = PdfDocument.Load("input.pdf").Stamp.Image(
@@ -378,8 +383,8 @@ var stamped = PdfDocument.Load("input.pdf").Stamp.Image(
 
 `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)` applies the
 file-read budget when creating a source directly. If that source is passed to
-`CreateFromImages(IEnumerable<PdfImageDocumentSource>, options)`, set
-`PdfImageDocumentOptions.MaximumEncodedImageBytes` to the intended limit too;
+`sources.ToPdf(options)`, set
+`PdfImageImportOptions.MaximumEncodedImageBytes` to the intended limit too;
 document creation checks every source independently. For edits to existing PDF
 images, set `PdfImageEditOptions.MaximumEncodedImageBytes` when adding, replacing,
 moving, or transforming a larger trusted image. Stamp streams are read from
@@ -389,8 +394,8 @@ image and PDF output limits remain separate.
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {
-        options.PageSize = PageSizes.A4;
-        options.Margins = PageMargins.Uniform(36);
+        options.PageSize = PdfPageSizes.A4;
+        options.Margins = PdfPageMargins.Uniform(36);
     })
     .Content(content => content
         .H1("Work items")
@@ -444,7 +449,7 @@ profile containing your embedded font family, fallbacks, language and shaping
 provider when the document requires broader scripts or reproducible font selection.
 
 Drawing text preserves numeric font descriptors when the matching faces are registered in
-`PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
+`PdfCreateOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
 font program. Foreground text and inherited underline/strikethrough paint use `OfficeColor.A`;
 an explicit decoration color uses its own alpha. Foreground transparency preserves logical text,
 placement and run backgrounds. Fully transparent glyphs remain searchable in the PDF.
@@ -557,8 +562,8 @@ the content frame. Positive point values move it outward and negative values
 move it inward. Offsets preserve text wrapping and padding:
 
 ```csharp
-var document = PdfDocument.Create()
-    .Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
+using var document = PdfDocument.Create();
+document.Content.Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
         new PdfPanelStyle {
             RepeatFragmentDecoration = false,
             PaddingY = 4,
@@ -818,19 +823,17 @@ foreach (PdfDiagnosticFinding finding in analysis.Diagnostics.Findings) {
 The unified API intentionally narrows the public surface around the fluent
 `PdfDocument` facade:
 
-- Use `PdfDocument.Load(...)` for normal existing-document workflows. Use
-  `PdfReadDocument.Open(...)` only when a low-level parser model is the intended
-  result rather than the canonical semantic document model.
+- Use `PdfDocument.Load(...)` for existing-document workflows and the instance reading members for extraction.
 - Seekable PDF input streams are now consistently read from the beginning and
   restored to their original position. Non-seekable streams are read forward
   from their current position.
-- Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
+- Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`,
   `Analyze`, compliance, and manipulation work. The source snapshot and canonical
   parse are cached for that document.
 - Typed reading rejects input with no readable indirect objects. Lenient parsing
   reports `PdfParseException.Code == "NoIndirectObjects"` for empty, plain-text,
   or unrecoverable header-only input. `Load` retains its lazy snapshot behavior;
-  `Preflight` and artifact snapshots still retain diagnostic and source-identity
+  analysis and artifact snapshots retain diagnostic and source-identity
   evidence. Zero-page catalogs and recoverable object fragments remain readable.
 - Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
   rewrite-safety, diagnostics, optimization, signature, repair, and compliance
@@ -847,11 +850,7 @@ The unified API intentionally narrows the public surface around the fluent
   `Stamp`, `Security`, `Redactions`, `Optimization`, `Proof`, and metadata operations instead of the former public
   static engine classes. Those implementation engines are now internal so there
   is one supported route for each operation.
-- `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
-  return `PdfSaveResult`. It carries output path/length, conversion warnings,
-  and an immutable `Pipeline` with create/open, mutation, hash, page-count,
-  execution-mode, timing, and final-output evidence. `SaveResult(...)` keeps the
-  same result shape while capturing exceptions instead of throwing.
+- Native `Save(...)` and `SaveAsync(...)` follow the shared document lifecycle and throw on failure. `PdfSaveOptions.AllowLoss` controls writer-time fidelity rejection. Adapter `SaveAsPdf(...)` returns `OfficeConversionReport`, including source and completed-output diagnostics.
 
 The target-framework support remains `netstandard2.0`, `net8.0`, and
 `net10.0`. See the [OfficeIMO migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md)
@@ -866,13 +865,13 @@ as `m-1 tail` followed by `H2O`:
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] bytes = PdfDocument.Create(new PdfOptions { DefaultFontSize = 18 })
+byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 18 })
     .Compose(document => document.Content(content => content
         .Paragraph(p => p.Text("m").Superscript("-1").Text(" tail"))
         .Paragraph(p => p.Text("H").Subscript("2").Text("O"))))
     .ToBytes();
 
-string text = PdfReadDocument.Open(bytes).Pages[0].ExtractText();
+string text = PdfDocument.Load(new MemoryStream(bytes)).Pages[0].ExtractText();
 ```
 
 The shared layout uses transformed text dimensions for script attachment and
@@ -899,7 +898,7 @@ and backward or multiline paint retain the conservative span extent.
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
-PdfReadDocument pdf = PdfReadDocument.Open("input.pdf");
+using PdfDocument pdf = PdfDocument.Load("input.pdf");
 
 pdf.Pages[0]
     .ToImage()
@@ -933,17 +932,22 @@ Dashed outline joins can still differ from native PDF renderers at closed-path s
 
 Scanned-page images support managed CCITT Group 3/4 decoding and packed 1-, 2-, and 4-bit DeviceGray samples. Opaque JPEG 2000 Gray/RGB images require a caller-supplied `IOfficeRasterImageCodec`; embedded or external masks, channel remapping, and color normalization remain diagnosed limitations. Missing scan decoders and malformed scan data fail raster rendering instead of producing a blank successful page. See the [OCR integration](../OfficeIMO.Pdf.Ocr/README.md#scan-rendering-and-execution-limits) for the decoder limits and scan-to-searchable-PDF workflow.
 
-Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
+Convert a source document to `PdfDocument` and use the same paged-image bridge:
 
 ```csharp
-IReadOnlyList<OfficeImageExportResult> pages = markdown
-    .ToPdfDocumentResult()
+using OfficeIMO.Drawing;
+using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Pdf;
+
+using var markdown = MarkdownDocument.Parse("# Page images");
+using var converted = markdown.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
+IReadOnlyList<OfficeImageExportResult> pages = converted
     .ToImages()
     .AsPng()
     .Export();
 ```
 
-Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
+Inspect `report.Diagnostics` for source conversion findings; each page result contains rendering findings. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
 
 Supply replacement fonts and any shaping provider during projection so glyph visibility uses the final font profile:
 
@@ -961,7 +965,7 @@ Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedde
 TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run;
 Unicode mappings retain the source text for extraction, search, and redaction.
 
-Set `PdfOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
+Set `PdfCreateOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
 separate scalar glyphs and the previous wrapping behavior. Per-run feature
 settings such as `OfficeTextFeatureSettings.Default.With("liga", 0)` disable
 that optional feature; the language system's required feature remains enabled.
@@ -976,10 +980,10 @@ of bidi text and replacement text.
 
 Pair kerning is on by default for embedded fonts (OpenType GPOS or `kern`
 pairs) and for the standard Helvetica and Times fonts (Adobe AFM pairs). Set
-`PdfOptions.TextKerning = false` for nominal advances; runs with explicit
+`PdfCreateOptions.TextKerning = false` for nominal advances; runs with explicit
 feature settings keep their own `kern` value.
 
-For multilingual font shaping, `PdfOptions.TextShapingProvider` accepts the shared `OfficeManagedTextShapingProvider.Instance` as well as an optional provider. The managed horizontal static TrueType/CFF profile applies selected Arabic joining forms and required ligatures, Latin/Hebrew/Arabic mark-to-base, mark-to-ligature and mark-to-mark attachment, contextual substitutions and supported pair adjustments. The automatic directional and marked-Latin routes use the same Core owner. Font-selected script and language features determine support; merely loading a font program does not qualify all of its layout operations.
+For multilingual font shaping, `PdfCreateOptions.TextShapingProvider` accepts the shared `OfficeManagedTextShapingProvider.Instance` as well as an optional provider. The managed horizontal static TrueType/CFF profile applies selected Arabic joining forms and required ligatures, Latin/Hebrew/Arabic mark-to-base, mark-to-ligature and mark-to-mark attachment, contextual substitutions and supported pair adjustments. The automatic directional and marked-Latin routes use the same Core owner. Font-selected script and language features determine support; merely loading a font program does not qualify all of its layout operations.
 
 When default managed OpenType shaping accepts a complete run, `PdfDocument.AnalyzeTextEncoding()` and PDF writing use its glyph coverage. A decomposed accent can use a covered precomposed glyph even when the font lacks the separate combining glyph; extraction retains the original Unicode text. `UnicodeScalar` checks the original scalars and requires their glyphs.
 
@@ -1029,9 +1033,9 @@ PdfDocument.Create(pdf => pdf.Page(page => page
                 new[] { "System", "Status", "Owner" },
                 new[] { "Identity", "Green", "Operations" },
                 new[] { "Messaging", "Yellow", "Exchange" }
-            })))), new PdfOptions {
-            PageSize = PageSizes.A4,
-            Margins = PageMargins.UniformCentimeters(1.6),
+            })))), new PdfCreateOptions {
+            PageSize = PdfPageSizes.A4,
+            Margins = PdfPageMargins.UniformCentimeters(1.6),
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         })
@@ -1077,10 +1081,9 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             .Text("Generated ")
             .Bold(DateTime.Today.ToString("yyyy-MM-dd"))
             .Text(" with links, lists, panels, and tables."))
-        .Bullets(list => list
-            .Item("No runtime package dependencies")
-            .Item("Word-like document flow")
-            .Item("Reusable PDF primitives for adapters"))
+        .Bullets(new[] {
+            "No runtime package dependencies", "Word-like document flow", "Reusable PDF primitives for adapters"
+        })
         .Panel(panel => panel
             .H2("Review note")
             .Paragraph(p => p.Text("Keep polished report designs in samples; keep reusable primitives in the engine.")))
@@ -1133,7 +1136,7 @@ var lowerHalf = PdfTableCell.TextCell("Bottom aligned")
         contentWidth: 100, contentHeight: 48,
         width: 100, height: 24, offsetY: 24));
 
-var fragmentStyle = TableStyles.Minimal();
+var fragmentStyle = PdfTableStyles.Minimal();
 fragmentStyle.HeaderRowCount = 0;
 fragmentStyle.ColumnWidthPoints = new List<double?> { 100 };
 fragmentStyle.FixedRowHeights = new List<double?> { 24 };
@@ -1170,13 +1173,13 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             .Text("Automation status ")
             .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
             .Text(" remains available during long reporting runs."))),
-    new PdfOptions().UseTextHyphenationDictionary(hyphenation))
+    new PdfCreateOptions().UseTextHyphenationDictionary(hyphenation))
     .Save("inline-status.pdf");
 ```
 
 Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
 
-Lines wrap at Unicode line-break opportunities (UAX #14), including after hyphens and slashes and between CJK characters. For pattern-based hyphenation without a word list, use `new PdfOptions().UseAutomaticHyphenation("en-US")`. The embedded patterns cover US English (`en-US`) and reformed German (`de-DE`); other languages are not hyphenated. Automatic hyphenation and `UseTextHyphenationDictionary` share one hyphenation hook, so the last one configured applies.
+Lines wrap at Unicode line-break opportunities (UAX #14), including after hyphens and slashes and between CJK characters. For pattern-based hyphenation without a word list, use `new PdfCreateOptions().UseAutomaticHyphenation("en-US")`. The embedded patterns cover US English (`en-US`) and reformed German (`de-DE`); other languages are not hyphenated. Automatic hyphenation and `UseTextHyphenationDictionary` share one hyphenation hook, so the last one configured applies.
 
 ### Logical text for positioned canvas paint
 
@@ -1211,7 +1214,7 @@ byte[] mathematicalPdf = PdfDocument.Create(pdf => pdf.Content(content => conten
     .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
         expression => expression.ActualText("x^(2)",
             paint => paint.Text("x2", 10, 10, 60, 20)), formulaStructure))),
-    new PdfOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
+    new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
 ```
 
 These files are attached to the structure element's `/AF` entry and are also
@@ -1229,7 +1232,7 @@ compliance profile.
 ### Attachment authoring limits
 
 Catalog authoring accepts up to 128 MiB per file through
-`PdfOptions.MaxEmbeddedFileBytes` and 256 MiB across the catalog through
+`PdfCreateOptions.MaxEmbeddedFileBytes` and 256 MiB across the catalog through
 `MaxTotalEmbeddedFileBytes` by default. `AddEmbeddedFile` checks these limits
 before copying payload bytes into the collection. A rejected add or limit
 reduction throws `InvalidDataException` and leaves existing files and settings
@@ -1247,7 +1250,7 @@ Set explicit larger limits before adding trusted larger inputs. For example,
 these settings accept a file up to 256 MiB and a collection up to 512 MiB:
 
 ```csharp
-var attachmentOptions = new PdfOptions {
+var attachmentOptions = new PdfCreateOptions {
     MaxEmbeddedFileBytes = 256L * 1024 * 1024,
     MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024
 };
@@ -1270,12 +1273,12 @@ as described below.
 ### Sections, generated navigation, and bounded stream output
 
 ```csharp
-var options = new PdfOptions {
+var options = new PdfCreateOptions {
     PageContentMemoryLimitBytes = 4 * 1024 * 1024,
     ObjectBufferMemoryLimitBytes = 8 * 1024 * 1024
 };
 
-PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
+PdfDocument.Create(pdf => pdf.Content(content => content
         .TableOfContents()
         .Section("Summary", section => section
             .Element(element => element
@@ -1293,8 +1296,6 @@ PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
             }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))), options)
     .Save("navigable-report.pdf");
 
-Console.WriteLine($"Peak page payload: {save.Serialization?.PeakRetainedPageContentBytes}");
-Console.WriteLine($"Object spill used: {save.Serialization?.ObjectBufferSpilled}");
 ```
 
 Equal-width `Columns` balance their final page by default. Set
@@ -1307,7 +1308,8 @@ paragraph keep and widow rules. The default balances whole rows; set
 Use `ColumnDefinitions` to give sequential columns different widths and gutters:
 
 ```csharp
-var document = PdfDocument.Create().Columns(content =>
+using var document = PdfDocument.Create();
+document.Content.Columns(content =>
     content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
     new PdfMultiColumnOptions {
         BalanceLastPage = false,
@@ -1355,7 +1357,7 @@ foreach (PdfLogicalPage page in result.Pages) {
     }
 }
 
-string markdown = result.ToMarkdown();
+string markdown = result.ExtractMarkdown();
 PdfMetadata metadata = result.Metadata;
 PdfDocumentSecurityInfo security = result.Security;
 IReadOnlyList<PdfOutlineItem> outlines = result.Outlines;
@@ -1382,7 +1384,7 @@ PdfRepairReport repairs = inspection.RepairReport;
 
 Outcomes preserve caller order and repeated page selections. Failed pages have no logical page; their geometry, links, annotations and document metadata remain in `SourceInfo`. `CompletedAllSelectedPages` describes page completion only. Authentication, permission, parser, resource-limit, cancellation and unexpected stage failures still stop the operation. Ordinary `Read()` keeps its existing fail-fast behavior. Lenient parsing reports recoveries and detected-only issues separately; `PdfLoadOptions.ParsingMode = PdfParsingMode.Strict` rejects structural defects.
 
-For native text and metadata without image assets or secondary form-widget objects, use `ReadForInspection(new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false })`. The same options apply to ordinary `Read()`. `IncludesImages` and `IncludesFormWidgets` on the logical result record the requested projections. Native text inside Form XObjects is retained. Source field facts and values remain subject to the canonical parser's form budgets; these flags omit later image and widget construction. Excluding images also omits the optional visual primitive scan, which can materialize Type3 glyph images; `page.HasVisualPrimitiveCounts` reports whether its counts are available.
+For native text and metadata without image assets or secondary form-widget objects, use `ReadForInspection(new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false })`. The same options apply to ordinary `Read()`. `IncludesImages` and `IncludesFormWidgets` on the logical result record the requested projections. Native text inside Form XObjects is retained. Source field facts and values remain subject to the canonical parser's form budgets; these flags omit later image and widget construction. Excluding images also omits the optional visual primitive scan, which can materialize Type3 glyph images; `page.HasVisualPrimitiveCounts` reports whether its counts are available.
 
 Each logical page also retains `IncludesImages` and `IncludesFormWidgets`, including after page selection. An empty unrequested collection does not establish source absence. `AnalyzeExtractionScope()` and logical PDF conversions that report content loss require these projections and visual counts; they throw `InvalidOperationException` for a reduced read. Text and table extraction remain available. Use the default full read when you need omission analysis or conversion diagnostics.
 
@@ -1390,7 +1392,7 @@ Each `page.Analysis.DecodedRuns` item exposes `DecodingEvidence`. It distinguish
 
 `PdfLoadOptions.PreferToUnicode` selects the Unicode-map path, `UseWinAnsiFallback = false` rejects unresolved mappings instead of emitting fallback characters, and `AdjustKerningFromTJ` controls positioned advances between strings in `TJ` arrays. Load settings and parser budgets can be copied with `Clone()`.
 
-`result.ToMarkdown()` uses canonical reading order and emits detected tables once, including tables reconstructed from OCR geometry. `result.ExportStructured(PdfStructuredExportFormat.Json)` preserves positioned `lines` and includes canonical page `text` and detected `tables`. Each table contains its source kind, coordinate space, vertical bounds and original cell `rows`; these additive fields retain the `officeimo.pdf.logical.v1` schema identifier.
+`result.ExtractMarkdown()` uses canonical reading order and emits detected tables once, including tables reconstructed from OCR geometry. `result.ExportStructured(PdfStructuredExportFormat.Json)` preserves positioned `lines` and includes canonical page `text` and detected `tables`. Each table contains its source kind, coordinate space, vertical bounds and original cell `rows`; these additive fields retain the `officeimo.pdf.logical.v1` schema identifier.
 
 For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`
 processes images one at a time. Inside the callback, `image.CopyTo(output, cancellationToken)`
@@ -1419,7 +1421,7 @@ heading-tier, hierarchy, and continuation evidence. `Fast` keeps the same page
 pipeline and result contract while omitting optional document-wide enrichment:
 
 ```csharp
-PdfDocumentReadResult selected = pdf.Read(new PdfReadOptions {
+PdfDocumentReadResult selected = pdf.Read(new PdfLoadOptions {
     Profile = PdfReadProfile.Fast,
     PageSelection = PdfPageSelection.Parse("1-2,5")
 });
@@ -1614,7 +1616,7 @@ when a page is ambiguous or its dominant direction is known:
 
 ```csharp
 PdfDocumentReadResult rtl = PdfDocument.Load("arabic-report.pdf").Read(
-    new PdfReadOptions {
+    new PdfLoadOptions {
         LayoutOptions = new PdfTextLayoutOptions {
             ReadingDirection = PdfReadingDirection.RightToLeft
         }
@@ -1643,17 +1645,12 @@ records exact fixture coverage and recognition limits.
 using OfficeIMO.Pdf;
 
 PdfDocument source = PdfDocument.Load("packet.pdf");
-PdfOperationResult<PdfDocument> rotation = source.Pages.RotateResult(90, "1,3-5");
-PdfDocument rotated = rotation.RequireValue();
-Console.WriteLine(rotation.MutationPlan!.ExecutionMode);
-foreach (string reason in rotation.MutationPlan.Diagnostics) {
-    Console.WriteLine(reason);
-}
+using PdfDocument rotated = source.Pages.Rotate(90, "1,3-5");
 rotated.Save("packet-rotated.pdf");
 
-PdfOperationResult<PdfDocument> crop = rotated.Pages.SetPageBoxResult(
-    PdfPageBoundaryBox.CropBox, 20, 20, 575, 822, PdfPageSelection.From(1));
-crop.RequireValue().Save("packet-cropped.pdf");
+using PdfDocument crop = rotated.Pages.SetPageBox(
+    PdfPageBoundaryBox.CropBox, 20, 20, 575, 822, 1);
+crop.Save("packet-cropped.pdf");
 ```
 
 Rotation sets an absolute angle in multiples of 90 degrees, normalized to
@@ -1668,19 +1665,19 @@ writes all selected page overrides in one revision. Studio's rotate buttons and
 native engine use this relative-turn behavior.
 
 Selectors such as `"odd"`, `"last"`, and `PdfPageSelection` work with
-`RotateBy` and `RotateByResult`. Use an ordered batch for several corrections:
+`RotateBy` and `RotateBy`. Use an ordered batch for several corrections:
 
 ```csharp
-PdfOperationResult<PdfDocument> edits = source.Pages.ApplyAttributesResult(new[] {
+using PdfDocument edits = source.Pages.ApplyAttributes(new[] {
     PdfPageAttributeEdit.RotateBy(90, PdfPageSelection.From(1, 3)),
     PdfPageAttributeEdit.CropMargins(20, 20, 20, 20),
 });
-edits.RequireValue().Save("packet-edited.pdf");
+edits.Save("packet-edited.pdf");
 ```
 
 Each edit sees the geometry produced by the preceding edits. The batch validates
 and writes once; a failed or cancelled batch leaves the source document unchanged.
-`ApplyAttributesResult` accepts a cancellation token for planning, writing, and
+`ApplyAttributes` accepts a cancellation token for planning, writing, and
 output readback; requested cancellation throws `OperationCanceledException`.
 
 Rotation and page-box setters use a full rewrite when supported. When source
@@ -1691,7 +1688,7 @@ the structure tree. The appended cross-reference section follows the final sourc
 section's format and links to it through `/Prev`. The operation result exposes
 the selected route, reasons, and blockers.
 
-`SetPageBoxResult` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
+`SetPageBox` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
 `ArtBox`; convenience methods include `SetCropBox` and `SetMediaBox`. Coordinates
 are in PDF page space. Setting a box leaves source content in the file.
 `PdfPageAttributeEdit.CropMargins` measures physical points (1/72 inch) from the
@@ -1792,10 +1789,10 @@ To place source pages on printable sheets, use the same page import engine for
 N-up or duplex booklet output:
 
 ```csharp
-var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PageSize(842, 595), columns: 2, rows: 1));
+var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PdfPageSize(842, 595), columns: 2, rows: 1));
 nup.ToDocument().Save("packet-two-up.pdf");
 
-var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PageSize(842, 595)));
+var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PdfPageSize(842, 595)));
 booklet.ToDocument().Save("packet-booklet.pdf");
 foreach (var placement in booklet.Placements)
     Console.WriteLine($"Source {placement.SourcePageNumber}: sheet side {placement.SheetPageNumber}, column {placement.Column}");
@@ -1905,12 +1902,12 @@ mutation policy still applies. Plans describe page positions, so regenerate them
 when the source document changes. `PdfPageSelection.Parse("2-4,7").Resolve(pageCount)`
 resolves ranges with bounds checking and preserves caller order and repeated pages.
 
-When the inputs are already byte payloads, merge them directly instead of opening
-temporary document wrappers. The same merge engine and output validation are used:
+Load each source document, then merge the ordered models:
 
 ```csharp
-byte[][] sources = { File.ReadAllBytes("first.pdf"), File.ReadAllBytes("second.pdf") };
-PdfDocument merged = PdfDocument.MergeBytes(sources);
+using var first = PdfDocument.Load("first.pdf");
+using var second = PdfDocument.Load("second.pdf");
+using PdfDocument merged = PdfDocument.Merge(new[] { first, second });
 merged.Save("merged.pdf");
 ```
 
@@ -1944,14 +1941,12 @@ PdfDocument second = PdfDocument.Load("second.pdf", new PdfLoadOptions {
     PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
 });
 
-PdfMergeResult merged = PdfDocument.MergeResult(
-    new PdfMergeOptions(),
-    first,
-    second);
+using PdfDocument merged = PdfDocument.Merge(new[] { first, second },
+    new PdfMergeOptions(), out PdfMergeReport report);
 
 File.WriteAllBytes("merged.pdf", merged.ToBytes());
-Console.WriteLine(merged.Report.OutputHasEncryption); // False
-Console.WriteLine(merged.Report.Sources[1].PermissionRestrictionsIgnored); // True
+Console.WriteLine(report.OutputHasEncryption); // False
+Console.WriteLine(report.Sources[1].PermissionRestrictionsIgnored); // True
 ```
 
 `IgnoreRestrictions` is an authenticated permission override, not password
@@ -2038,15 +2033,15 @@ whether one indivisible page exceeded the target. Probe count and cumulative
 generated bytes are bounded and reported for the complete operation:
 
 ```csharp
-PdfProductionSplitResult split = PdfProductionSplitter.Split(
-    File.ReadAllBytes("records.pdf"),
+using var records = PdfDocument.Load("records.pdf");
+IReadOnlyList<PdfProductionSplitPart> parts = records.Pages.SplitForProduction(
     new PdfProductionSplitOptions {
         MaximumPagesPerPart = 100,
         BoundaryText = "START OF RECORD",
         TargetPartSizeBytes = 20L * 1024 * 1024
     });
 
-foreach (PdfProductionSplitPart part in split.Parts) {
+foreach (PdfProductionSplitPart part in parts) {
     File.WriteAllBytes($"records-{part.PartNumber:000}.pdf", part.ToBytes());
 }
 ```
@@ -2181,7 +2176,7 @@ var encryption = new PdfStandardEncryptionOptions("reader-password") {
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .Paragraph(p => p.Text("Protected in the current host."))),
-        new PdfOptions().SetEncryption(encryption))
+        new PdfCreateOptions().SetEncryption(encryption))
     .Save("protected.pdf");
 
 PdfDocument opened = PdfDocument.Load("protected.pdf", new PdfLoadOptions {
@@ -2721,7 +2716,7 @@ regenerate it with `RegenerateAppearance`.
 
 ### Language and table structure in tagged output
 
-Create the document with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` and
+Create the document with `new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()` and
 set its default `Language`. Generated table headers have stable document-local
 IDs, and data cells reference the applicable row and column headers through
 `/Headers`. The ParentTree uses bounded number-tree nodes for larger documents.
@@ -2757,7 +2752,7 @@ rejected when the strict PDF/UA-2 profile requires it.
 ```csharp
 using OfficeIMO.Pdf;
 
-var options = new PdfOptions()
+var options = new PdfCreateOptions()
     .UsePdfA(PdfComplianceProfile.PdfA2B)
     .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4");
 
@@ -2781,7 +2776,7 @@ PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForAr
 PdfComplianceProofReport proof = artifact.AssessProof(new[] { validation });
 
 PdfDeclaredComplianceClaimsReport declaredClaims = PdfDocument
-    .Load(pdf)
+    .Load(new MemoryStream(pdf))
     .AssessDeclaredComplianceClaims(new[] { validation });
 
 if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance) {
@@ -2802,7 +2797,7 @@ using OfficeIMO.Pdf;
 
 byte[] cmykProfile = File.ReadAllBytes("PSOcoated_v3.icc");
 byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
-var options = new PdfOptions()
+var options = new PdfCreateOptions()
     .ConfigurePdfX(
         PdfComplianceProfile.PdfX4,
         cmykProfile,
@@ -2871,14 +2866,13 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new WordToPdfOptions {
+var options = new WordPdfExportOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);
 
-var result = document.ToPdfDocumentResult(options);
-result.Report.RequireNoErrorWarnings();
-result.Save("proposal.pdf");
+OfficeIMO.OfficeConversionReport report = document.SaveAsPdf("proposal.pdf", options);
+report.ThrowIfLoss();
 ```
 
 The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. For Word, Excel and PowerPoint this includes embedding installed document-selected fonts, with installed substitutes preferred when a requested Office family is missing. `font-family-substitution` diagnostics identify replacements, and `font-embedding-cost` records actual font-program stream sizes, compression and subset/full-program status. These byte counts exclude font dictionaries and character maps. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
@@ -2889,7 +2883,7 @@ The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.
 
 On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
-`PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. It also preserves caller-owned named families, including their bold and italic faces, when a fallback candidate requests the same normalized family name. The fallback uses a separate resource, and runs from the reusable fallback plan resolve that resource through the current `PdfOptions`; callers do not need to rewrite the planned run's family name. A later explicit family registration retains caller ownership.
+`PdfCreateOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. It also preserves caller-owned named families, including their bold and italic faces, when a fallback candidate requests the same normalized family name. The fallback uses a separate resource, and runs from the reusable fallback plan resolve that resource through the current `PdfCreateOptions`; callers do not need to rewrite the planned run's family name. A later explicit family registration retains caller ownership.
 
 `PdfEmbeddedFontFallbackSet.RegisterFonts` installs the supplied slot and named-family mappings directly and can replace those mappings. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data. Missing-font substitution can change glyph metrics and line breaks even when the substitute covers every character.
 
@@ -2920,7 +2914,7 @@ byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .Paragraph(paragraph => paragraph.Text("Invoice preview"))),
-    new PdfOptions()
+    new PdfCreateOptions()
         .UseFacturX(
             invoiceXml,
             relationship: PdfAssociatedFileRelationship.Alternative,
@@ -2949,7 +2943,7 @@ var invoice = PdfCiiInvoiceDocument.Load("invoice.xml")
     .WithIssueDate(new DateTime(2026, 9, 6));
 
 invoice.Save("updated-invoice.xml");
-var options = new PdfOptions().UseFacturXDocument(invoice);
+var options = new PdfCreateOptions().UseFacturXDocument(invoice);
 ```
 
 `Load` also accepts a byte array or readable stream. `Save` accepts a path or
@@ -2989,9 +2983,9 @@ its existing low-level XML carrier and bounded `PdfCiiInvoiceDocument` APIs.
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Draft report")
         .Paragraph(paragraph => paragraph.Text("This document uses page-level options instead of post-processing."))),
-    new PdfOptions {
-            PageSize = PageSize.FromCentimeters(21, 29.7).Portrait(),
-            Margins = PageMargins.UniformCentimeters(1.5),
+    new PdfCreateOptions {
+            PageSize = PdfPageSize.FromCentimeters(21, 29.7).Portrait(),
+            Margins = PdfPageMargins.UniformCentimeters(1.5),
             TextWatermark = new PdfTextWatermark("DRAFT") {
                 Opacity = 0.12,
                 RotationAngle = -35
@@ -3001,7 +2995,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("draft.pdf");
 ```
 
-For facing-page layouts, set `PdfOptions.MirrorMargins = true` or use
+For facing-page layouts, set `PdfCreateOptions.MirrorMargins = true` or use
 `page.MirrorMargins()` in a section. The authored left and right margins apply to
 odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
 that parity. Flow content follows the current page frame, including automatic
@@ -3023,7 +3017,7 @@ breaks are consecutive. The parameterless overload skips empty pages.
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("incoming.pdf");
-PdfDocumentPreflight preflight = pdf.Preflight();
+PdfDocumentPreflight preflight = pdf.Analyze().Preflight;
 
 if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     foreach (string diagnostic in preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages)) {
@@ -3031,10 +3025,8 @@ if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     }
 }
 
-var result = pdf.Pages.TryExtract("1-2");
-if (result.Succeeded) {
-    result.RequireValue().Save("incoming-first-pages.pdf");
-}
+using PdfDocument result = pdf.Pages.Extract("1-2");
+result.Save("incoming-first-pages.pdf");
 ```
 
 ### Inspect before automating
@@ -3071,7 +3063,7 @@ not mean that metadata updates, form filling, or signing are also blocked.
 ### Convert PDFs through adapter packages
 
 ```csharp
-using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -3081,19 +3073,15 @@ using var word = WordDocument.Load("proposal.docx");
 word.SaveAsPdf("proposal.pdf");
 
 PdfDocument statement = PdfDocument.Load("bank-statement.pdf");
-PdfExcelTableImportReport tableReport = statement.SaveTablesAsExcel(
-    "bank-statement-tables.xlsx");
+OfficeIMO.OfficeConversionReport tableReport = statement.SaveAsExcel("bank-statement-tables.xlsx");
+Console.WriteLine($"Table reconstruction has loss: {tableReport.HasLoss}");
 
-Console.WriteLine($"Non-table page content detected: {tableReport.HasOmittedPageContent}");
-
-PdfHtmlConverterExtensions.SaveAsHtml(
-    "proposal.pdf",
-    "proposal-review.html",
-    new PdfToHtmlOptions {
-        Profile = PdfHtmlProfile.PositionedReview,
-        IncludeLinkAnnotations = true,
-        IncludeFormWidgets = true
-    });
+using var proposal = PdfDocument.Load("proposal.pdf");
+proposal.SaveAsHtml("proposal-review.html", new PdfToHtmlOptions {
+    Profile = PdfHtmlProfile.PositionedReview,
+    IncludeLinkAnnotations = true,
+    IncludeFormWidgets = true
+});
 ```
 
 ## Conversion adapters
@@ -3101,8 +3089,8 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | Package | Role |
 | --- | --- |
 | [OfficeIMO.Word.Pdf](../OfficeIMO.Word.Pdf/README.md) | Maps Word documents into PDF primitives. |
-| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Maps Excel workbooks to PDF and recovers detected PDF tables as editable worksheets. |
-| [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md) | Maps Markdown documents into PDF primitives. |
+| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Exports Excel workbooks as PDF. |
+| [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md) | Exports Markdown documents as PDF. |
 | [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Maps PowerPoint slides to PDF and imports PDF pages as visual slides or editable detected tables. |
 | [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) | Bridges HTML to PDF and PDF to HTML. |
 | [OfficeIMO.Rtf.Pdf](../OfficeIMO.Rtf.Pdf/README.md) | Maps semantic RTF into PDF and logical PDF content back to RTF. |
@@ -3241,7 +3229,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 internal static class OfficeImoPdfGenerator {
     internal static byte[] Generate(PdfBenchmarkScenario scenario) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
             DefaultFontSize = 9,
             FileVersion = PdfFileVersion.Pdf17,

@@ -99,7 +99,7 @@ public sealed class PdfExplicitLineSpacingTests {
             letters.First(letter => letter.Value == "B").StartBaseLine.Y, 13.99, 14.01);
     }
 
-    private static PdfOptions Options() => new() { PageWidth = 300, PageHeight = 300,
+    private static PdfCreateOptions Options() => new() { PageWidth = 300, PageHeight = 300,
         MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30, DefaultFontSize = 12 };
 
     private static byte[] Render(string frame, PdfParagraphStyle style, bool mixed) {
@@ -110,8 +110,8 @@ public sealed class PdfExplicitLineSpacingTests {
         var runs = new[] { new PdfTextRun("A\n", fontSize: 8), new PdfTextRun("B\n", fontSize: mixed ? 32 : 8), new PdfTextRun("C", fontSize: 8) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: style.FontSize, lineSpacing: style.LineSpacing) });
-        var tableStyle = TableStyles.Minimal(); tableStyle.HeaderRowCount = 0;
+        var tableStyle = PdfTableStyles.Minimal(); tableStyle.HeaderRowCount = 0;
         tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0;
-        return PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: tableStyle).ToBytes();
+        return PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: tableStyle).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

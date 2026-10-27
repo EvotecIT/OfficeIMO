@@ -9,7 +9,7 @@ namespace OfficeIMO.Workflows;
 public static class ProjectDataWorkflow {
     /// <summary>Creates a CSV document containing the exact table text. Save/load settings, quoting and delimiter handling belong to OfficeIMO.CSV.</summary>
     public static CsvDocument CreateCsv(ProjectDataTable table, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(table);
+        if (table == null) throw new ArgumentNullException(nameof(table));
         cancellationToken.ThrowIfCancellationRequested();
         var csv = new CsvDocument().WithHeader(table.Headers.ToArray());
         foreach (var row in table.Rows) { cancellationToken.ThrowIfCancellationRequested(); csv.AddRow(row.Cast<object?>().ToArray()); }
@@ -18,7 +18,7 @@ public static class ProjectDataWorkflow {
 
     /// <summary>Copies a parsed CSV table without reflection or culture-dependent value conversion.</summary>
     public static ProjectDataTable ReadCsv(CsvDocument csv, int maxRows = 100000, int maxCells = 2000000, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(csv);
+        if (csv == null) throw new ArgumentNullException(nameof(csv));
         cancellationToken.ThrowIfCancellationRequested();
         IEnumerable<IReadOnlyList<string?>> Rows() {
             foreach (var row in csv.AsEnumerable()) {
@@ -33,7 +33,7 @@ public static class ProjectDataWorkflow {
 
     /// <summary>Creates a workbook with one worksheet per mapped table and a separate sheet describing projection losses. Values remain literal text to preserve precision and prevent formula execution.</summary>
     public static ExcelDocument CreateExcel(ProjectDataExportResult export, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(export);
+        if (export == null) throw new ArgumentNullException(nameof(export));
         cancellationToken.ThrowIfCancellationRequested();
         var document = ExcelDocument.Create();
         try {
@@ -57,16 +57,16 @@ public static class ProjectDataWorkflow {
     }
 
     internal static void ValidateExcelGrid(int dataRowCount, int columnCount, string tableName) {
-        if (dataRowCount < 0 || dataRowCount > A1.MaxRows - 1)
-            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {A1.MaxRows:N0}-row worksheet limit including its header.");
-        if (columnCount < 1 || columnCount > A1.MaxColumns)
-            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {A1.MaxColumns:N0}-column worksheet limit.");
+        if (dataRowCount < 0 || dataRowCount > ExcelA1.MaxRows - 1)
+            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {ExcelA1.MaxRows:N0}-row worksheet limit including its header.");
+        if (columnCount < 1 || columnCount > ExcelA1.MaxColumns)
+            throw new InvalidOperationException($"Project table '{tableName}' exceeds Excel's {ExcelA1.MaxColumns:N0}-column worksheet limit.");
     }
 
     /// <summary>Reads an explicitly bounded worksheet rectangle with headers in its first row. Formula and error cells are rejected; numeric/date cells use invariant underlying values.</summary>
     public static ProjectDataTable ReadExcel(ExcelSheet sheet, int dataRowCount, int columnCount, int headerRow = 1, int firstColumn = 1,
         int maxRows = 100000, int maxCells = 2000000, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(sheet);
+        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         cancellationToken.ThrowIfCancellationRequested();
         if (dataRowCount < 0 || dataRowCount > maxRows || columnCount < 1 || columnCount > 64 || headerRow < 1 || firstColumn < 1
             || (long)headerRow + dataRowCount > 1048576 || (long)firstColumn + columnCount - 1 > 16384

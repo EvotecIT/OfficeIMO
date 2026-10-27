@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
@@ -32,12 +33,12 @@ public partial class Word {
         document.Save();
         using var reopened = WordDocument.Load(source);
         string output = source + ".pdf";
-        reopened.SaveAsPdf(output, new WordToPdfOptions {
+        reopened.SaveAsPdf(output, new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PdfOptions = new PdfOptions { TaggedStructureMode = tagged ? PdfTaggedStructureMode.CatalogMarkers : PdfTaggedStructureMode.None }
+            PdfOptions = new PdfCreateOptions { TaggedStructureMode = tagged ? PdfTaggedStructureMode.CatalogMarkers : PdfTaggedStructureMode.None }
         });
         var logical = PdfDocumentReadResult.Load(File.ReadAllBytes(output));
-        using WordDocument imported = PdfDocument.Load(output).ToWordDocumentResult(new PdfToWordOptions()).Value;
+        using WordDocument imported = PdfDocument.Load(output).ConvertToWordWithEvidence(new WordPdfImportOptions()).Value;
         WordParagraphStyles[] fallback = { WordParagraphStyles.Heading1, WordParagraphStyles.Heading2, WordParagraphStyles.Heading3 };
         for (int index = 0; index < levels.Length; index++) {
             string marker = "SparseHeading" + levels[index];
@@ -70,13 +71,13 @@ public partial class Word {
         }
         document.Save();
         using var reopened = WordDocument.Load(source);
-        reopened.SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+        reopened.SaveAsPdf(path, new WordPdfExportOptions { IncludePageNumbers = false });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(File.ReadAllBytes(path));
         for (int level = 1; level <= 9; level++) {
             var heading = Assert.Single(logical.Headings, h => h.Text == "AuthoredHeading" + level);
             Assert.Equal(level, heading.Level);
         }
-        using WordDocument imported = PdfDocument.Load(path).ToWordDocumentResult(new PdfToWordOptions()).Value;
+        using WordDocument imported = PdfDocument.Load(path).ConvertToWordWithEvidence(new WordPdfImportOptions()).Value;
         for (int level = 1; level <= 9; level++) {
             var heading = Assert.Single(imported.Paragraphs, p => p.Text == "AuthoredHeading" + level);
             Assert.Equal(styles[level - 1], heading.Style);

@@ -50,7 +50,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
         mixed.Spacing = 20;
         mixed._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " PAGE " });
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = pdf.GetPage(1).Text;
         Assert.Contains("{page}", text, StringComparison.Ordinal);
         Assert.Contains("{pages}", text, StringComparison.Ordinal);
@@ -66,7 +66,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = 20;
         WordParagraph count = document.HeaderDefaultOrCreate.AddParagraph();
         count._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " NUMPAGES " });
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.DoesNotContain("{documentpages}", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.Equal(1, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
         Assert.Empty(document.ValidateDocument());
@@ -152,7 +152,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         paragraph._paragraph.ParagraphProperties!.ParagraphStyleId = new ParagraphStyleId { Val = "MarkerSpacing" };
         if (route == "inline") paragraph.PageBreakBefore = true;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return pdf.GetPages().SelectMany(page => page.Letters).ToArray();
     }
 
@@ -169,14 +169,14 @@ public sealed class WordPdfRunSpacingReviewTests {
         else paragraph._paragraph.Append(new SimpleField(result) { Instruction = " " + instruction + " " });
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" },
             new FontSize { Val = "24" }), new Text("X")));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(1, letters.Count(letter => letter.Value == "1"));
         Assert.DoesNotContain(letters, letter => letter.Value == "8");
         return letters.Single(letter => letter.Value == "X").StartBaseLine.X;
     }
 
-    private static WordToPdfOptions Options() => new() {
+    private static WordPdfExportOptions Options() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
 }

@@ -145,7 +145,7 @@ public sealed class ReaderPdfModularTests {
             stream,
             sourceName: "ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList();
 
         var chunk = Assert.Single(chunks);
@@ -162,7 +162,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList();
 
         var chunk = Assert.Single(chunks);
@@ -187,7 +187,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-open-action-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList());
 
         Assert.Equal(2, chunk.Location.Page);
@@ -449,7 +449,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-readback.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1) }
             });
 
         Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
@@ -460,7 +460,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesCatalogNavigationAndMetadataEntries() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
                 CatalogPageMode = PdfCatalogPageMode.UseOutlines,
                 CatalogPageLayout = PdfCatalogPageLayout.TwoColumnLeft,
@@ -528,7 +528,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesOutputIntentMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
             .Paragraph(p => p.Text("Output intent metadata proof."))
             .ToBytes();
 
@@ -696,7 +696,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesXmpMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "B")
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("EN 16931"))
@@ -831,7 +831,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FiltersLogicalMetadataToSelectedPages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true
             })
             .H1("First")
@@ -848,7 +848,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "selected-metadata.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
             });
 
         Assert.Single(result.Pages);
@@ -879,7 +879,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "selected-form.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
             });
 
         Assert.Empty(result.Forms);
@@ -892,7 +892,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesFormWidgetMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -1092,7 +1092,7 @@ public sealed class ReaderPdfModularTests {
             stream,
             sourceName: "duplicate-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1, 1) }
             }).ToList();
 
         Assert.Equal(2, chunks.Count);
@@ -1163,7 +1163,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "partial-catalog-actions.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             },
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
 
@@ -1186,7 +1186,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "catalog-actions-duplicate-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 2) }
             }).ToList();
 
         Assert.Equal(2, chunks.Count);
@@ -1202,7 +1202,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesDetectedTables() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -1273,7 +1273,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesTablesOnResultAndPage() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -1314,7 +1314,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfTables_ReturnsLogicalTablesOnly() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -1377,7 +1377,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesFormAndSourceDiagnostics() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 240,
                 MarginLeft = 36,
@@ -1542,7 +1542,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesImageVisualGeometry() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
                 MarginLeft = 36,
@@ -1797,7 +1797,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FlagsImageOnlyPagesAsOcrCandidates() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 24,
@@ -1856,7 +1856,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ApplyOcrResults_EnrichesImageOnlyPagesWithoutRunningOcrInCore() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300,
                 PageHeight = 220,
                 MarginLeft = 24,
@@ -1952,7 +1952,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeTableSelectionsEmitUniqueAnchors() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -1995,7 +1995,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfTableExports_DuplicatePageRangeTableSelectionsEmitUniqueIds() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -2034,7 +2034,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_TableRowCapsApplyAfterDetectedHeader() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -2076,7 +2076,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesHeaderlessKeyValueTables() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -2119,7 +2119,7 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_SplitsByMaxChars() {
         string longText = string.Join(" ", Enumerable.Repeat("Reader PDF split marker", 40));
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 620,
                 MarginLeft = 36,
@@ -2209,7 +2209,7 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void ReaderPdfOptions_CloneCopiesNestedOptionsIndependently() {
         var options = ReaderPdfOptions.CreateOfficeIMOProfile();
-        options.ReadOptions = new PdfReadOptions {
+        options.ReadOptions = new PdfLoadOptions {
             Profile = PdfReadProfile.Fast,
             PageSelection = PdfPageSelection.From(1),
             LayoutOptions = new PdfTextLayoutOptions {
@@ -2290,7 +2290,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "reversed-continuation.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1) }
             });
 
         Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
@@ -2305,7 +2305,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "repeated-continuation.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions {
+                ReadOptions = new PdfLoadOptions {
                     PageSelection = PdfPageSelection.FromRanges(
                         PdfPageRange.From(1, 2),
                         PdfPageRange.From(1, 2))
@@ -2344,7 +2344,7 @@ public sealed class ReaderPdfModularTests {
     }
 
     private static byte[] BuildTwoPagePdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,
@@ -2980,7 +2980,7 @@ public sealed class ReaderPdfModularTests {
     }
 
     private static ReaderPdfOptions CreateSingleColumnPdfOptions(PdfPageSelection? selection = null) => new ReaderPdfOptions {
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             PageSelection = selection,
             LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true }
         }

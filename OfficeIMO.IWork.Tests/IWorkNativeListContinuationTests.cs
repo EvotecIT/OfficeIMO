@@ -16,8 +16,8 @@ public sealed partial class IWorkEverydayNativeExportTests {
         foreach (var scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             string name = scenario.GetProperty("case").GetString()!;
             foreach (string producer in new[] { "pages", "keynote", "composed" }) {
-                string text = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(
-                    Corpus("native-exports/list-counter-" + name + "-v15.4-" + producer + ".pdf"))).ExtractText();
+                string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(
+                    Corpus("native-exports/list-counter-" + name + "-v15.4-" + producer + ".pdf")))).ExtractText();
                 // Native PDF glyph positioning can add extraction whitespace
                 // inside words. Check the complete ordered character sequence.
                 text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", string.Empty);

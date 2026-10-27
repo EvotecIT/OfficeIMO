@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
                 foreach (Cell cell in row.Elements<Cell>()) {
                     int cellRow;
                     int cellColumn;
-                    if (A1.TryParseCellReferenceFast(cell.CellReference?.Value, out int explicitRow, out int explicitColumn)) {
+                    if (ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out int explicitRow, out int explicitColumn)) {
                         cellRow = explicitRow;
                         cellColumn = explicitColumn;
                     } else {
@@ -35,16 +35,16 @@ namespace OfficeIMO.Excel {
                 if (!preserveImplicitRowIndexes) row.RowIndex = effectiveRow;
                 int previousColumn = 0;
                 foreach (Cell cell in row.Elements<Cell>()) {
-                    if (A1.TryParseCellReferenceFast(cell.CellReference?.Value, out _, out int explicitColumn)) {
+                    if (ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out _, out int explicitColumn)) {
                         previousColumn = explicitColumn;
                         continue;
                     }
                     int column = checked(previousColumn + 1);
-                    if (column > A1.MaxColumns) {
+                    if (column > ExcelA1.MaxColumns) {
                         throw new InvalidOperationException(
                             "Implicit worksheet cell order exceeds Excel's column limit.");
                     }
-                    cell.CellReference = A1.CellReference(checked((int)effectiveRow), column);
+                    cell.CellReference = ExcelA1.CellReference(checked((int)effectiveRow), column);
                     previousColumn = column;
                 }
                 previousRow = effectiveRow;

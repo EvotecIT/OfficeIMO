@@ -71,9 +71,9 @@ public partial class Word {
         }
         if (cell == null) source.AddParagraph("B"); else cell.AddParagraph("B");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.DoesNotContain("SECRET", pdf.GetPage(1).Text);
         return Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -

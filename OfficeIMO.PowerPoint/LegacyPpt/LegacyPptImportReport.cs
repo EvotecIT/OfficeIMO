@@ -150,7 +150,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .ToList();
             if (UnsupportedShapeCount > 0) {
                 fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "PPT-UNSUPPORTED-SHAPES",
+                    "ppt-unsupported-shapes",
                     $"{UnsupportedShapeCount} preserve-only shape(s) cannot be projected to editable PowerPoint content.",
                     OfficeConversionLossKind.Omission,
                     "OfficeIMO.PowerPoint.LegacyPpt.Reader",
@@ -169,17 +169,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             string code = diagnostic.Code;
-            return code is "PPT-COMMENT-TAG-DATA" or "PPT-COMMENT-CONTAINER"
-                or "PPT-COMMENT-ATOM" or "PPT-COMMENT-INDEX"
-                or "PPT-COMMENT-DATETIME" or "PPT-COMMENT-STRING"
-                or "PPT-COMMENT-EXTENSION"
-                || code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
-                || code.IndexOf("-PRESERVE-ONLY", StringComparison.Ordinal) >= 0
-                || code.EndsWith("-UNSUPPORTED", StringComparison.Ordinal)
-                || code.EndsWith("-MISSING", StringComparison.Ordinal)
-                || code.EndsWith("-TRUNCATED", StringComparison.Ordinal)
-                || code.EndsWith("-READ", StringComparison.Ordinal)
-                || code.EndsWith("-MALFORMED", StringComparison.Ordinal)
+            return code is "ppt-comment-tag-data" or "ppt-comment-container"
+                or "ppt-comment-atom" or "ppt-comment-index"
+                or "ppt-comment-datetime" or "ppt-comment-string"
+                or "ppt-comment-extension"
+                || code.IndexOf("-preserved", StringComparison.Ordinal) >= 0
+                || code.IndexOf("-preserve-only", StringComparison.Ordinal) >= 0
+                || code.EndsWith("-unsupported", StringComparison.Ordinal)
+                || code.EndsWith("-missing", StringComparison.Ordinal)
+                || code.EndsWith("-truncated", StringComparison.Ordinal)
+                || code.EndsWith("-read", StringComparison.Ordinal)
+                || code.EndsWith("-malformed", StringComparison.Ordinal)
                 ? OfficeConversionLossKind.Omission
                 : OfficeConversionLossKind.Approximation;
         }

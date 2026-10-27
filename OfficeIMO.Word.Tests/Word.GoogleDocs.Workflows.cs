@@ -377,18 +377,18 @@ namespace OfficeIMO.Tests {
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Document) {
                 Assert.Equal("Import", imported.Document.BuiltinDocumentProperties.Title);
-                WordDocumentSnapshot snapshot = imported.Document.CreateInspectionSnapshot();
-                string[] text = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>().Select(paragraph => paragraph.Text).ToArray();
+                WordDocumentInfo snapshot = imported.Document.Inspect();
+                string[] text = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>().Select(paragraph => paragraph.Text).ToArray();
                 Assert.Contains("Tab One", text);
                 Assert.Contains("Alpha", text);
                 Assert.Contains("Tab Two", text);
                 Assert.Contains("Beta", text);
-                WordParagraphSnapshot alpha = snapshot.Sections.SelectMany(section => section.Elements)
-                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Alpha");
+                WordParagraphInfo alpha = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphInfo>().Single(paragraph => paragraph.Text == "Alpha");
                 Assert.Equal(nameof(WordCapsStyle.SmallCaps), Assert.Single(alpha.Runs).CapsStyle);
                 Assert.Equal(nameof(WordVerticalTextPosition.Superscript), Assert.Single(alpha.Runs).VerticalTextAlignment);
-                WordParagraphSnapshot beta = snapshot.Sections.SelectMany(section => section.Elements)
-                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Beta");
+                WordParagraphInfo beta = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphInfo>().Single(paragraph => paragraph.Text == "Beta");
                 Assert.Equal(nameof(WordVerticalTextPosition.Subscript), Assert.Single(beta.Runs).VerticalTextAlignment);
                 Assert.Equal("revision-7", imported.Source.RevisionId);
                 Assert.Equal(7, imported.Source.DriveVersion);

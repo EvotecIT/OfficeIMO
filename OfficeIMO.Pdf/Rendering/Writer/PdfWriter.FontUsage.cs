@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    internal static System.Collections.Generic.IReadOnlyList<PdfStandardFont> CollectGeneratedStandardFonts(IEnumerable<IPdfBlock> blocks, PdfOptions options) {
+    internal static System.Collections.Generic.IReadOnlyList<PdfStandardFont> CollectGeneratedStandardFonts(IEnumerable<IPdfBlock> blocks, PdfCreateOptions options) {
         return CollectGeneratedComplianceEvidence(document: null, blocks, options).StandardFonts;
     }
 
-    internal static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(PdfDocument? document, IEnumerable<IPdfBlock> blocks, PdfOptions options) {
+    internal static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(PdfDocument? document, IEnumerable<IPdfBlock> blocks, PdfCreateOptions options) {
         Guard.NotNull(blocks, nameof(blocks));
         Guard.NotNull(options, nameof(options));
 
@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
         return CollectGeneratedComplianceEvidence(layout, options);
     }
 
-    private static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(LayoutResult layout, PdfOptions options) {
+    private static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(LayoutResult layout, PdfCreateOptions options) {
         Guard.NotNull(layout, nameof(layout));
         Guard.NotNull(options, nameof(options));
 
@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
 
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             LayoutResult.Page page = layout.Pages[pageIndex];
-            PdfOptions pageOptions = page.Options ?? options;
+            PdfCreateOptions pageOptions = page.Options ?? options;
             if (pageOptions.PrintProductionPageBoxesSnapshot != null) {
                 pageOptions.PrintProductionPageBoxesSnapshot.Resolve(pageOptions.PageWidth, pageOptions.PageHeight);
                 pagesWithPrintProductionBoxes++;
@@ -173,7 +173,7 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfStandardFont font, PdfOptions options) {
+    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfStandardFont font, PdfCreateOptions options) {
         for (int i = 0; i < usages.Count; i++) {
             PdfGeneratedFontComplianceEvidence usage = usages[i];
             if (usage.StandardFont == font && !usage.NamedFont.HasValue && object.ReferenceEquals(usage.Options, options)) {
@@ -184,7 +184,7 @@ internal static partial class PdfWriter {
         usages.Add(new PdfGeneratedFontComplianceEvidence(font, options));
     }
 
-    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfNamedFontFace font, PdfOptions options) {
+    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfNamedFontFace font, PdfCreateOptions options) {
         for (int i = 0; i < usages.Count; i++) {
             PdfGeneratedFontComplianceEvidence usage = usages[i];
             if (usage.NamedFont == font && !usage.StandardFont.HasValue && object.ReferenceEquals(usage.Options, options)) {

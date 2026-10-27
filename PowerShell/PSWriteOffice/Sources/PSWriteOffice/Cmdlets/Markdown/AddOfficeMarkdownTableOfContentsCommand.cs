@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownTableOfContents", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownTableOfContents", "MarkdownToc")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -29,7 +29,7 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Heading text displayed above the generated table of contents.</summary>
     [Parameter]
@@ -131,7 +131,7 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
         }
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

@@ -156,9 +156,9 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the color of the numbering symbols.
     /// </summary>
-    public OfficeIMO.Drawing.OfficeColor? Color {
+    public OfficeIMO.OfficeColor? Color {
         get {
-            return OfficeIMO.Drawing.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
+            return OfficeIMO.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
         }
         set {
             if (value != null) {

@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasChanges);
             Assert.True(result.HasLimitations);
-            Assert.Contains(result.Limitations, limitation => limitation.Code == "EffectiveFormatting.ThemeResolution");
+            Assert.Contains(result.Limitations, limitation => limitation.Code == "effective-formatting-theme-resolution");
             using JsonDocument parsed = JsonDocument.Parse(result.ToJson());
             Assert.False(parsed.RootElement.GetProperty("hasChanges").GetBoolean());
             Assert.True(parsed.RootElement.GetProperty("hasLimitations").GetBoolean());

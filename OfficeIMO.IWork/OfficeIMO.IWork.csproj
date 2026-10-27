@@ -53,7 +53,6 @@
       <PackagePath>THIRD-PARTY-NOTICES.md</PackagePath>
     </None>
   </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />

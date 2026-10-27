@@ -76,9 +76,9 @@ public partial class Word {
             main.DocumentSettingsPart?.Settings?.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml +
             main.EndnotesPart?.Endnotes?.OuterXml;
         string original = OriginalXml();
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(noteKind == 0
-            ? new WordToPdfOptions {
-                IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(noteKind == 0
+            ? new WordPdfExportOptions {
+                IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             } : FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -90,8 +90,8 @@ public partial class Word {
         Assert.True(right.BoundingBox.Left > left.BoundingBox.Right);
         if (kind == NestedTableTerminalKind.Visible)
             Assert.Single(words, word => word.Text == "VISIBLETAIL");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "NativeNestedTableLayoutApproximated" or
-            "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "native-nested-table-layout-approximated" or
+            "native-footnote-placement-approximated" or "native-endnote-content-approximated");
         Assert.Equal(original, OriginalXml());
         return left.BoundingBox.Bottom - following.BoundingBox.Bottom;
     }

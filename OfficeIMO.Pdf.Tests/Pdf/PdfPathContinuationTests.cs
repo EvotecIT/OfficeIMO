@@ -15,7 +15,7 @@ public sealed class PdfPathContinuationTests {
             OfficePathCommand.LineTo(2, 10), OfficePathCommand.Close(), OfficePathCommand.QuadraticBezierTo(12, 3, 12, 12));
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 1;
         if (local) shape.Transform = OfficeTransform.Identity;
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 100, PageHeight = 100,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 100, PageHeight = 100,
             MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0, CompressContentStreams = false })
             .Canvas(canvas => canvas.Drawing(new OfficeDrawing(100, 100).AddShape(shape, 0, 0), 0, 0, 100, 100)).ToBytes();
         Match curve = Regex.Match(Encoding.ASCII.GetString(bytes), @"(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) c\b");
@@ -31,7 +31,7 @@ public sealed class PdfPathContinuationTests {
         var clip = OfficeClipPath.Path(new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(10, 0),
             OfficePathCommand.LineTo(0, 10), OfficePathCommand.Close(), OfficePathCommand.LineTo(100, 0),
             OfficePathCommand.LineTo(100, 100), OfficePathCommand.LineTo(0, 100) });
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200, PageHeight = 200 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 200, PageHeight = 200 })
             .Canvas(canvas => canvas.Clip(0, 0, clip, inner => inner.Text(new[] { PdfTextRun.Link("kept", "https://example.test/kept") }, 40, 40, 40, 15))).ToBytes();
         Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
     }

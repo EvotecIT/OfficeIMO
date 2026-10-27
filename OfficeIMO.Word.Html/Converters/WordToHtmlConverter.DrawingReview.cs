@@ -4,14 +4,14 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static void ApplyImageReviewMetadata(IElement element, WordImage image, WordToHtmlOptions options) {
+        private static void ApplyImageReviewMetadata(IElement element, WordImage image, WordHtmlExportOptions options) {
             if (!options.IncludeDrawingReviewMetadata) return;
 
             WordImageTextWrapping? wrap;
             try {
                 wrap = image.WrapText;
             } catch (InvalidOperationException) {
-                AddExportDiagnostic(options, "FloatingImageMetadataSimplified",
+                AddExportDiagnostic(options, "floating-image-metadata-simplified",
                     "A malformed Word image anchor could not expose deterministic floating-layout metadata.",
                     OfficeConversionLossKind.Approximation);
                 return;
@@ -41,12 +41,12 @@ namespace OfficeIMO.Word.Html {
                 AppendOptionalAttribute(element, "data-officeimo-horizontal-offset-emu", image.HorizontalPositionOffset, "ImageReview:horizontal-offset");
                 AppendOptionalAttribute(element, "data-officeimo-vertical-offset-emu", image.VerticalPositionOffset, "ImageReview:vertical-offset");
             } catch (InvalidOperationException) {
-                AddExportDiagnostic(options, "FloatingImageMetadataSimplified",
+                AddExportDiagnostic(options, "floating-image-metadata-simplified",
                     "A floating Word image preserved its wrap policy, but malformed position metadata was omitted.",
                     OfficeConversionLossKind.Approximation);
             }
 
-            AddExportDiagnostic(options, "FloatingImageProjectedForReview",
+            AddExportDiagnostic(options, "floating-image-projected-for-review",
                 "A floating Word image was exported with inert wrap and anchor metadata; browser layout does not reproduce Word's floating-object algorithm.",
                 OfficeConversionLossKind.Approximation);
         }

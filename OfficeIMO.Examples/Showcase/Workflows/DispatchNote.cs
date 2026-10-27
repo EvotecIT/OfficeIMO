@@ -35,7 +35,7 @@ internal static class DispatchNote {
             .H2("Receipt", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("Received by: ____________________     Date: ____________________"))
             .Paragraph(p => p.Text("Sample logistics document. Quantities and references are demonstration data."))),
-            new PdfOptions { DefaultFontSize = 11 })
+            new PdfCreateOptions { DefaultFontSize = 11 })
             .Meta(title: "Dispatch note DN-2026-0418", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

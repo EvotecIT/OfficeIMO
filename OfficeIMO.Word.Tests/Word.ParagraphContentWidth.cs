@@ -111,7 +111,7 @@ public sealed class WordParagraphContentWidthTests {
         stream.Position = 0;
         using WordDocument reloaded = WordDocument.Load(stream);
         WordChart persisted = Assert.Single(reloaded.Charts);
-        Assert.True(persisted.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+        Assert.True(persisted.TryGetLayoutSnapshot(out WordDrawingLayoutInfo layout));
         Assert.Equal(expectedWidthPoints, layout.WidthPoints, 6);
         Assert.Equal(120D, layout.HeightPoints, 6);
     }

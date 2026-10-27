@@ -287,7 +287,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         source.AddParagraph().AddText("Styled").SetCharacterStyleId("Decorated");
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         Assert.Contains("class=\"Decorated\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-word-underline=\"Wave\"", html, StringComparison.Ordinal);
@@ -299,7 +299,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         using WordDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocumentResult()
+            .ConvertToWordWithEvidence()
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
@@ -323,7 +323,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         styles.Append(reset);
         source.AddParagraph().AddText("Baseline").SetCharacterStyleId("ResetScript");
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".ResetScript {", StringComparison.Ordinal));
         Assert.Contains("vertical-align:baseline", styleRule, StringComparison.Ordinal);
@@ -351,7 +351,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
         reset._runProperties!.Strike = new Strike { Val = false };
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true });
         IElement output = HtmlDocumentParser.ParseDocument(html)
             .QuerySelector("p.ParagraphDecoratedScript")!;
 

@@ -100,7 +100,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var (sheet, rangeAddress) = ResolveTargetReference(context, GetAttribute(table.Attributes, "sheet"), table.Range);
         var style = ParseTableStyle(GetAttribute(table.Attributes, "style"));
         sheet.AddTable(rangeAddress, table.HasHeader, table.Name, style);
-        if (table.HasHeader && A1.TryParseRange(rangeAddress, out var startRow, out _, out _, out _)) {
+        if (table.HasHeader && ExcelA1.TryParseRange(rangeAddress, out var startRow, out _, out _, out _)) {
             context.RegisterFreezeRow(sheet.Name, startRow);
         }
     }
@@ -446,7 +446,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
     }
 
     private static IEnumerable<(int Row, int Column)> EnumerateCells(string target) {
-        if (A1.TryParseRange(target, out var r1, out var c1, out var r2, out var c2)) {
+        if (ExcelA1.TryParseRange(target, out var r1, out var c1, out var r2, out var c2)) {
             for (var row = r1; row <= r2; row++) {
                 for (var column = c1; column <= c2; column++) {
                     yield return (row, column);
@@ -456,7 +456,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             yield break;
         }
 
-        var cell = A1.ParseCellRef(target);
+        var cell = ExcelA1.ParseCellRef(target);
         if (cell.Row <= 0 || cell.Col <= 0) {
             throw new InvalidOperationException($"Invalid cell or range reference '{target}'.");
         }
@@ -465,7 +465,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
     }
 
     private static (int Row, int Column) ParseCell(string value, string description) {
-        var cell = A1.ParseCellRef(value);
+        var cell = ExcelA1.ParseCellRef(value);
         if (cell.Row <= 0 || cell.Col <= 0) {
             throw new InvalidOperationException($"Invalid {description} '{value}'.");
         }
@@ -483,7 +483,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             ?? options.DefaultChartColumn;
         var cell = placementCell ?? GetAttribute(chart.Attributes, "cell");
         if (!string.IsNullOrWhiteSpace(cell)) {
-            var parsed = A1.ParseCellRef(cell!);
+            var parsed = ExcelA1.ParseCellRef(cell!);
             if (parsed.Row > 0 && parsed.Col > 0) {
                 row = parsed.Row;
                 column = parsed.Col;
@@ -719,7 +719,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
     }
 
     private static ExcelChartDataRange CreateChartDataRange(string sheetName, string source) {
-        if (!A1.TryParseRange(source, out var r1, out var c1, out var r2, out var c2)) {
+        if (!ExcelA1.TryParseRange(source, out var r1, out var c1, out var r2, out var c2)) {
             throw new InvalidOperationException($"Invalid chart source range '{source}'.");
         }
 

@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
 
     /// <summary>Uses the renderer's resolved fonts, line placement, insets and shape stroke geometry.</summary>
     internal static CanvasTextBoxMeasurement? MeasureCanvasTextBox(IReadOnlyList<PdfTextRun> runs,
-        double width, double height, PdfCanvasTextBoxStyle style, PdfOptions options) {
+        double width, double height, PdfCanvasTextBoxStyle style, PdfCreateOptions options) {
         double textHeight = height - style.EffectivePaddingTop - style.EffectivePaddingBottom;
         if (!IsFiniteCanvasMeasurement(width) || !IsFiniteCanvasMeasurement(height) ||
             width <= style.EffectivePaddingLeft + style.EffectivePaddingRight || textHeight <= 0D) return null;
@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
     private static (double FontSize, double Leading, PdfStandardFont BaseFont, double TextWidth,
         List<List<RichSeg>> Lines, List<double> LineHeights, double ContentHeight)
         PrepareCanvasTextBoxText(IReadOnlyList<PdfTextRun> runs, double width,
-            PdfCanvasTextBoxStyle style, PdfOptions options) {
+            PdfCanvasTextBoxStyle style, PdfCreateOptions options) {
         double textWidth = width - style.EffectivePaddingLeft - style.EffectivePaddingRight;
         double size = style.FontSize ?? options.DefaultFontSize;
         double leading = style.LineHeight ?? size * 1.2D;

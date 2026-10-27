@@ -12,12 +12,12 @@ public sealed class PdfTableTextReuseTests {
     [InlineData(true, true)]
     public void RepeatedTextRetainsEachCellsSpacingAndScaling(bool rowColumn, bool horizontalScaling) {
         byte[] Render(bool explicitSize) {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = 400, PageHeight = 300,
                 MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
             };
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.FontSize = 10;
             style.CellPaddingX = style.CellPaddingY = 0;
@@ -54,12 +54,12 @@ public sealed class PdfTableTextReuseTests {
     [InlineData(true)]
     public void RepeatedImportedNoWrapCellsRetainThePageFrameWrappingPolicy(bool rowColumn) {
         byte[] Render(bool explicitSize) {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = 400, PageHeight = 400,
                 MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
             };
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.FontSize = 10;
             style.CellPaddingX = style.CellPaddingY = 0;
@@ -92,7 +92,7 @@ public sealed class PdfTableTextReuseTests {
     [InlineData(true)]
     public void RepeatedCellsRetainTextAndGeometryAcrossUnequalColumnContinuations(bool embedded) {
         byte[] Render(bool explicitSize) {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = 420, PageHeight = 420,
                 MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
@@ -101,7 +101,7 @@ public sealed class PdfTableTextReuseTests {
                 options.EmbedStandardFont(PdfStandardFont.Helvetica,
                     File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!), "ColumnTableFont");
             }
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.FontSize = 10;
             style.CellPaddingX = 0;
@@ -173,12 +173,12 @@ public sealed class PdfTableTextReuseTests {
     }
 
     private static byte[] CreateViewportTable(bool rowColumn, bool explicitSize) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 400, PageHeight = 800,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.FontSize = 10;
         style.CellPaddingX = 0;
         style.CellPaddingY = 0;
@@ -203,19 +203,19 @@ public sealed class PdfTableTextReuseTests {
         } else {
             document.Table(rows, style: style);
         }
-        return document.ToBytes();
+        return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreateTable(bool rowColumn, byte[]? fontData, bool explicitSize, Func<string, IReadOnlyList<int>>? lineBreaks = null) {
         int count = rowColumn ? 12 : 96;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 400, PageHeight = 800,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
         };
         if (fontData != null) options.EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "TableFont");
         if (lineBreaks != null) options.TextLineBreakCallback = lineBreaks;
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
         style.FontSize = 10;
@@ -237,7 +237,7 @@ public sealed class PdfTableTextReuseTests {
         } else {
             document.Table(rows, style: style);
         }
-        return document.ToBytes();
+        return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static void AssertSameLetters(byte[] expected, byte[] actual) {

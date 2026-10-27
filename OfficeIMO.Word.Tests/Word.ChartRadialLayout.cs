@@ -23,10 +23,10 @@ public sealed class WordChartRadialLayoutTests {
         var native = chart.ChartPart!.ChartSpace!.Descendants<C.DoughnutChart>().Single();
         native.GetFirstChild<C.FirstSliceAngle>()!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "val", "", angle));
         native.GetFirstChild<C.HoleSize>()!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "val", "", hole));
-        var options = new WordToPdfOptions();
-        var result = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions();
+        var result = document.ConvertToPdfWithEvidence(options);
         byte[] pdf = result.Value.ToBytes();
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeBodyChartUnsupported" && warning.Message.Contains("invalid pie rotation"));
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-body-chart-unsupported" && warning.Message.Contains("invalid pie rotation"));
         using var rendered = UglyToad.PdfPig.PdfDocument.Open(pdf);
         Assert.Contains("Surrounding document content", rendered.GetPage(1).Text);
     }
@@ -44,7 +44,7 @@ public sealed class WordChartRadialLayoutTests {
         using WordDocument reopened = WordDocument.Load(bytes);
         WordChart chart = reopened.Charts.Single();
         chart.SetData(kind, data);
-        Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
         Assert.Equal(135, snapshot.RadialLayout.FirstSliceAngleDegrees);
         Assert.Equal(kind == OfficeChartKind.Doughnut ? 75 : 50, snapshot.RadialLayout.DoughnutHolePercent);
         Assert.Empty(reopened.ValidateDocument());

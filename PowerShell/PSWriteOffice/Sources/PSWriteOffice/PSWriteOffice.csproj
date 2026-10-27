@@ -35,8 +35,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" Condition="'$(TargetFramework)' != 'net472'" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO\OfficeIMO.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Project\OfficeIMO.Project.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Access\OfficeIMO.Access.csproj" />

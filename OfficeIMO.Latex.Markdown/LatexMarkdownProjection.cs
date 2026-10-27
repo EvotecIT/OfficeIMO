@@ -16,7 +16,7 @@ internal sealed class LatexMarkdownProjection {
 }
 
 internal sealed class LatexProjectedBlock {
-    internal LatexProjectedBlock(LatexSourceSpan span, string kind, MarkdownDoc markdown, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+    internal LatexProjectedBlock(LatexSourceSpan span, string kind, MarkdownDocument markdown, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Span = span;
         Kind = kind;
         Document = markdown;
@@ -24,7 +24,7 @@ internal sealed class LatexProjectedBlock {
     }
     internal LatexSourceSpan Span { get; }
     internal string Kind { get; }
-    internal MarkdownDoc Document { get; }
+    internal MarkdownDocument Document { get; }
     internal IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
     internal string Text => Kind == "figure" ? LatexProjectedText.ExtractFigure(Document.Blocks) : LatexProjectedText.Extract(Document.Blocks);
     internal IReadOnlyList<LatexTextSegment> TextSegments(System.Threading.CancellationToken cancellationToken) =>

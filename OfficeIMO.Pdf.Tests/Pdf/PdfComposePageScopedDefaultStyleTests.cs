@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests.Pdf {
                 FontSize = 13,
                 Color = PdfColor.FromRgb(10, 20, 30)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             });
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests.Pdf {
                 LeftIndent = 14,
                 Color = PdfColor.FromRgb(10, 20, 30)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             });
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests.Pdf {
                 Align = PdfAlign.Center,
                 Background = PdfColor.FromRgb(240, 248, 255)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingBefore = 3,
                 SpacingAfter = 16
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingBefore = 4,
                 SpacingAfter = 12
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var shape = OfficeShape.Rectangle(40, 20);
             shape.FillColor = OfficeColor.WhiteSmoke;
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -397,13 +397,13 @@ namespace OfficeIMO.Tests.Pdf {
                 FontSize = 16,
                 Color = PdfColor.FromRgb(10, 20, 30)
             };
-            var tableStyle = TableStyles.Minimal();
+            var tableStyle = PdfTableStyles.Minimal();
             tableStyle.CellPaddingX = 22;
             var theme = new PdfTheme {
                 TextStyle = textStyle,
                 TableStyle = tableStyle
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             });
@@ -459,9 +459,9 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposePage_DefaultTableStyleAppliesOnlyToThatPageAndSnapshotsInput() {
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.CellPaddingX = 22;
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10
             });

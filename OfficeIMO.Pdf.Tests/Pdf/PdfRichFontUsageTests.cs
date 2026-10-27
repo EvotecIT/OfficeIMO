@@ -13,7 +13,7 @@ public class PdfRichFontUsageTests {
     [InlineData(TableSurface.RowColumn, true)]
     [InlineData(TableSurface.Canvas, true)]
     public void TableHeaderBoldCombinesWithRunItalicAcrossRenderingSurfaces(TableSurface surface, bool namedFont) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = false,
             PageWidth = 300D,
             PageHeight = 200D
@@ -64,7 +64,7 @@ public class PdfRichFontUsageTests {
     [InlineData(TableSurface.RowColumn, PdfStandardFont.TimesItalic, "Times-Italic")]
     [InlineData(TableSurface.Canvas, PdfStandardFont.TimesItalic, "Times-Italic")]
     public void TableHeaderRetainsExplicitRunFontFace(TableSurface surface, PdfStandardFont font, string expectedFont) {
-        var options = new PdfOptions { PageWidth = 300D, PageHeight = 200D };
+        var options = new PdfCreateOptions { PageWidth = 300D, PageHeight = 200D };
         var style = new PdfTableStyle {
             HeaderRowCount = 1, HeaderBold = true,
             ColumnWidthPoints = new List<double?> { 180D }

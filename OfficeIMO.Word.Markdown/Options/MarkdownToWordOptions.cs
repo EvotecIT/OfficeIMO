@@ -4,7 +4,35 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public class MarkdownToWordOptions {
+    public class WordMarkdownImportOptions {
+        private bool? _renderFrontMatter;
+        internal WordMarkdownImportOptions CloneForConversion() {
+            var copy = (WordMarkdownImportOptions)MemberwiseClone();
+            copy._theme = _theme?.Clone();
+            copy.ReaderOptions = ReaderOptions?.Clone();
+            copy.AllowedImageDirectories = new System.Collections.Generic.HashSet<string>(AllowedImageDirectories, AllowedImageDirectories.Comparer);
+            copy.AllowedImageSchemes = new System.Collections.Generic.HashSet<string>(AllowedImageSchemes, AllowedImageSchemes.Comparer);
+            copy.ImageLayout = ImageLayout.CloneForConversion();
+            return copy;
+        }
+
+        /// <summary>Rejects fidelity loss before returning the target document or writing its destination.</summary>
+        public bool FailOnLoss { get; set; }
+        /// <summary>Optional caller-owned template to populate rather than creating a detached document.</summary>
+        public WordDocument? Template { get; set; }
+        /// <summary>Tag identifying the template insertion content control.</summary>
+        public string? ContentControlTag { get; set; }
+        /// <summary>Alias identifying the template insertion content control.</summary>
+        public string? ContentControlAlias { get; set; }
+        /// <summary>Bookmark identifying the insertion point.</summary>
+        public string? BookmarkName { get; set; }
+        /// <summary>Replaces the selected placeholder after insertion.</summary>
+        public bool ReplacePlaceholder { get; set; } = true;
+
+        internal Func<string, WordDocument, Action<WordMarkdownConversionDiagnostic>?, bool>? RawHtmlRenderer { get; set; }
+        internal Func<string, Action<WordMarkdownConversionDiagnostic>?, OfficeIMO.Markdown.MarkdownDocument?>? RawHtmlParser { get; set; }
+        internal Action<WordMarkdownConversionDiagnostic>? DiagnosticSink { get; set; }
+
         private OfficeIMO.Markdown.MarkdownVisualTheme? _theme;
 
         /// <summary>
@@ -74,7 +102,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>Allow inserting local images from file paths. Default: false.</summary>
         public bool AllowLocalImages { get; set; }
         /// <summary>Restrict local images to these directories (optional). Paths are normalized for comparison.</summary>
-        public System.Collections.Generic.HashSet<string> AllowedImageDirectories { get; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        public System.Collections.Generic.HashSet<string> AllowedImageDirectories { get; private set; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         /// <summary>
         /// Optional resolver for remote image bytes. The converter never performs network requests itself;
         /// callers own download, cache, authentication, and trust policy.
@@ -90,7 +118,7 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         public long MaxDataUriImageBytes { get; set; } = 32L * 1024L * 1024L;
         /// <summary>Allowed URL schemes for remote images. Default: http, https.</summary>
-        public System.Collections.Generic.HashSet<string> AllowedImageSchemes { get; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "http", "https" };
+        public System.Collections.Generic.HashSet<string> AllowedImageSchemes { get; private set; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "http", "https" };
         /// <summary>Optional custom validator for remote image URLs.</summary>
         public Func<System.Uri, bool>? ImageUrlValidator { get; set; }
         /// <summary>When remote images are not allowed or validation fails, insert a hyperlink instead of image. Default: true.</summary>
@@ -101,12 +129,12 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Optional callback receiving per-image layout diagnostics.
         /// </summary>
-        public Action<MarkdownImageLayoutDiagnostic>? OnImageLayoutDiagnostic { get; set; }
+        public Action<WordMarkdownImageLayoutDiagnostic>? OnImageLayoutDiagnostic { get; set; }
 
         /// <summary>
         /// Image sizing and fitting behavior for markdown conversion.
         /// </summary>
-        public MarkdownImageLayoutOptions ImageLayout { get; } = new MarkdownImageLayoutOptions();
+        public WordMarkdownImageLayoutOptions ImageLayout { get; private set; } = new WordMarkdownImageLayoutOptions();
 
         /// <summary>
         /// When enabled, isolated single-line <c>Label: value</c> content is kept as
@@ -118,16 +146,16 @@ namespace OfficeIMO.Word.Markdown {
         /// Optional markdown reader configuration used before Word conversion.
         /// When omitted, the converter uses the default OfficeIMO reader profile.
         /// </summary>
-        public OfficeIMO.Markdown.MarkdownReaderOptions? ReaderOptions { get; set; }
+        public OfficeIMO.Markdown.MarkdownLoadOptions? ReaderOptions { get; set; }
 
         /// <summary>
         /// Creates the effective Markdown reader options for a Word import, including the
         /// Word semantic fenced-block extensions and this instance's base URI settings.
         /// </summary>
-        public OfficeIMO.Markdown.MarkdownReaderOptions CreateReaderOptions() {
-            OfficeIMO.Markdown.MarkdownReaderOptions effective;
+        public OfficeIMO.Markdown.MarkdownLoadOptions CreateReaderOptions() {
+            OfficeIMO.Markdown.MarkdownLoadOptions effective;
             if (ReaderOptions == null) {
-                effective = new OfficeIMO.Markdown.MarkdownReaderOptions {
+                effective = new OfficeIMO.Markdown.MarkdownLoadOptions {
                     BaseUri = BaseUri,
                     PreferNarrativeSingleLineDefinitions = PreferNarrativeSingleLineDefinitions
                 };
@@ -147,9 +175,12 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Controls whether front matter is rendered as visible Word content.
-        /// Disable this when front matter is consumed by a template or build pipeline as metadata.
+        /// The default is true for a new document and false when a template consumes it as metadata.
         /// </summary>
-        public bool RenderFrontMatter { get; set; } = true;
+        public bool RenderFrontMatter {
+            get => _renderFrontMatter ?? Template == null;
+            set => _renderFrontMatter = value;
+        }
 
         /// <summary>
         /// Optional hard cap (pixels) applied to rendered markdown image width.
@@ -180,12 +211,12 @@ namespace OfficeIMO.Word.Markdown {
         /// (page width minus left/right margins).
         /// </summary>
         public bool FitImagesToPageContentWidth {
-            get => ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth;
+            get => ImageLayout.FitMode == WordMarkdownImageFitMode.PageContentWidth;
             set {
                 if (value) {
-                    ImageLayout.FitMode = MarkdownImageFitMode.PageContentWidth;
-                } else if (ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth) {
-                    ImageLayout.FitMode = MarkdownImageFitMode.None;
+                    ImageLayout.FitMode = WordMarkdownImageFitMode.PageContentWidth;
+                } else if (ImageLayout.FitMode == WordMarkdownImageFitMode.PageContentWidth) {
+                    ImageLayout.FitMode = WordMarkdownImageFitMode.None;
                 }
             }
         }
@@ -195,12 +226,12 @@ namespace OfficeIMO.Word.Markdown {
         /// (section content width minus list/quote indentation).
         /// </summary>
         public bool FitImagesToContextWidth {
-            get => ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth;
+            get => ImageLayout.FitMode == WordMarkdownImageFitMode.ContextContentWidth;
             set {
                 if (value) {
-                    ImageLayout.FitMode = MarkdownImageFitMode.ContextContentWidth;
-                } else if (ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth) {
-                    ImageLayout.FitMode = MarkdownImageFitMode.None;
+                    ImageLayout.FitMode = WordMarkdownImageFitMode.ContextContentWidth;
+                } else if (ImageLayout.FitMode == WordMarkdownImageFitMode.ContextContentWidth) {
+                    ImageLayout.FitMode = WordMarkdownImageFitMode.None;
                 }
             }
         }

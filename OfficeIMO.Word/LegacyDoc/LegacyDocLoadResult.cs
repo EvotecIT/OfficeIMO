@@ -136,7 +136,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
             if (ProjectionException != null) {
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "DOC-PROJECTION-FAILED",
+                    "doc-projection-failed",
                     ProjectionException.Message,
                     OfficeConversionLossKind.Failure,
                     "OfficeIMO.Word.LegacyDoc.Projection",
@@ -159,14 +159,14 @@ namespace OfficeIMO.Word.LegacyDoc {
             return Array.AsReadOnly(diagnostics.ToArray());
         }
 
-        private static OfficeConversionLossKind ClassifyLoss(LegacyDocImportDiagnostic diagnostic) {
+        internal static OfficeConversionLossKind ClassifyLoss(LegacyDocImportDiagnostic diagnostic) {
             if (diagnostic.Severity == LegacyDocDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
             // These reader failures leave an entire source story or embedded item unprojected,
             // unlike format/style recovery warnings where the content is still represented.
-            if (diagnostic.Code is "DOC-FOOTNOTE-PLC-INVALID" or "DOC-ENDNOTE-PLC-INVALID"
-                or "DOC-COMMENT-PLC-INVALID" or "DOC-BOOKMARK-PLC-INVALID"
-                or "DOC-PICTURE-DATA-INVALID" or "DOC-PLCFHDD-INVALID"
-                or "DOC-OLE-PROPERTIES-UNREADABLE")
+            if (diagnostic.Code is "doc-footnote-plc-invalid" or "doc-endnote-plc-invalid"
+                or "doc-comment-plc-invalid" or "doc-bookmark-plc-invalid"
+                or "doc-picture-data-invalid" or "doc-plcfhdd-invalid"
+                or "doc-ole-properties-unreadable")
                 return OfficeConversionLossKind.Omission;
             return diagnostic.Severity == LegacyDocDiagnosticSeverity.Warning
                 ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;

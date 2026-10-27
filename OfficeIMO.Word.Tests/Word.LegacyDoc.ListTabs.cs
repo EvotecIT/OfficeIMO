@@ -10,9 +10,9 @@ public partial class Word {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Word", "LegacyLists", "WordListNumberTabs.doc");
         using WordDocument source = WordDocument.Load(path);
         AssertListNumberTab(source, 3000);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Docx)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         AssertListNumberTab(docx, 3000);
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         AssertListNumberTab(native, 3000);
     }
 
@@ -24,12 +24,12 @@ public partial class Word {
         level.PreviousParagraphProperties.Tabs = new Tabs(new TabStop {
             Val = TabStopValues.Number, Position = 3000, Leader = TabStopLeaderCharValues.None
         });
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         AssertListNumberTab(restored, 3000);
         TabStop tab = restored.Lists.Single().Numbering.Levels[0].OpenXmlElement
             .PreviousParagraphProperties!.Tabs!.Elements<TabStop>().Single();
         tab.Position = 2200;
-        using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(WordFileFormat.Doc)));
+        using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         AssertListNumberTab(edited, 2200);
     }
 
@@ -39,7 +39,7 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph("TABS");
         paragraph.AddTabStop(3000, WordTabAlignment.Number, WordTabLeader.Dot);
         paragraph.AddTabStop(720, WordTabAlignment.Left, WordTabLeader.Hyphen);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Collection(restored.Paragraphs.Single(p => p.Text == "TABS").TabStops,
             tab => {
                 Assert.Equal(720, tab.Position);
@@ -58,12 +58,12 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("TABS");
         for (int index = 64; index > 0; index--) paragraph.AddTabStop(index * 200, WordTabAlignment.Left);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(64, restored.Paragraphs.Single(p => p.Text == "TABS").TabStops.Count);
         paragraph.AddTabStop(13000, WordTabAlignment.Left);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("64 added or cleared tab stops", error.Message);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Docx)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         Assert.Equal(65, docx.Paragraphs.Single(p => p.Text == "TABS").TabStops.Count);
     }
 
@@ -84,7 +84,7 @@ public partial class Word {
         };
         paragraph.Text = "MARKED";
         paragraph.AddTabStop(2200, WordTabAlignment.Number, WordTabLeader.Dot);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph actual = story switch {
             1 => restored.Tables.Single().Rows[0].Cells[0].Paragraphs[0],
             2 => restored.Header.Default.Paragraphs.Single(p => p.Text == "MARKED"),
@@ -96,7 +96,7 @@ public partial class Word {
         Assert.Equal(WordTabLeader.Dot, tab.Leader);
         Assert.Equal(2200, tab.Position);
         tab.Position = 2600;
-        using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(WordFileFormat.Docx)));
+        using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         WordParagraph projected = story switch {
             1 => edited.Tables.Single().Rows[0].Cells[0].Paragraphs[0],
             2 => edited.Header.Default.Paragraphs.Single(p => p.Text == "MARKED"),

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_UnorderedListWithValueAttributes_RemainsBulletedInValidPackage() {
             const string html = "<p>Values:</p><ul style=\"list-style-type:disc\"><li value=\"1\">TODAY: Today</li><li value=\"2\">YESTERDAY: Yesterday</li></ul>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Paragraphs
                 .Where(paragraph => paragraph.IsListItem)
@@ -28,11 +28,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordNumberFormat.Bullet, info.Value.NumberFormat);
             });
 
-            string roundTripHtml = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string roundTripHtml = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
             Assert.Contains("<ul", roundTripHtml, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<ol", roundTripHtml, StringComparison.OrdinalIgnoreCase);
 
-            using MemoryStream stream = doc.ToStream();
+            using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
             stream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
             doc.AddHtmlToBody(
                 OfficeIMO.Html.HtmlConversionDocument.Parse(html),
-                new HtmlToWordOptions { ContinueNumbering = true });
+                new WordHtmlImportOptions { ContinueNumbering = true });
 
             var imported = doc.Paragraphs
                 .Where(paragraph => paragraph.Text.Contains("TODAY:", StringComparison.OrdinalIgnoreCase)
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                 </td></tr></table>
                 """;
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Tables.Single().Rows[0].Cells[0].Paragraphs
                 .Where(paragraph => paragraph.IsListItem)
@@ -105,12 +105,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal("o", info[2].LevelText);
             Assert.False(info[4].Ordered);
 
-            string roundTripHtml = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            string roundTripHtml = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
             Assert.Contains("<table", roundTripHtml, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<ul", roundTripHtml, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<ol", roundTripHtml, StringComparison.OrdinalIgnoreCase);
 
-            using MemoryStream stream = doc.ToStream();
+            using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
             stream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
@@ -120,8 +120,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_ListNumbering_ContiguousLists() {
             string html = "<ol><li>One</li></ol><ol><li>Two</li></ol>";
-            var options = new HtmlToWordOptions { ContinueNumbering = true };
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            var options = new WordHtmlImportOptions { ContinueNumbering = true };
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
             var doc = conversion.Value;
             Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
             Assert.Single(doc.Paragraphs.Where(p => p.IsListItem).Select(p => p._listNumberId).Distinct());
@@ -130,8 +130,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_ListNumbering_SeparatedLists() {
             string html = "<ol><li>One</li></ol><p>Break</p><ol><li>Two</li></ol>";
-            var options = new HtmlToWordOptions { ContinueNumbering = true };
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            var options = new WordHtmlImportOptions { ContinueNumbering = true };
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
             var doc = conversion.Value;
             Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
             Assert.Single(doc.Paragraphs.Where(p => p.IsListItem).Select(p => p._listNumberId).Distinct());
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListNumbering_RtlDirection() {
             string html = "<ol dir=\"rtl\"><li>One</li><li>Two</li></ol>";      
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Paragraphs.Where(p => p.IsListItem).ToList();   
             Assert.NotEmpty(listItems);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_FromCssOrdered() {
             string html = "<ol style=\"list-style-type: upper-roman\"><li>One</li><li>Two</li></ol>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_FromCssInternationalOrdered() {
             string html = "<ol style=\"list-style-type: lower-russian !important\"><li>One</li><li>Two</li></ol>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_FromCssUnordered() {
             string html = "<ul style=\"list-style-type: square\"><li>One</li></ul>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_FromQuotedDashBullet() {
             string html = "<ul style=\"list-style: '- ' outside\"><li>One</li></ul>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_DecodesExportedDashMarkerEscapes() {
             string html = "<ul style=\"list-style-type:'\\2013'\"><li>One</li></ul><ul style=\"list-style-type:'\\2014'\"><li>Two</li></ul>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Paragraphs
                 .Where(p => p.IsListItem)
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_ImportsQuotedEditorMarkers() {
             string html = "<ul style=\"list-style-type:'*'\"><li>Star</li></ul><ul style=\"list-style-type:'+'\"><li>Plus</li></ul>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Paragraphs
                 .Where(p => p.IsListItem)
@@ -241,8 +241,8 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListStyleType_ImportsArbitraryQuotedMarkers() {
             string html = "<ul style=\"list-style-type:'\\2713'\"><li>Done</li></ul><ul style=\"list-style:'◆' outside\"><li>Diamond</li></ul>";
 
-            var options = new HtmlToWordOptions();
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            var options = new WordHtmlImportOptions();
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
             var doc = conversion.Value;
 
             var listItems = doc.Paragraphs
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("✓", first.Value.LevelText);
             Assert.Equal("◆", second.Value.LevelText);
             Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
-                string.Equals(diagnostic.Code, "UnsupportedCssValue", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(diagnostic.Code, "unsupported-css-value", StringComparison.OrdinalIgnoreCase) &&
                 diagnostic.Source?.Contains("list-style", StringComparison.OrdinalIgnoreCase) == true);
         }
 
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListDefinitions_ApplyExportedIndentMetadata() {
             string html = "<ol data-left-indent-twips=\"1440\" data-hanging-indent-twips=\"360\" style=\"list-style-type:decimal\"><li>One</li></ol>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_MarkdownTaskList_CheckboxInputsBecomeWordControls() {
             string html = "<ul class=\"contains-task-list\"><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked>Done</li><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled /> Open</li></ul>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var listItems = doc.Paragraphs
                 .Where(p => p.IsListItem)
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListItemBlockChildrenPreserveSourceOrder() {
             string html = "<ul><li>Intro<p>Details</p><table><tr><td>Metric</td></tr></table></li></ul><p>After</p>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-            using MemoryStream stream = doc.ToStream();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
             stream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
 
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_HtmlIntegerPrefixesResetNumbering() {
             string html = "<ol start=\"3x\"><li>Three</li><li value=\"5junk\">Five</li><li>Six</li></ol>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var items = doc.Paragraphs
                 .Where(p => p.IsListItem)
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ListReversed_DefaultStart() {
             string html = "<ol reversed><li>One</li><li>Two</li><li>Three</li></ol>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             var first = doc.Paragraphs.First(p => p.IsListItem);
             var info = WordDocumentTraversal.GetListInfo(first);

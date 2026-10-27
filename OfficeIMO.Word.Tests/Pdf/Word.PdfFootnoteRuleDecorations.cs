@@ -24,16 +24,16 @@ public partial class WordPdfPageFootnoteTests {
         string[] before = { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,
             main.DocumentSettingsPart!.Settings!.OuterXml, main.StyleDefinitionsPart!.Styles!.OuterXml };
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeFootnoteSeparatorDecorationOmitted");
+            item => item.Code == "native-footnote-separator-decoration-omitted");
         Assert.Equal("footnote separator", warning.Source);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.DoesNotContain(result.Warnings, item => item.Code is "NativeFootnoteSeparatorMarkOmitted" or
-            "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, item => item.Code is "native-footnote-separator-mark-omitted" or
+            "native-footnote-placement-approximated");
         using var pdf = PdfPigDocument.Open(actual);
         AssertFootnoteStorySelectionInventory(pdf);
         foreach (var page in pdf.GetPages()) {

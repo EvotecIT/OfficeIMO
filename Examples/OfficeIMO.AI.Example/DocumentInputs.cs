@@ -27,7 +27,7 @@ internal static class DocumentInputs {
         var images = new List<OfficeAiImage>();
         bool pdf = result.Kind == ReaderInputKind.Pdf;
         if (includeImages && pdf) {
-            PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions {
+            PdfDocument document = PdfDocument.Load(new MemoryStream(bytes), new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxInputBytes = limits.MaxInputBytes }, PermissionPolicy = PdfPermissionPolicy.Enforce
             });
             PdfPageSelection? selection = pages.Count == 0 ? null : PdfPageSelection.Parse(string.Join(",", pages));

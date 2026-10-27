@@ -34,8 +34,7 @@ internal static class HtmlSerializedShadowRootProjector {
                 projected++;
             }
 
-            for (int index = host.Children.Length - 1; index >= 0; index--) {
-                IElement child = host.Children[index];
+            foreach (IElement child in host.Children.Reverse()) {
                 if (child is not IHtmlTemplateElement) pending.Push(child);
             }
         }

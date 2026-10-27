@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Rewraps unpainted cell text while keeping paragraph formatting and the row's consumed-line cursor.</summary>
     private static TableCellTextLayout ContinueTableCellTextLayout(TableCellLayout cell, TableCellTextLayout previous,
-        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options,
+        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfCreateOptions options,
         double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
         TableCellTextLayout remainder;
         if (consumedLines >= previous.Lines.Count) {

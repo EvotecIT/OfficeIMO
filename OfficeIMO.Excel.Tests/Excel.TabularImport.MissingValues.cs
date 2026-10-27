@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(new[] { "Id", "Missing", "Empty", "Date" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             sheet.InsertDataTable(table, mode: mode, ct: cancellation.Token);
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
             Assert.True(reader.IsDBNull(1));
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
             if (format == ExcelFileFormat.Xlsx && standardWriter) AssertMissingTabularDefaultStyles(package, "B2", "B3");
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             for (int id = 1; id <= 3; id++) {
                 Assert.True(reader.Read());
                 Assert.Equal(id, reader.GetInt32(0));
@@ -135,10 +135,10 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(DBNull.Value, DBNull.Value, string.Empty);
 
             sheet.InsertDataTable(table, includeHeaders: false, mode: mode);
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
 
             AssertMissingTabularDefaultStyles(package, "A1", "B1");
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             for (int id = 1; id <= 20; id++) {
                 Assert.True(reader.Read());
                 Assert.Equal(id, reader.GetInt32(0));
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
             Assert.False(reader.IsDBNull(1));
@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(2, reader.FieldCount);
             for (int row = 0; row < 4; row++) {
                 Assert.True(reader.Read());
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 1, row == 2 ? DBNull.Value : row == 3 ? null : (object)"Value");
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);

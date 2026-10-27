@@ -182,10 +182,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a VML shape to the header using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
+        /// Adds a VML shape to the header using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
         public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
 

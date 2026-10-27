@@ -232,9 +232,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds an ellipse shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Adds an ellipse shape using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
+        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor) {
             return AddEllipse(paragraph, widthPt, heightPt, fillColor.ToRgbHex());
         }
 
@@ -287,9 +287,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a line shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Adds a line shape using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
+        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.OfficeColor color, double strokeWeightPt = 1) {
             return AddLine(paragraph, startXPt, startYPt, endXPt, endYPt, color.ToRgbHex(), strokeWeightPt);
         }
 
@@ -317,9 +317,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a polygon shape using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
+        /// Adds a polygon shape using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
-        public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor) {
+        public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor) {
             return AddPolygon(paragraph, points, fillColor.ToRgbHex(), strokeColor.ToRgbHex());
         }
 
@@ -481,14 +481,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the fill color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the fill color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor FillColor {
+        public OfficeIMO.OfficeColor FillColor {
             get {
                 var hex = FillColorHex;
-                if (string.IsNullOrEmpty(hex)) return OfficeIMO.Drawing.OfficeColor.Transparent;
+                if (string.IsNullOrEmpty(hex)) return OfficeIMO.OfficeColor.Transparent;
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
-                return OfficeIMO.Drawing.OfficeColor.Parse(hex);
+                return OfficeIMO.OfficeColor.Parse(hex);
             }
             set => FillColorHex = value.ToRgbHex();
         }
@@ -638,14 +638,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Outline color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor StrokeColor {
+        public OfficeIMO.OfficeColor StrokeColor {
             get {
                 var hex = StrokeColorHex;
-                if (hex is not { Length: > 0 } s) return OfficeIMO.Drawing.OfficeColor.Transparent;
+                if (hex is not { Length: > 0 } s) return OfficeIMO.OfficeColor.Transparent;
                 if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
-                return OfficeIMO.Drawing.OfficeColor.Parse(s);
+                return OfficeIMO.OfficeColor.Parse(s);
             }
             set => StrokeColorHex = value.ToRgbHex();
         }

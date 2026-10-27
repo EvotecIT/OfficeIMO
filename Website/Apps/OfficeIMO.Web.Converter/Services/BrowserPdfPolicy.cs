@@ -11,8 +11,10 @@ internal static class BrowserPdfPolicy {
     internal const long MaxOutputBytes = 96L * 1024L * 1024L;
     internal const long MaxSplitSerializedBytes = 64L * 1024L * 1024L;
 
-    internal static PdfDocument Open(SelectedDocument file, string? password = null) =>
-        PdfDocument.Load(file.Bytes, CreateReadOptions(password));
+    internal static PdfDocument Open(SelectedDocument file, string? password = null) {
+        using var input = new MemoryStream(file.Bytes, writable: false);
+        return PdfDocument.Load(input, CreateReadOptions(password));
+    }
 
     internal static PdfLoadOptions CreateReadOptions(string? password = null, long maximumInputBytes = MaxInputBytes) => new() {
         Password = password,

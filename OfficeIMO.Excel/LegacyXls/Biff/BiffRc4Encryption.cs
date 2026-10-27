@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (!TryReadDescriptor(filePassRecord.Payload, out Rc4Descriptor? descriptor, out string? error)) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-FILEPASS-INVALID",
+                    "xls-biff-filepass-invalid",
                     "The workbook contains an RC4 FilePass record, but its encryption descriptor could not be parsed. " + error,
                     recordOffset: filePassRecord.Offset,
                     recordType: filePassRecord.Type,
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (!VerifyPassword(descriptor!, password)) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-FILEPASS-PASSWORD-INVALID",
+                    "xls-biff-filepass-password-invalid",
                     "The supplied legacy XLS password did not match the workbook RC4 FilePass verifier.",
                     recordOffset: filePassRecord.Offset,
                     recordType: filePassRecord.Type,

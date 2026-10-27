@@ -28,7 +28,7 @@ public class PdfRepairArtifactTests {
         PdfRepairArtifactResult result = PdfRepairArtifact.Create(source);
 
         Assert.True(result.IsVerified);
-        Assert.Contains(result.SourceRepairReport.Diagnostics, static diagnostic => diagnostic.Code == "IncorrectStreamLength" && diagnostic.WasRecovered);
+        Assert.Contains(result.SourceRepairReport.Diagnostics, static diagnostic => diagnostic.Code == "incorrect-stream-length" && diagnostic.WasRecovered);
         Assert.Empty(result.StrictOutputRepairReport.Diagnostics);
         Assert.Contains("Recovered stream text", PdfReadDocument.Open(result.ToBytes(), new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText(), StringComparison.Ordinal);
         Assert.True(result.Preservation.IsPreserved);

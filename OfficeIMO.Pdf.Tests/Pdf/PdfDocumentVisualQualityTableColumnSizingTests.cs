@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_UsesFixedColumnWidthPointsWithRemainingWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 60, null, 50 };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -50,7 +50,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_UsesFixedColumnWidthPointsWithRemainingWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -60,7 +60,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 60, null, 50 };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -94,12 +94,12 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(2, 200D, 50D)]
     [InlineData(3, 30D, 240D)]
     public void Table_RecomputesRemainingWeightsBeforeApplyingNeighborBounds(int boundsCase, double firstWidth, double secondWidth) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360, PageHeight = 240,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = false;
         style.ColumnWidthWeights = boundsCase == 0 ? new List<double> { 4, 3, 3 } : new List<double> { 1, 1, 1 };
         style.ColumnMinWidthPoints = boundsCase switch {
@@ -124,7 +124,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_UsesMinimumColumnWidthPointsForWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -134,7 +134,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
         style.ColumnMinWidthPoints = new List<double?> { 80, null, null };
 
@@ -157,7 +157,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_UsesMinimumColumnWidthPointsForWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -167,7 +167,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
         style.ColumnMinWidthPoints = new List<double?> { 80, null, null };
 
@@ -195,7 +195,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_ScalesMinimumColumnWidthsWhenTheyExceedAvailableWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 300,
             PageHeight = 220,
             MarginLeft = 30,
@@ -205,7 +205,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 1, 1 };
         style.ColumnMinWidthPoints = new List<double?> { 180, 180, 180 };
 
@@ -225,7 +225,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_UsesMaximumColumnWidthPointsForWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -235,7 +235,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
         style.ColumnMaxWidthPoints = new List<double?> { null, 120, null };
 
@@ -258,7 +258,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_UsesMaximumColumnWidthPointsForWeightedColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -268,7 +268,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
         style.ColumnMaxWidthPoints = new List<double?> { null, 120, null };
 
@@ -296,7 +296,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_UsesConfiguredVerticalColumnAlignment() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -306,7 +306,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 80, null };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
 
@@ -331,7 +331,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_UsesConfiguredVerticalColumnAlignment() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.ColumnWidthPoints = new List<double?> { 80, null };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
 
@@ -371,7 +371,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsFlexibleColumnsFromMeasuredContent() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -381,7 +381,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
 
         byte[] bytes = PdfDocument.Create(options)
@@ -410,14 +410,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitUsesPreferredWidthForCompactContent() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.PreferredWidth = 160;
         style.PreserveWidth = true;
         style.HeaderFill = new PdfColor(0.17, 0.27, 0.37);
         style.BorderColor = null;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 30,
@@ -439,7 +439,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_AutoFitCanExpandPastPreferredWidthWithinMaximumWidth() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.PreferredWidth = 80;
         style.MaxWidth = 150;
@@ -447,7 +447,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderFill = new PdfColor(0.18, 0.28, 0.38);
         style.BorderColor = null;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 30,
@@ -474,7 +474,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsTechnicalValuesUsingBreakAwarePreferredWidths() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -484,7 +484,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -521,7 +521,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsRegistryPathColumnsWithoutStarvingPathWidth() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -531,7 +531,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -575,7 +575,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsUppercaseDelimitedCodesUsingRealBreakpoints() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 220,
             MarginLeft = 30,
@@ -585,7 +585,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
 
         byte[] bytes = PdfDocument.Create(options)
@@ -609,7 +609,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsSidLikeIdentifiersAsCompactTechnicalValues() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -619,7 +619,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -661,7 +661,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsCompactNumericDelimitedIdentifiersUsingDelimiterBreaks() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -671,7 +671,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -716,7 +716,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsDelimitedNumericIdentifierListsAsCompactTechnicalValues() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -726,7 +726,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -762,7 +762,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsRepeatedAccountIdentifiersWithComparableColumnWidths() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -772,7 +772,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -823,7 +823,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsDenseInventoryColumnsWithoutOverweightingCompactCodes() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -833,7 +833,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -877,7 +877,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsLargeDenseCamelCaseReportsWithoutStarvingCompactColumns() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 360,
             MarginLeft = 72,
@@ -887,7 +887,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
 
@@ -931,7 +931,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_AutoFitsLargeDenseUppercaseCodesWithoutOverprotectingLongSegments() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 612,
             PageHeight = 792,
             MarginLeft = 72,
@@ -941,7 +941,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 11
         };
-        var style = TableStyles.TableGrid();
+        var style = PdfTableStyles.TableGrid();
         style.AutoFitColumns = true;
         style.MaxWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
         style.FontSize = 11D;
@@ -986,7 +986,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_AutoFitsFlexibleColumnsFromMeasuredContent() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -996,7 +996,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
 
         byte[] bytes = PdfDocument.Create(options)
@@ -1030,7 +1030,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void AutoFitTable_UsesExplicitWeightsConsistentlyInsideAndOutsideRows() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 360,
             PageHeight = 240,
             MarginLeft = 30,
@@ -1046,7 +1046,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] Render(bool insideRow) {
-            var style = TableStyles.Minimal();
+            var style = PdfTableStyles.Minimal();
             style.AutoFitColumns = true;
             style.ColumnWidthWeights = new List<double> { 1D, 1D, 1D };
             return insideRow
@@ -1077,7 +1077,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RightAlignsCurrencyPercentAndParenthesizedNumbers() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 240,
             MarginLeft = 30,
@@ -1087,7 +1087,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.RightAlignedNumbers();
+        var style = PdfTableStyles.RightAlignedNumbers();
         style.ColumnWidthPoints = new List<double?> { 120, 100 };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -1098,7 +1098,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "Margin", "99%" },
                 new[] { "EU", "€1,234.50" }
             }, style: style)
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -1115,7 +1115,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RightAlignsCurrencyPercentAndParenthesizedNumbers() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = 320,
             PageHeight = 240,
             MarginLeft = 30,
@@ -1125,7 +1125,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9
         };
-        var style = TableStyles.RightAlignedNumbers();
+        var style = PdfTableStyles.RightAlignedNumbers();
         style.ColumnWidthPoints = new List<double?> { 120, 100 };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -1141,7 +1141,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     new[] { "Margin", "99%" },
                                     new[] { "EU", "€1,234.50" }
                                 }, style: style))))))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);

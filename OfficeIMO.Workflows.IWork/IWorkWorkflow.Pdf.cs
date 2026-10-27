@@ -17,10 +17,10 @@ public static partial class IWorkWorkflow {
             using PagesToWordResult editable = WordIWorkConverter.ConvertPagesToWordResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(settings?.PagesPdfOptions, token), editable.Report, editable.Source, output, token);
+            return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(settings?.PagesPdfOptions, token), editable.Report, editable.Source, output, token);
         });
         Add("numbers-pdf", (input, output, limits, settings, token) => {
-            ExcelToPdfOptions options = settings?.NumbersPdfOptions ?? new IWorkWorkflowSettings().NumbersPdfOptions;
+            ExcelPdfExportOptions options = settings?.NumbersPdfOptions ?? new IWorkWorkflowSettings().NumbersPdfOptions;
             if (options.SheetNames is { Count: > 0 } || options.MaxRowsPerSheet.HasValue
                 || options.UseWorksheetPrintAreas || options.RespectWorkbookSheetVisibility
                 || options.RespectWorksheetHiddenRowsAndColumns)
@@ -32,10 +32,10 @@ public static partial class IWorkWorkflow {
             using NumbersToExcelResult editable = ExcelIWorkConverter.ConvertNumbersToExcelResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, editable.Source, output, token);
+            return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(options, token), editable.Report, editable.Source, output, token);
         });
         Add("keynote-pdf", (input, output, limits, settings, token) => {
-            PowerPointToPdfOptions options = settings?.KeynotePdfOptions ?? new IWorkWorkflowSettings().KeynotePdfOptions;
+            PowerPointPdfExportOptions options = settings?.KeynotePdfOptions ?? new IWorkWorkflowSettings().KeynotePdfOptions;
             if (!options.IncludeHiddenSlides || options.PageLayout != PowerPointPdfPageLayout.Slides)
                 throw new NotSupportedException("Complete Keynote PDF conversion requires the slides layout with every slide included.");
             if (!options.IncludeTextBoxes || !options.IncludePictures || !options.IncludeAutoShapes
@@ -44,7 +44,7 @@ public static partial class IWorkWorkflow {
             using KeynoteToPowerPointResult editable = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, editable.Source, output, token);
+            return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(options, token), editable.Report, editable.Source, output, token);
         });
 
         void Add(string route, OfficeWorkflowConfiguredConverter<IWorkWorkflowSettings> converter) => registrations.Add(
@@ -62,15 +62,14 @@ public static partial class IWorkWorkflow {
 
     private static OfficeWorkflowConversionEvidence SavePdf(Func<PdfDocumentConversionResult> createPdf,
         IWorkConversionReport source, IWorkSourceDocument captured, Stream output, CancellationToken token) {
-        var facts = new Dictionary<string, string>(Evidence(source, captured).Facts, StringComparer.Ordinal) {
-            ["conversionStages"] = "iwork-editable,pdf"
-        };
+        var facts = Evidence(source, captured).Facts.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        facts["conversionStages"] = "iwork-editable,pdf";
         IReadOnlyList<IOfficeConversionReport> reports = new IOfficeConversionReport[] { source };
         try {
             PdfDocumentConversionResult pdf = createPdf().WithSourceConversionReport(source);
             reports = pdf.ConversionReports;
             RequireCompletePdfContent(pdf.Report);
-            PdfSaveResult saved = pdf.SaveResultAsync(output, token).GetAwaiter().GetResult();
+            PdfSaveResult saved = pdf.TrySaveWithEvidenceAsync(output, token).GetAwaiter().GetResult();
             reports = saved.ConversionReports;
             token.ThrowIfCancellationRequested();
             saved.RequireSuccess();

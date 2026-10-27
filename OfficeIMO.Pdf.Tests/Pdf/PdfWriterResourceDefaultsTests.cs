@@ -8,11 +8,11 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfWriterResourceDefaultsTests {
     [Fact]
     public void DirectAuthoring_CompressesPagesByDefaultAndHonorsExplicitOptOut() {
-        byte[] Generate(PdfOptions options) => PdfDocument.Create(options)
+        byte[] Generate(PdfCreateOptions options) => PdfDocument.Create(options)
             .Paragraph(p => p.Text(string.Concat(Enumerable.Repeat("Content stream compression proof. ", 100))))
             .ToBytes();
-        byte[] compressed = Generate(new PdfOptions());
-        byte[] plain = Generate(new PdfOptions { CompressContentStreams = false });
+        byte[] compressed = Generate(new PdfCreateOptions());
+        byte[] plain = Generate(new PdfCreateOptions { CompressContentStreams = false });
         var (objects, _) = PdfSyntax.ParseObjects(compressed);
         PdfDictionary page = objects.Values.Select(o => o.Value).OfType<PdfDictionary>()
             .Single(d => d.Get<PdfName>("Type")?.Name == "Page");
@@ -20,13 +20,13 @@ public class PdfWriterResourceDefaultsTests {
         Assert.Equal("FlateDecode", stream.Dictionary.Get<PdfName>("Filter")?.Name);
         Assert.True(compressed.Length < plain.Length / 2);
         Assert.Equal(PdfTextExtractor.ExtractAllText(plain), PdfTextExtractor.ExtractAllText(compressed));
-        Assert.Equal(compressed, Generate(new PdfOptions()));
+        Assert.Equal(compressed, Generate(new PdfCreateOptions()));
     }
 
     [Fact]
     public void GeneratedAttachmentsProfilesAndAppearances_AreCompressedWithDecodedPayloadsIntact() {
         byte[] xml = Encoding.UTF8.GetBytes("<invoice>" + new string('a', 4096) + "</invoice>");
-        var options = new PdfOptions { IncludeXmpMetadata = true, CompressContentStreams = false };
+        var options = new PdfCreateOptions { IncludeXmpMetadata = true, CompressContentStreams = false };
         options.SetSrgbOutputIntent();
         byte[] pdf = PdfDocument.Create(options).AttachFile("factur-x.xml", xml, "application/xml")
             .TextField("Name", value: "Ada Lovelace").CheckBox("Accept", true).ToBytes();
@@ -47,7 +47,7 @@ public class PdfWriterResourceDefaultsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void IdenticalPageProgramsShareStorageWithoutLosingPageOccurrences(bool compress) {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = compress })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = compress })
             .Paragraph(p => p.Text("Repeated page"))
             .PageBreak().Paragraph(p => p.Text("Repeated page")).ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(pdf);
@@ -80,7 +80,7 @@ public class PdfWriterResourceDefaultsTests {
     [InlineData(PdfObjectSerializationMode.Buffered, 16777216)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly, 0)]
     public void VisualResources_AreSharedAcrossPagesWithoutSharingDifferentPaint(PdfObjectSerializationMode mode, long memoryLimit) {
-        var options = new PdfOptions { FileVersion = PdfFileVersion.Pdf17, ObjectSerializationMode = mode, ObjectBufferMemoryLimitBytes = memoryLimit };
+        var options = new PdfCreateOptions { FileVersion = PdfFileVersion.Pdf17, ObjectSerializationMode = mode, ObjectBufferMemoryLimitBytes = memoryLimit };
         var doc = PdfDocument.Create(options);
         for (int i = 0; i < 4; i++) {
             if (i > 0) doc.PageBreak();

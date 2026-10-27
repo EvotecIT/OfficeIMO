@@ -16,10 +16,10 @@ public partial class Excel {
         ExcelSheet sheet = document.AddWorksheet("Report");
         sheet.Cell(1, 1, "Original");
         sheet.SetGridlinesVisible(visible);
-        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xlsb), writable: false));
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }), writable: false));
         Assert.Equal(visible, loaded.Sheets[0].GetViewInfo().ShowGridlines);
         loaded.Sheets[0].Cell(1, 1, "Edited");
-        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes(ExcelFileFormat.Xlsb), writable: false));
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }), writable: false));
         Assert.Equal(visible, reopened.Sheets[0].GetViewInfo().ShowGridlines);
         Assert.Equal("Edited", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
     }

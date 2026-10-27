@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
                     if (cell?.CellReference?.Value is string reference
                         && cell.Ancestors<Worksheet>().FirstOrDefault() == part.Worksheet
                         && MatchesDynamicSpillSnapshot(cell, snapshot)
-                        && A1.TryParseCellReferenceFast(reference, out int row, out int column))
+                        && ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column))
                         moved[DynamicCellKey(row, column)] = snapshot;
                 }
                 ownership.Cells.Clear();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
                 if (!state.TryGetValue(part, out DynamicSpillOwnership? ownership)) continue;
                 foreach (Cell cell in part.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>()) {
                     if (cell.CellReference?.Value is string reference
-                        && A1.TryParseCellReferenceFast(reference, out int row, out int column)
+                        && ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)
                         && ownership.Cells.TryGetValue(DynamicCellKey(row, column), out DynamicSpillCacheSnapshot? snapshot)
                         && MatchesDynamicSpillSnapshot(cell, snapshot)) snapshot.SourceCell = cell;
                 }

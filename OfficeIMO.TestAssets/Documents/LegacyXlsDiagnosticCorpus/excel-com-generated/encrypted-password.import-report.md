@@ -63,7 +63,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FILEPASS-UNSUPPORTED | 1 |
+| xls-biff-filepass-unsupported | 1 |
 
 ## Workbook CodeName States
 
@@ -75,7 +75,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FILEPASS-UNSUPPORTED | 1 |
+| xls-biff-filepass-unsupported | 1 |
 
 ## Unsupported Features By Kind
 
@@ -87,19 +87,19 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| EncryptedWorkbook\|XLS-BIFF-FILEPASS-UNSUPPORTED\|0x002F | 1 |
+| EncryptedWorkbook\|xls-biff-filepass-unsupported\|0x002F | 1 |
 
 ## Unsupported Feature Details
 
 | Key | Count |
 | --- | --- |
-| EncryptedWorkbook\|XLS-BIFF-FILEPASS-UNSUPPORTED\|Encryption:FilePass:Rc4 | 1 |
+| EncryptedWorkbook\|xls-biff-filepass-unsupported\|Encryption:FilePass:Rc4 | 1 |
 
 ## Unsupported Feature Locations
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FILEPASS-UNSUPPORTED\|(workbook) | 1 |
+| xls-biff-filepass-unsupported\|(workbook) | 1 |
 
 ## File Format States
 
@@ -133,7 +133,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FILEPASS-UNSUPPORTED\|(workbook) | 1 |
+| xls-biff-filepass-unsupported\|(workbook) | 1 |
 
 ## Encrypted Workbooks By Method
 
@@ -151,4 +151,4 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| EncryptedWorkbook\|XLS-BIFF-FILEPASS-UNSUPPORTED\|Encryption:FilePass:Rc4 | 1 |
+| EncryptedWorkbook\|xls-biff-filepass-unsupported\|Encryption:FilePass:Rc4 | 1 |

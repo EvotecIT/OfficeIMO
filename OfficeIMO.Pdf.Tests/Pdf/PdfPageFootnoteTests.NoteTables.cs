@@ -67,7 +67,7 @@ public partial class PdfPageFootnoteTests {
 
     [Fact]
     public void SplitNoteTableRowKeepsInlineImageLinkAndDestinationExactlyOnceDuringAdmissionAndRepeatedSerialization() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.CompressContentStreams = false;
         var document = PdfDocument.Create(options).TaggedPdfCatalogMarkers();
         var runs = new List<PdfTextRun>();
@@ -163,7 +163,7 @@ public partial class PdfPageFootnoteTests {
 
     [Fact]
     public void ContinuedNoteTableRetainsPanelInsetsAndKeptHeadingWithItsFirstLegalRowFragment() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         const double horizontalPadding = 8D, verticalPadding = 3D;
         var document = PdfDocument.Create(options);
         var heading = Style();

@@ -13,14 +13,14 @@ public sealed partial class PowerPointPresentation {
         .ToArray();
 
     /// <summary>Converts a PowerPoint file and returns format and feature-level fidelity diagnostics.</summary>
-    public static PowerPointPresentationConversionResult Convert(
+    internal static PowerPointPresentationConversionResult Convert(
         string sourcePath,
         string destinationPath,
         PowerPointPresentationConversionOptions? options = null) =>
         ConvertAsync(sourcePath, destinationPath, options).GetAwaiter().GetResult();
 
     /// <summary>Asynchronously converts a PowerPoint file and returns feature-level fidelity diagnostics.</summary>
-    public static async Task<PowerPointPresentationConversionResult> ConvertAsync(
+    internal static async Task<PowerPointPresentationConversionResult> ConvertAsync(
         string sourcePath,
         string destinationPath,
         PowerPointPresentationConversionOptions? options = null,
@@ -122,7 +122,7 @@ public sealed partial class PowerPointPresentation {
                 }
             } catch (NotSupportedException exception) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "PowerPoint.DestinationFeatureUnsupported",
+                    "power-point-destination-feature-unsupported",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
@@ -199,7 +199,7 @@ public sealed partial class PowerPointPresentation {
         OfficeFormatDescriptor declaredSource = PowerPointFormatCatalog.GetByExtension(sourcePath);
         if (!declaredSource.Equals(sourceDescriptor)) {
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "PowerPoint.SourceExtensionMismatch",
+                "power-point-source-extension-mismatch",
                 OfficeConversionDiagnosticCategory.SourceFormat,
                 OfficeConversionDiagnosticSeverity.Warning,
                 $"The source extension declares {declaredSource.Id}, but its package declares {sourceDescriptor.Id}. Package content was used.",
@@ -213,7 +213,7 @@ public sealed partial class PowerPointPresentation {
             foreach (LegacyPptImportDiagnostic diagnostic in presentation.LegacyPptImportDiagnostics) {
                 bool encryptionRemoved = string.Equals(
                     diagnostic.Code,
-                    "PPT-ENCRYPTION-DECRYPTED",
+                    "ppt-encryption-decrypted",
                     StringComparison.Ordinal);
                 bool representsLoss = encryptionRemoved
                     || diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning
@@ -275,7 +275,7 @@ public sealed partial class PowerPointPresentation {
                 compatibilityMode,
                 preserveLossySource);
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "PowerPoint.VbaProject.Removed",
+                "power-point-vba-project-removed",
                 OfficeConversionDiagnosticCategory.DataLoss,
                 macroState == OfficeCompatibilityState.Blocked
                     ? OfficeConversionDiagnosticSeverity.Error
@@ -297,7 +297,7 @@ public sealed partial class PowerPointPresentation {
                 ? GetPowerPointGenericLossState(compatibilityMode, preserveLossySource)
                 : OfficeCompatibilityState.Blocked;
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "PowerPoint.DigitalSignature.Invalidated",
+                "power-point-digital-signature-invalidated",
                 OfficeConversionDiagnosticCategory.DataLoss,
                 signatureState == OfficeCompatibilityState.Blocked
                     ? OfficeConversionDiagnosticSeverity.Error
@@ -315,7 +315,7 @@ public sealed partial class PowerPointPresentation {
         if (destinationDescriptor.Generation == OfficeFormatGeneration.Legacy
             && string.Equals(destinationDescriptor.Extension, ".ppa", StringComparison.Ordinal)) {
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "PowerPoint.LegacyDestination.NotWritable",
+                "power-point-legacy-destination-not-writable",
                 OfficeConversionDiagnosticCategory.DestinationFormat,
                 OfficeConversionDiagnosticSeverity.Error,
                 ".ppa is classified for import and reporting, but native binary add-in authoring is not yet a supported write target.",
@@ -476,7 +476,7 @@ public sealed partial class PowerPointPresentation {
         bool embedded,
         bool hasVba) {
         diagnostics.Add(new OfficeConversionDiagnostic(
-            embedded ? "PowerPoint.SourceCarrier.Embedded" : "PowerPoint.SourceCarrier.NotEmbedded",
+            embedded ? "power-point-source-carrier-embedded" : "power-point-source-carrier-not-embedded",
             OfficeConversionDiagnosticCategory.DataLoss,
             OfficeConversionDiagnosticSeverity.Warning,
             embedded

@@ -15,7 +15,7 @@ public partial class HtmlWordGapClosure {
             <div dir="rtl"><span>Text</span></div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -35,7 +35,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTable table = Assert.Single(document.Tables);
         WordSection section = Assert.Single(document.Sections);
         int pageWidth = (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips);
@@ -49,9 +49,9 @@ public partial class HtmlWordGapClosure {
     public void WordToHtml_ExactMarkedTextShadingIsAppliedToTheMarkElement() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<mark style="background-color:#ff0000">Text</mark>""")
-            .ToWordDocument();
+            .ToWord();
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains(
             """<mark style="background-color:#ff0000">Text</mark>""",
@@ -75,7 +75,7 @@ public partial class HtmlWordGapClosure {
                 new Text("Text")),
             new M.OfficeMath(new M.Run(new M.Text("x"))));
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains(
             """<mark style="background-color:#ff0000">Text</mark>""",
@@ -91,7 +91,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_AutoMarginsClearEarlierNumericValues(string style) {
         string html = $"""<div style="{style}">Text</div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");

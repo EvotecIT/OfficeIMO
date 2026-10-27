@@ -25,7 +25,7 @@ public sealed class StudioReviewedCopyDraftTests {
             File.WriteAllBytes(source, retained ? PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).ToBytes() : form);
             byte[] original = File.ReadAllBytes(source); MainWindowViewModel? model = null; int reviews = 0, pickers = 0;
             void AddDraft() {
-                if (retained) model!.UnassignedFormDrafts.Add(new PdfFormFieldViewModel(PdfDocument.Load(form).Inspect().FormFields[0]) { TextValue = "Retained draft" });
+                if (retained) model!.UnassignedFormDrafts.Add(new PdfFormFieldViewModel(PdfDocument.Load(new System.IO.MemoryStream(form)).Inspect().FormFields[0]) { TextValue = "Retained draft" });
                 else model!.FormFields[0].TextValue = "Unapplied value";
             }
             Task<bool> Review() { reviews++; AddDraft(); return Task.FromResult(true); }

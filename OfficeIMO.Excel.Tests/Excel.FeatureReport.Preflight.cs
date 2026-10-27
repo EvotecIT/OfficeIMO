@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReport_Preflight_ClassifiesMultipleUnsupportedSeriesWithinOneChart() {
-            var snapshot = new ExcelChartSnapshot(
+            var snapshot = new ExcelChartInfo(
                 "UnsupportedCombo",
                 "Unsupported Combo Count",
                 ExcelChartType.ColumnClustered,
@@ -878,7 +878,7 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
-                using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes());
+                using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
                 Assert.Contains("Visible", string.Concat(pdf.GetPages().Select(page => page.Text)));
                 Assert.Contains("Visible", document["Shapes"].Range("A1:D5").ToSvg());
             }

@@ -8,12 +8,12 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticTable table,
         HtmlToExcelResult result,
         HtmlImportBudget budget) {
-        A1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out int lastColumn);
-        foreach (ExcelMergedRangeSnapshot merge in sheet.GetMergedRanges(budget.Limits.MaxTableCells)) {
+        ExcelA1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out int lastColumn);
+        foreach (ExcelMergedRangeInfo merge in sheet.GetMergedRanges(budget.Limits.MaxTableCells)) {
             lastRow = Math.Max(lastRow, merge.EndRow);
             lastColumn = Math.Max(lastColumn, merge.EndColumn);
         }
-        if (lastRow < 1 || lastRow >= A1.MaxRows - 1) {
+        if (lastRow < 1 || lastRow >= ExcelA1.MaxRows - 1) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
                 "The full table caption could not be placed after the native worksheet grid.",
                 lossKind: OfficeConversionLossKind.Omission);
@@ -73,7 +73,7 @@ public static partial class HtmlExcelConverterExtensions {
             // Use Excel's existing sizing rather than a separate HTML text
             // estimator. Bound long columns and fit rows after enabling wrapping.
             sheet.AutoFitColumnsFor(importedCells.Select(cell => cell.Column));
-            ExcelColumnSnapshot[] columns = sheet.GetColumnDefinitions().ToArray();
+            ExcelColumnInfo[] columns = sheet.GetColumnDefinitions().ToArray();
             const double minimumWidth = 12D;
             double minimumTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1) * minimumWidth);
             double extraTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1)
@@ -83,7 +83,7 @@ public static partial class HtmlExcelConverterExtensions {
             double extraBudget = Math.Max(75D, minimumTotal) - minimumTotal;
             double scale = extraTotal > 0D ? Math.Min(1D, extraBudget / extraTotal) : 1D;
             var fittedWidths = new Dictionary<int, double>();
-            foreach (ExcelColumnSnapshot column in columns) {
+            foreach (ExcelColumnInfo column in columns) {
                 double width = minimumWidth
                     + (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth) * scale;
                 for (int index = column.StartIndex; index <= column.EndIndex; index++) {

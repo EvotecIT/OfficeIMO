@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Paragraph(p => p
                     .Text("Covered: ")
                     .Bold("gradients")
-                    .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))), new PdfOptions {
+                    .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

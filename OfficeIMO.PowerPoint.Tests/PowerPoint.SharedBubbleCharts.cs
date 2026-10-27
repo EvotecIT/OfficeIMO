@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                     OfficeChartSnapshot pdfSnapshot =
                         PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
                             nativeSnapshot, 420D, 250D,
-                            new PowerPointToPdfOptions());
+                            new PowerPointPdfExportOptions());
                     Assert.Equal(145D, pdfSnapshot.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
                         pdfSnapshot.BubbleSizeMode);
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(shared.Data.Series).ShowInLegend);
             OfficeChartSnapshot pdf =
                 PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
-                    native, 420D, 250D, new PowerPointToPdfOptions());
+                    native, 420D, 250D, new PowerPointPdfExportOptions());
             Assert.False(Assert.Single(pdf.Data.Series).ShowInLegend);
 
             string svg = System.Text.Encoding.UTF8.GetString(
@@ -763,15 +763,33 @@ namespace OfficeIMO.Tests {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             });
             string html = htmlResult.Value;
-            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult();
+            PdfDocumentConversionResult pdfResult = presentation.ConvertToPdfWithEvidence();
             byte[] pdf = pdfResult.ToBytes();
             // HTML can wrap or reserialize the SVG; all three authored point colors must still be painted.
             foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
                 Assert.Contains("fill=\"" + color + "\"", html, StringComparison.OrdinalIgnoreCase);
             }
             var page = PdfReadDocument.Open(pdf).Pages[0];
-            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Png).Bytes, png.Bytes);
-            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Svg).Bytes, svg.Bytes);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? nativeImage));
+            Assert.True(OfficePngReader.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out OfficeRasterImage? pdfImage));
+            Assert.Equal(nativeImage!.Width, pdfImage!.Width);
+            Assert.Equal(nativeImage.Height, pdfImage.Height);
+            string pdfSvg = System.Text.Encoding.UTF8.GetString(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            XElement[] pdfPaint = XDocument.Parse(pdfSvg).Descendants().Where(element => element.Attribute("fill") != null).ToArray();
+            foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
+                Assert.Contains(pdfPaint, element => string.Equals(element.Attribute("fill")!.Value, color, StringComparison.OrdinalIgnoreCase));
+                RequirePaintedColor(nativeImage!, OfficeColor.Parse(color));
+                RequirePaintedColor(pdfImage!, OfficeColor.Parse(color));
+            }
+            static void RequirePaintedColor(OfficeRasterImage image, OfficeColor expected) {
+                int count = 0;
+                for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < image.Width; x++) {
+                        OfficeColor pixel = image.GetPixel(x, y);
+                        if (Math.Abs(pixel.R - expected.R) <= 2 && Math.Abs(pixel.G - expected.G) <= 2 && Math.Abs(pixel.B - expected.B) <= 2) count++;
+                    }
+                Assert.True(count > 8, "Each authored bubble color must remain visible in raster output.");
+            }
             Assert.DoesNotContain(htmlResult.ImageDiagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(pdfResult.Warnings,

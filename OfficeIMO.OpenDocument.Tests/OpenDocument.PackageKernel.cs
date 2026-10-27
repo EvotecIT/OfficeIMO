@@ -264,7 +264,7 @@ public class OpenDocumentPackageKernelTests {
             Assert.Equal("Original", OdtDocument.Load(sourcePath).Metadata.Title);
             Assert.Equal("Copy", OdtDocument.Load(copyPath).Metadata.Title);
 
-            using var stream = loaded.ToStream();
+            using var stream = new System.IO.MemoryStream(loaded.ToBytes());
             stream.Position = stream.Length;
             long originalPosition = stream.Position;
             OdtDocument streamLoaded = await OdtDocument.LoadAsync(stream);

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("value=\"Visible label\" data-word-value=\"ID-A\"", html,
                 StringComparison.OrdinalIgnoreCase);
-            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             WordComboBox imported = Assert.Single(roundTrip.ComboBoxes);
             Assert.Equal("ID-A", imported.SelectedValue);
             Assert.Equal(new[] { "Visible label" }, imported.Items.ToArray());
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ComboBox_MatchesInternalValueCaseInsensitively() {
             const string html = "<p><input type=\"text\" list=\"word-combo-1\" value=\"Visible label\" data-word-value=\"id-a\"><datalist id=\"word-combo-1\"><option value=\"Visible label\" data-word-value=\"ID-A\"></option></datalist></p>";
 
-            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             WordComboBox comboBox = Assert.Single(document.ComboBoxes);
             Assert.Equal("ID-A", comboBox.SelectedValue);

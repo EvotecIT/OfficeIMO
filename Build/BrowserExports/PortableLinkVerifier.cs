@@ -18,7 +18,7 @@ internal static class PortableLinkVerifier {
             WorkbookVerifier.Require(part.HyperlinkRelationships.Single(r => r.Id == links[0].Id!.Value).Uri.AbsoluteUri == Target &&
                 part.HyperlinkRelationships.Single(r => r.Id == links[1].Id!.Value).Uri.AbsoluteUri == "mailto:report@example.com", "Portable XLSX targets differ.");
             WorkbookVerifier.Require(links[0].Tooltip!.Value == "Report _x005F_x0041_ <value> 🧪", "Literal XLSX tooltip escape differs.");
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { A1Range = "A4:B4", HasHeaderRow = false });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { A1Range = "A4:B4", HasHeaderRow = false });
             WorkbookVerifier.Require(reader.Read() && Convert.ToDouble(reader.GetValue(0)) == 12.5 &&
                 reader.GetValue(1) is DateTime date && date == new DateTime(2026, 10, 8), "Linked XLSX numeric/date values differ.");
             return new { file = Path.GetFileName(path), links = links.Length, readers = 2, openXml = true };

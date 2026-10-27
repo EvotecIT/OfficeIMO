@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWriteFinding finding = Assert.Single(
                 report.Findings,
-                item => item.Code == "PPT-WRITE-CHART-CONVERTED");
+                item => item.Code == "ppt-write-chart-converted");
             OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
                 commonReport.FidelityDiagnostics,
                 item => item.Code == finding.Code);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 charts.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 charts.PptxToBinary);
-            Assert.Contains("PPT-WRITE-CHART-CONVERTED", charts.Note);
+            Assert.Contains("ppt-write-chart-converted", charts.Note);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
                 smartArt.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 smartArt.PptxToBinary);
-            Assert.Contains("PPT-WRITE-SMARTART-CONVERTED", smartArt.Note);
+            Assert.Contains("ppt-write-smartart-converted", smartArt.Note);
         }
 
         [Fact]

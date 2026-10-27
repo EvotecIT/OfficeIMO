@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
                 // The foreground image queue owns image streams, not vector forms.
                 // Preserve its z-order and transform using the same bounded SVG fallback.
                 byte[] png = RasterizeSvgImageForPdf(ReadSvgImageForPdf(block.Data), projection);
-                currentOpts.AddLayoutDiagnostic("SvgImageRasterFallback", "Canvas image",
+                currentOpts.AddLayoutDiagnostic("svg-image-raster-fallback", "Canvas image",
                     "The SVG image was rasterized for the foreground image layer.", PdfLayoutDiagnosticKind.SimplifiedContent);
                 PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(png, cancellationToken);
                 var raster = new ImageBlock(prepared.Data, block.Width, block.Height, prepared.Info, style,

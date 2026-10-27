@@ -318,9 +318,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the text color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;

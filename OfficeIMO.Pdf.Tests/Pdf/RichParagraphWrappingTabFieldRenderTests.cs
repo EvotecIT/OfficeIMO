@@ -11,7 +11,7 @@ public partial class RichParagraphWrappingTests {
         const double margin = 36D, stop = 180D;
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
         style.AddTabStop(stop, alignment, PdfTabLeaderStyle.Dots);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 360D, PageHeight = 180D, MarginLeft = margin, MarginRight = margin,
             MarginTop = margin, MarginBottom = margin, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D
         }).Paragraph(p => p.Runs(new[] {
@@ -46,7 +46,7 @@ public partial class RichParagraphWrappingTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0 };
         style.AddTabStop(180D, alignment);
         style.AddTabStop(300D);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 400D, PageHeight = 180D, MarginLeft = 40D, MarginRight = 40D,
             MarginTop = 40D, MarginBottom = 40D, DefaultFontSize = 10D
         }).Paragraph(p => p.Runs(new[] {

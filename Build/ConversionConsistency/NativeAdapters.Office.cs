@@ -23,42 +23,42 @@ internal static partial class NativeAdapters {
             case "docx": {
                 using var document = WordDocument.Load(source);
                 var imageOptions = Images<WordImageExportOptions>(suite, profile);
-                var pdfOptions = new WordToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "xlsx": {
                 using var document = ExcelDocument.Load(source);
                 var imageOptions = Images<ExcelWorkbookImageExportOptions>(suite, profile);
-                var pdfOptions = new ExcelToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "pptx": {
                 using var document = PowerPointPresentation.Load(source);
                 var imageOptions = Images<PowerPointPresentationImageExportOptions>(suite, profile);
-                var pdfOptions = new PowerPointToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "odt": {
                 var document = OdtDocument.Load(source);
                 var imageOptions = Images<WordImageExportOptions>(suite, profile);
-                var pdfOptions = new WordToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "ods": {
                 var document = OdsDocument.Load(source);
                 var imageOptions = Images<ExcelWorkbookImageExportOptions>(suite, profile);
-                var pdfOptions = new ExcelToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "odp": {
                 var document = OdpPresentation.Load(source);
                 var imageOptions = Images<PowerPointPresentationImageExportOptions>(suite, profile);
-                var pdfOptions = new PowerPointToPdfOptions().UseRenderingProfile(profile);
+                var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }

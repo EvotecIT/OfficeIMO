@@ -10,7 +10,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
-using WordToPdfOptions = OfficeIMO.Word.Pdf.WordToPdfOptions;
+using WordToPdfOptions = OfficeIMO.Word.Pdf.WordPdfExportOptions;
 
 namespace OfficeIMO.Tests.Pdf;
 
@@ -311,7 +311,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 using (WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
                 })) {
-                    var options = new WordToPdfOptions {
+                    var options = new WordPdfExportOptions {
                         IncludePageNumbers = false
                     };
                     if (string.Equals(scenario.FontProfile, "officeimo-browser-compact", StringComparison.Ordinal)) {
@@ -327,21 +327,21 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
                     document.SaveAsPdf(
                         outputPath,
-                        new ExcelToPdfOptions().UseProfile(PdfCore.PdfExportProfile.Faithful));
+                        new ExcelPdfExportOptions().UseProfile(PdfCore.PdfExportProfile.Faithful));
                 }
                 break;
             case "powerpoint":
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(
                     sourcePath,
                     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
-                    var options = new PowerPointToPdfOptions {
+                    var options = new PowerPointPdfExportOptions {
                         ChartStyle = new OfficeChartStyle(
                             palette: new[] { OfficeColor.FromRgb(34, 126, 102) },
                             backgroundColor: OfficeColor.White,
                             titleColor: OfficeColor.FromRgb(26, 31, 43)),
                         ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 4)
                     };
-                    File.WriteAllBytes(outputPath, presentation.ToPdfBytes(options));
+                    File.WriteAllBytes(outputPath, (presentation.ToPdf(options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
                 }
                 break;
             default:
@@ -351,7 +351,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return File.ReadAllBytes(outputPath);
     }
 
-    private static PdfCore.PdfOptions CreateBrowserCompactReferenceOptions(ReferenceScenario scenario) {
+    private static PdfCore.PdfCreateOptions CreateBrowserCompactReferenceOptions(ReferenceScenario scenario) {
         string fontDirectory = Path.GetFullPath(Path.Combine(
             GetPdfTestsProjectRoot(),
             "..",
@@ -385,7 +385,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             assets["Carlito-Bold.ttf"],
             assets["Carlito-Italic.ttf"],
             assets["Carlito-BoldItalic.ttf"]);
-        var options = new PdfCore.PdfOptions {
+        var options = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
             HeaderFont = PdfCore.PdfStandardFont.Helvetica,
             FooterFont = PdfCore.PdfStandardFont.Helvetica,

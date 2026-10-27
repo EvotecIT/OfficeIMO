@@ -23,8 +23,8 @@ public partial class Word {
         Assert.Equal(tokens, tallTokens);
         string[] shortBefore = CaptureEndnoteContinuationXml(shorter);
         string[] tallBefore = CaptureEndnoteContinuationXml(taller);
-        PdfDocumentConversionResult shortResult = shorter.ToPdfDocumentResult(EndnoteContinuationOptions());
-        PdfDocumentConversionResult tallResult = taller.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult shortResult = shorter.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
+        PdfDocumentConversionResult tallResult = taller.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
         string[]? firstShortPages = null, firstTallPages = null;
 
         for (int serialization = 0; serialization < 2; serialization++) {

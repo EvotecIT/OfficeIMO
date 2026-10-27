@@ -20,7 +20,7 @@ public sealed class XmlAssemblyLimitsTests {
             byte[] originalSource = File.ReadAllBytes(input), originalOutput = { 1, 2, 3 };
             File.WriteAllBytes(output, originalOutput);
             var request = new PdfAssemblyRequest {
-                Sources = [input], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Sources = [input], OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = 256 }
             };
             var rejected = await new OfficeWorkflowRunner().AssemblePdfAsync(request);

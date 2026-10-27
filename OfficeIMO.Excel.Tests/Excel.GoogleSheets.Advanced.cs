@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("COLUMN", chart.ChartType);
                 Assert.Equal("_OfficeIMO_ChartData", chart.DataSheetName);
                 Assert.Contains(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == chart.DataSheetName && request.Hidden);
-                Assert.DoesNotContain(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.UNSUPPORTED");
+                Assert.DoesNotContain(batch.Report.Notices, notice => notice.Code == "sheets-chart-unsupported");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
                 Assert.Empty(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
-                Assert.Contains(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.SCATTER_X_VALUES_UNSUPPORTED");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "sheets-chart-scatter-x-values-unsupported");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                         new TableJustification { Val = TableRowAlignmentValues.Right },
                         new TableIndentation { Width = 720, Type = TableWidthUnitValues.Dxa },
                         new TableWidth { Width = "3750", Type = TableWidthUnitValues.Pct },
-                        new TableLayout { Type = TableLayoutValues.Fixed },
+                        new DocumentFormat.OpenXml.Wordprocessing.TableLayout { Type = TableLayoutValues.Fixed },
                         new TableCellMarginDefault(
                             new TopMargin { Width = "120", Type = TableWidthUnitValues.Dxa },
                             new TableCellLeftMargin { Width = 180, Type = TableWidthValues.Dxa },

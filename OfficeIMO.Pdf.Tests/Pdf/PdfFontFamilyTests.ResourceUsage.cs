@@ -17,7 +17,7 @@ public partial class PdfFontFamilyTests {
     public void AlternateStandardTextEmbedsOnlyUsedFontFaces(
         PdfObjectSerializationMode mode, PdfStandardFont bodyFont, bool regularHeader) {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B');
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = mode,
             ShowHeader = regularHeader,
@@ -50,7 +50,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void RegularFaceFirstUsedOnLaterPageRemainsEmbedded(PdfObjectSerializationMode mode) {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B');
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = mode
         }.UseFontFamily(new PdfEmbeddedFontFamily("Later Resource", font, bold: font));

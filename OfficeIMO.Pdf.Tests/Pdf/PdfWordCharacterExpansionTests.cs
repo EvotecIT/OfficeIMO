@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         private static byte[] Render(PdfTextRun[] runs, double width, bool distributed, byte[]? cff = null) {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 PageWidth = width + 40D, PageHeight = 220D,
                 MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
                 DefaultFontSize = 12D, CompressContentStreams = false

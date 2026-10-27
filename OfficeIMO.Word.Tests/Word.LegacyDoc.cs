@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
                 failed.FidelityDiagnostics,
-                item => item.Code == "DOC-PROJECTION-FAILED");
+                item => item.Code == "doc-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
@@ -365,12 +365,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
             Assert.Equal(LegacyDocUnsupportedFeatureKind.MergedTableCell, feature.Kind);
-            Assert.Equal("DOC-MERGED-TABLE-CELLS-PRESENT", feature.Code);
+            Assert.Equal("doc-merged-table-cells-present", feature.Code);
             Assert.Equal("PAPX:sprmTDefTable", feature.DetailCode);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.MergedTableCell]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MERGED-TABLE-CELLS-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|DOC-MERGED-TABLE-CELLS-PRESENT|PAPX:sprmTDefTable"]);
-            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-MERGED-TABLE-CELLS-PRESENT");
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-merged-table-cells-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|doc-merged-table-cells-present|PAPX:sprmTDefTable"]);
+            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "doc-merged-table-cells-present");
             IOfficeConversionReport commonResult = result;
             OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
                 commonResult.FidelityDiagnostics,
@@ -435,14 +435,14 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
             Assert.Equal(LegacyDocUnsupportedFeatureKind.NestedTable, feature.Kind);
-            Assert.Equal("DOC-NESTED-TABLES-PRESENT", feature.Code);
+            Assert.Equal("doc-nested-tables-present", feature.Code);
             Assert.Equal("PAPX:sprmPItap", feature.DetailCode);
             Assert.Contains("maximum table depth 3", feature.Description, StringComparison.Ordinal);
             Assert.Contains("inner table", feature.Description, StringComparison.Ordinal);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.NestedTable]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-NESTED-TABLES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["NestedTable|DOC-NESTED-TABLES-PRESENT|PAPX:sprmPItap"]);
-            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-NESTED-TABLES-PRESENT");
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-nested-tables-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["NestedTable|doc-nested-tables-present|PAPX:sprmPItap"]);
+            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "doc-nested-tables-present");
         }
 
         [Fact]
@@ -564,7 +564,7 @@ namespace OfficeIMO.Tests {
                 result.EnsureNoImportErrors();
                 Assert.True(result.HasDocument);
                 Assert.Empty(result.UnsupportedFeatures);
-                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED");
+                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "doc-ole-custom-document-property-unsupported");
                 WordCustomProperty binaryProperty = result.Document.CustomDocumentProperties["BinaryPayload"];
                 Assert.Equal(WordCustomPropertyType.Binary, binaryProperty.PropertyType);
                 Assert.Equal(expectedPayload, binaryProperty.Binary);
@@ -1434,7 +1434,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
             LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
-            Assert.Equal("DOC-WORDDOCUMENT-MISSING", diagnostic.Code);
+            Assert.Equal("doc-worddocument-missing", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
         }
 
@@ -1447,11 +1447,11 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
             LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
-            Assert.Equal("DOC-FIB-INVALID", diagnostic.Code);
+            Assert.Equal("doc-fib-invalid", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.Contains("Unsupported Word FIB version 0x0065", diagnostic.Message);
             Assert.Equal(1, result.ImportReport.ErrorCount);
-            Assert.Equal(1, result.ImportReport.DiagnosticsByCode["DOC-FIB-INVALID"]);
+            Assert.Equal(1, result.ImportReport.DiagnosticsByCode["doc-fib-invalid"]);
         }
 
         [Fact]
@@ -1468,10 +1468,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, result.ImportReport.CompoundFeatureCount);
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.OleObject]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-MACROS-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-OLE-OBJECTS-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["VbaProject|DOC-MACROS-PRESENT|Compound:VbaProjectStorage"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["OleObject|DOC-OLE-OBJECTS-PRESENT|Compound:OleObjectStorage"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-macros-present"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-ole-objects-present"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["VbaProject|doc-macros-present|Compound:VbaProjectStorage"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["OleObject|doc-ole-objects-present|Compound:OleObjectStorage"]);
             Assert.Contains(result.CompoundFeatures, feature => feature.EntryPath == "_VBA_PROJECT_CUR");
             Assert.Contains(result.CompoundFeatures, feature => feature.EntryPath == "ObjectPool");
             Assert.Equal(2, result.Document.LegacyDocCompoundFeatures.Count);
@@ -1482,8 +1482,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| Unsupported features | 0 |", markdown);
             Assert.Contains("## Preserved Compound Features", markdown);
             Assert.DoesNotContain("## Unsupported Features", markdown);
-            Assert.Contains("| VbaProject | DOC-MACROS-PRESENT | Compound:VbaProjectStorage | _VBA_PROJECT_CUR |", markdown);
-            Assert.Contains("| OleObject | DOC-OLE-OBJECTS-PRESENT | Compound:OleObjectStorage | ObjectPool |", markdown);
+            Assert.Contains("| VbaProject | doc-macros-present | Compound:VbaProjectStorage | _VBA_PROJECT_CUR |", markdown);
+            Assert.Contains("| OleObject | doc-ole-objects-present | Compound:OleObjectStorage | ObjectPool |", markdown);
         }
 
         [Fact]
@@ -1512,9 +1512,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.OleObject]);
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.ActiveXControl]);
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.EmbeddedPackage]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-OLE-OBJECTS-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-ACTIVEX-CONTROLS-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-EMBEDDED-PACKAGES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-ole-objects-present"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-activex-controls-present"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-embedded-packages-present"]);
             Assert.Contains(result.CompoundFeatures, feature => feature.EntryPath == "ActiveX");
             Assert.Contains(result.CompoundFeatures, feature => feature.EntryPath == "ObjectPool");
             Assert.Contains(result.CompoundFeatures, feature => feature.EntryPath == "\u0001Ole10Native");
@@ -1525,9 +1525,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| Preserved compound features | 3 |", markdown);
             Assert.Contains("| Unsupported features | 0 |", markdown);
             Assert.DoesNotContain("## Unsupported Features", markdown);
-            Assert.Contains("| OleObject | DOC-OLE-OBJECTS-PRESENT | Compound:OleObjectStorage | ObjectPool |", markdown);
-            Assert.Contains("| ActiveXControl | DOC-ACTIVEX-CONTROLS-PRESENT | Compound:ActiveXControlStorage | ActiveX |", markdown);
-            Assert.Contains("| EmbeddedPackage | DOC-EMBEDDED-PACKAGES-PRESENT | Compound:EmbeddedPackageStorage | \u0001Ole10Native |", markdown);
+            Assert.Contains("| OleObject | doc-ole-objects-present | Compound:OleObjectStorage | ObjectPool |", markdown);
+            Assert.Contains("| ActiveXControl | doc-activex-controls-present | Compound:ActiveXControlStorage | ActiveX |", markdown);
+            Assert.Contains("| EmbeddedPackage | doc-embedded-packages-present | Compound:EmbeddedPackageStorage | \u0001Ole10Native |", markdown);
         }
 
         [Fact]
@@ -1541,12 +1541,12 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.UnsupportedFeatures);
             LegacyDocCompoundFeature feature = Assert.Single(result.CompoundFeatures);
             Assert.Equal(LegacyDocCompoundFeatureKind.BinaryData, feature.Kind);
-            Assert.Equal("DOC-BINARY-DATA-STREAM-PRESENT", feature.Code);
+            Assert.Equal("doc-binary-data-stream-present", feature.Code);
             Assert.Equal("Compound:BinaryDataStream", feature.DetailCode);
             Assert.Equal("Data", feature.EntryPath);
             Assert.Equal(1, result.ImportReport.CompoundFeaturesByKind[LegacyDocCompoundFeatureKind.BinaryData]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["DOC-BINARY-DATA-STREAM-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["BinaryData|DOC-BINARY-DATA-STREAM-PRESENT|Compound:BinaryDataStream"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByCode["doc-binary-data-stream-present"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeaturesByDetail["BinaryData|doc-binary-data-stream-present|Compound:BinaryDataStream"]);
             Assert.Empty(result.Document.LegacyDocUnsupportedFeatures);
             LegacyDocCompoundFeature documentFeature = Assert.Single(result.Document.LegacyDocCompoundFeatures);
             Assert.Equal(LegacyDocCompoundFeatureKind.BinaryData, documentFeature.Kind);
@@ -1555,7 +1555,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| Preserved compound features | 1 |", markdown);
             Assert.Contains("| Unsupported features | 0 |", markdown);
             Assert.DoesNotContain("## Unsupported Features", markdown);
-            Assert.Contains("| BinaryData | DOC-BINARY-DATA-STREAM-PRESENT | Compound:BinaryDataStream | Data |", markdown);
+            Assert.Contains("| BinaryData | doc-binary-data-stream-present | Compound:BinaryDataStream | Data |", markdown);
         }
 
         [Fact]
@@ -1572,18 +1572,18 @@ namespace OfficeIMO.Tests {
             LegacyDocPreservedFeature preservedFeature = Assert.Single(result.PreservedFeatures);
             Assert.Equal(LegacyDocPreservedFeatureKind.Picture, preservedFeature.Kind);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.FastSave]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-FAST-SAVE-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["FastSave|DOC-FAST-SAVE-PRESENT|Fib:FComplex"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-fast-save-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["FastSave|doc-fast-save-present|Fib:FComplex"]);
             Assert.Equal(1, result.ImportReport.PreservedFeaturesByKind[LegacyDocPreservedFeatureKind.Picture]);
-            Assert.Equal(1, result.ImportReport.PreservedFeaturesByCode["DOC-PICTURES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.PreservedFeaturesByDetail["Picture|DOC-PICTURES-PRESENT|Fib:FHasPic"]);
+            Assert.Equal(1, result.ImportReport.PreservedFeaturesByCode["doc-pictures-present"]);
+            Assert.Equal(1, result.ImportReport.PreservedFeaturesByDetail["Picture|doc-pictures-present|Fib:FHasPic"]);
             Assert.Single(result.Document.LegacyDocUnsupportedFeatures);
             Assert.Contains(result.Document.LegacyDocPreservedFeatures, feature => feature.Kind == LegacyDocPreservedFeatureKind.Picture);
 
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("| Preserved features | 1 |", markdown);
-            Assert.Contains("| FastSave | DOC-FAST-SAVE-PRESENT | Fib:FComplex |  |", markdown);
-            Assert.Contains("| Picture | DOC-PICTURES-PRESENT | Fib:FHasPic |", markdown);
+            Assert.Contains("| FastSave | doc-fast-save-present | Fib:FComplex |  |", markdown);
+            Assert.Contains("| Picture | doc-pictures-present | Fib:FHasPic |", markdown);
         }
 
         [Fact]
@@ -1600,14 +1600,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
             Assert.False(result.ImportReport.UnsupportedFeaturesByKind.ContainsKey(LegacyDocUnsupportedFeatureKind.FastSave));
             LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
-            Assert.Equal("DOC-QUICK-SAVE-HISTORY-PRESENT", diagnostic.Code);
+            Assert.Equal("doc-quick-save-history-present", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Contains("3 quick-save revision", diagnostic.Message);
-            Assert.Equal(1, result.ImportReport.DiagnosticsByCode["DOC-QUICK-SAVE-HISTORY-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.DiagnosticsByCode["doc-quick-save-history-present"]);
 
             string markdown = result.ImportReport.ToMarkdown();
             Assert.DoesNotContain("## Unsupported Features", markdown);
-            Assert.Contains("| DOC-QUICK-SAVE-HISTORY-PRESENT | 1 |", markdown);
+            Assert.Contains("| doc-quick-save-history-present | 1 |", markdown);
         }
 
         [Fact]
@@ -1686,21 +1686,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Endnote]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Comment]);
             Assert.Equal(2, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.TextBox]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-FOOTER-STORIES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-FOOTNOTE-STORIES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-ENDNOTE-STORIES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-COMMENT-STORIES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-TEXTBOX-STORIES-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-TEXTBOX-STORIES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-header-footer-stories-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-footnote-stories-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-endnote-stories-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-comment-stories-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-textbox-stories-present"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-header-textbox-stories-present"]);
 
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("| Unsupported features | 6 |", markdown);
-            Assert.Contains("| HeaderFooter | DOC-HEADER-FOOTER-STORIES-PRESENT | Fib:CcpHdd |  |", markdown);
-            Assert.Contains("| Footnote | DOC-FOOTNOTE-STORIES-PRESENT | Fib:CcpFtn |  |", markdown);
-            Assert.Contains("| Endnote | DOC-ENDNOTE-STORIES-PRESENT | Fib:CcpEdn |  |", markdown);
-            Assert.Contains("| Comment | DOC-COMMENT-STORIES-PRESENT | Fib:CcpAtn |  |", markdown);
-            Assert.Contains("| TextBox | DOC-TEXTBOX-STORIES-PRESENT | Fib:CcpTxbx |  |", markdown);
-            Assert.Contains("| TextBox | DOC-HEADER-TEXTBOX-STORIES-PRESENT | Fib:CcpHdrTxbx |  |", markdown);
+            Assert.Contains("| HeaderFooter | doc-header-footer-stories-present | Fib:CcpHdd |  |", markdown);
+            Assert.Contains("| Footnote | doc-footnote-stories-present | Fib:CcpFtn |  |", markdown);
+            Assert.Contains("| Endnote | doc-endnote-stories-present | Fib:CcpEdn |  |", markdown);
+            Assert.Contains("| Comment | doc-comment-stories-present | Fib:CcpAtn |  |", markdown);
+            Assert.Contains("| TextBox | doc-textbox-stories-present | Fib:CcpTxbx |  |", markdown);
+            Assert.Contains("| TextBox | doc-header-textbox-stories-present | Fib:CcpHdrTxbx |  |", markdown);
         }
 
         [Fact]
@@ -1715,18 +1715,18 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.Bookmark);
             LegacyDocPreservedFeature feature = Assert.Single(result.PreservedFeatures);
             Assert.Equal(LegacyDocPreservedFeatureKind.Bookmark, feature.Kind);
-            Assert.Equal("DOC-BOOKMARK-RANGE-PRESENT", feature.Code);
+            Assert.Equal("doc-bookmark-range-present", feature.Code);
             Assert.Equal("Fib:PlcfBkf", feature.DetailCode);
             Assert.Contains("UnprojectedStoryBookmark", feature.Description);
             Assert.Equal(1, result.ImportReport.PreservedFeaturesByKind[LegacyDocPreservedFeatureKind.Bookmark]);
-            Assert.Equal(1, result.ImportReport.PreservedFeaturesByCode["DOC-BOOKMARK-RANGE-PRESENT"]);
-            Assert.Equal(1, result.ImportReport.PreservedFeaturesByDetail["Bookmark|DOC-BOOKMARK-RANGE-PRESENT|Fib:PlcfBkf"]);
+            Assert.Equal(1, result.ImportReport.PreservedFeaturesByCode["doc-bookmark-range-present"]);
+            Assert.Equal(1, result.ImportReport.PreservedFeaturesByDetail["Bookmark|doc-bookmark-range-present|Fib:PlcfBkf"]);
             Assert.Contains(result.Document.LegacyDocPreservedFeatures, item => item.Kind == LegacyDocPreservedFeatureKind.Bookmark);
 
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("| Preserved features | 1 |", markdown);
             Assert.Contains("| Unsupported features | 6 |", markdown);
-            Assert.Contains("| Bookmark | DOC-BOOKMARK-RANGE-PRESENT | Fib:PlcfBkf |", markdown);
+            Assert.Contains("| Bookmark | doc-bookmark-range-present | Fib:PlcfBkf |", markdown);
         }
 
         [Fact]
@@ -1742,9 +1742,9 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             Assert.Equal("Body story", Assert.Single(result.Document.Paragraphs, paragraph => paragraph.Text == "Body story").Text);
             LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, item => item.Kind == LegacyDocUnsupportedFeatureKind.TextBox);
-            Assert.Equal("DOC-HEADER-TEXTBOX-STORIES-PRESENT", feature.Code);
-            Assert.False(result.ImportReport.UnsupportedFeaturesByCode.ContainsKey("DOC-TEXTBOX-STORIES-PRESENT"));
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-TEXTBOX-STORIES-PRESENT"]);
+            Assert.Equal("doc-header-textbox-stories-present", feature.Code);
+            Assert.False(result.ImportReport.UnsupportedFeaturesByCode.ContainsKey("doc-textbox-stories-present"));
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-header-textbox-stories-present"]);
 
             WordTextBox[] textBoxes = result.Document.TextBoxes.ToArray();
             WordTextBox textBox = Assert.Single(textBoxes);
@@ -1911,8 +1911,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false, "DOC-FOOTNOTE-PLC-INVALID")]
-        [InlineData(true, "DOC-ENDNOTE-PLC-INVALID")]
+        [InlineData(false, "doc-footnote-plc-invalid")]
+        [InlineData(true, "doc-endnote-plc-invalid")]
         public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadNotesAsOmissions(bool endnote, string code) {
             byte[] docBytes = endnote
                 ? LegacyDocTestBuilder.CreateSimpleDocWithEndnoteStory("Body with note", "Lost endnote", omitReferencePlc: true)
@@ -1941,7 +1941,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             Assert.Empty(result.LegacyDocument.Comments);
             Assert.Contains(result.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "DOC-COMMENT-PLC-INVALID" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                diagnostic.Code == "doc-comment-plc-invalid" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
 
@@ -1958,7 +1958,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             Assert.Equal("Retained text", result.Document.Sections[0].Paragraphs[0].Text);
             Assert.Contains(result.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "DOC-OLE-PROPERTIES-UNREADABLE"
+                diagnostic.Code == "doc-ole-properties-unreadable"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
@@ -2462,7 +2462,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Document.Paragraphs, paragraph => paragraph.Text.Contains("Header leak", StringComparison.Ordinal));
             LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
             Assert.Equal(LegacyDocUnsupportedFeatureKind.HeaderFooter, feature.Kind);
-            Assert.Equal("DOC-HEADER-FOOTER-STORIES-PRESENT", feature.Code);
+            Assert.Equal("doc-header-footer-stories-present", feature.Code);
             Assert.Equal("Fib:CcpHdd", feature.DetailCode);
         }
 
@@ -2500,18 +2500,18 @@ namespace OfficeIMO.Tests {
                 result.EnsureNoImportErrors();
                 LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
                 Assert.Equal(LegacyDocUnsupportedFeatureKind.Section, feature.Kind);
-                Assert.Equal("DOC-MULTIPLE-SECTIONS-PRESENT", feature.Code);
+                Assert.Equal("doc-multiple-sections-present", feature.Code);
                 Assert.Equal("Fib:PlcfSed", feature.DetailCode);
                 Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.Section]);
-                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MULTIPLE-SECTIONS-PRESENT"]);
-                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["Section|DOC-MULTIPLE-SECTIONS-PRESENT|Fib:PlcfSed"]);
-                Assert.Contains("| Section | DOC-MULTIPLE-SECTIONS-PRESENT | Fib:PlcfSed |  |", result.ImportReport.ToMarkdown());
+                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-multiple-sections-present"]);
+                Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["Section|doc-multiple-sections-present|Fib:PlcfSed"]);
+                Assert.Contains("| Section | doc-multiple-sections-present | Fib:PlcfSed |  |", result.ImportReport.ToMarkdown());
 
                 using WordDocument document = WordDocument.Load(new MemoryStream(docBytes));
 
                 Assert.Contains(document.LegacyDocUnsupportedFeatures, item => item.Kind == LegacyDocUnsupportedFeatureKind.Section);
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-                Assert.Contains("DOC-MULTIPLE-SECTIONS-PRESENT", exception.Message);
+                Assert.Contains("doc-multiple-sections-present", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -2529,7 +2529,7 @@ namespace OfficeIMO.Tests {
                 result.EnsureNoImportErrors();
                 LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
                 Assert.Equal(LegacyDocUnsupportedFeatureKind.Section, feature.Kind);
-                Assert.Equal("DOC-MULTIPLE-SECTIONS-PRESENT", feature.Code);
+                Assert.Equal("doc-multiple-sections-present", feature.Code);
                 Assert.Equal("Fib:PlcfSed", feature.DetailCode);
                 Assert.Contains("does not align with a supported body-block boundary", feature.Description);
 
@@ -2544,7 +2544,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => result.Document.Save(docPath));
-                Assert.Contains("DOC-MULTIPLE-SECTIONS-PRESENT", exception.Message);
+                Assert.Contains("doc-multiple-sections-present", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -2895,8 +2895,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.LegacyDocCompoundFeatures.Count);
                 Assert.Contains(document.LegacyDocCompoundFeatures, feature => feature.Kind == LegacyDocCompoundFeatureKind.VbaProject);
                 Assert.Contains(document.LegacyDocCompoundFeatures, feature => feature.Kind == LegacyDocCompoundFeatureKind.OleObject);
-                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-MACROS-PRESENT");
-                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-OLE-OBJECTS-PRESENT");
+                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "doc-macros-present");
+                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "doc-ole-objects-present");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
@@ -5562,7 +5562,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Native DOC stream");
-                document.Save(stream, WordFileFormat.Doc);
+                document.Save(stream,new OfficeIMO.Word.WordSaveOptions{Format=WordFileFormat.Doc});
             }
 
             byte[] bytes = stream.ToArray();
@@ -8488,7 +8488,7 @@ namespace OfficeIMO.Tests {
                         new TableJustification { Val = TableRowAlignmentValues.Right },
                         new TableIndentation { Width = 720, Type = TableWidthUnitValues.Dxa },
                         new TableWidth { Width = "3750", Type = TableWidthUnitValues.Pct },
-                        new TableLayout { Type = TableLayoutValues.Fixed }));
+                        new DocumentFormat.OpenXml.Wordprocessing.TableLayout { Type = TableLayoutValues.Fixed }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
                     WordTable styledTable = document.AddTable(1, 2, WordTableStyle.TableNormal);
@@ -11247,7 +11247,7 @@ namespace OfficeIMO.Tests {
                 using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
                     loadResult.EnsureNoImportErrors();
                     WordDocument reloaded = loadResult.Document;
-                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+                    Assert.Contains("doc-pictures-projected", loadResult.ImportReport.DiagnosticsByCode.Keys);
                     WordHeaderFooter header = reloaded.Sections[0].Header.Default!;
                     WordHeaderFooter footer = reloaded.Sections[0].Footer.Default!;
                     WordImage headerImage = Assert.Single(header.Images);
@@ -11298,7 +11298,7 @@ namespace OfficeIMO.Tests {
                 using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
                     loadResult.EnsureNoImportErrors();
                     WordDocument reloaded = loadResult.Document;
-                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+                    Assert.Contains("doc-pictures-projected", loadResult.ImportReport.DiagnosticsByCode.Keys);
 
                     WordImage footnoteImage = Assert.Single(
                         Assert.Single(reloaded.FootNotes).Paragraphs!,
@@ -12087,7 +12087,7 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("imported from a legacy DOC", exception.Message);
-                Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);
+                Assert.Contains("doc-binary-data-stream-present", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -12129,7 +12129,7 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("imported from a legacy DOC", exception.Message);
-                Assert.Contains("DOC-MERGED-TABLE-CELLS-PRESENT", exception.Message);
+                Assert.Contains("doc-merged-table-cells-present", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -12142,10 +12142,10 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                document.Save(output, WordFileFormat.Doc));
+                document.Save(output,new OfficeIMO.Word.WordSaveOptions{Format=WordFileFormat.Doc}));
 
             Assert.Contains("imported from a legacy DOC", exception.Message);
-            Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);
+            Assert.Contains("doc-binary-data-stream-present", exception.Message);
             Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
         }
 
@@ -12174,9 +12174,8 @@ namespace OfficeIMO.Tests {
             Assert.Single(document.Paragraphs).Text = "Edited compound body";
 
             using var output = new MemoryStream();
-            document.Save(output, WordFileFormat.Doc, new WordSaveOptions {
-                LossPolicy = OfficeConversionLossPolicy.Allow
-            });
+            document.Save(output,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow
+,Format=WordFileFormat.Doc});
             byte[] savedBytes = output.ToArray();
 
             Assert.Equal(vbaPayload, ReadCompoundStream(savedBytes, "_VBA_PROJECT_CUR/VBA/dir"));
@@ -12202,18 +12201,15 @@ namespace OfficeIMO.Tests {
             using var blockedOutput = new MemoryStream(new byte[] { 9, 8, 7 }, writable: true);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                document.Save(blockedOutput, WordFileFormat.Doc, new WordSaveOptions {
-                    LossPolicy = OfficeConversionLossPolicy.Allow
-                }));
+                document.Save(blockedOutput,new OfficeIMO.Word.WordSaveOptions{                    LossPolicy = OfficeConversionLossPolicy.Allow
+,Format=WordFileFormat.Doc}));
 
             Assert.Contains(nameof(WordSaveOptions.SignedDocumentPolicy), exception.Message);
             Assert.Equal(new byte[] { 9, 8, 7 }, blockedOutput.ToArray());
 
             using var allowedOutput = new MemoryStream();
-            document.Save(allowedOutput, WordFileFormat.Doc, new WordSaveOptions {
-                LossPolicy = OfficeConversionLossPolicy.Allow,
-                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
-            });
+            document.Save(allowedOutput,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow,                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+,Format=WordFileFormat.Doc});
             Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }
 

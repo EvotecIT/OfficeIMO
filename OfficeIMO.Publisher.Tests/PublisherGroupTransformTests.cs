@@ -115,7 +115,7 @@ public sealed class PublisherGroupTransformTests {
             OfficePoint expected = Transform(unrotated, centerX, centerY, angle, horizontal, vertical);
             Equal(expected, artwork.Transform.TransformPoint(image.Projection.CreateUnitSquareTransform().TransformPoint(point)));
         }
-        Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(publication.ToPdfBytes()).Pages.Count);
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(publication.ToPdfBytes())).Pages.Count);
         Assert.Contains("matrix(", publication.ToSvg(publication.Pages.ToList().IndexOf(page)));
     }
 

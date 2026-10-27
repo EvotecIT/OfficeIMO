@@ -219,7 +219,7 @@ public class RtfPdfImportTests {
     };
 
     private static byte[] CreateSemanticPdf() =>
-        PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 360,
                 MarginLeft = 36,

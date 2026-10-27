@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.UsedRangeA1;
-            var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
+            var (startRow, startColumn, _, _) = ExcelA1.ParseRange(usedRange);
             object?[,] values;
             using (var reader = sourceDocument.CreateReader()) {
                 values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            (int row, int column) = A1.ParseCellRef(reference!);
+            (int row, int column) = ExcelA1.ParseCellRef(reference!);
             if (rowStyleIndexes.TryGetValue(row, out uint rowStyleIndex)) {
                 return rowStyleIndex;
             }
@@ -489,7 +489,7 @@ namespace OfficeIMO.Excel {
 
             var inherited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string reference in cells) {
-                (int row, int column) = A1.ParseCellRef(reference);
+                (int row, int column) = ExcelA1.ParseCellRef(reference);
                 if (styledRows.Contains(row) || styledColumns.Any(range => column >= range.Min && column <= range.Max)) {
                     inherited.Add(reference);
                 }

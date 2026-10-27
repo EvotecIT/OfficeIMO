@@ -14,7 +14,7 @@ public sealed class PdfInlineFormPaintTests {
     [InlineData(true)]
     public void WidgetOnlyNamedFontIsDeclaredForEveryPageAndAppearanceTextOperator(bool precedingSpace) {
         const string family = "Inline widget resource control";
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
         var checkedRun = PdfTextRun.Normal("A", fontSize: 10, fontFamily: family);
@@ -94,7 +94,7 @@ public sealed class PdfInlineFormPaintTests {
         byte[] Create(bool inline) {
             PdfTextRun run = PdfTextRun.Normal(cached, fontSize: 16, font: PdfStandardFont.TimesItalic);
             if (inline) run = run.WithFormField(field);
-            return PdfDocument.Create(new PdfOptions {
+            return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 300, PageHeight = 120, MarginLeft = 24, MarginRight = 24,
                 MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.TimesRoman, DefaultFontSize = 16
             }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
@@ -137,7 +137,7 @@ public sealed class PdfInlineFormPaintTests {
         var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Underlined", "OLD", cached,
             0, 0, 1, 10, 10, style, style));
-        byte[] source = PdfDocument.Create(new PdfOptions {
+        byte[] source = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = 300, PageHeight = 120, MarginLeft = 24, MarginRight = 24,
             MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
         }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
@@ -188,7 +188,7 @@ public sealed class PdfInlineFormPaintTests {
     public void ToggledInlineCheckBoxFitsAlternateGlyphInkWithoutChangingItsFrameOrNeighbors() {
         const string family = "Toggle outline control";
         const double size = 20D, pageWidth = 300D, pageHeight = 120D;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PageWidth = pageWidth, PageHeight = pageHeight, MarginLeft = 24, MarginRight = 24,
             MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,

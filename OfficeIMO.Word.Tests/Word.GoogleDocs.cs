@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
 
             using var document = BuildGoogleDocsSampleDocument(filePath, imagePath);
 
-            var snapshot = document.CreateInspectionSnapshot();
+            var snapshot = document.Inspect();
 
             Assert.Equal(filePath, snapshot.FilePath);
             Assert.Equal("Google Docs Snapshot", snapshot.Title);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(firstSection.SectionBreakType);
             Assert.Equal(3, firstSection.Elements.Count);
 
-            var intro = Assert.IsType<WordParagraphSnapshot>(firstSection.Elements[0]);
+            var intro = Assert.IsType<WordParagraphInfo>(firstSection.Elements[0]);
             Assert.Equal("Heading1", intro.StyleName);
             Assert.False(string.IsNullOrWhiteSpace(intro.Alignment));
             Assert.Equal("Intro Bold Portal", intro.Text);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(intro.Runs[2].HyperlinkUri);
             Assert.Equal("https://example.com/", intro.Runs[2].HyperlinkUri);
 
-            var imageParagraph = Assert.IsType<WordParagraphSnapshot>(firstSection.Elements[1]);
+            var imageParagraph = Assert.IsType<WordParagraphInfo>(firstSection.Elements[1]);
             Assert.Single(imageParagraph.Runs);
             Assert.Equal("Image ", imageParagraph.Text);
             Assert.NotNull(imageParagraph.Runs[0].InlineImage);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/jpeg", imageParagraph.Runs[0].InlineImage!.ContentType);
             Assert.True(imageParagraph.Runs[0].InlineImage!.IsInline);
 
-            var table = Assert.IsType<WordTableSnapshot>(firstSection.Elements[2]);
+            var table = Assert.IsType<WordTableInfo>(firstSection.Elements[2]);
             Assert.Equal("TableGrid", table.StyleName);
             Assert.Equal("Summary", table.Title);
             Assert.Equal("Demo table", table.Description);
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             var secondSection = snapshot.Sections[1];
             Assert.Equal("NextPage", secondSection.SectionBreakType);
             Assert.Single(secondSection.Elements);
-            var trailingParagraph = Assert.IsType<WordParagraphSnapshot>(secondSection.Elements[0]);
+            var trailingParagraph = Assert.IsType<WordParagraphInfo>(secondSection.Elements[0]);
             Assert.Equal("Second section", trailingParagraph.Text);
         }
 
@@ -119,8 +119,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, restartCell.RowSpan);
 
-            WordTableSnapshot snapshot = Assert.Single(
-                Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordTableSnapshot>());
+            WordTableInfo snapshot = Assert.Single(
+                Assert.Single(document.Inspect().Sections).Elements.OfType<WordTableInfo>());
             Assert.Equal(2, snapshot.Rows[0].Cells[1].RowSpan);
         }
 
@@ -151,8 +151,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordCellMerge.Continue, horizontalContinuation.HorizontalMerge);
             Assert.Equal(2, horizontalRestart.ColumnSpan);
 
-            WordTableSnapshot[] snapshots = Assert.Single(document.CreateInspectionSnapshot().Sections)
-                .Elements.OfType<WordTableSnapshot>().ToArray();
+            WordTableInfo[] snapshots = Assert.Single(document.Inspect().Sections)
+                .Elements.OfType<WordTableInfo>().ToArray();
             Assert.Equal(2, snapshots[0].Rows[0].Cells[1].RowSpan);
             Assert.Equal(2, snapshots[1].Rows[0].Cells[0].ColumnSpan);
         }
@@ -795,8 +795,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsFootnoteDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
-                var paragraph = Assert.IsType<WordParagraphSnapshot>(snapshot.Sections[0].Elements[0]);
+                var snapshot = document.Inspect();
+                var paragraph = Assert.IsType<WordParagraphInfo>(snapshot.Sections[0].Elements[0]);
                 var footnoteRun = Assert.Single(paragraph.Runs, run => run.Footnote != null);
                 Assert.Single(footnoteRun.Footnote!.Paragraphs);
                 Assert.Equal("Footnote text", footnoteRun.Footnote.Paragraphs[0].Text);
@@ -823,11 +823,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsBookmarkDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
-                var targetParagraph = Assert.IsType<WordParagraphSnapshot>(snapshot.Sections[0].Elements[1]);
+                var snapshot = document.Inspect();
+                var targetParagraph = Assert.IsType<WordParagraphInfo>(snapshot.Sections[0].Elements[1]);
                 Assert.Equal("TargetBookmark", targetParagraph.BookmarkName);
 
-                var sourceParagraph = Assert.IsType<WordParagraphSnapshot>(snapshot.Sections[0].Elements[0]);
+                var sourceParagraph = Assert.IsType<WordParagraphInfo>(snapshot.Sections[0].Elements[0]);
                 var internalLinkRun = Assert.Single(sourceParagraph.Runs, run => !string.IsNullOrWhiteSpace(run.HyperlinkAnchor));
                 Assert.Equal("TargetBookmark", internalLinkRun.HyperlinkAnchor);
 
@@ -1047,7 +1047,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHeaderFooterDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
+                var snapshot = document.Inspect();
                 Assert.NotNull(snapshot.Sections[0].DefaultHeader);
                 Assert.NotNull(snapshot.Sections[0].DefaultFooter);
                 Assert.Equal("Header text", snapshot.Sections[0].DefaultHeader!.Paragraphs[0].Text);
@@ -1081,8 +1081,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHeaderTableDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
-                var headerSnapshot = Assert.IsType<WordHeaderFooterSnapshot>(snapshot.Sections[0].DefaultHeader);
+                var snapshot = document.Inspect();
+                var headerSnapshot = Assert.IsType<WordHeaderFooterInfo>(snapshot.Sections[0].DefaultHeader);
                 Assert.Single(headerSnapshot.Tables);
                 Assert.Equal("H1", headerSnapshot.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("H4", headerSnapshot.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text);
@@ -1125,7 +1125,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsFirstPageHeaderFooterDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
+                var snapshot = document.Inspect();
                 Assert.NotNull(snapshot.Sections[0].FirstHeader);
                 Assert.NotNull(snapshot.Sections[0].FirstFooter);
                 Assert.Equal("First header text", snapshot.Sections[0].FirstHeader!.Paragraphs[0].Text);
@@ -1158,7 +1158,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsEvenPageHeaderFooterDocument(filePath);
-                var snapshot = document.CreateInspectionSnapshot();
+                var snapshot = document.Inspect();
                 Assert.NotNull(snapshot.Sections[0].EvenHeader);
                 Assert.NotNull(snapshot.Sections[0].EvenFooter);
                 Assert.Equal("Even header text", snapshot.Sections[0].EvenHeader!.Paragraphs[0].Text);

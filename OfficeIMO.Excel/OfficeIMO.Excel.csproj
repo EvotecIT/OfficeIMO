@@ -7,7 +7,7 @@
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 
@@ -62,12 +62,6 @@
         <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-        <Reference Include="System.IO.Compression" />
-        <Reference Include="System.IO.Compression.FileSystem" />
-    </ItemGroup>
-
     <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Text" />
@@ -105,9 +99,19 @@
         <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Excel" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.OpenDocument" />
         <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
         <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+        <Reference Include="System.IO.Compression" />
+        <Reference Include="System.IO.Compression.FileSystem" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
 </Project>

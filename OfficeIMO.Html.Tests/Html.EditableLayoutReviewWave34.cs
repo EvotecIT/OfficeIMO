@@ -58,7 +58,7 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         string html = "<img alt='Positioned picture' src='" + image
             + "' style='position:absolute;left:20px;top:10px;width:40px;height:20px'>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
         HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html)

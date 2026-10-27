@@ -173,7 +173,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 _securityRecordBudget = recordBudget
             };
             if (package.WasEncryptedSource) {
-                presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
+                presentation.AddDiagnostic("ppt-encryption-decrypted",
                     LegacyPptDiagnosticSeverity.Information,
                     $"The RC4 CryptoAPI encrypted presentation was decrypted with its {package.EncryptionKeySizeBits}-bit key descriptor.",
                     null);
@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? slideList = document.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideListWithText && record.Instance == 0);
             if (slideList == null) {
-                AddDiagnostic("PPT-SLIDES-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-slides-missing", LegacyPptDiagnosticSeverity.Warning,
                     "The document has no slide list.", document.Offset);
                 ValidateCustomShowSlideReferences();
                 ValidateSoundReferences();
@@ -251,14 +251,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptRecord slidePersist in slidePersists) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (slidePersist.PayloadLength < 16) {
-                    AddDiagnostic("PPT-SLIDE-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-slide-persist-truncated", LegacyPptDiagnosticSeverity.Warning,
                         "A slide directory entry is truncated and was skipped.", slidePersist.Offset);
                     continue;
                 }
                 uint persistId = slidePersist.ReadUInt32(0);
                 uint slideId = slidePersist.ReadUInt32(12);
                 if (!persistOffsets.TryGetValue(persistId, out uint slideOffset)) {
-                    AddDiagnostic("PPT-SLIDE-PERSIST-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-slide-persist-missing", LegacyPptDiagnosticSeverity.Warning,
                         $"Slide {slideId} references missing persist object {persistId}.", slidePersist.Offset);
                     continue;
                 }
@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ToBoundedOffset(slideOffset, documentStream.Length,
                         "slide persist object"), options, _recordBudget);
                 if (slideRecord.Type != RecordSlide) {
-                    AddDiagnostic("PPT-SLIDE-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-slide-type", LegacyPptDiagnosticSeverity.Warning,
                         $"Slide {slideId} points to record 0x{slideRecord.Type:X4}; the slide was skipped.", slideRecord.Offset);
                     continue;
                 }
@@ -318,14 +318,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptRecord masterPersist in masterPersists) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (masterPersist.PayloadLength < 20) {
-                    AddDiagnostic("PPT-MASTER-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-master-persist-truncated", LegacyPptDiagnosticSeverity.Warning,
                         "A master directory entry is truncated and was skipped.", masterPersist.Offset);
                     continue;
                 }
                 uint persistId = masterPersist.ReadUInt32(0);
                 uint masterId = masterPersist.ReadUInt32(12);
                 if (!persistOffsets.TryGetValue(persistId, out uint masterOffset)) {
-                    AddDiagnostic("PPT-MASTER-PERSIST-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-master-persist-missing", LegacyPptDiagnosticSeverity.Warning,
                         $"Master 0x{masterId:X8} references missing persist object {persistId}.", masterPersist.Offset);
                     continue;
                 }
@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         "master persist object"), options, _recordBudget);
                 bool isMainMaster = masterRecord.Type == RecordMainMaster;
                 if (!isMainMaster && masterRecord.Type != RecordSlide) {
-                    AddDiagnostic("PPT-MASTER-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-master-type", LegacyPptDiagnosticSeverity.Warning,
                         $"Master 0x{masterId:X8} points to record 0x{masterRecord.Type:X4}; it was skipped.",
                         masterRecord.Offset);
                     continue;
@@ -376,7 +376,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     colorScheme, _fontsByIndex);
                 if (style == null) {
                     if (options.ReportUnsupportedContent) {
-                        AddDiagnostic("PPT-TEXT-MASTER-STYLE-TYPE",
+                        AddDiagnostic("ppt-text-master-style-type",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"TextMasterStyleAtom instance {record.Instance} is not a defined text type and remains preserve-only.",
                             record.Offset);
@@ -391,12 +391,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
                 master.AddTextMasterStyle(style);
                 if (style.IsTruncated) {
-                    AddDiagnostic("PPT-TEXT-MASTER-STYLE-TRUNCATED",
+                    AddDiagnostic("ppt-text-master-style-truncated",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {style.TextType} TextMasterStyleAtom is malformed or truncated and remains preserve-only.",
                         record.Offset);
                 } else if (style.HasUnprojectedFormatting && options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-TEXT-MASTER-STYLE-PARTIAL",
+                    AddDiagnostic("ppt-text-master-style-partial",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {style.TextType} master text style contains legacy-only formatting that remains preserve-only.",
                         record.Offset);
@@ -404,7 +404,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             foreach (ushort instance in style9Records.Keys.Where(instance =>
                          !consumedStyle9Types.Contains(instance))) {
-                AddDiagnostic("PPT-TEXT-MASTER-STYLE9-ORPHAN",
+                AddDiagnostic("ppt-text-master-style9-orphan",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"TextMasterStyle9Atom instance {instance} has no base TextMasterStyleAtom and remains preserve-only.",
                     style9Records[instance].Offset);
@@ -448,7 +448,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     _connectorRuleCount++;
                     if (rule.PayloadLength < 24) {
                         if (options.ReportUnsupportedContent) {
-                            AddDiagnostic("PPT-CONNECTOR-RULE-TRUNCATED",
+                            AddDiagnostic("ppt-connector-rule-truncated",
                                 LegacyPptDiagnosticSeverity.Warning,
                                 "An OfficeArt connector rule is truncated and was skipped.", rule.Offset);
                         }
@@ -476,7 +476,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             try {
                 bounds = ReadBounds(anchor);
             } catch (InvalidDataException) {
-                AddDiagnostic("PPT-SHAPE-ANCHOR", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-shape-anchor", LegacyPptDiagnosticSeverity.Warning,
                     "A shape has an unsupported or truncated anchor and was skipped.", anchor.Offset);
                 return null;
             }
@@ -493,7 +493,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordTextHeaderAtom);
             LegacyPptTextType? textType = ReadTextType(textHeader);
             if (textHeader != null && !textType.HasValue && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-TEXT-TYPE-INVALID", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-text-type-invalid", LegacyPptDiagnosticSeverity.Warning,
                     "A TextHeaderAtom is truncated or contains an undefined text type; its text remains available without master-style classification.",
                     textHeader.Offset);
             }
@@ -530,13 +530,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .WithInteractions(ReadTextInteractions(textbox, text.Length, options));
             if (textBody.IsTextSpecialInfoTruncated
                 && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-TEXT-SPECIAL-INFO-TRUNCATED",
+                AddDiagnostic("ppt-text-special-info-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     "A TextSpecialInfoAtom is malformed or does not cover its text exactly; language metadata remains preserve-only.",
                     textSpecialInfo?.Offset ?? shapeContainer.Offset);
             } else if (textBody.HasUnprojectedTextSpecialInfo
                        && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-TEXT-SPECIAL-INFO-PARTIAL",
+                AddDiagnostic("ppt-text-special-info-partial",
                     LegacyPptDiagnosticSeverity.Information,
                     "Text language and spelling metadata was projected while grammar, bidirectional analysis, extension, smart-tag, transient language, or mixed explicit no-language fields remain preserve-only.",
                     textSpecialInfo?.Offset ?? shapeContainer.Offset);
@@ -588,38 +588,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 fillGradientStops: ResolveShapeGradientStops(style, colorScheme));
 
             if (textBody.IsStyleTruncated) {
-                AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-text-style-truncated", LegacyPptDiagnosticSeverity.Warning,
                     "A StyleTextPropAtom is malformed or truncated; its text remains available as plain text.",
                     textStyle?.Offset ?? textbox?.Offset);
             } else {
                 if (textBody.IsStyle9Truncated
                     && !isTextStyle9Malformed) {
-                    AddDiagnostic("PPT-TEXT-STYLE9-TRUNCATED",
+                    AddDiagnostic("ppt-text-style9-truncated",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A StyleTextProp9Atom is malformed or cannot be linked to its base character runs; its extended formatting remains preserve-only.",
                         textStyle9?.Offset ?? shapeContainer.Offset);
                 }
                 if (textBody.HasUnprojectedParagraphFormatting) {
-                    AddDiagnostic("PPT-TEXT-PARAGRAPH-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-text-paragraph-partial", LegacyPptDiagnosticSeverity.Warning,
                         "A text ruler field, unresolved bullet resource, or unsupported bullet size is preserved but not projected yet.",
                         textStyle?.Offset ?? textbox?.Offset);
                 }
                 if (textBody.HasUnprojectedCharacterFormatting) {
-                    AddDiagnostic("PPT-TEXT-CHARACTER-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-text-character-partial", LegacyPptDiagnosticSeverity.Warning,
                         "Typeface references and legacy-only character effects are preserved but not projected yet.",
                         textStyle?.Offset ?? textbox?.Offset);
                 }
             }
             if (textBody.IsRulerTruncated) {
-                AddDiagnostic("PPT-TEXT-RULER-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-text-ruler-truncated", LegacyPptDiagnosticSeverity.Warning,
                     "A TextRulerAtom is malformed or truncated; its ruler formatting remains preserved only.",
                     textRulerRecord?.Offset ?? textbox?.Offset);
             }
             if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
-                AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-shape-style-truncated", LegacyPptDiagnosticSeverity.Warning,
                     "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
             } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
-                AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-shape-style-partial", LegacyPptDiagnosticSeverity.Warning,
                     "The shape uses visual styling that is only partially projected; exact source properties remain preserved.",
                     shapeContainer.Offset);
             }
@@ -632,31 +632,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
             } else if (linkedOleObject != null
                        && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-OLE-LINK-PRESERVED",
+                AddDiagnostic("ppt-ole-link-preserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Linked OLE identifier {linkedOleObject.Id} and its cache are preserved exactly but are not projected to an editable Open XML object.",
                     shapeContainer.Offset);
             } else if (activeXControl != null
                        && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-ACTIVEX-PRESERVED",
+                AddDiagnostic("ppt-activex-preserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"ActiveX identifier {activeXControl.Id} and its Office Forms storage are preserved exactly but are not projected to an editable Open XML control.",
                     shapeContainer.Offset);
             } else if (media != null && options.ReportUnsupportedContent
                        && (!media.HasProjectableAudio || media.Loop
                            || media.Rewind || media.Narration)) {
-                AddDiagnostic("PPT-MEDIA-PRESERVED",
+                AddDiagnostic("ppt-media-preserved",
                     LegacyPptDiagnosticSeverity.Warning,
                     media.HasProjectableAudio
                         ? $"Embedded WAV media {media.Id} is editable, while its loop, rewind, or narration playback flag remains preserve-only."
                         : $"{media.Kind} media {media.Id} is retained with its native metadata but is not projected as editable embedded media.",
                     shapeContainer.Offset);
             } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-shape-unsupported", LegacyPptDiagnosticSeverity.Warning,
                     $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
             } else if (LegacyPptShapeGeometryMapper.IsApproximation(shapeType)
                 && options.ReportUnsupportedContent) {
-                AddDiagnostic("PPT-SHAPE-GEOMETRY-APPROXIMATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-shape-geometry-approximated", LegacyPptDiagnosticSeverity.Warning,
                     $"OfficeArt shape type {shapeType} uses the closest DrawingML preset geometry.",
                     shapeContainer.Offset);
             }
@@ -679,7 +679,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (descriptor == null || fspgr == null || fsp == null || anchor == null
                 || fsp.PayloadLength < 8 || fspgr.PayloadLength < 16) {
                 if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-GROUP-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-group-truncated", LegacyPptDiagnosticSeverity.Warning,
                         $"A shape group on a {ownerDescription} has incomplete coordinate or anchor records.",
                         groupContainer.Offset);
                 }
@@ -693,7 +693,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 coordinateBounds = CreateBounds(fspgr.ReadInt32(0), fspgr.ReadInt32(4),
                     fspgr.ReadInt32(8), fspgr.ReadInt32(12));
             } catch (InvalidDataException) {
-                AddDiagnostic("PPT-GROUP-ANCHOR", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-group-anchor", LegacyPptDiagnosticSeverity.Warning,
                     "A shape group has an unsupported or truncated coordinate system.",
                     groupContainer.Offset);
                 return null;
@@ -760,7 +760,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     _decodedStorageBudget.Consume(entry.ImageByteCount);
                     _blipStoreEntries.Add(entry);
                 } else if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-PICTURE-FBSE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    AddDiagnostic("ppt-picture-fbse-truncated", LegacyPptDiagnosticSeverity.Warning,
                         "An OfficeArt picture-store entry is truncated and could not be decoded.", fbse.Offset);
                 }
             }
@@ -784,16 +784,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void AddPictureDiagnostic(int? storeIndex, OfficeArtBlipStoreEntry? picture,
             long offset) {
             if (picture == null) {
-                AddDiagnostic("PPT-PICTURE-BLIP-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-picture-blip-missing", LegacyPptDiagnosticSeverity.Warning,
                     storeIndex.HasValue
                         ? $"The picture frame references missing BLIP store entry {storeIndex.Value}."
                         : "The picture frame has no valid BLIP store reference.", offset);
             } else if (picture.IsPayloadTruncated) {
-                AddDiagnostic("PPT-PICTURE-BLIP-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-picture-blip-truncated", LegacyPptDiagnosticSeverity.Warning,
                     $"The {picture.BlipRecordTypeName ?? picture.RecordInstanceBlipTypeName} payload is truncated.",
                     offset);
             } else {
-                AddDiagnostic("PPT-PICTURE-FORMAT-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-picture-format-unsupported", LegacyPptDiagnosticSeverity.Warning,
                     $"The {picture.BlipRecordTypeName ?? picture.RecordInstanceBlipTypeName} picture cannot be projected to an editable Open XML image part.",
                     offset);
             }
@@ -908,7 +908,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void AddCompoundFeatureDiagnostics(OfficeCompoundFile compound, LegacyPptImportOptions options) {
             if (!options.ReportUnsupportedContent) return;
             if (compound.Streams.Keys.Any(name => name.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0)) {
-                AddDiagnostic("PPT-OLE-PRESERVE-ONLY", LegacyPptDiagnosticSeverity.Warning,
+                AddDiagnostic("ppt-ole-preserve-only", LegacyPptDiagnosticSeverity.Warning,
                     "The compound file contains embedded OLE objects that are not projected into the editable model.", null);
             }
         }

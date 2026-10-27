@@ -50,11 +50,11 @@ public sealed class WordPdfImageTransformTests {
         using var source = new MemoryStream(document.ToBytes());
         using WordDocument loaded = WordDocument.Load(source);
         string original = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (context.StartsWith("simple-", StringComparison.Ordinal))
-            options.PdfOptions = new PdfCore.PdfOptions { HeaderFontSize = 10, FooterFontSize = 10 };
-        PdfCore.PdfDocumentConversionResult conversion = loaded.ToPdfDocumentResult(options);
-        byte[] pdf = conversion.Value.ToBytes();
+            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = 10, FooterFontSize = 10 };
+        PdfCore.PdfDocumentConversionResult conversion = loaded.ConvertToPdfWithEvidence(options);
+        byte[] pdf = conversion.ToBytes();
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf));
 
         // 60 by 30 points is the authored visible frame; each crop axis leaves 62.5% of the source.
@@ -67,7 +67,7 @@ public sealed class WordPdfImageTransformTests {
         Assert.Equal(Math.Cos(radians) * scaleY, placement.D, 3);
         Assert.NotNull(placement.Clip);
         Assert.Equal(original, loaded._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         if (context is "foreground" or "background" or "simple-position") {
             double centerX = 174D;
             PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);

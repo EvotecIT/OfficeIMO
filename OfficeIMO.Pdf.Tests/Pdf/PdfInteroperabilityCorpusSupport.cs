@@ -33,7 +33,7 @@ internal static class PdfInteroperabilityCorpusSupport {
     public const int CaseCount = 12;
 
     public static IReadOnlyList<PdfInteroperabilityCorpusCase> Build() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Corpus encrypted"))
             .ToBytes();
 

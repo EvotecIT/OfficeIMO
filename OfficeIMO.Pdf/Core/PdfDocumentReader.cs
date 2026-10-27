@@ -28,7 +28,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text from all pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> TextResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> TextResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract text", PdfPreflightCapability.ExtractText, () => Text(layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -43,7 +43,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text from selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> TextResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> TextResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract text", PdfPreflightCapability.ExtractText, () => Text(selection, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -58,7 +58,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text from selected pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> TextResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> TextResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract text", PdfPreflightCapability.ExtractText, () => Text(PdfPageSelection.Parse(pageRanges), layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -75,7 +75,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text for each page, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<string>> TextByPageResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<string>> TextByPageResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract text by page", PdfPreflightCapability.ExtractText, () => TextByPage(layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -90,7 +90,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text for selected pages in caller order, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<string>> TextByPageResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<string>> TextByPageResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract text by page", PdfPreflightCapability.ExtractText, () => TextByPage(selection, options), ResolveReadOptions(options));
     }
@@ -105,7 +105,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract plain text for selected pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<string>> TextByPageResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<string>> TextByPageResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract text by page", PdfPreflightCapability.ExtractText, () => TextByPage(PdfPageSelection.Parse(pageRanges), options), ResolveReadOptions(options));
     }
 
@@ -113,13 +113,13 @@ internal sealed partial class PdfDocumentReader {
     /// Extracts Markdown from the logical readback model.
     /// </summary>
     public string Markdown(PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? readOptions = null) {
-        return PdfDocumentReadResult.From(ReadDocument(readOptions), options).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.From(ReadDocument(readOptions), options).ExtractMarkdown(markdownOptions);
     }
 
     /// <summary>
     /// Attempts to extract Markdown from the logical readback model, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> MarkdownResult(PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> MarkdownResult(PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract Markdown", PdfPreflightCapability.ReadLogicalObjects, () => Markdown(layoutOptions, markdownOptions, options), ResolveReadOptions(options));
     }
 
@@ -130,13 +130,13 @@ internal sealed partial class PdfDocumentReader {
         Guard.NotNull(selection, nameof(selection));
         return PdfDocumentReadResult
             .FromPageRanges(ReadDocument(readOptions), options, selection.ToRanges())
-            .ToMarkdown(markdownOptions);
+            .ExtractMarkdown(markdownOptions);
     }
 
     /// <summary>
     /// Attempts to extract Markdown from selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> MarkdownResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> MarkdownResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract Markdown", PdfPreflightCapability.ReadLogicalObjects, () => Markdown(selection, layoutOptions, markdownOptions, options), ResolveReadOptions(options));
     }
@@ -151,7 +151,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract Markdown from selected pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<string> MarkdownResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<string> MarkdownResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract Markdown", PdfPreflightCapability.ReadLogicalObjects, () => Markdown(PdfPageSelection.Parse(pageRanges), layoutOptions, markdownOptions, options), ResolveReadOptions(options));
     }
 
@@ -165,7 +165,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to build the logical document model, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocumentReadResult> LogicalResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentReadResult> LogicalResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read logical document", PdfPreflightCapability.ReadLogicalObjects, () => Logical(layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -180,7 +180,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to build the logical document model for selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocumentReadResult> LogicalResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentReadResult> LogicalResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Read logical document", PdfPreflightCapability.ReadLogicalObjects, () => Logical(selection, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -195,7 +195,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to build the logical document model for selected pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocumentReadResult> LogicalResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentReadResult> LogicalResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read logical document", PdfPreflightCapability.ReadLogicalObjects, () => Logical(PdfPageSelection.Parse(pageRanges), layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -209,7 +209,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract line-level logical text blocks from all pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract logical text blocks", PdfPreflightCapability.ReadLogicalObjects, () => TextBlocks(layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -224,7 +224,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract line-level logical text blocks from selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(PdfPageSelection selection, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract logical text blocks", PdfPreflightCapability.ReadLogicalObjects, () => TextBlocks(selection, layoutOptions, options), ResolveReadOptions(options));
     }
@@ -239,7 +239,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract line-level logical text blocks from selected pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> TextBlocksResult(string pageRanges, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract logical text blocks", PdfPreflightCapability.ReadLogicalObjects, () => TextBlocks(PdfPageSelection.Parse(pageRanges), layoutOptions, options), ResolveReadOptions(options));
     }
 
@@ -253,7 +253,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read top-level document outline/bookmark entries, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfOutlineItem>> OutlinesResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfOutlineItem>> OutlinesResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read outlines", PdfPreflightCapability.ReadLogicalObjects, () => Outlines(options), ResolveReadOptions(options));
     }
 
@@ -267,7 +267,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page-label rules, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageLabel>> PageLabelsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfPageLabel>> PageLabelsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page labels", PdfPreflightCapability.ReadLogicalObjects, () => PageLabels(options), ResolveReadOptions(options));
     }
 
@@ -281,7 +281,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read named destinations, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfNamedDestination>> NamedDestinationsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfNamedDestination>> NamedDestinationsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read named destinations", PdfPreflightCapability.ReadLogicalObjects, () => NamedDestinations(options), ResolveReadOptions(options));
     }
 
@@ -337,7 +337,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical link annotations, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => Links(options), ResolveReadOptions(options));
     }
 
@@ -351,7 +351,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical URI link annotations for a URI action target, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByUriResult(string uri, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByUriResult(string uri, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => LinksByUri(uri, options), ResolveReadOptions(options));
     }
 
@@ -365,7 +365,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical internal link annotations for a named destination, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationNameResult(string destinationName, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationNameResult(string destinationName, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => LinksByDestinationName(destinationName, options), ResolveReadOptions(options));
     }
 
@@ -379,7 +379,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical internal direct-destination link annotations for a one-based destination page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationPageNumberResult(int pageNumber, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationPageNumberResult(int pageNumber, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => LinksByDestinationPageNumber(pageNumber, options), ResolveReadOptions(options));
     }
 
@@ -393,7 +393,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical named-action link annotations for a viewer action name, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByNamedActionResult(string namedAction, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByNamedActionResult(string namedAction, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => LinksByNamedAction(namedAction, options), ResolveReadOptions(options));
     }
 
@@ -407,7 +407,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract logical remote GoTo link annotations for a target file, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByRemoteFileResult(string remoteFile, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByRemoteFileResult(string remoteFile, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract links", PdfPreflightCapability.ReadLogicalObjects, () => LinksByRemoteFile(remoteFile, options), ResolveReadOptions(options));
     }
 
@@ -421,7 +421,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read generic page annotations, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read annotations", PdfPreflightCapability.ReadLogicalObjects, () => Annotations(options), ResolveReadOptions(options));
     }
 
@@ -435,7 +435,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read generic page annotations with a matching PDF annotation subtype name, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsBySubtypeResult(string subtype, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsBySubtypeResult(string subtype, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read annotations", PdfPreflightCapability.ReadLogicalObjects, () => AnnotationsBySubtype(subtype, options), ResolveReadOptions(options));
     }
 
@@ -449,7 +449,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read generic page annotations with a matching primary or additional action type, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsByActionTypeResult(string actionType, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfAnnotation>> AnnotationsByActionTypeResult(string actionType, PdfLoadOptions? options = null) {
         return _document.TryOperation("Read annotations", PdfPreflightCapability.ReadLogicalObjects, () => AnnotationsByActionType(actionType, options), ResolveReadOptions(options));
     }
 
@@ -463,7 +463,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract simple AcroForm fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form fields", PdfPreflightCapability.ReadLogicalObjects, () => FormFields(options), ResolveReadOptions(options));
     }
 
@@ -490,7 +490,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract simple AcroForm fields matching the requested fully qualified field name, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(string fieldName, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(string fieldName, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form fields", PdfPreflightCapability.ReadLogicalObjects, () => FormFields(fieldName, options), ResolveReadOptions(options));
     }
 
@@ -504,7 +504,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract simple AcroForm fields for the requested common field kind, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(PdfFormFieldKind kind, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(PdfFormFieldKind kind, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form fields", PdfPreflightCapability.ReadLogicalObjects, () => FormFields(kind, options), ResolveReadOptions(options));
     }
 
@@ -518,7 +518,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract simple AcroForm fields represented by widgets on a one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(int pageNumber, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfFormField>> FormFieldsResult(int pageNumber, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form fields", PdfPreflightCapability.ReadLogicalObjects, () => FormFields(pageNumber, options), ResolveReadOptions(options));
     }
 
@@ -532,7 +532,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract AcroForm widget annotations with page geometry, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form widgets", PdfPreflightCapability.ReadLogicalObjects, () => FormWidgets(options), ResolveReadOptions(options));
     }
 
@@ -546,7 +546,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract AcroForm widget annotations for the requested fully qualified field name, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(string fieldName, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(string fieldName, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form widgets", PdfPreflightCapability.ReadLogicalObjects, () => FormWidgets(fieldName, options), ResolveReadOptions(options));
     }
 
@@ -560,7 +560,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract AcroForm widget annotations from a one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(int pageNumber, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsResult(int pageNumber, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract form widgets", PdfPreflightCapability.ReadLogicalObjects, () => FormWidgets(pageNumber, options), ResolveReadOptions(options));
     }
 
@@ -574,7 +574,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObjects, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract images", PdfPreflightCapability.ExtractImages, () => Images(options), ResolveReadOptions(options));
     }
 
@@ -589,7 +589,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObjects from selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract images", PdfPreflightCapability.ExtractImages, () => Images(selection, options), ResolveReadOptions(options));
     }
@@ -622,7 +622,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObjects from pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ImagesResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract images", PdfPreflightCapability.ExtractImages, () => Images(PdfPageSelection.Parse(pageRanges), options), ResolveReadOptions(options));
     }
 
@@ -636,7 +636,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObject placement invocations with page geometry, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract image placements", PdfPreflightCapability.ExtractImages, () => ImagePlacements(options), ResolveReadOptions(options));
     }
 
@@ -651,7 +651,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObject placement invocations from selected pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Extract image placements", PdfPreflightCapability.ExtractImages, () => ImagePlacements(selection, options), ResolveReadOptions(options));
     }
@@ -666,7 +666,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract image XObject placement invocations from pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfImagePlacement>> ImagePlacementsResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract image placements", PdfPreflightCapability.ExtractImages, () => ImagePlacements(PdfPageSelection.Parse(pageRanges), options), ResolveReadOptions(options));
     }
 
@@ -680,7 +680,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to extract embedded-file attachments, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> AttachmentsResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> AttachmentsResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Extract attachments", PdfPreflightCapability.ExtractAttachments, () => Attachments(options), ResolveReadOptions(options));
     }
 }

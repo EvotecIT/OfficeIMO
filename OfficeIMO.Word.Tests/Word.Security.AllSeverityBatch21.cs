@@ -35,10 +35,10 @@ public partial class Word {
             second.AddPageNumbering(1, WordNumberFormat.Decimal);
             document.AddParagraph("AfterRestart");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = true,
-                PageSize = new OfficeIMO.Pdf.PageSize(400, 300),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(50)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(400, 300),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(50)
             });
         }
 
@@ -80,10 +80,10 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "BasePeer";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(420, 260),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(40)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(420, 260),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(40)
             });
         }
 

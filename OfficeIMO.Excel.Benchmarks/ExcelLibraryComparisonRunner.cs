@@ -39,7 +39,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static readonly string[] PowerShellMixedColumnNames = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
     private static readonly string[] PowerShellWideColumnNames;
     private static readonly string[] PowerShellMixedRegions = ["NA", "EU", "APAC", "LATAM"];
-    private static readonly ExcelTabularWriteOptions CompactTabularWriteOptions = new() {
+    private static readonly ExcelWriterOptions CompactTabularWriteOptions = new() {
         IncludeCellReferences = false,
         UseSharedStrings = false
     };
@@ -1716,7 +1716,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             ExcelDocument.WriteDataReader(
                 stream,
                 reader,
-                new ExcelTabularWriteOptions {
+                new ExcelWriterOptions {
                     SheetName = "Data",
                     CreateTable = true,
                     TableName = "SalesData",
@@ -2677,7 +2677,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadUsedRangeDataReader(byte[] workbookBytes) {
-        using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+        using var reader = ExcelDocument.OpenReader(workbookBytes, new ExcelReaderOptions {
             SheetName = "Data",
             HasHeaderRow = true,
             InferSchema = false
@@ -2780,7 +2780,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadRangeDecimal(byte[] workbookBytes, string dataRange) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { NumericAsDecimal = true });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { NumericAsDecimal = true });
         object?[,] values = reader.GetSheet("Data").ReadRange(dataRange);
         int metric = AddSalesHeadersMetric(0);
         for (int row = 1; row < values.GetLength(0); row++) {
@@ -4778,7 +4778,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadFormulaText(byte[] workbookBytes, int rowCount) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { UseCachedFormulaResult = false });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { UseCachedFormulaResult = false });
         object?[,] values = reader.GetSheet("Formulas").ReadRange($"D2:D{rowCount + 1}", ExcelExecutionMode.Sequential);
         int metric = 0;
         for (int row = 0; row < values.GetLength(0); row++) {

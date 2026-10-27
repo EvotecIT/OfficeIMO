@@ -15,7 +15,7 @@ public sealed class PdfReusableContentLayoutTests {
         Assert.Same(successful, successful.RequireNoLoss());
     }
 
-    private static PdfOptions Options() => new PdfOptions {
+    private static PdfCreateOptions Options() => new PdfCreateOptions {
         PageWidth = 300, PageHeight = 220,
         MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10

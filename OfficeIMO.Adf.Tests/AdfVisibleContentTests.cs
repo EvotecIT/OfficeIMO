@@ -75,7 +75,7 @@ public sealed class AdfVisibleContentTests {
         var node = new AdfNode("extension").SetAttribute("extensionType", "application.test").SetAttribute("extensionKey", "widget").SetAttribute("parameters", new { value = 42 });
         var document = new AdfDocument(new[] { node });
         string native = document.ToJson();
-        var options = new AdfConversionOptions { ExtensionResolver = source => source.GetStringAttribute("extensionKey") == "widget" ? MarkdownReader.Parse("Resolved widget") : null };
+        var options = new AdfConversionOptions { ExtensionResolver = source => source.GetStringAttribute("extensionKey") == "widget" ? MarkdownDocument.Parse("Resolved widget") : null };
         var result = AdfConverter.ToMarkdown(document, options);
         Assert.Contains("Resolved widget", result.Value);
         Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_EXTENSION_RESOLVED");
@@ -88,12 +88,12 @@ public sealed class AdfVisibleContentTests {
         var paragraph = new AdfNode("paragraph") { Content = { AdfNode.TextNode("Before "), inline, AdfNode.TextNode(" after") } };
         var document = new AdfDocument(new[] { paragraph, new AdfNode("vendorFuture") });
         int calls = 0;
-        var options = new AdfConversionOptions { ExtensionResolver = node => { calls++; return MarkdownReader.Parse("*Resolved*"); } };
+        var options = new AdfConversionOptions { ExtensionResolver = node => { calls++; return MarkdownDocument.Parse("*Resolved*"); } };
         var result = AdfConverter.ToMarkdown(document, options);
         Assert.Contains("Before *Resolved* after", result.Value);
         Assert.Equal(1, calls);
         Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_EXTENSION_RESOLVED" && issue.Path == "$.content[0].content[1]");
-        options.ExtensionResolver = _ => MarkdownReader.Parse("# Block");
+        options.ExtensionResolver = _ => MarkdownDocument.Parse("# Block");
         Assert.Throws<InvalidOperationException>(() => AdfConverter.ToMarkdown(document, options));
     }
 }

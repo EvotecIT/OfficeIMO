@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Default standard font used for paragraphs.</summary>
     public PdfStandardFont DefaultFont {
         get => _defaultFont;
@@ -96,7 +96,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Applies reusable default styles to this options object.</summary>
-    public PdfOptions ApplyTheme(PdfTheme theme) {
+    public PdfCreateOptions ApplyTheme(PdfTheme theme) {
         Guard.NotNull(theme, nameof(theme));
         theme.Clone().ApplyTo(this);
         return this;
@@ -114,7 +114,7 @@ public sealed partial class PdfOptions {
     internal int OutlineExpansionLevelSnapshot => _outlineExpansionLevel;
 
     /// <summary>Sets the default style for a built-in heading level.</summary>
-    public PdfOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {
+    public PdfCreateOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {
         Guard.NotNull(style, nameof(style));
         (_defaultHeadingStyles ??= new PdfHeadingStyles()).Set(level, style);
         return this;

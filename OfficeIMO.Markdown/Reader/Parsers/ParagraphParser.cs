@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class ParagraphParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Paragraphs) return false;
             // Paragraph begins when none of the other block starters match.
             if (IsAtxHeading(lines[i], out _, out _) ||
@@ -192,7 +192,7 @@ public static partial class MarkdownReader {
 
         private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
             IReadOnlyList<string> contentLines,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state) {
             if (contentLines == null || contentLines.Count == 0) {
                 return false;
@@ -223,7 +223,7 @@ public static partial class MarkdownReader {
 
         private static bool TryConsumeParagraphTrailingGenericAttributes(
             string line,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state,
             out string lineWithoutAttributeBlock,
             out MarkdownAttributeSet attributes,
@@ -305,7 +305,7 @@ public static partial class MarkdownReader {
 
         private static void RemoveTrailingHardBreakMarkerBeforeConsumedAttributeLine(
             List<string> paragraphLines,
-            MarkdownReaderOptions options) {
+            MarkdownLoadOptions options) {
             if (paragraphLines == null || paragraphLines.Count == 0) {
                 return;
             }
@@ -365,7 +365,7 @@ public static partial class MarkdownReader {
 
         private static void ConsumeLeadingSoftBreakGenericAttributeContinuationLines(
             List<string> paragraphLines,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state,
             int paragraphStartLineIndex,
             out IReadOnlyList<int>? lineStartColumns) {
@@ -421,7 +421,7 @@ public static partial class MarkdownReader {
             string line,
             string lineWithoutAttributeBlock,
             int attributeStart,
-            MarkdownReaderOptions options) {
+            MarkdownLoadOptions options) {
             if (string.IsNullOrEmpty(line)
                 || string.IsNullOrWhiteSpace(lineWithoutAttributeBlock)
                 || attributeStart <= 0
@@ -452,7 +452,7 @@ public static partial class MarkdownReader {
             string line,
             string lineWithoutAttributeBlock,
             int attributeStart,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state) {
             if (options?.Abbreviations != true
                 || state == null
@@ -605,7 +605,7 @@ public static partial class MarkdownReader {
                 && candidate.LastIndexOf(delimiter, closingStart - 1, StringComparison.Ordinal) >= 0;
         }
 
-        private static MarkdownReaderOptions CloneOptionsWithoutInlineAutolinks(MarkdownReaderOptions source) {
+        private static MarkdownLoadOptions CloneOptionsWithoutInlineAutolinks(MarkdownLoadOptions source) {
             var clone = CloneOptionsWithoutFrontMatter(source);
             clone.AutolinkUrls = false;
             clone.AutolinkWwwUrls = false;
@@ -614,7 +614,7 @@ public static partial class MarkdownReader {
             return clone;
         }
 
-        private static bool IsFootnoteDefinitionStarter(string line, MarkdownReaderOptions options) {
+        private static bool IsFootnoteDefinitionStarter(string line, MarkdownLoadOptions options) {
             if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {
                 return false;
             }
@@ -684,26 +684,26 @@ public static partial class MarkdownReader {
             return column;
         }
 
-        private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownReaderOptions options) {
+        private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownLoadOptions options) {
             return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
 
         private static bool ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(
             string[] lines,
             int index,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state) =>
             state?.PendingGenericAttributeBlock != null
             && IsStandaloneAttributeReferenceDefinitionParagraphTarget(lines, index, options);
 
-        private static bool IsAbbreviationDefinitionStarter(string line, MarkdownReaderOptions options) =>
+        private static bool IsAbbreviationDefinitionStarter(string line, MarkdownLoadOptions options) =>
             options?.Abbreviations == true && TryParseAbbreviationDefinition(line, 0, null, out _, out _, out _, out _, out _, out _);
 
         private static bool IsParagraphTerminatingReferenceLinkDefinition(
             string[] lines,
             int paragraphStartIndex,
             int index,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state) {
             if (ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(lines, index, options, state)) {
                 return false;

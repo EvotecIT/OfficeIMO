@@ -204,7 +204,7 @@ public class HtmlTextFormattingConversionTests {
             .SetDoubleStrike().SetSuperScript().SetSmallCaps()
             .SetFontFamily("Aptos").SetFontSize(14).SetColorHex("336699");
 
-        HtmlTextConversionResult export = source.ToHtmlResult(new WordToHtmlOptions { IncludeFontStyles = true });
+        HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { IncludeFontStyles = true });
         Assert.Contains("data-officeimo-word-underline=\"WavyDouble\"", export.Value, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-word-double-strike=\"true\"", export.Value, StringComparison.Ordinal);
         Assert.Contains("<sup", export.Value, StringComparison.OrdinalIgnoreCase);
@@ -212,7 +212,7 @@ public class HtmlTextFormattingConversionTests {
 
         using WordDocument imported = HtmlConversionDocument
             .Parse(export.Value, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocumentResult()
+            .ConvertToWordWithEvidence()
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.True(actual.Bold);
@@ -258,7 +258,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleSnapshot cellStyle = actualSheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo cellStyle = actualSheet.GetCellStyle(1, 1);
         Assert.True(cellStyle.Bold);
         Assert.True(cellStyle.Italic);
         Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, cellStyle.UnderlineStyle);
@@ -294,7 +294,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleSnapshot style = actualSheet.GetCellStyle(1, 2);
+        ExcelCellStyleInfo style = actualSheet.GetCellStyle(1, 2);
 
         Assert.False(actualSheet.TryGetCellValueSnapshot(1, 2, out _));
         Assert.True(style.Bold);
@@ -369,7 +369,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains(runs, run => run.Text == "one" && run.Bold);
         Assert.Contains(runs, run => run.Text == "\n");
         Assert.Contains(runs, run => run.Text == "two" && run.Italic);
-        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal("one\ntwo", snapshot!.Text);
     }
 
@@ -476,7 +476,7 @@ public class HtmlTextFormattingConversionTests {
             ExcelCellValueKind.Error
         };
         for (int column = 1; column <= expectedKinds.Length; column++) {
-            Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelCellValueSnapshot? snapshot));
+            Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelNativeCellValueInfo? snapshot));
             Assert.Equal(expectedKinds[column - 1], snapshot!.Kind);
             Assert.Empty(sheet.GetRichText(1, column));
         }
@@ -720,7 +720,7 @@ public class HtmlTextFormattingConversionTests {
     public void InvalidNumericNativeStyleMetadataFallsBackWithoutThrowingAcrossOfficeTargets() {
         using WordDocument word = HtmlConversionDocument.Parse(
             "<p><span data-officeimo-word-underline=\"999\">Word</span></p>")
-            .ToWordDocumentResult().RequireValue();
+            .ConvertToWordWithEvidence().RequireValue();
         Assert.Null(Assert.Single(word.Paragraphs).Underline);
 
         using ExcelDocument excelSource = ExcelDocument.Create();
@@ -891,7 +891,7 @@ public class HtmlTextFormattingConversionTests {
               <sup>Super</sup><sub>Sub</sub>
             </p>
             """;
-        PdfDocumentConversionResult pdf = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        PdfDocumentConversionResult pdf = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence();
         Assert.True(pdf.ToBytes().Length > 100);
 
         foreach (OfficeImageExportFormat format in new[] {
@@ -926,7 +926,7 @@ public class HtmlTextFormattingConversionTests {
             Assert.True(direct.Bytes.Length > 32);
         }
 
-        PdfDocumentConversionResult pdf = document.ToPdfDocumentResult();
+        using PdfDocument pdf = document.ToPdf();
         foreach (OfficeImageExportFormat format in formats) {
             OfficeImageExportResult flattened = Assert.Single(pdf.ExportImages(format));
             Assert.True(flattened.Bytes.Length > 32);

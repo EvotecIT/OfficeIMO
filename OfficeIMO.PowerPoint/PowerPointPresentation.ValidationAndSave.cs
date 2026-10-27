@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (_sourceStream != null) {
                 if (IsLegacyBinaryFormat(SourceFormat)) {
-                    Save(_sourceStream, SourceFormat);
+                    Save(_sourceStream, new PowerPointSaveOptions { Format = SourceFormat });
                 } else {
                     Save(_sourceStream);
                 }
@@ -104,23 +104,14 @@ namespace OfficeIMO.PowerPoint {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
-            byte[] packageBytes = CreateBytesForPath(filePath, options);
+            byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
             OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
             _filePath = filePath;
+            RecordSavedSecurity(options, IsLegacyBinaryFormat(PowerPointPresentationLoadRouting.GetFormat(filePath)));
             _discardChangesOnDispose = false;
         }
 
-        /// <summary>
-        ///     Saves a macro-free PPTX to the provided stream without changing its associated destination.
-        ///     Use the overload accepting <see cref="PowerPointFileFormat"/> with
-        ///     <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
-        /// </summary>
-        public void Save(Stream destination) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            OfficeStreamWriter.WriteAllBytes(destination,
-                CreatePackageBytesForSave());
-            _discardChangesOnDispose = false;
-        }
+
 
         /// <summary>Saves an independent copy without changing the presentation's associated destination.</summary>
         public void SaveCopy(string filePath) => SaveCopy(filePath, options: null);
@@ -130,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
-            OfficeFileCommit.WriteAllBytes(filePath, CreateBytesForPath(filePath, options));
+            OfficeFileCommit.WriteAllBytes(filePath, CreateUnifiedBytesForPath(filePath, options));
             _discardChangesOnDispose = false;
         }
 
@@ -145,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreateBytesForPath(filePath, options);
+            byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
             await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             _discardChangesOnDispose = false;
@@ -153,13 +144,13 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>
         ///     Encodes the presentation as a macro-free PPTX package. Use
-        ///     <see cref="ToBytes(PowerPointFileFormat, PowerPointSaveOptions?)"/>
+        ///     <see cref="EncodeBytes(PowerPointFileFormat, PowerPointSaveOptions?)"/>
         ///     with <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
         /// </summary>
-        public byte[] ToBytes() => CreatePackageBytesForSave();
+        internal byte[] EncodeBytes() => CreatePackageBytesForSave();
 
         /// <summary>Encodes the presentation in the requested PowerPoint format.</summary>
-        public byte[] ToBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
+        internal byte[] EncodeBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
             if (IsLegacyBinaryFormat(format)) {
                 return CreateLegacyPptBytesForSave(options);
             }
@@ -173,21 +164,14 @@ namespace OfficeIMO.PowerPoint {
                 destinationType: destinationType);
         }
 
-        /// <summary>
-        /// Encodes the presentation as a macro-free PPTX in a new writable memory stream positioned at the beginning.
-        /// Use <see cref="ToStream(PowerPointFileFormat, PowerPointSaveOptions?)"/> with
-        /// <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
-        /// </summary>
-        public MemoryStream ToStream() => new MemoryStream(ToBytes());
 
-        /// <summary>Encodes the presentation in a new stream using the requested format.</summary>
-        public MemoryStream ToStream(PowerPointFileFormat format, PowerPointSaveOptions? options = null) =>
-            new MemoryStream(ToBytes(format, options));
+
+
 
         /// <summary>Saves to a stream using an explicit physical PowerPoint format.</summary>
-        public void Save(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
+        internal void Save(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
-            OfficeStreamWriter.WriteAllBytes(destination, ToBytes(format, options));
+            OfficeStreamWriter.WriteAllBytes(destination, EncodeBytes(format, options));
             _discardChangesOnDispose = false;
         }
 
@@ -198,7 +182,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (_sourceStream != null) {
                 return IsLegacyBinaryFormat(SourceFormat)
-                    ? SaveAsync(_sourceStream, SourceFormat, options: null, cancellationToken)
+                    ? SaveAsync(_sourceStream, new PowerPointSaveOptions { Format = SourceFormat }, cancellationToken)
                     : SaveAsync(_sourceStream, cancellationToken);
             }
             throw new InvalidOperationException(
@@ -219,33 +203,22 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreateBytesForPath(filePath, options);
+            byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
             await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             _filePath = filePath;
+            RecordSavedSecurity(options, IsLegacyBinaryFormat(PowerPointPresentationLoadRouting.GetFormat(filePath)));
             _discardChangesOnDispose = false;
         }
 
-        /// <summary>
-        /// Asynchronously saves a macro-free PPTX to a caller-owned stream without changing the associated destination.
-        /// Use the overload accepting <see cref="PowerPointFileFormat"/> with
-        /// <see cref="PowerPointFileFormat.Pptm"/> to retain VBA.
-        /// </summary>
-        public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreatePackageBytesForSave();
-            await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
-                .ConfigureAwait(false);
-            _discardChangesOnDispose = false;
-        }
+
 
         /// <summary>Asynchronously saves once to a stream using an explicit physical PowerPoint format.</summary>
-        public async Task SaveAsync(Stream destination, PowerPointFileFormat format,
+        internal async Task SaveAsync(Stream destination, PowerPointFileFormat format,
             PowerPointSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = ToBytes(format, options);
+            byte[] bytes = EncodeBytes(format, options);
             await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
             _discardChangesOnDispose = false;
         }
@@ -368,7 +341,7 @@ namespace OfficeIMO.PowerPoint {
             if (_legacyPptPackage?.WasEncryptedSource != true) {
                 return CreatePlainLegacyPptBytesForSave(options);
             }
-            if (options == null
+            if ((options == null || (!options.HasPasswordOverride && !options.HasLegacyEncryptionOverride))
                 && TryCopyOriginalEncryptedLegacyPackage(
                     out byte[] originalEncryptedBytes)) {
                 LegacyPptWritePreflight.ThrowIfBlocked(
@@ -380,11 +353,10 @@ namespace OfficeIMO.PowerPoint {
             string password = _legacyPptPackage.EncryptionPassword
                 ?? throw new InvalidOperationException(
                     "The encrypted binary source password is unavailable. Use SaveEncrypted to persist the presentation.");
-            int keySizeBits = options?.LegacyPptEncryptionKeySizeBits
+            int keySizeBits = options?.ResolveLegacyKeySize(_legacyPptPackage.EncryptionKeySizeBits)
                 ?? _legacyPptPackage.EncryptionKeySizeBits ?? 128;
-            bool encryptDocumentProperties = options == null
-                ? _legacyPptPackage.EncryptedDocumentProperties ?? true
-                : options.LegacyPptEncryptDocumentProperties;
+            bool encryptDocumentProperties = options?.ResolveLegacyProperties(_legacyPptPackage.EncryptedDocumentProperties)
+                ?? _legacyPptPackage.EncryptedDocumentProperties ?? true;
             return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes,
                 password, keySizeBits, encryptDocumentProperties,
                 options?.LegacyPptAllowUnencryptedCompoundStreams == true);
@@ -459,7 +431,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Destination path for the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
-        public void SaveEncrypted(string filePath, string password) =>
+        internal void SaveEncrypted(string filePath, string password) =>
             SaveEncrypted(filePath, password, options: null);
 
         /// <summary>
@@ -469,7 +441,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Destination path for the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
         /// <param name="options">Binary conversion and RC4 key-size options.</param>
-        public void SaveEncrypted(string filePath, string password,
+        internal void SaveEncrypted(string filePath, string password,
             PowerPointSaveOptions? options) {
             ThrowIfDisposed();
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
@@ -494,7 +466,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="destination">Writable stream receiving the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
-        public void SaveEncrypted(Stream destination, string password) {
+        internal void SaveEncrypted(Stream destination, string password) {
             ThrowIfDisposed();
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
@@ -511,14 +483,14 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="password">Password used to encrypt the presentation.</param>
         /// <param name="format">Physical PowerPoint format to write.</param>
         /// <param name="options">Binary conversion and RC4 key-size options.</param>
-        public void SaveEncrypted(Stream destination, string password,
+        internal void SaveEncrypted(Stream destination, string password,
             PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
             byte[] encryptedBytes = IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
-                : OfficeEncryption.EncryptPackage(ToBytes(format, options),
+                : OfficeEncryption.EncryptPackage(EncodeBytes(format, options),
                     password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
@@ -528,14 +500,14 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="format">Physical PowerPoint format to encode.</param>
         /// <param name="options">Binary conversion and RC4 key-size options.</param>
         /// <returns>The complete encrypted package bytes.</returns>
-        public byte[] ToEncryptedBytes(string password,
+        internal byte[] ToEncryptedBytes(string password,
             PowerPointFileFormat format = PowerPointFileFormat.Pptx,
             PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
             if (password == null) throw new ArgumentNullException(nameof(password));
             return IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
-                : OfficeEncryption.EncryptPackage(ToBytes(format, options),
+                : OfficeEncryption.EncryptPackage(EncodeBytes(format, options),
                     password);
         }
 
@@ -544,8 +516,8 @@ namespace OfficeIMO.PowerPoint {
             ApplySignatureMutationPolicy();
             byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
             return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes, password,
-                options?.LegacyPptEncryptionKeySizeBits ?? 128,
-                options?.LegacyPptEncryptDocumentProperties ?? true,
+                options?.ResolveLegacyKeySize(_legacyPptPackage?.EncryptionKeySizeBits) ?? _legacyPptPackage?.EncryptionKeySizeBits ?? 128,
+                options?.ResolveLegacyProperties(_legacyPptPackage?.EncryptedDocumentProperties) ?? _legacyPptPackage?.EncryptedDocumentProperties ?? true,
                 options?.LegacyPptAllowUnencryptedCompoundStreams == true);
         }
 

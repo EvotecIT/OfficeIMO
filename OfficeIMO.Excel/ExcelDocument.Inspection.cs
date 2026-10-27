@@ -9,17 +9,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates an immutable workbook snapshot that exposes OfficeIMO's current workbook model for downstream integrations.
         /// </summary>
-        public ExcelWorkbookSnapshot CreateInspectionSnapshot(ExcelReadOptions? options = null) => CreateInspectionSnapshot(options, CancellationToken.None);
+        public ExcelWorkbookInfo Inspect(ExcelReaderOptions? options = null) => Inspect(options, CancellationToken.None);
 
         /// <summary>Creates the native immutable workbook snapshot with cancellation between source sheets, rows and cells.</summary>
-        public ExcelWorkbookSnapshot CreateInspectionSnapshot(ExcelReadOptions? options, CancellationToken cancellationToken) {
+        public ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            var effectiveOptions = options ?? new ExcelReadOptions {
+            var effectiveOptions = options ?? new ExcelReaderOptions {
                 UseCachedFormulaResult = true,
                 TreatDatesUsingNumberFormat = true,
             };
 
-            var snapshot = new ExcelWorkbookSnapshot {
+            var snapshot = new ExcelWorkbookInfo {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 DateSystem = DateSystem,
             };
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
                         .GetFirstChild<SheetViews>()?
                         .Elements<SheetView>()
                         .FirstOrDefault();
-                    var worksheetSnapshot = new ExcelWorksheetSnapshot {
+                    var worksheetSnapshot = new ExcelWorksheetInfo {
                         Name = sheetName,
                         ConditionalFormattingRuleCount = sourceSheet.CountConditionalFormattingRules(),
                         Index = sheetIndex,
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
                         worksheetSnapshot.FrozenColumnCount = ConvertToInt(pane.HorizontalSplit);
                     }
 
-                    foreach (ExcelColumnSnapshot column in sourceSheet.GetColumnDefinitions()) {
+                    foreach (ExcelColumnInfo column in sourceSheet.GetColumnDefinitions()) {
                         worksheetSnapshot.AddColumn(column);
                     }
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
                             byte? outlineLevel = row.OutlineLevel?.Value;
                             bool collapsed = row.Collapsed?.Value == true;
                             if (rowIndex > 0 && (row.Hidden?.Value == true || row.CustomHeight?.Value == true || row.Height != null || customFormat || styleIndex != null || outlineLevel != null || collapsed)) {
-                                worksheetSnapshot.AddRow(new ExcelRowSnapshot {
+                                worksheetSnapshot.AddRow(new ExcelRowInfo {
                                     Index = rowIndex,
                                     Height = row.Height?.Value,
                                     Hidden = row.Hidden?.Value == true,
@@ -143,12 +143,12 @@ namespace OfficeIMO.Excel {
                                 }
 
                                 var cellReference = cell.CellReference!.Value!;
-                                var (_, columnIndex) = A1.ParseCellRef(cellReference);
+                                var (_, columnIndex) = ExcelA1.ParseCellRef(cellReference);
                                 if (rowIndex <= 0 || columnIndex <= 0) {
                                     continue;
                                 }
 
-                                worksheetSnapshot.AddCell(new ExcelCellSnapshot {
+                                worksheetSnapshot.AddCell(new ExcelCellInfo {
                                     Row = rowIndex,
                                     Column = columnIndex,
                                     Value = GetTypedValue(typedValues, rowIndex, columnIndex),
@@ -191,11 +191,11 @@ namespace OfficeIMO.Excel {
                             int columnStart;
                             int rowEnd;
                             int columnEnd;
-                            if (!A1.TryParseRange(reference!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
+                            if (!ExcelA1.TryParseRange(reference!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
                                 continue;
                             }
 
-                            worksheetSnapshot.AddMergedRange(new ExcelMergedRangeSnapshot {
+                            worksheetSnapshot.AddMergedRange(new ExcelMergedRangeInfo {
                                 A1Range = reference!,
                                 StartRow = rowStart,
                                 EndRow = rowEnd,
@@ -232,7 +232,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        snapshot.AddNamedRange(new ExcelNamedRangeSnapshot {
+                        snapshot.AddNamedRange(new ExcelNamedRangeInspectionInfo {
                             Name = name!,
                             ReferenceA1 = definedName.Text ?? string.Empty,
                             SheetName = ResolveLocalSheetName(sheetElements, definedName),
@@ -328,12 +328,12 @@ namespace OfficeIMO.Excel {
                 || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Timeline);
         }
 
-        private static ExcelWorksheetProtectionSnapshot? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {
+        private static ExcelWorksheetProtectionInfo? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {
             if (protection == null) {
                 return null;
             }
 
-            return new ExcelWorksheetProtectionSnapshot {
+            return new ExcelWorksheetProtectionInfo {
                 AllowSelectLockedCells = IsProtectionActionAllowed(protection.SelectLockedCells, lockedWhenOmitted: false),
                 AllowSelectUnlockedCells = IsProtectionActionAllowed(protection.SelectUnlockedCells, lockedWhenOmitted: false),
                 AllowFormatCells = IsProtectionActionAllowed(protection.FormatCells, lockedWhenOmitted: true),
@@ -354,13 +354,13 @@ namespace OfficeIMO.Excel {
             return !(lockFlag?.Value ?? lockedWhenOmitted);
         }
 
-        private static void AddCommentOnlyCells(ExcelWorksheetSnapshot worksheetSnapshot, IReadOnlyDictionary<string, ExcelCommentSnapshot> commentMap) {
+        private static void AddCommentOnlyCells(ExcelWorksheetInfo worksheetSnapshot, IReadOnlyDictionary<string, ExcelCommentInspectionInfo> commentMap) {
             if (commentMap.Count == 0) {
                 return;
             }
 
             var existingCells = new HashSet<string>(
-                worksheetSnapshot.Cells.Select(cell => A1.CellReference(cell.Row, cell.Column)),
+                worksheetSnapshot.Cells.Select(cell => ExcelA1.CellReference(cell.Row, cell.Column)),
                 StringComparer.OrdinalIgnoreCase);
 
             foreach (var pair in commentMap) {
@@ -368,19 +368,19 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var (row, column) = A1.ParseCellRef(pair.Key);
+                var (row, column) = ExcelA1.ParseCellRef(pair.Key);
                 if (row <= 0 || column <= 0) {
                     continue;
                 }
 
-                worksheetSnapshot.AddCell(new ExcelCellSnapshot {
+                worksheetSnapshot.AddCell(new ExcelCellInfo {
                     Row = row,
                     Column = column,
                     Comment = pair.Value,
                 });
             }
         }
-        private static ExcelCellStyleSnapshot? BuildCellStyleSnapshot(StyleInspectionContext context, uint? styleIndex) {
+        private static ExcelCellStyleInfo? BuildCellStyleSnapshot(StyleInspectionContext context, uint? styleIndex) {
             if (!styleIndex.HasValue) {
                 return null;
             }
@@ -396,7 +396,7 @@ namespace OfficeIMO.Excel {
             var border = context.GetBorder(cellFormat.BorderId?.Value ?? 0U);
             bool hasSimpleGradient = context.TryGetSimpleGradientFill(fill, out ExcelGradientFillInfo gradient);
 
-            return new ExcelCellStyleSnapshot {
+            return new ExcelCellStyleInfo {
                 StyleIndex = styleIndex.Value,
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = context.GetNumberFormatCode(numberFormatId),
@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = fill?.GradientFill != null && !hasSimpleGradient,
                 FillGradientStartColorArgb = hasSimpleGradient ? gradient.StartColorArgb : null,
                 FillGradientEndColorArgb = hasSimpleGradient ? gradient.EndColorArgb : null,
-                FillGradientStops = hasSimpleGradient ? CreateGradientStopSnapshots(gradient) : Array.Empty<ExcelGradientFillStopSnapshot>(),
+                FillGradientStops = hasSimpleGradient ? CreateGradientStopSnapshots(gradient) : Array.Empty<ExcelGradientFillStopInspectionInfo>(),
                 FillGradientDegree = hasSimpleGradient ? gradient.Degree : null,
                 Border = BuildBorderSnapshot(context, border),
                 HorizontalAlignment = cellFormat.Alignment?.Horizontal?.InnerText,
@@ -440,10 +440,10 @@ namespace OfficeIMO.Excel {
             return value.Value <= int.MaxValue ? (int)value.Value : (int?)null;
         }
 
-        private static IReadOnlyList<ExcelGradientFillStopSnapshot> CreateGradientStopSnapshots(ExcelGradientFillInfo gradient) =>
-            gradient.Stops.Select(stop => new ExcelGradientFillStopSnapshot(stop.Offset, stop.ColorArgb)).ToArray();
+        private static IReadOnlyList<ExcelGradientFillStopInspectionInfo> CreateGradientStopSnapshots(ExcelGradientFillInfo gradient) =>
+            gradient.Stops.Select(stop => new ExcelGradientFillStopInspectionInfo(stop.Offset, stop.ColorArgb)).ToArray();
 
-        private static ExcelAutoFilterSnapshot? BuildAutoFilterSnapshot(AutoFilter? autoFilter) {
+        private static ExcelAutoFilterInspectionInfo? BuildAutoFilterSnapshot(AutoFilter? autoFilter) {
             var reference = autoFilter?.Reference?.Value;
             if (string.IsNullOrWhiteSpace(reference)) {
                 return null;
@@ -453,11 +453,11 @@ namespace OfficeIMO.Excel {
             int columnStart;
             int rowEnd;
             int columnEnd;
-            if (!A1.TryParseRange(reference!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
+            if (!ExcelA1.TryParseRange(reference!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
                 return null;
             }
 
-            var snapshot = new ExcelAutoFilterSnapshot {
+            var snapshot = new ExcelAutoFilterInspectionInfo {
                 A1Range = reference!,
                 StartRow = rowStart,
                 EndRow = rowEnd,
@@ -467,7 +467,7 @@ namespace OfficeIMO.Excel {
 
             foreach (var filterColumn in autoFilter!.Elements<FilterColumn>()) {
                 var columnId = checked((int)(filterColumn.ColumnId?.Value ?? 0U));
-                var columnSnapshot = new ExcelFilterColumnSnapshot {
+                var columnSnapshot = new ExcelFilterColumnInfo {
                     ColumnId = columnId,
                 };
 
@@ -483,7 +483,7 @@ namespace OfficeIMO.Excel {
 
                 var customFilters = filterColumn.GetFirstChild<CustomFilters>();
                 if (customFilters != null) {
-                    var customFiltersSnapshot = new ExcelCustomFiltersSnapshot {
+                    var customFiltersSnapshot = new ExcelCustomFiltersInfo {
                         MatchAll = customFilters.And?.Value == true,
                     };
 
@@ -493,7 +493,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        customFiltersSnapshot.AddCondition(new ExcelCustomFilterConditionSnapshot {
+                        customFiltersSnapshot.AddCondition(new ExcelCustomFilterConditionInfo {
                             Operator = GetOpenXmlAttributeValue(customFilter, "operator"),
                             Value = value!,
                         });
@@ -510,14 +510,14 @@ namespace OfficeIMO.Excel {
             return snapshot;
         }
 
-        private static IReadOnlyList<ExcelDataValidationSnapshot> BuildDataValidationSnapshots(DataValidations? dataValidations) {
-            var snapshots = new List<ExcelDataValidationSnapshot>();
+        private static IReadOnlyList<ExcelDataValidationInspectionInfo> BuildDataValidationSnapshots(DataValidations? dataValidations) {
+            var snapshots = new List<ExcelDataValidationInspectionInfo>();
             if (dataValidations == null) {
                 return snapshots;
             }
 
             foreach (var dataValidation in dataValidations.Elements<DataValidation>()) {
-                var snapshot = new ExcelDataValidationSnapshot {
+                var snapshot = new ExcelDataValidationInspectionInfo {
                     Type = GetOpenXmlAttributeValue(dataValidation, "type")?.ToLowerInvariant(),
                     Operator = GetOpenXmlAttributeValue(dataValidation, "operator"),
                     AllowBlank = dataValidation.AllowBlank?.Value == true,
@@ -551,7 +551,7 @@ namespace OfficeIMO.Excel {
             return snapshots;
         }
 
-        private static ExcelTableSnapshot? BuildTableSnapshot(Table? table) {
+        private static ExcelTableInspectionInfo? BuildTableSnapshot(Table? table) {
             if (table == null) {
                 return null;
             }
@@ -565,11 +565,11 @@ namespace OfficeIMO.Excel {
             int columnStart;
             int rowEnd;
             int columnEnd;
-            if (!A1.TryParseRange(range!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
+            if (!ExcelA1.TryParseRange(range!, out rowStart, out columnStart, out rowEnd, out columnEnd)) {
                 return null;
             }
 
-            var snapshot = new ExcelTableSnapshot {
+            var snapshot = new ExcelTableInspectionInfo {
                 Name = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty,
                 A1Range = range!,
                 StartRow = rowStart,
@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel {
             };
 
             foreach (var tableColumn in table.TableColumns?.Elements<TableColumn>() ?? Enumerable.Empty<TableColumn>()) {
-                snapshot.AddColumn(new ExcelTableColumnSnapshot {
+                snapshot.AddColumn(new ExcelTableColumnInspectionInfo {
                     Index = checked((int)(tableColumn.Id?.Value ?? 0U)),
                     Name = tableColumn.Name?.Value ?? string.Empty,
                     TotalsRowFunction = GetOpenXmlAttributeValue(tableColumn, "totalsRowFunction"),
@@ -601,7 +601,7 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
         }
 
-        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(StyleInspectionContext context, Border? border) {
+        private static ExcelCellBorderInfo? BuildBorderSnapshot(StyleInspectionContext context, Border? border) {
             if (border == null) {
                 return null;
             }
@@ -618,7 +618,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = left,
                 Right = right,
                 Top = top,
@@ -629,7 +629,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(StyleInspectionContext context, BorderPropertiesType? borderSide) {
+        private static ExcelBorderSideInfo? BuildBorderSideSnapshot(StyleInspectionContext context, BorderPropertiesType? borderSide) {
             if (borderSide == null) {
                 return null;
             }
@@ -642,7 +642,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return new ExcelBorderSideSnapshot {
+            return new ExcelBorderSideInfo {
                 Style = style,
                 ColorArgb = colorArgb,
             };

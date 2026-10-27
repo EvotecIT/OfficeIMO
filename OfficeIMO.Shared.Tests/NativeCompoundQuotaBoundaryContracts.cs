@@ -32,7 +32,6 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
     [InlineData("excel-model", "excel")]
     [InlineData("excel-native", "excel")]
     [InlineData("excel-tabular", "excel")]
-    [InlineData("excel-names", "excel")]
     [InlineData("powerpoint-native", "powerpoint")]
     public void PublicLoadRoutesRetainCanonicalDirectoryQuota(string route, string owner) {
         byte[] bytes = DirectoryQuota.Value;
@@ -48,8 +47,8 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
                     string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
                     try {
                         File.WriteAllBytes(path, bytes);
-                        if (route == "excel-tabular") { using var reader = ExcelDocument.OpenDataReader(path); }
-                        else ExcelDocument.GetSheetNames(path);
+                        using var reader = ExcelDocument.OpenReader(path);
+                        _ = reader.SheetNames;
                     } finally { if (File.Exists(path)) File.Delete(path); }
                     break;
             }
@@ -69,12 +68,12 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         source.AddSlide().AddTextBox("Ordinary binary content", 100000, 100000, 2000000, 500000);
         var options = new LegacyPptImportOptions { MaxRecordCount = 3 };
-        byte[] bytes = route == "encrypted" ? source.ToEncryptedBytes("fixture-password", PowerPointFileFormat.Ppt) : source.ToBytes(PowerPointFileFormat.Ppt);
+        byte[] bytes = route == "encrypted" ? source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password="fixture-password",Format=PowerPointFileFormat.Ppt}): source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => {
             if (route == "model") { LegacyPptPresentation.Load(bytes, options); return; }
             using var input = new MemoryStream(bytes, writable: false);
-            var load = new PowerPointLoadOptions { LegacyPptImportOptions = options };
-            using PowerPointPresentation loaded = route == "encrypted" ? PowerPointPresentation.LoadEncrypted(input, "fixture-password", load) : PowerPointPresentation.Load(input, load);
+            var load = new PowerPointLoadOptions { MaxRecordCount = options.MaxRecordCount, Password = route == "encrypted" ? "fixture-password" : null };
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(input, load);
         });
         Assert.Equal("powerpoint", error.Owner); Assert.Equal("MaxDirectoryEntries", error.LimitName); Assert.Equal(3, error.Maximum);
         Assert.Equal("OfficeCompoundStreamLimitExceededException", error.InnerException!.GetType().Name);
@@ -148,8 +147,8 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
     [Fact]
     public void OrdinaryMalformedLegacyInputsKeepTheirDiagnosticOrMalformedContract() {
         byte[] malformed = new byte[1024];
-        Assert.Contains(LegacyDocDocument.Load(malformed).Diagnostics, item => item.Code == "DOC-COMPOUND-INVALID");
-        Assert.Contains(LegacyXlsWorkbook.Load(malformed).Diagnostics, item => item.Code == "XLS-COMPOUND-SIGNATURE");
+        Assert.Contains(LegacyDocDocument.Load(malformed).Diagnostics, item => item.Code == "doc-compound-invalid");
+        Assert.Contains(LegacyXlsWorkbook.Load(malformed).Diagnostics, item => item.Code == "xls-compound-signature");
         Assert.Throws<InvalidDataException>(() => LegacyPptPresentation.Load(malformed));
     }
 
@@ -157,20 +156,20 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
     public void OrdinaryFullNativeLegacyLoadsKeepReadableContent() {
         using (WordDocument source = WordDocument.Create()) {
             source.AddParagraph("Ordinary full content");
-            using var input = new MemoryStream(source.ToBytes(WordFileFormat.Doc));
+            using var input = new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
             using WordDocument loaded = WordDocument.Load(input);
             Assert.Contains(loaded.Paragraphs, paragraph => paragraph.Text.Contains("Ordinary full content", StringComparison.Ordinal));
         }
         using (ExcelDocument source = ExcelDocument.Create()) {
             var sheet = source.AddWorksheet("Evidence"); sheet.CellValue(1, 1, "Ordinary full content");
-            using var input = new MemoryStream(source.ToBytes(ExcelFileFormat.Xls));
+            using var input = new MemoryStream(source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             using ExcelDocument loaded = ExcelDocument.Load(input);
             Assert.True(loaded.Sheets.Single().TryGetCellText(1, 1, out string value));
             Assert.Equal("Ordinary full content", value);
         }
         using (PowerPointPresentation source = PowerPointPresentation.Create()) {
             source.AddSlide().AddTextBox("Ordinary full content", 100000, 100000, 2000000, 500000);
-            using var input = new MemoryStream(source.ToBytes(PowerPointFileFormat.Ppt));
+            using var input = new MemoryStream(source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             using PowerPointPresentation loaded = PowerPointPresentation.Load(input);
             Assert.Contains(loaded.ExtractMarkdownChunks(), chunk => chunk.Text!.Contains("Ordinary full content", StringComparison.Ordinal));
         }

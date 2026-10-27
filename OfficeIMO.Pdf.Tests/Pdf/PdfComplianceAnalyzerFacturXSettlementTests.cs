@@ -7,17 +7,17 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRequiresCiiSettlementSummaryEssentials() {
-        var missingCurrencyOptions = new PdfOptions()
+        var missingCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeInvoiceCurrencyCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingTaxOptions = new PdfOptions()
+        var missingTaxOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeApplicableTradeTax: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingTaxTotalsOptions = new PdfOptions()
+        var missingTaxTotalsOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -44,17 +44,17 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiCurrencyConsistency() {
-        var missingInvoiceCurrencyOptions = new PdfOptions()
+        var missingInvoiceCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeInvoiceCurrencyCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingAmountCurrencyOptions = new PdfOptions()
+        var missingAmountCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(amountCurrencyId: null), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mismatchedAmountCurrencyOptions = new PdfOptions()
+        var mismatchedAmountCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -81,17 +81,17 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiCurrencyCodeListValue() {
-        var invalidInvoiceCurrencyOptions = new PdfOptions()
+        var invalidInvoiceCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(invoiceCurrencyCodeValue: "EURO", amountCurrencyId: "EURO"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var invalidAmountCurrencyOptions = new PdfOptions()
+        var invalidAmountCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(amountCurrencyId: "ZZZ"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var yenCurrencyOptions = new PdfOptions()
+        var yenCurrencyOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -118,27 +118,27 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiPaymentInstructionEssentials() {
-        var missingPaymentMeansOptions = new PdfOptions()
+        var missingPaymentMeansOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includePaymentMeans: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingPaymentTypeOptions = new PdfOptions()
+        var missingPaymentTypeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includePaymentMeansTypeCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingAccountOptions = new PdfOptions()
+        var missingAccountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeCreditorAccountId: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var cashWithoutAccountOptions = new PdfOptions()
+        var cashWithoutAccountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "10", includeCreditorAccount: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var transferAccountOnDifferentPaymentMeansOptions = new PdfOptions()
+        var transferAccountOnDifferentPaymentMeansOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -174,22 +174,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiPaymentMeansCodeListValue() {
-        var invalidTypeCodeOptions = new PdfOptions()
+        var invalidTypeCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "999"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var creditTransferOptions = new PdfOptions()
+        var creditTransferOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "30"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mutuallyDefinedOptions = new PdfOptions()
+        var mutuallyDefinedOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "ZZZ"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var secondPaymentMeansMissingTypeOptions = new PdfOptions()
+        var secondPaymentMeansMissingTypeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -228,22 +228,22 @@ public partial class PdfComplianceAnalyzerTests {
     [InlineData("ZZ73123456789012345678")]
     [InlineData("DE99000000000000000030")]
     public void FacturXReadinessRequiresCiiPaymentAccountFormat(string identifier) {
-        var invalidIbanOptions = new PdfOptions()
+        var invalidIbanOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(creditorAccountIban: identifier), "application/xml", PdfAssociatedFileRelationship.Data);
-        var proprietaryAccountOptions = new PdfOptions()
+        var proprietaryAccountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(useCreditorProprietaryAccountId: true, creditorProprietaryAccountId: "ACCOUNT-001"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingAccountOptions = new PdfOptions()
+        var missingAccountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeCreditorAccountId: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var cashWithoutAccountOptions = new PdfOptions()
+        var cashWithoutAccountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))

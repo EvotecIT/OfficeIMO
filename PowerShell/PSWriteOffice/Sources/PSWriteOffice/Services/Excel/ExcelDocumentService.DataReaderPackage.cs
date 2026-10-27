@@ -11,7 +11,7 @@ internal static partial class ExcelDocumentService
     internal static ExcelDataSetImportResult WriteDataReaderPackage(
         string filePath,
         IDataReader reader,
-        ExcelTabularWriteOptions options,
+        ExcelWriterOptions options,
         bool overwrite)
     {
         if (string.IsNullOrWhiteSpace(filePath))

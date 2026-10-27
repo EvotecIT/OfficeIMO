@@ -158,10 +158,10 @@ public sealed partial class PdfTableCellViewportTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell cell, PdfCellVerticalAlign alignment, Action<PdfTableStyle>? configure = null, PdfTableCell? adjacentCell = null) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
             MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FontSize = 10;
         style.LineHeight = 1.2;
@@ -176,10 +176,10 @@ public sealed partial class PdfTableCellViewportTests {
         configure?.Invoke(style);
         var cells = new[] { adjacentCell == null ? new[] { cell } : new[] { cell, adjacentCell } };
         return mode switch {
-            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(),
+            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(),
-            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, 24, 24, 100, 24, style)).ToBytes(),
+                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, 24, 24, 100, 24, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(mode))
         };
     }

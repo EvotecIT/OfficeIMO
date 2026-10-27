@@ -7,7 +7,7 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static (int r1, int c1, int r2, int c2) CellAsRange(string cellRef) {
-            var parsed = A1.ParseCellRef(cellRef);
+            var parsed = ExcelA1.ParseCellRef(cellRef);
             return (parsed.Row, parsed.Col, parsed.Row, parsed.Col);
         }
 
@@ -36,12 +36,12 @@ namespace OfficeIMO.Excel {
                 if (!TryParseCellReferencePart(reference.Text, start, separator - start, out int r1, out int c1)
                     || !TryParseCellReferencePart(reference.Text, separator + 1, end - separator - 1, out int r2, out int c2)) {
                     string range = reference.Text.Substring(start, length);
-                    if (A1.TryParseWholeColumnRange(range, out c1, out c2)) {
-                        bounds = (1, c1, A1.MaxRows, c2);
+                    if (ExcelA1.TryParseWholeColumnRange(range, out c1, out c2)) {
+                        bounds = (1, c1, ExcelA1.MaxRows, c2);
                         return true;
                     }
-                    if (A1.TryParseWholeRowRange(range, out r1, out r2)) {
-                        bounds = (r1, 1, r2, A1.MaxColumns);
+                    if (ExcelA1.TryParseWholeRowRange(range, out r1, out r2)) {
+                        bounds = (r1, 1, r2, ExcelA1.MaxColumns);
                         return true;
                     }
                     bounds = default;
@@ -154,8 +154,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ToReference(int r1, int c1, int r2, int c2) {
-            string start = A1.CellReference(r1, c1);
-            string end = A1.CellReference(r2, c2);
+            string start = ExcelA1.CellReference(r1, c1);
+            string end = ExcelA1.CellReference(r2, c2);
             return string.Equals(start, end, StringComparison.OrdinalIgnoreCase) ? start : $"{start}:{end}";
         }
 
@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel {
                 if (match.Reference.Kind == ExcelReferenceKind.Cell) {
                     if (match.Reference.Start.Row < firstAffectedRow) return match.Text;
                     int targetRow = match.Reference.Start.Row + rowDelta;
-                    return targetRow <= 0 || targetRow > A1.MaxRows
+                    return targetRow <= 0 || targetRow > ExcelA1.MaxRows
                         ? "#REF!"
                         : FormatFormulaReference(match, targetRow, targetRow);
                 }
@@ -242,7 +242,7 @@ namespace OfficeIMO.Excel {
                     if (row >= firstDeletedRow && row <= lastDeletedRow) return "#REF!";
                     if (row <= lastDeletedRow) return match.Text;
                     int targetRow = row + rowDelta;
-                    return targetRow <= 0 || targetRow > A1.MaxRows
+                    return targetRow <= 0 || targetRow > ExcelA1.MaxRows
                         ? match.Text
                         : FormatFormulaReference(match, targetRow, targetRow);
                 }
@@ -318,7 +318,7 @@ namespace OfficeIMO.Excel {
                 targetHigh = firstDeletedRow - 1;
             }
 
-            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > A1.MaxRows) {
+            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > ExcelA1.MaxRows) {
                 return "#REF!";
             }
             int targetStart = reversed ? targetHigh : targetLow;
@@ -342,7 +342,7 @@ namespace OfficeIMO.Excel {
             }
             int targetLow = lowRow < firstAffectedRow ? lowRow : lowRow + rowDelta;
             int targetHigh = highRow + rowDelta;
-            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > A1.MaxRows) {
+            if (targetLow <= 0 || targetHigh <= 0 || targetHigh < targetLow || targetHigh > ExcelA1.MaxRows) {
                 return "#REF!";
             }
             int targetStart = reversed ? targetHigh : targetLow;
@@ -378,7 +378,7 @@ namespace OfficeIMO.Excel {
             changed = false;
             if (point.RowAbsolute) return point.Row;
             int target = point.Row + rowOffset;
-            if (target <= 0 || target > A1.MaxRows) return point.Row;
+            if (target <= 0 || target > ExcelA1.MaxRows) return point.Row;
             changed = target != point.Row;
             return target;
         }
@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
             if (kind == ExcelReferenceKind.WholeRow) {
                 return (point.RowAbsolute ? "$" : string.Empty) + row.ToString(CultureInfo.InvariantCulture);
             }
-            string column = (point.ColumnAbsolute ? "$" : string.Empty) + A1.ColumnIndexToLetters(point.Column);
+            string column = (point.ColumnAbsolute ? "$" : string.Empty) + ExcelA1.ColumnIndexToLetters(point.Column);
             if (kind == ExcelReferenceKind.WholeColumn) return column;
             return column + (point.RowAbsolute ? "$" : string.Empty) + row.ToString(CultureInfo.InvariantCulture);
         }
@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
                 if (targetFirstRow <= 0
                     || targetLastRow <= 0
                     || targetLastRow < targetFirstRow
-                    || targetLastRow > A1.MaxRows) {
+                    || targetLastRow > ExcelA1.MaxRows) {
                     remapped = null;
                     return true;
                 }

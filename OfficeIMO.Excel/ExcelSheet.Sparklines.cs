@@ -236,12 +236,12 @@ namespace OfficeIMO.Excel {
             string reference = separator >= 0 ? trimmed.Substring(separator + 1) : trimmed;
             reference = reference.Replace("$", string.Empty);
 
-            if (A1.TryParseRange(reference, out int r1, out int c1, out int r2, out int c2)) {
+            if (ExcelA1.TryParseRange(reference, out int r1, out int c1, out int r2, out int c2)) {
                 range = new SparklineRange(sheetPrefix, r1, c1, r2, c2);
                 return true;
             }
 
-            var cell = A1.ParseCellRef(reference);
+            var cell = ExcelA1.ParseCellRef(reference);
             if (cell.Row > 0 && cell.Col > 0) {
                 range = new SparklineRange(sheetPrefix, cell.Row, cell.Col, cell.Row, cell.Col);
                 return true;
@@ -311,12 +311,12 @@ namespace OfficeIMO.Excel {
             internal int ColumnCount => Column2 - Column1 + 1;
 
             internal string ToReference(int row1, int column1, int row2, int column2) {
-                string start = SheetPrefix + A1.CellReference(row1, column1);
+                string start = SheetPrefix + ExcelA1.CellReference(row1, column1);
                 if (row1 == row2 && column1 == column2) {
                     return start;
                 }
 
-                return start + ":" + A1.CellReference(row2, column2);
+                return start + ":" + ExcelA1.CellReference(row2, column2);
             }
         }
     }

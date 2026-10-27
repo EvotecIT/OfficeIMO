@@ -209,8 +209,8 @@ namespace OfficeIMO.Excel {
             ExcelSheet? intersectionSheet = null;
             int intersectionR1 = 1;
             int intersectionC1 = 1;
-            int intersectionR2 = A1.MaxRows;
-            int intersectionC2 = A1.MaxColumns;
+            int intersectionR2 = ExcelA1.MaxRows;
+            int intersectionC2 = ExcelA1.MaxColumns;
             for (int index = startIndex; index <= endIndex; index++) {
                 string reference = matches[index].Reference;
                 if (!TryResolveFormulaDependencyReference(
@@ -241,8 +241,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            string start = A1.CellReference(intersectionR1, intersectionC1);
-            string end = A1.CellReference(intersectionR2, intersectionC2);
+            string start = ExcelA1.CellReference(intersectionR1, intersectionC1);
+            string end = ExcelA1.CellReference(intersectionR2, intersectionC2);
             dependencies.Add(intersectionR1 == intersectionR2 && intersectionC1 == intersectionC2
                 ? $"{intersectionSheet.Name}!{start}"
                 : $"{intersectionSheet.Name}!{start}:{end}");

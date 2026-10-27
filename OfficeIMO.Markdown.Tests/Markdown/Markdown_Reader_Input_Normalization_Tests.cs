@@ -6,84 +6,84 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Reader_Input_Normalization_Tests {
     [Fact]
     public void Reader_Can_Normalize_SoftWrapped_Strong_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeSoftWrappedStrongSpans = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("**Status\nHEALTHY**", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("**Status\nHEALTHY**", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>Status HEALTHY</strong>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_InlineCode_LineBreaks_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeInlineCodeSpanLineBreaks = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("`a\nb`", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("`a\nb`", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>a b</code>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_EmojiWordJoins_And_ZeroWidthSpacing_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = true,
                 NormalizeEmojiWordJoins = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("✅Healthy Item\u200BOne", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("✅Healthy Item\u200BOne", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("✅ Healthy ItemOne", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_EscapedInlineCode_Via_Ast() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeEscapedInlineCodeSpans = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(@"Use \`/act act_001\` now.", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(@"Use \`/act act_001\` now.", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_TightStrongBoundaries_Via_Ast() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightStrongBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Status **Healthy**next", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Status **Healthy**next", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_TightArrowStrongBoundaries_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightArrowStrongBoundaries = true
             }
         };
 
-        var markdown = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal ->**Why it matters:** coverage is thin", options)
+        var markdown = OfficeIMO.Markdown.MarkdownDocument.Parse("- Signal ->**Why it matters:** coverage is thin", options)
             .ToMarkdown();
 
         Assert.Contains("-> **Why it matters:**", markdown, StringComparison.Ordinal);
@@ -91,42 +91,42 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_BrokenStrongArrowLabels_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeBrokenStrongArrowLabels = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **No current failures -> **Why it matters:** transport/auth issues", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Signal **No current failures -> **Why it matters:** transport/auth issues", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>No current failures</strong> -&gt; <strong>Why it matters:</strong> transport/auth issues", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_TightColonSpacing_Via_Ast() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightColonSpacing = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **Point-in-time snapshot** -> Why it matters:missing evidence", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Signal **Point-in-time snapshot** -> Why it matters:missing evidence", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("Why it matters: missing evidence", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_SignalFlowLabelSpacing_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeSignalFlowLabelSpacing = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal -> Why it matters:missing coverage -> Next action:review defaults", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Signal -> Why it matters:missing coverage -> Next action:review defaults", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("Why it matters: missing coverage", html, StringComparison.Ordinal);
         Assert.Contains("Next action: review defaults", html, StringComparison.Ordinal);
@@ -134,15 +134,15 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_CompactHeadingAndStrongLabelListBoundaries_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeHeadingListBoundaries = true,
                 NormalizeCompactStrongLabelListBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("Wynik og", html, StringComparison.Ordinal);
@@ -153,14 +153,14 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_DoesNot_Split_CompactStrongLabelMarkers_Inside_CodeSpans_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeCompactStrongLabelListBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("✅`- **FSMO:**` tail", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("✅`- **FSMO:**` tail", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>- **FSMO:**</code>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<li", html, StringComparison.Ordinal);
@@ -168,14 +168,14 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_DoesNot_Split_HeadingListMarkers_Inside_CodeSpans_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeHeadingListBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("## Summary `- **Replication:**` tail", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("## Summary `- **Replication:**` tail", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("<code>- **Replication:**</code>", html, StringComparison.Ordinal);
@@ -184,7 +184,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_CollapsedOrderedListTranscriptArtifacts_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeOrderedListParenMarkers = true,
                 NormalizeOrderedListMarkerSpacing = true,
@@ -196,10 +196,10 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(
                 "1) **Privilege hygiene sweep(Domain Admins + other privileged groups, nested exposure) 2)** Delegation risk audit**(unconstrained / constrained / protocol transition)",
                 options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Equal(2, Count(html, "<li"));
         Assert.Contains("<strong>Privilege hygiene sweep</strong> (Domain Admins + other privileged groups, nested exposure)", html, StringComparison.Ordinal);
@@ -208,14 +208,14 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_CompactHeadingBoundaries_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeCompactHeadingBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("previous shutdown was unexpected### Reason", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("previous shutdown was unexpected### Reason", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<p>previous shutdown was unexpected</p>", html, StringComparison.Ordinal);
         Assert.Contains("<h3", html, StringComparison.Ordinal);
@@ -224,14 +224,14 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_DoesNot_Split_CompactHeadingMarkers_Inside_CodeSpans_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeCompactHeadingBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Use `unexpected### Reason` as captured text.", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>unexpected### Reason</code>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<h3", html, StringComparison.Ordinal);
@@ -239,19 +239,19 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Split_Collapsed_Table_Row_Heading_Boundaries_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeCompactHeadingBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 | Check | Expected |
 | --- | --- |
 | Escaping behavior | Text shows symbols, not formatting ## Extra markdown stress tests
 ### Wide table follows
 """, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<table>", html, StringComparison.Ordinal);
         Assert.Contains("Text shows symbols, not formatting", html, StringComparison.Ordinal);
@@ -264,18 +264,18 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_StandaloneHashHeadingSeparators_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeStandaloneHashHeadingSeparators = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 #
 
 ## Result
 """, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("<h1", html, StringComparison.Ordinal);
         Assert.Contains("<h2", html, StringComparison.Ordinal);
@@ -284,7 +284,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_Can_Normalize_List_Strong_Artifacts_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeLooseStrongDelimiters = true,
                 NormalizeDanglingTrailingStrongListClosers = true,
@@ -292,14 +292,14 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 - Overall health ****healthy****
 - Overall health ✅ Healthy****
 - Overall health ******healthy**
 - Overall health **✅****Healthy**
 - LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers*
 """, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>healthy</strong>", html, StringComparison.Ordinal);
         Assert.Contains("Healthy", html, StringComparison.Ordinal);
@@ -310,11 +310,11 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
     [Fact]
     public void Reader_StrictTranscriptPreset_Composes_PreParse_And_AstFirst_Normalization() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 ## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
 
 previous shutdown was unexpected### Reason
@@ -323,7 +323,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
 - Overall health ✅ Healthy****
 """, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("Wynik og", html, StringComparison.Ordinal);
@@ -341,14 +341,14 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_Can_Normalize_ColonListBoundaries_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeColonListBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<p>Następny najlepszy krok:</p>", html, StringComparison.Ordinal);
         Assert.Equal(1, Count(html, "<li"));
@@ -357,14 +357,14 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_DoesNot_Split_ColonListMarkers_Inside_CodeSpans_AfterParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeColonListBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Use `Next step:- **Item**` as captured text.", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>Next step:- **Item**</code>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<li", html, StringComparison.Ordinal);
@@ -372,13 +372,13 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_Can_Normalize_CompactMermaidFenceBodyBoundary_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeCompactFenceBodyBoundaries = true
             }
         };
 
-        var markdown = OfficeIMO.Markdown.MarkdownReader.Parse("```mermaidflowchart LR A-->B\n```", options)
+        var markdown = OfficeIMO.Markdown.MarkdownDocument.Parse("```mermaidflowchart LR A-->B\n```", options)
             .ToMarkdown()
             .Replace("\r\n", "\n");
 
@@ -387,28 +387,28 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_DoesNot_Normalize_TightColonSpacing_InsideInlineCode() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightColonSpacing = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Why it matters:missing` in tests.", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Use `Why it matters:missing` in tests.", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>Why it matters:missing</code>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_LooseStrongDelimiters_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeLooseStrongDelimiters = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("check ** LDAP/Kerberos health on all DCs** next", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("check ** LDAP/Kerberos health on all DCs** next", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
         Assert.DoesNotContain("** LDAP/Kerberos health on all DCs**", html, StringComparison.Ordinal);
@@ -416,14 +416,14 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_Can_Normalize_RepeatedStrongDelimiterRuns_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeLooseStrongDelimiters = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Overall health ****healthy****", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Overall health ****healthy****", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>healthy</strong>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("****healthy****", html, StringComparison.Ordinal);
@@ -431,15 +431,15 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_Ast_Normalization_Propagates_To_Nested_Quote_Parsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeEscapedInlineCodeSpans = true,
                 NormalizeTightStrongBoundaries = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("> Use \\`/act act_001\\` and **Healthy**next", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("> Use \\`/act act_001\\` and **Healthy**next", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
         Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
@@ -447,7 +447,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 
     [Fact]
     public void Reader_Ast_Normalization_DoesNot_Change_Fenced_Code_Block_Content() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeEscapedInlineCodeSpans = true,
                 NormalizeTightStrongBoundaries = true
@@ -461,7 +461,7 @@ Status **Healthy**next
 ```
 """;
 
-        var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToMarkdown().Replace("\r\n", "\n");
+        var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options).ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("Use \\`/act act_001\\`", parsed, StringComparison.Ordinal);
         Assert.Contains("Status **Healthy**next", parsed, StringComparison.Ordinal);
@@ -469,7 +469,7 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Can_Normalize_OrderedListMarkerSpacing_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeOrderedListMarkerSpacing = true,
                 NormalizeLooseStrongDelimiters = true
@@ -482,8 +482,8 @@ Status **Healthy**next
 3.** Replication + DC health snapshot** (stale links, failing partners)
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Equal(3, Count(html, "<li"));
         Assert.Contains("<strong>Delegation risk audit</strong>", html, StringComparison.Ordinal);
@@ -492,7 +492,7 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Can_Normalize_OrderedListParenAndCaretArtifacts_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeOrderedListParenMarkers = true,
                 NormalizeOrderedListCaretArtifacts = true
@@ -504,8 +504,8 @@ Status **Healthy**next
 2.^ **Delegation risk audit**
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Equal(2, Count(html, "<li"));
         Assert.Contains("First check", html, StringComparison.Ordinal);
@@ -514,28 +514,28 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Can_Normalize_TightParentheticalSpacing_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightParentheticalSpacing = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("1. **Deleted object remnants**(SID left in ACL path)", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("1. **Deleted object remnants**(SID left in ACL path)", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_DoesNot_Normalize_TightParentheticalSpacing_InsideInlineCode() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightParentheticalSpacing = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<code>Get-ADUser (SIDHistory)</code>", html, StringComparison.Ordinal);
@@ -544,24 +544,24 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Enforces_MaxInputCharacters() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             MaxInputCharacters = 8
         };
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => OfficeIMO.Markdown.MarkdownReader.Parse("123456789", options));
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => OfficeIMO.Markdown.MarkdownDocument.Parse("123456789", options));
         Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Reader_Can_Normalize_NestedStrongDelimiters_BeforeParsing() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeNestedStrongDelimiters = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **Current comparison used **System** log only.**", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Signal **Current comparison used **System** log only.**", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("used **System** log only.**", html, StringComparison.Ordinal);
@@ -569,14 +569,14 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Can_Normalize_NestedStrongDelimiters_InsideLabeledBullets() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeNestedStrongDelimiters = true
             }
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Why it matters **Current comparison used **System** log only.**", options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse("- Why it matters **Current comparison used **System** log only.**", options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("Why it matters <strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("used **System** log only.**", html, StringComparison.Ordinal);
@@ -584,7 +584,7 @@ Status **Healthy**next
 
     [Fact]
     public void Reader_Can_Apply_IntelligenceXTranscriptStrict_Preset_EndToEnd() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
         };
 
@@ -597,8 +597,8 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 ```
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
-            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options)
+            .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.True(Count(html, "<li") >= 2);

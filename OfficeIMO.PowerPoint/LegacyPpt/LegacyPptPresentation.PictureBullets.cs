@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .SelectMany(record => record.Children)
                 .Where(IsPpt9BinaryTag).ToArray();
             if (ppt9Tags.Length > 1) {
-                AddDiagnostic("PPT-PICTURE-BULLET-TAG-DUPLICATE",
+                AddDiagnostic("ppt-picture-bullet-tag-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple PPT9 tags; picture bullets remain preserve-only.",
                     ppt9Tags[1].Offset);
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == RecordBinaryTagDataBlob).ToArray();
             if (blobs.Length != 1 || blobs[0].Version != 0
                 || blobs[0].Instance != 0) {
-                AddDiagnostic("PPT-PICTURE-BULLET-DATA",
+                AddDiagnostic("ppt-picture-bullet-data",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document PPT9 tag has no unique valid data blob; picture bullets remain preserve-only.",
                     ppt9Tags[0].Offset);
@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             } catch (Exception exception) when (exception
                 is InvalidDataException or OverflowException
                     or ArgumentOutOfRangeException) {
-                AddDiagnostic("PPT-PICTURE-BULLET-DATA-TRUNCATED",
+                AddDiagnostic("ppt-picture-bullet-data-truncated",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document PPT9 data is malformed; picture bullets remain preserve-only.",
                     blobs[0].Offset);
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord[] collections = records.Where(record =>
                 record.Type == RecordBlipCollection9).ToArray();
             if (collections.Length > 1) {
-                AddDiagnostic("PPT-PICTURE-BULLET-COLLECTION-DUPLICATE",
+                AddDiagnostic("ppt-picture-bullet-collection-duplicate",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple PPT9 picture-bullet collections; they remain preserve-only.",
                     collections[1].Offset);
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (collections.Length == 0) return;
             LegacyPptRecord collection = collections[0];
             if (collection.Version != 0x0F || collection.Instance != 0) {
-                AddDiagnostic("PPT-PICTURE-BULLET-COLLECTION",
+                AddDiagnostic("ppt-picture-bullet-collection",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The PPT9 picture-bullet collection has an invalid header and remains preserve-only.",
                     collection.Offset);
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         out LegacyPptPictureBullet? pictureBullet)
                     || pictureBullet == null) continue;
                 if (_pictureBulletsByIndex.ContainsKey(pictureBullet.Index)) {
-                    AddDiagnostic("PPT-PICTURE-BULLET-INDEX-DUPLICATE",
+                    AddDiagnostic("ppt-picture-bullet-index-duplicate",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Picture-bullet index {pictureBullet.Index} is duplicated and remains preserve-only.",
                         entity.Offset);
@@ -97,7 +97,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 || entity.Version != 0 || entity.Instance > 0x080
                 || entity.PayloadLength < 10) {
                 if (options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-PICTURE-BULLET-ENTITY",
+                    AddDiagnostic("ppt-picture-bullet-entity",
                         LegacyPptDiagnosticSeverity.Warning,
                         "A PPT9 picture-bullet entity has an invalid header or payload and remains preserve-only.",
                         entity.Offset);
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     10, entity.PayloadLength - 2,
                     out OfficeArtBlipStoreEntryReader
                         .OfficeArtBlipRecordData blip, perImageLimit)) {
-                AddDiagnostic("PPT-PICTURE-BULLET-BLIP",
+                AddDiagnostic("ppt-picture-bullet-blip",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Picture-bullet index {entity.Instance} has an unsupported or malformed OfficeArt BLIP.",
                     entity.Offset);
@@ -137,12 +137,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (!pictureBullet.HasImportableImage) {
                 if (pictureBullet.IsPayloadTruncated) {
                     AddDiagnostic(
-                        "PPT-PICTURE-BULLET-BLIP-TRUNCATED",
+                        "ppt-picture-bullet-blip-truncated",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Picture-bullet index {entity.Instance} has a truncated image payload and remains preserve-only.",
                         entity.Offset);
                 } else {
-                    AddDiagnostic("PPT-PICTURE-BULLET-IMAGE",
+                    AddDiagnostic("ppt-picture-bullet-image",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"Picture-bullet index {entity.Instance} has no bounded importable image payload and remains preserve-only.",
                         entity.Offset);

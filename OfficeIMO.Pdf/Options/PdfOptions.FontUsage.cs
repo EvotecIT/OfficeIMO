@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
-    internal void MergeFontProgramUsageFrom(PdfOptions nested) {
+public sealed partial class PdfCreateOptions {
+    internal void MergeFontProgramUsageFrom(PdfCreateOptions nested) {
         if (ReferenceEquals(this, nested)) return;
         MergeResolvedFallbackFontMappingsFrom(nested);
         if (nested._embeddedFontPrograms != null) {

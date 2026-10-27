@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Configures package-native tabular XLSX exports.
     /// </summary>
-    public sealed class ExcelTabularWriteOptions {
+    public sealed class ExcelWriterOptions {
         /// <summary>
         /// Rejects settings that require materializing the source rows before writing.
         /// For data readers, disable shared strings and automatic sizing; tables require headers.

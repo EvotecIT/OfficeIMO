@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
 using Omd = OfficeIMO.Markdown;
@@ -22,12 +20,12 @@ namespace OfficeIMO.Word.Markdown {
         // Current footnote definitions map; scoped to this per-conversion converter instance.
         private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
-        public WordDocument Convert(Omd.MarkdownDoc markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
+        public WordDocument Convert(Omd.MarkdownDocument markdown, WordMarkdownImportOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
 
-            options ??= new MarkdownToWordOptions();
+            options ??= new WordMarkdownImportOptions();
 
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
@@ -37,7 +35,7 @@ namespace OfficeIMO.Word.Markdown {
             return document;
         }
 
-        private void RenderDocument(Omd.MarkdownDoc markdown, WordDocument document, MarkdownToWordOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
+        private void RenderDocument(Omd.MarkdownDocument markdown, WordDocument document, WordMarkdownImportOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
             var blocks = GetRenderableBlocks(markdown);
 
             _currentFootnotes = blocks
@@ -45,7 +43,7 @@ namespace OfficeIMO.Word.Markdown {
                 .GroupBy(f => f.Label)
                 .ToDictionary(g => g.Key, g => g.Last().Text);
 
-            var host = new DocumentWordBlockRenderHost(document);
+            var host = new DocumentWordBlockRenderHost(document, options);
             if (markdown.DocumentHeader != null) {
                 RenderSharedBlockOmd(
                     markdown.DocumentHeader,
@@ -56,7 +54,7 @@ namespace OfficeIMO.Word.Markdown {
                     listLevel: 0,
                     quoteDepth: 0,
                     pageContentWidthPixels: pageContentWidthPixels,
-                    alignment: Omd.ColumnAlignment.None);
+                    alignment: Omd.MarkdownColumnAlignment.None);
             }
 
             foreach (var block in blocks) {
@@ -74,7 +72,7 @@ namespace OfficeIMO.Word.Markdown {
                     listLevel: 0,
                     quoteDepth: 0,
                     pageContentWidthPixels: pageContentWidthPixels,
-                    alignment: Omd.ColumnAlignment.None);
+                    alignment: Omd.MarkdownColumnAlignment.None);
             }
 
         }
@@ -85,7 +83,7 @@ namespace OfficeIMO.Word.Markdown {
                     !toc.TitleHeadingAlreadyRendered ||
                     !toc.IncludeTitle ||
                     string.IsNullOrWhiteSpace(toc.Title) ||
-                    toc.Scope != Omd.TocScope.Document ||
+                    toc.Scope != Omd.MarkdownTocScope.Document ||
                     blocks[i - 1] is not Omd.HeadingBlock heading) {
                     continue;
                 }
@@ -99,7 +97,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDoc markdown) {
+        private static IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDocument markdown) {
             var blocks = markdown.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
             RemoveDuplicateNativeTocTitleHeadings(blocks);
             return blocks;

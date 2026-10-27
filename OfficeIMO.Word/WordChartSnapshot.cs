@@ -67,10 +67,10 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<double>? XValues { get; }
 
         /// <summary>Optional explicit series color extracted from Word chart shape properties.</summary>
-        public OfficeIMO.Drawing.OfficeColor? Color { get; }
+        public OfficeIMO.OfficeColor? Color { get; }
 
         /// <summary>Optional explicit point colors extracted from Word chart data point shape properties.</summary>
-        public IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? PointColors { get; }
+        public IReadOnlyList<OfficeIMO.OfficeColor?>? PointColors { get; }
 
         /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
         public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
@@ -98,8 +98,8 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Dependency-free Word chart snapshot suitable for export and visual fallback renderers.
     /// </summary>
-    public sealed class WordChartSnapshot {
-        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
+    public sealed class WordChartInfo {
+        internal WordChartInfo(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
             OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;
             Title = title;

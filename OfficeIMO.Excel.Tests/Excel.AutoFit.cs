@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 // CancelAfter unreliable here. We only validate that cancellation propagates.
                 using CancellationTokenSource cts = new();
                 cts.Cancel();
-                await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                     await Task.Run(() => sheet.AutoFitColumns(ExcelExecutionMode.Parallel, cts.Token))
                 );
             }

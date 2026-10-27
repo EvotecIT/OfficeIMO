@@ -22,7 +22,7 @@ public static partial class WordDocumentService
 
     /// <summary>Creates an editable detached copy without modifying the template.</summary>
     public static WordDocument CreateFromTemplate(string templatePath) =>
-        RegisterDocument(WordDocument.CreateFromTemplate(templatePath));
+        RegisterDocument(WordDocument.Create(new WordCreateOptions { Template = templatePath }));
 
     /// <summary>Loads an existing Word document.</summary>
     public static WordDocument LoadDocument(string filePath, bool readOnly, bool autoSave, string? password = null)

@@ -34,7 +34,7 @@ public partial class PdfTextExtractorPageTests {
 
     [Fact]
     public void GetTextSpans_UsesStandardFontMetricsWhenWidthsAreOmitted() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
                 DefaultFontSize = 10
             })
@@ -53,7 +53,7 @@ public partial class PdfTextExtractorPageTests {
     [Fact]
     public void GetTextSpans_UsesWinAnsiPunctuationMetricsWhenWidthsAreOmitted() {
         const string text = "\u201CWait\u201D\u2014ok\u2026";
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
                 DefaultFontSize = 10,
                 TextKerning = false
@@ -73,7 +73,7 @@ public partial class PdfTextExtractorPageTests {
     [Fact]
     public void GetTextSpans_UsesWinAnsiAccentedLetterMetricsWhenWidthsAreOmitted() {
         const string text = "r\u00E9sum\u00E9";
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
                 DefaultFontSize = 10
             })

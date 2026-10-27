@@ -37,7 +37,7 @@ public sealed class PdfTextStyle {
         };
     }
 
-    internal void ApplyTo(PdfOptions options) {
+    internal void ApplyTo(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         options.DefaultFont = Font;
         options.DefaultFontSize = FontSize;

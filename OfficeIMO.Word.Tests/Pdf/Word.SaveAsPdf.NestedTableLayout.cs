@@ -22,7 +22,7 @@ public partial class Word {
         cell.AddParagraph("AFTERINNER");
         string sourceXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        var result = document.ToPdfDocumentResult();
+        var result = document.ConvertToPdfWithEvidence();
         using PdfPigDocument pdf = PdfPigDocument.Open(result.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToList();
         var left = Assert.Single(words, word => word.Text == "INNERLEFT");
@@ -39,7 +39,7 @@ public partial class Word {
         Assert.True(after.BoundingBox.Top < left.BoundingBox.Bottom,
             "The source paragraph after the inner table must stay below its cells.");
         Assert.DoesNotContain(result.Warnings,
-            warning => warning.Code == "NativeNestedTableLayoutApproximated");
+            warning => warning.Code == "native-nested-table-layout-approximated");
     }
 
     [Fact]
@@ -81,10 +81,10 @@ public partial class Word {
         ConfigureNestedLayoutParagraph(host.AddParagraph(), "NESTAFTER");
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(400D, 240D),
-            Margins = PageMargins.Uniform(30D),
+            PageSize = new PdfPageSize(400D, 240D),
+            Margins = PdfPageMargins.Uniform(30D),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -116,7 +116,7 @@ public partial class Word {
                 Assert.InRange(word.BoundingBox.Top, 0D, page.Height);
             }
         }
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
 
@@ -139,7 +139,7 @@ public partial class Word {
         OpenXmlCompositeElement notes = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string original = main.Document.OuterXml + notes.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         var left = FindRichNoteToken(letters, "NESTNOTELEFT");
@@ -156,8 +156,8 @@ public partial class Word {
         Assert.True(text.IndexOf("NOTEBEFORE", StringComparison.Ordinal) < text.IndexOf("CELLBEFORE", StringComparison.Ordinal));
         Assert.True(text.IndexOf("CELLAFTER", StringComparison.Ordinal) < text.IndexOf("NOTEAFTER", StringComparison.Ordinal));
         Assert.True(FindRichNoteToken(letters, "LINKTARGET")[0].StartBaseLine.Y > left[0].StartBaseLine.Y);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "NativeNestedTableLayoutApproximated" or
-            "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated" or "NativeEndnoteContinuationApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "native-nested-table-layout-approximated" or
+            "native-footnote-placement-approximated" or "native-endnote-content-approximated" or "native-endnote-continuation-approximated");
         Assert.Equal(original, main.Document.OuterXml + notes.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml);
         Assert.Empty(document.ValidateDocument());
     }
@@ -175,13 +175,13 @@ public partial class Word {
         outer.Rows[1].Cells[1].Paragraphs[0].Text = "LOWERPEER";
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
         foreach (string token in new[] { "FALLBACKLEFT", "FALLBACKRIGHT", "UPPERPEER", "LOWERPEER" })
             Assert.Single(words, word => word.Text == token);
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeNestedTableLayoutApproximated");
+            item => item.Code == "native-nested-table-layout-approximated");
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
@@ -221,14 +221,14 @@ public partial class Word {
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml +
             main.DocumentSettingsPart!.Settings!.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(400D, 500D),
-            Margins = PageMargins.Uniform(30D),
+            PageSize = new PdfPageSize(400D, 500D),
+            Margins = PdfPageMargins.Uniform(30D),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeNestedTableLayoutApproximated");
+            item => item.Code == "native-nested-table-layout-approximated");
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
@@ -237,9 +237,9 @@ public partial class Word {
         var placement = Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Equal(60D, placement.BoundingBox.Width, precision: 2);
         Assert.Equal(150D, placement.BoundingBox.Height, precision: 2);
-        Assert.DoesNotContain(result.Warnings, item => item.Code is "NativeAnchoredImageFlowed" or
-            "NativeAnchoredImageWrapApproximated");
-        Assert.Single(result.Warnings, item => item.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, item => item.Code is "native-anchored-image-flowed" or
+            "native-anchored-image-wrap-approximated");
+        Assert.Single(result.Warnings, item => item.Code == "native-nested-table-layout-approximated");
         Assert.True(result.HasLoss);
         Assert.Equal(original, main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml +
             main.DocumentSettingsPart.Settings.OuterXml);
@@ -264,8 +264,8 @@ public partial class Word {
         ConfigureNestedLayoutParagraph(outer.Rows[0].Cells[2].Paragraphs[0], "ShortPeer");
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PageSize(400D, 200D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 200D), Margins = PdfPageMargins.Uniform(30D),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -274,7 +274,7 @@ public partial class Word {
         Assert.Equal(expected, words.Where(word => word.Text.StartsWith("KeepPeer", StringComparison.Ordinal)).Select(word => word.Text));
         foreach (string token in new[] { "NestedBefore", "NestedPeer", "NestedAfter", "ShortPeer" })
             Assert.Single(words, word => word.Text == token);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
 
@@ -298,10 +298,10 @@ public partial class Word {
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(400D, 500D),
-            Margins = PageMargins.Uniform(30D),
+            PageSize = new PdfPageSize(400D, 500D),
+            Margins = PdfPageMargins.Uniform(30D),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -310,7 +310,7 @@ public partial class Word {
         var left = Assert.Single(words, word => word.Text == "LEFT");
         var right = Assert.Single(words, word => word.Text == "RIGHT");
         Assert.Equal(left.BoundingBox.Bottom, right.BoundingBox.Bottom, precision: 2);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         return (before.BoundingBox.Left, left.BoundingBox.Left, right.BoundingBox.Left - left.BoundingBox.Left);
     }

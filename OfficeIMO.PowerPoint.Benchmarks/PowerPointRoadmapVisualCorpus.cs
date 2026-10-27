@@ -136,7 +136,7 @@ internal static class PowerPointRoadmapVisualCorpus {
                 $"slide-{index + 1:00}.svg"), vectors[index].Bytes);
         }
 
-        byte[] pdf = reopened.ToPdfBytes();
+        byte[] pdf = reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         ValidatePdf(pdf, reopened.Slides.Count);
         File.WriteAllBytes(Path.Combine(root,
             "powerpoint-roadmap-visual-corpus.pdf"), pdf);
@@ -209,7 +209,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             .Select(scenario => scenario.Title + " SmartArt")
             .Concat(new[] { "Shared custom geometry", "Chart and table authoring" })
             .ToArray();
-        PdfCore.PdfReadDocument parsed = PdfCore.PdfReadDocument.Open(pdf);
+        PdfCore.PdfDocument parsed = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         if (parsed.Pages.Count != expectedPageCount
             || expectedTitles.Length != expectedPageCount) {
             throw new InvalidOperationException(
@@ -225,7 +225,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         }
 
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
-            PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
+            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
                     Format = PdfCore.PdfPageRenderFormat.Png,

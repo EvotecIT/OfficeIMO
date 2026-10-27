@@ -13,11 +13,11 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "First document",
             "First page",
-            ("First second page", new PageSize(300, 500)));
+            ("First second page", new PdfPageSize(300, 500)));
         byte[] second = BuildPdf(
             "Second document",
             "Second document page",
-            ("Second second page", new PageSize(792, 612)));
+            ("Second second page", new PdfPageSize(792, 612)));
 
         byte[] merged = PdfMerger.Merge(first, second);
 
@@ -99,15 +99,15 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "Mixed size first",
             "Letter source page",
-            ("Small source page", new PageSize(300, 500)));
+            ("Small source page", new PdfPageSize(300, 500)));
         byte[] second = BuildPdf(
             "Mixed size second",
             "Landscape source page",
-            ("A4 source page", PageSizes.A4));
+            ("A4 source page", PdfPageSizes.A4));
 
         byte[] merged = PdfMerger.Merge(
             new PdfMergeOptions {
-                ResizePages = new PdfPageResizeOptions(PageSizes.A4) {
+                ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) {
                     Margin = 12,
                     Mode = PdfPageResizeMode.Fit
                 }
@@ -358,7 +358,7 @@ public class PdfMergerTests {
         }
     }
 
-    private static byte[] BuildPdf(string title, string firstPageText, params (string Text, PageSize Size)[] extraPages) {
+    private static byte[] BuildPdf(string title, string firstPageText, params (string Text, PdfPageSize Size)[] extraPages) {
         var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
             .Paragraph(p => p.Text(firstPageText));
@@ -378,7 +378,7 @@ public class PdfMergerTests {
     }
 
     private static byte[] BuildAnnotatedPdf(string title, string pageText) {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")

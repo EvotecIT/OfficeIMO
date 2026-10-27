@@ -33,7 +33,7 @@ public sealed class PowerPointParagraphFlowContractTests {
             box.AddParagraph("");
             if (followingText) box.AddParagraph("OVERFLOW");
         }
-        var result = presentation.ToPdfDocumentResult();
+        var result = presentation.ConvertToPdfWithEvidence();
         var page = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0];
         Assert.True(Span(page, "VISIBLE").IsVisible);
         if (followingText) {
@@ -58,9 +58,9 @@ public sealed class PowerPointParagraphFlowContractTests {
         box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
         box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
         box.Paragraphs[0].Runs[0].Bold = rich;
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var page = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
         Assert.All(new[] { "gypsy", "playing", "quickly" }, text => Assert.True(Span(page, text).IsVisible));
         Assert.InRange(Span(page, "gypsy").Y - Span(page, "playing").Y, 17.9D, 18.1D);
@@ -126,7 +126,7 @@ public sealed class PowerPointParagraphFlowContractTests {
             var second = box.AddParagraph("SECOND");
             if (differentAlignment) second.Alignment = PowerPointTextAlignment.Right;
         }
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.InRange(BaselineFromTop(pdf, 2, "SECOND") - BaselineFromTop(pdf, 1, "SECOND"), 35D, 37D);
     }
 
@@ -186,7 +186,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         box.FontName = "Helvetica"; box.FontSize = 12;
         if (flow) box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
         SetDefaults(box, box.Paragraphs[0].Paragraph, source, new A.DefaultRunProperties { Capital = A.TextCapsValues.All });
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("MIXED CASE", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.Contains("MIXED CASE", string.Concat(Read(presentation).Pages[0].GetTextSpans().Select(span => span.Text)), StringComparison.Ordinal);
     }
@@ -255,7 +255,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         Assert.Equal(OfficeColor.FromRgb(192, 32, 96), text.Color);
     }
     private static PdfCore.PdfReadDocument Read(PowerPointPresentation presentation) =>
-        PdfCore.PdfReadDocument.Open(presentation.ToPdfBytes());
+        PdfCore.PdfReadDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
     private static PdfCore.PdfTextSpan Span(PdfCore.PdfReadPage page, string text) =>
         Assert.Single(page.GetTextSpans(), span => span.Text.Contains(text, StringComparison.Ordinal));

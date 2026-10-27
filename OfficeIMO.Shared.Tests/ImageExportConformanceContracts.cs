@@ -37,9 +37,9 @@ public sealed class ImageExportConformanceContracts {
                 MaximumRasterPixels = maximumPixels
             }));
 
-        PdfReadDocument pdf = PdfReadDocument.Open(PdfDocument.Create(document => document
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create(document => document
             .Content(content => content.Paragraph(paragraph => paragraph.Text("PDF"))))
-            .ToBytes());
+            .ToBytes()));
         results.Add(pdf.Pages[0].ExportImage(
             OfficeImageExportFormat.Webp,
             new PdfImageExportOptions {

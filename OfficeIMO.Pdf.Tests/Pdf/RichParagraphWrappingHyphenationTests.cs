@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void AutomaticHyphenationClonesUseTheirOwnLanguageAndCanBeOverridden() {
-        var original = new PdfOptions { Language = "en-US" }.UseAutomaticHyphenation();
-        PdfOptions clone = original.Clone();
+        var original = new PdfCreateOptions { Language = "en-US" }.UseAutomaticHyphenation();
+        PdfCreateOptions clone = original.Clone();
         clone.Language = "zz";
         Assert.Empty(clone.TextHyphenationCallback!("hyphenation"));
         Assert.NotEmpty(original.TextHyphenationCallback!("hyphenation"));
@@ -52,7 +52,7 @@ public class RichParagraphWrappingHyphenationTests {
     public void GeneratedText_UsesFirstPartyHyphenationDictionary() {
         var dictionary = new PdfHyphenationLexicon(new[] { "typog-ra-phy-mile-stone" });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 118,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -76,9 +76,9 @@ public class RichParagraphWrappingHyphenationTests {
             ? new[] { 10 }
             : Array.Empty<int>();
 
-        PdfOptions options = new PdfOptions().SetTextHyphenation(callback);
+        PdfCreateOptions options = new PdfCreateOptions().SetTextHyphenation(callback);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Same(callback, clone.TextHyphenationCallback);
     }
@@ -93,7 +93,7 @@ public class RichParagraphWrappingHyphenationTests {
                 : Array.Empty<int>();
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 118,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -122,7 +122,7 @@ public class RichParagraphWrappingHyphenationTests {
             ? new[] { 1 }
             : Array.Empty<int>();
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 118,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -143,7 +143,7 @@ public class RichParagraphWrappingHyphenationTests {
 
     [Fact]
     public void GeneratedText_BreaksLongDelimitedTokensAtRealDelimitersBeforeCharacterChunks() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 118,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -164,7 +164,7 @@ public class RichParagraphWrappingHyphenationTests {
 
     [Fact]
     public void GeneratedText_PreservesDelimiterChunksWhenLaterSegmentNeedsCharacterWrapping() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 72,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -192,7 +192,7 @@ public class RichParagraphWrappingHyphenationTests {
 
     [Fact]
     public void GeneratedText_UsesAvailableWidthAfterIdentifierDelimiters() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 160,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -216,7 +216,7 @@ public class RichParagraphWrappingHyphenationTests {
 
     [Fact]
     public void GeneratedText_CarriesDelimiterToNextLineBeforeSplittingWordSegment() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 86,
                 PageHeight = 180,
                 MarginLeft = 18,
@@ -242,8 +242,8 @@ public class RichParagraphWrappingHyphenationTests {
 
     [Fact]
     public void GeneratedTableText_CarriesDelimitedWordSegmentBeforeCharacterFallback() {
-        var style = TableStyles.Minimal();
-        using var metric = PdfPigDocument.Open(PdfDocument.Create(new PdfOptions {
+        var style = PdfTableStyles.Minimal();
+        using var metric = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
             }).Paragraph(paragraph => paragraph.Text("RECORD")).ToBytes());
         var measured = metric.GetPage(1).Letters;
@@ -253,7 +253,7 @@ public class RichParagraphWrappingHyphenationTests {
         double columnWidth = wordAdvance + style.CellPaddingX * 2D;
         style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { columnWidth, 70 };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 160,
                 PageHeight = 180,
                 MarginLeft = 18,

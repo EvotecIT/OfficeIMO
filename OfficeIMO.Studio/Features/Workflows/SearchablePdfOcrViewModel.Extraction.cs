@@ -33,7 +33,7 @@ public sealed partial class SearchablePdfOcrViewModel {
             var languages = Languages.Where(choice => choice.IsSelected)
                 .Aggregate((TesseractOcrLanguage)0, (current, choice) => current | choice.Value);
             var settings = Scan.ApplyTo(new PdfOcrMergeOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(Scan.PageNumber) },
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(Scan.PageNumber) },
                 Dpi = RenderDpi, MinimumConfidence = MinimumConfidencePercent / 100D
             });
             var options = new SearchablePdfOcrOptions(languages, ProvisionMissingLanguageData,

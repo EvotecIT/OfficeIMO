@@ -52,9 +52,9 @@ public sealed class TabularCommandTests {
                 document.Save(workbookPath);
             }
 
-            IReadOnlyList<string> names = ExcelDocument.GetSheetNames(
+            IReadOnlyList<string> names = SheetNames(
                 workbookPath,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     MaxSharedStringItems = 1,
                     MaxSharedStringCharacters = 1,
                     MaxSharedStringItemCharacters = 1
@@ -78,27 +78,27 @@ public sealed class TabularCommandTests {
             }
 
             OfficeInspectionResourceLimitException countError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxWorksheets = 1 }));
+                    new ExcelReaderOptions { MaxWorksheets = 1 }));
             Assert.Equal("excel", countError.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxWorksheets), countError.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxWorksheets), countError.LimitName);
             Assert.Equal(1, countError.Maximum);
 
             OfficeInspectionResourceLimitException partError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxMetadataPartBytes = 32 }));
+                    new ExcelReaderOptions { MaxMetadataPartBytes = 32 }));
             Assert.Equal("excel", partError.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), partError.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxMetadataPartBytes), partError.LimitName);
             Assert.Equal(32, partError.Maximum);
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
             Assert.ThrowsAny<OperationCanceledException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+                    new ExcelReaderOptions { CancellationToken = cancellation.Token }));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -135,7 +135,7 @@ public sealed class TabularCommandTests {
 
             Assert.Equal(
                 new[] { "Encoded Target" },
-                ExcelDocument.GetSheetNames(workbookPath));
+                SheetNames(workbookPath));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -162,9 +162,9 @@ public sealed class TabularCommandTests {
 
             Assert.Equal(
                 new[] { "Inventory" },
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxMetadataPartBytes = MetadataLimit }));
+                    new ExcelReaderOptions { MaxMetadataPartBytes = MetadataLimit }));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -516,6 +516,11 @@ public sealed class TabularCommandTests {
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static IReadOnlyList<string> SheetNames(string path, ExcelReaderOptions? options = null) {
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
+        return reader.SheetNames;
     }
 
     private static string CreateTestDirectory() {

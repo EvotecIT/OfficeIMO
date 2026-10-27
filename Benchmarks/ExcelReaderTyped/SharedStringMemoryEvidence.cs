@@ -140,7 +140,7 @@ internal static class SharedStringMemoryEvidence {
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static (MemorySnapshot Header, MemorySnapshot Scan) ScanAndDispose(
         byte[] bytes, int rows, TextPolicy policy, Process process, long baseline) {
-        using var reader = ExcelDocument.OpenDataReader(bytes, new ExcelReadOptions { HasHeaderRow = false });
+        using var reader = ExcelDocument.OpenReader(bytes, new ExcelReaderOptions { HasHeaderRow = false });
         if (reader.SheetNames.Count != 1 || reader.CurrentSheetName != "S1"
             || reader.CurrentSheetIndex != 0 || reader.CurrentResultIndex != 0 || !reader.Read())
             throw new InvalidDataException("The SST memory fixture must have one S1 sheet and its header row.");

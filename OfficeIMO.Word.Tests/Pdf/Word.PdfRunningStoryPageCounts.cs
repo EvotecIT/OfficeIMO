@@ -37,7 +37,7 @@ public partial class Word {
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(boundary is "shared" or "empty-first" ? 2 : 3, pdf.NumberOfPages);
         Assert.Contains(boundary == "empty-first" ? "COUNT 1" : "COUNT 2", pdf.GetPage(1).Text);
         Assert.Contains("COUNT 2", pdf.GetPage(2).Text);
@@ -67,7 +67,7 @@ public partial class Word {
 
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("S1A", pdf.GetPage(1).Text);
         Assert.Contains("COUNT 1", pdf.GetPage(1).Text);

@@ -23,7 +23,7 @@ public sealed class MermaidMarkupRegressionTests {
     [InlineData("~~~~officeimo-slide\ntitle=\"Report\"\n\nIntro\n\n", "\n~~~~", 4)]
     public void MarkupTransformDiagnosticsRetainDocumentOrFragmentLocations(string prefix, string suffix, int line) {
         var errors = new List<MarkupDiagnostic>();
-        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform(errors.Add));
         OfficeMarkupParser.Parse(prefix + "```mermaid\nnot-a-diagram\n```" + suffix,
             new OfficeMarkupParserOptions { MarkdownOptions = reader });
@@ -77,7 +77,7 @@ public sealed class MermaidMarkupRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void IntentionallyEmptyColumnsDoNotRestoreAuthoredContent(bool removeInTransform) {
-        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
         if (removeInTransform) reader.DocumentTransforms.Add(new RemoveDiagramDocument());
         var parsed = OfficeMarkupParser.Parse("@slide title=\"Report\"\n\n::columns\n\n::left\n" + Fence
@@ -104,12 +104,12 @@ public sealed class MermaidMarkupRegressionTests {
     }
 
     private sealed class RemoveDiagramDocument : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) =>
-            document.DescendantObjectsOfType<ImageBlock>().Any() ? new MarkdownDoc() : document;
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) =>
+            document.DescendantObjectsOfType<ImageBlock>().Any() ? MarkdownDocument.Create() : document;
     }
 
     private static OfficeMarkupParseResult Parse(string source, OfficeMarkupProfile profile) {
-        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
         return OfficeMarkupParser.Parse(source, new OfficeMarkupParserOptions { Profile = profile, MarkdownOptions = reader });
     }

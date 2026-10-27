@@ -19,12 +19,12 @@ namespace OfficeIMO.GoogleWorkspace {
         public const string RequestTimedOut = "WORKSPACE.REQUEST.TIMED_OUT";
 
         /// <summary>Returns an explicit diagnostic code or derives a stable Workspace-prefixed code from a feature name.</summary>
-        /// <param name="code">Explicit code to normalize; takes precedence when nonempty.</param>
+        /// <param name="code">Explicit code to preserve; takes precedence when nonempty.</param>
         /// <param name="feature">Feature name used when <paramref name="code"/> is absent.</param>
-        /// <returns>An uppercase diagnostic code, or <c>WORKSPACE.GENERAL</c> when neither input is supplied.</returns>
+        /// <returns>The supplied code without surrounding whitespace, a derived uppercase Workspace code, or <c>WORKSPACE.GENERAL</c> when neither input is supplied.</returns>
         public static string Resolve(string? code, string? feature) {
             if (!string.IsNullOrWhiteSpace(code)) {
-                return code!.Trim().ToUpperInvariant();
+                return code!.Trim();
             }
 
             if (string.IsNullOrWhiteSpace(feature)) {

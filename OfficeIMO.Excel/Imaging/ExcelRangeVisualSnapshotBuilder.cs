@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
 
     internal static partial class ExcelRangeVisualSnapshotBuilder {
         private const int MaxSparklineDataCells = 100_000;
-        internal static ExcelRangeVisualSnapshot Build(
+        internal static ExcelRangeVisualInfo Build(
             ExcelSheet sheet,
             string range,
             ExcelImageExportOptions options,
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 throw new ArgumentException("Range must be a valid A1 range.", nameof(range));
             }
 
@@ -63,11 +63,11 @@ namespace OfficeIMO.Excel {
             var diagnostics = initialDiagnostics == null
                 ? new List<OfficeImageExportDiagnostic>()
                 : new List<OfficeImageExportDiagnostic>(initialDiagnostics);
-            Dictionary<int, ExcelRowSnapshot> rowDefinitions = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
+            Dictionary<int, ExcelRowInfo> rowDefinitions = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
             bool defaultRowsHidden = sheet.DefaultRowsHidden;
-            List<ExcelColumnSnapshot> columnDefinitions = sheet.GetColumnDefinitions().ToList();
+            List<ExcelColumnInfo> columnDefinitions = sheet.GetColumnDefinitions().ToList();
             ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart);
-            List<ExcelMergedRangeSnapshot> merges = sheet.GetMergedRanges()
+            List<ExcelMergedRangeInfo> merges = sheet.GetMergedRanges()
                 .Where(merge => Intersects(merge.StartRow, merge.StartColumn, merge.EndRow, merge.EndColumn, firstRow, firstColumn, lastRow, lastColumn))
                 .ToList();
             cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             double x = 0D;
             for (int column = firstColumn; column <= lastColumn; column++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ExcelColumnSnapshot? definition = columnDefinitions.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
+                ExcelColumnInfo? definition = columnDefinitions.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
                 if (definition?.Hidden == true && !options.IncludeHidden) {
                     continue;
                 }
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
             double y = 0D;
             for (int row = firstRow; row <= lastRow; row++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                rowDefinitions.TryGetValue(row, out ExcelRowSnapshot? definition);
+                rowDefinitions.TryGetValue(row, out ExcelRowInfo? definition);
                 if (IsHiddenRow(row, rowDefinitions, defaultRowsHidden) && !options.IncludeHidden) {
                     continue;
                 }
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
             var boundedMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
             long remainingVisibleMergeCellWork = options.MaximumRenderedCells;
             long remainingFullMergeCellWork = options.MaximumRenderedCells;
-            foreach (ExcelMergedRangeSnapshot merge in merges) {
+            foreach (ExcelMergedRangeInfo merge in merges) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int visibleStartRow = Math.Max(firstRow, merge.StartRow);
                 int visibleStartColumn = Math.Max(firstColumn, merge.StartColumn);
@@ -179,22 +179,22 @@ namespace OfficeIMO.Excel {
             }
 
             var cells = new List<ExcelVisualCell>();
-            Dictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap = rows.Count > 0 && columns.Count > 0
+            Dictionary<string, ExcelHyperlinkInfo> hyperlinkMap = rows.Count > 0 && columns.Count > 0
                 ? ExcelWorksheetHyperlinkResolver.BuildMap(
                     sheet.WorksheetPart,
                     rows.Min(row => row.Index),
                     columns.Min(column => column.Index),
                     rows.Max(row => row.Index),
                     columns.Max(column => column.Index))
-                : new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
+                : new Dictionary<string, ExcelHyperlinkInfo>(StringComparer.OrdinalIgnoreCase);
             foreach (ExcelVisualRow row in rows) {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (ExcelVisualColumn column in columns) {
                     string key = Key(row.Index, column.Index);
                     bool covered = coveredByMerge.Contains(key);
-                    ExcelHyperlinkSnapshot? hyperlink = null;
+                    ExcelHyperlinkInfo? hyperlink = null;
                     if (!covered) {
-                        hyperlinkMap.TryGetValue(A1.CellReference(row.Index, column.Index), out hyperlink);
+                        hyperlinkMap.TryGetValue(ExcelA1.CellReference(row.Index, column.Index), out hyperlink);
                     }
 
                     double width = column.Width;
@@ -204,8 +204,8 @@ namespace OfficeIMO.Excel {
                         height = mergeSize.Height;
                     }
 
-                    ExcelCellStyleSnapshot style = sheet.GetCellStyle(row.Index, column.Index);
-                    if (tableHeaderStyles.TryGetValue(A1.CellReference(row.Index, column.Index), out ExcelTableHeaderVisualStyle tableHeaderStyle)) {
+                    ExcelCellStyleInfo style = sheet.GetCellStyle(row.Index, column.Index);
+                    if (tableHeaderStyles.TryGetValue(ExcelA1.CellReference(row.Index, column.Index), out ExcelTableHeaderVisualStyle tableHeaderStyle)) {
                         style = ExcelTableHeaderVisualStyleResolver.Apply(style, tableHeaderStyle);
                     }
                     ExcelCellData valueData = covered
@@ -262,7 +262,7 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             List<ExcelVisualDrawingLayer> drawingLayers = BuildDrawingLayers(drawingObjects, images, charts, commentVisuals.Bodies);
 
-            return new ExcelRangeVisualSnapshot(
+            return new ExcelRangeVisualInfo(
                 sheet.Name,
                 range,
                 firstRow,
@@ -361,17 +361,17 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyList<ExcelMergedRangeSnapshot> merges,
+            IReadOnlyList<ExcelMergedRangeInfo> merges,
             ISet<string> boundedMergeGeometry,
             ISet<string> fullMergeGeometry,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
-            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap,
+            IReadOnlyDictionary<string, ExcelHyperlinkInfo> hyperlinkMap,
             List<ExcelVisualCell> cells) {
-            foreach (ExcelMergedRangeSnapshot merge in merges) {
+            foreach (ExcelMergedRangeInfo merge in merges) {
                 if (!boundedMergeGeometry.Contains(MergeGeometryKey(merge))) {
                     continue;
                 }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                ExcelCellStyleSnapshot style = sheet.GetCellStyle(merge.StartRow, merge.StartColumn);
+                ExcelCellStyleInfo style = sheet.GetCellStyle(merge.StartRow, merge.StartColumn);
                 ExcelCellData valueData = sheet.GetCellValueSnapshot(merge.StartRow, merge.StartColumn);
                 ApplyNumericFormatColor(style, valueData);
                 string rawText = sheet.TryGetCellText(merge.StartRow, merge.StartColumn, out string cellText)
@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel {
                 string text = string.IsNullOrEmpty(rawText)
                     ? string.Empty
                     : FormatCellDisplayText(rawText, valueKind, style, sheet.Document.DateSystem);
-                hyperlinkMap.TryGetValue(A1.CellReference(merge.StartRow, merge.StartColumn), out ExcelHyperlinkSnapshot? hyperlink);
+                hyperlinkMap.TryGetValue(ExcelA1.CellReference(merge.StartRow, merge.StartColumn), out ExcelHyperlinkInfo? hyperlink);
                 cells.Add(new ExcelVisualCell(
                     merge.StartRow,
                     merge.StartColumn,
@@ -460,9 +460,9 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             List<OfficeImageExportDiagnostic> diagnostics) {
@@ -522,9 +522,9 @@ namespace OfficeIMO.Excel {
             return drawingObjects;
         }
 
-        private static ExcelCellStyleSnapshot CloneStyleWithConditionalFormat(ExcelCellStyleSnapshot style, ExcelConditionalCellFormat format) {
+        private static ExcelCellStyleInfo CloneStyleWithConditionalFormat(ExcelCellStyleInfo style, ExcelConditionalCellFormat format) {
             string? fillColorArgb = string.IsNullOrWhiteSpace(format.FillColorArgb) ? null : format.FillColorArgb;
-            return new ExcelCellStyleSnapshot {
+            return new ExcelCellStyleInfo {
                 StyleIndex = style.StyleIndex,
                 NumberFormatId = style.NumberFormatId,
                 NumberFormatCode = style.NumberFormatCode,
@@ -549,7 +549,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = fillColorArgb == null && style.FillGradientUnsupported,
                 FillGradientStartColorArgb = fillColorArgb == null ? style.FillGradientStartColorArgb : null,
                 FillGradientEndColorArgb = fillColorArgb == null ? style.FillGradientEndColorArgb : null,
-                FillGradientStops = fillColorArgb == null ? style.FillGradientStops : Array.Empty<ExcelGradientFillStopSnapshot>(),
+                FillGradientStops = fillColorArgb == null ? style.FillGradientStops : Array.Empty<ExcelGradientFillStopInspectionInfo>(),
                 FillGradientDegree = fillColorArgb == null ? style.FillGradientDegree : null,
                 Border = MergeConditionalBorder(style.Border, format.Border),
                 HorizontalAlignment = style.HorizontalAlignment,
@@ -560,7 +560,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExcelCellBorderSnapshot? MergeConditionalBorder(ExcelCellBorderSnapshot? styleBorder, ExcelCellBorderSnapshot? conditionalBorder) {
+        private static ExcelCellBorderInfo? MergeConditionalBorder(ExcelCellBorderInfo? styleBorder, ExcelCellBorderInfo? conditionalBorder) {
             if (conditionalBorder == null) {
                 return styleBorder;
             }
@@ -569,7 +569,7 @@ namespace OfficeIMO.Excel {
                 return conditionalBorder;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = conditionalBorder.Left ?? styleBorder.Left,
                 Right = conditionalBorder.Right ?? styleBorder.Right,
                 Top = conditionalBorder.Top ?? styleBorder.Top,
@@ -588,9 +588,9 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             List<OfficeImageExportDiagnostic> diagnostics) {
@@ -761,9 +761,9 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             List<OfficeImageExportDiagnostic> diagnostics) {
@@ -778,7 +778,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelChart chart in worksheetCharts) {
-                if (!chart.TryGetSnapshot(geometry, out ExcelChartSnapshot chartSnapshot)) {
+                if (!chart.TryGetSnapshot(geometry, out ExcelChartInfo chartSnapshot)) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ChartSnapshotUnavailable, "Worksheet chart data could not be converted to a renderable snapshot.", sheet.Name + "!" + chart.Name));
                     continue;
                 }
@@ -901,8 +901,8 @@ namespace OfficeIMO.Excel {
             List<OfficeImageExportDiagnostic> diagnostics) {
             var indicators = new Dictionary<string, ExcelVisualCommentIndicator>(StringComparer.OrdinalIgnoreCase);
             var bodies = new List<ExcelVisualCommentBody>();
-            Dictionary<string, ExcelCommentSnapshot> comments = ExcelWorksheetCommentResolver.BuildLegacyCommentMap(sheet.WorksheetPart);
-            foreach (KeyValuePair<string, ExcelCommentSnapshot> pair in comments.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)) {
+            Dictionary<string, ExcelCommentInspectionInfo> comments = ExcelWorksheetCommentResolver.BuildLegacyCommentMap(sheet.WorksheetPart);
+            foreach (KeyValuePair<string, ExcelCommentInspectionInfo> pair in comments.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)) {
                 string reference = pair.Key;
                 if (!TryResolveVisibleExportCell(reference, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, out string sourceCell)) {
                     continue;
@@ -941,8 +941,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, string> people = workbookPart == null
                 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 : ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
-            Dictionary<string, List<ExcelThreadedCommentSnapshot>> threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(sheet.WorksheetPart, people);
-            foreach (KeyValuePair<string, List<ExcelThreadedCommentSnapshot>> pair in threadedComments.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)) {
+            Dictionary<string, List<ExcelThreadedCommentInfo>> threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(sheet.WorksheetPart, people);
+            foreach (KeyValuePair<string, List<ExcelThreadedCommentInfo>> pair in threadedComments.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)) {
                 if (!TryResolveVisibleExportCell(pair.Key, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, out string sourceCell)) {
                     continue;
                 }
@@ -998,7 +998,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             out ExcelVisualCommentIndicator indicator) {
             indicator = null!;
-            if (!A1.TryParseCellReferenceFast(sourceCell, out int row, out int column) ||
+            if (!ExcelA1.TryParseCellReferenceFast(sourceCell, out int row, out int column) ||
                 !columnsByIndex.TryGetValue(column, out ExcelVisualColumn? visualColumn) ||
                 !rowsByIndex.TryGetValue(row, out ExcelVisualRow? visualRow)) {
                 return false;
@@ -1136,17 +1136,17 @@ namespace OfficeIMO.Excel {
             return Math.Min(150D, Math.Max(58D, 18D + (lines * 13D)));
         }
 
-        private static string ResolveThreadedCommentTitle(IReadOnlyList<ExcelThreadedCommentSnapshot> comments) {
+        private static string ResolveThreadedCommentTitle(IReadOnlyList<ExcelThreadedCommentInfo> comments) {
             string? author = comments.Select(comment => comment.Author).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
             return string.IsNullOrWhiteSpace(author)
                 ? comments.Count == 1 ? "Threaded comment" : "Threaded comments"
                 : author!;
         }
 
-        private static string FormatThreadedCommentBody(IReadOnlyList<ExcelThreadedCommentSnapshot> comments) {
+        private static string FormatThreadedCommentBody(IReadOnlyList<ExcelThreadedCommentInfo> comments) {
             var builder = new System.Text.StringBuilder();
             for (int i = 0; i < comments.Count; i++) {
-                ExcelThreadedCommentSnapshot comment = comments[i];
+                ExcelThreadedCommentInfo comment = comments[i];
                 if (i > 0) {
                     builder.Append('\n');
                 }
@@ -1206,7 +1206,7 @@ namespace OfficeIMO.Excel {
             foreach (ResolvedSparkline resolvedSparkline in resolvedSparklines) {
                 ExcelWorksheetSparklineInfo sparkline = resolvedSparkline.Info;
                 if (!TryResolveVisibleExportCell(sparkline.CellReference, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, out string sourceCell)
-                    || !A1.TryParseCellReferenceFast(sourceCell, out int row, out int column)
+                    || !ExcelA1.TryParseCellReferenceFast(sourceCell, out int row, out int column)
                     || !rowsByIndex.TryGetValue(row, out ExcelVisualRow? visualRow)
                     || !columnsByIndex.TryGetValue(column, out ExcelVisualColumn? visualColumn)) {
                     continue;
@@ -1406,12 +1406,12 @@ namespace OfficeIMO.Excel {
             }
 
             value = value.Replace("$", string.Empty);
-            if (A1.TryParseRange(value, out _, out _, out _, out _)) {
+            if (ExcelA1.TryParseRange(value, out _, out _, out _, out _)) {
                 dataRange = value;
                 return true;
             }
 
-            if (A1.TryParseCellReferenceFast(value, out _, out _)) {
+            if (ExcelA1.TryParseCellReferenceFast(value, out _, out _)) {
                 dataRange = value;
                 return true;
             }
@@ -1437,8 +1437,8 @@ namespace OfficeIMO.Excel {
             int firstColumn;
             int lastRow;
             int lastColumn;
-            if (!A1.TryParseRange(dataRange, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
-                if (!A1.TryParseCellReferenceFast(dataRange, out firstRow, out firstColumn)) {
+            if (!ExcelA1.TryParseRange(dataRange, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+                if (!ExcelA1.TryParseCellReferenceFast(dataRange, out firstRow, out firstColumn)) {
                     values = Array.Empty<double>();
                     return false;
                 }
@@ -1526,7 +1526,7 @@ namespace OfficeIMO.Excel {
             out string cellReference) {
             cellReference = string.Empty;
             string normalized = reference.Trim().Replace("$", string.Empty);
-            (int row, int column) = A1.ParseCellRef(normalized);
+            (int row, int column) = ExcelA1.ParseCellRef(normalized);
             if (row < firstRow || row > lastRow || column < firstColumn || column > lastColumn) {
                 return false;
             }
@@ -1535,11 +1535,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            cellReference = A1.CellReference(row, column);
+            cellReference = ExcelA1.CellReference(row, column);
             return true;
         }
 
-        private static string FormatCellDisplayText(string text, ExcelVisualCellValueKind valueKind, ExcelCellStyleSnapshot style, ExcelDateSystem dateSystem) {
+        private static string FormatCellDisplayText(string text, ExcelVisualCellValueKind valueKind, ExcelCellStyleInfo style, ExcelDateSystem dateSystem) {
             if ((valueKind != ExcelVisualCellValueKind.Number && valueKind != ExcelVisualCellValueKind.Date)
                 || string.IsNullOrEmpty(text) || style.NumberFormatId == 0U) {
                 return text;
@@ -1550,7 +1550,7 @@ namespace OfficeIMO.Excel {
                 : text;
         }
 
-        private static ExcelVisualCellValueKind ResolveVisualCellValueKind(ExcelCellData data, ExcelCellStyleSnapshot style) {
+        private static ExcelVisualCellValueKind ResolveVisualCellValueKind(ExcelCellData data, ExcelCellStyleInfo style) {
             switch (data.Kind) {
                 case ExcelCellDataKind.Blank:
                     return ExcelVisualCellValueKind.Blank;
@@ -1571,7 +1571,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryResolveFormulaVisualValueKind(ExcelCellData data, ExcelCellStyleSnapshot style, out ExcelVisualCellValueKind valueKind) {
+        private static bool TryResolveFormulaVisualValueKind(ExcelCellData data, ExcelCellStyleInfo style, out ExcelVisualCellValueKind valueKind) {
             if (data.Value is double) {
                 valueKind = IsDateLikeNumericCell(style) ? ExcelVisualCellValueKind.Date : ExcelVisualCellValueKind.Number;
                 return true;
@@ -1581,7 +1581,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsDateLikeNumericCell(ExcelCellStyleSnapshot style) =>
+        private static bool IsDateLikeNumericCell(ExcelCellStyleInfo style) =>
             style.IsDateLike || ExcelNumberFormatDisplay.IsDateNumberFormat(style.NumberFormatId, style.NumberFormatCode);
 
         private static string GetImageDiagnosticSource(ExcelSheet sheet, ExcelImage image) {
@@ -1600,7 +1600,7 @@ namespace OfficeIMO.Excel {
 
         private static string Key(int row, int column) => row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + column.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        private static string MergeGeometryKey(ExcelMergedRangeSnapshot merge) =>
+        private static string MergeGeometryKey(ExcelMergedRangeInfo merge) =>
             Key(merge.StartRow, merge.StartColumn) + ":" + Key(merge.EndRow, merge.EndColumn);
     }
 }

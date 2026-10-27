@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Fonts.Faces, face => face.FamilyName == installedFamily);
         Assert.DoesNotContain(result.RenderResult.Diagnostics, diagnostic =>
             diagnostic.Code == "InstalledFontResolved" && diagnostic.Source == installedFamily);
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText();
         Assert.Contains("PARENT", text, StringComparison.Ordinal);
         Assert.Contains("CHILD", text, StringComparison.Ordinal);
         Assert.Equal("Policy Default", Assert.Single(options.Fonts.Faces).FamilyName);
@@ -64,7 +64,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(result.RenderResult!.Document.Fonts.TryResolveFaceForText("x", "math", OfficeFontStyle.Regular, out _));
         Assert.DoesNotContain(result.RenderResult.Diagnostics, item => item.Code == "InstalledFontResolved");
-        Assert.Equal("x", OfficeIMO.Pdf.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
+        Assert.Equal("x", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText().Trim());
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Empty(result.RenderResult!.Document.Fonts.Faces);
         Assert.Contains(result.RenderResult.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
-        Assert.Equal("x", OfficeIMO.Pdf.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
+        Assert.Equal("x", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText().Trim());
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed partial class HtmlRenderingTests {
             HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>" + image + image), options);
         Assert.Single(result.RenderResult!.Diagnostics, item => item.Code == "InstalledFontResolved");
         Assert.Contains(result.RenderResult.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText();
         Assert.Contains("PARENT", text, StringComparison.Ordinal);
         Assert.Equal(2, text.Split(new[] { "NESTED" }, StringSplitOptions.None).Length - 1);
     }

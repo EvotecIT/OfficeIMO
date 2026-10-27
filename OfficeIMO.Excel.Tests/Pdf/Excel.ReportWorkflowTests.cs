@@ -15,7 +15,7 @@ public partial class Excel {
 
         try {
             byte[] pdfBytes;
-            using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
                 ExcelSheet sheet = document.Sheets[0];
                 sheet.Cell(1, 1, "{{ReportTitle}}");
                 sheet.Cell(2, 1, "Region");
@@ -60,12 +60,12 @@ public partial class Excel {
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
 
                 document.Save();
-                pdfBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+                pdfBytes = document.ToPdf(new ExcelPdfExportOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,
-                    PageSize = new PdfCore.PageSize(560, 520),
-                    Margins = PdfCore.PageMargins.Uniform(24)
-                });
+                    PageSize = new PdfCore.PdfPageSize(560, 520),
+                    Margins = PdfCore.PdfPageMargins.Uniform(24)
+                }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, false)) {

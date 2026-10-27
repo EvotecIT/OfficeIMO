@@ -19,7 +19,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorkbook.xlsx");
         string pdfPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorkbook.pdf");
 
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Sales")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Sales" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Product");
             sheet.Cell(1, 2, "Amount");
@@ -46,7 +46,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipEmptyWorksheets.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
             delivery.Cell(1, 1, "Workstream");
             delivery.Cell(1, 2, "Status");
@@ -57,7 +57,7 @@ public partial class Excel {
             document.AddWorksheet("Empty two");
             document.Save();
 
-            bytes = document.ToPdfBytes();
+            bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -71,7 +71,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipTableOutsidePrintArea.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
             delivery.Cell(1, 1, "Workstream");
             delivery.Cell(2, 1, "PDF workbench");
@@ -85,7 +85,7 @@ public partial class Excel {
             document.SetPrintArea(excluded, "A1:B2", save: false);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions { UseWorksheetPrintAreas = true });
+            bytes = document.ToPdf(new ExcelPdfExportOptions { UseWorksheetPrintAreas = true }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -99,7 +99,7 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_SkipsExplicitEmptyDefaultStyleCell() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipExplicitEmptyCell.xlsx");
 
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
             delivery.Cell(1, 1, "PDF workbench");
             document.AddWorksheet("Empty cell");
@@ -117,7 +117,7 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            bytes = document.ToPdfBytes();
+            bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -131,16 +131,16 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfExplicitSerif.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Serif")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Serif" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Title");
             sheet.Cell(2, 1, "Explicit serif default");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 FontFamily = "serif",
                 IncludeSheetHeadings = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -164,7 +164,7 @@ public partial class Excel {
         };
 
         PdfCore.PdfDocument pdfDocument;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Styled")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Product");
             sheet.Cell(1, 2, "Amount");
@@ -172,11 +172,11 @@ public partial class Excel {
             sheet.Cell(2, 2, 1250.5);
             document.Save();
 
-            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
+            pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-                PdfOptions = new PdfCore.PdfOptions {
+                PdfOptions = new PdfCore.PdfCreateOptions {
                     DefaultTableStyle = configuredStyle
                 }
             });
@@ -209,17 +209,17 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfUnrelatedPdfOptions.xlsx");
 
         PdfCore.PdfDocument pdfDocument;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Styled")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Product");
             sheet.Cell(2, 1, "Licenses");
             document.Save();
 
-            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
+            pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-                PdfOptions = new PdfCore.PdfOptions {
+                PdfOptions = new PdfCore.PdfCreateOptions {
                     DefaultFontSize = 9D
                 }
             });
@@ -250,9 +250,9 @@ public partial class Excel {
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 SheetNames = new[] { "summary" }
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -279,16 +279,16 @@ public partial class Excel {
             Assert.True(hidden.Hidden);
             document.Save();
 
-            visibleBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            visibleBytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
-            explicitHiddenBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            explicitHiddenBytes = document.ToPdf(new ExcelPdfExportOptions {
                 SheetNames = new[] { "Hidden" },
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument visiblePdf = PdfPigDocument.Open(new MemoryStream(visibleBytes));

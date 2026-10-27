@@ -47,7 +47,7 @@ public sealed class WordChartCacheBoundsTests {
             new[] { new OfficeChartSeries("Status", new[] { 1d, 2d, 3d }) }));
         C.NumberingCache cache = chart.ChartPart!.ChartSpace!.Descendants<C.NumberingCache>().Single();
         cache.Elements<C.NumericPoint>().ElementAt(1).Remove();
-        Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
         Assert.Equal(new[] { 1d, 0d, 3d }, snapshot.Data.Series.Single().Values);
     }
 }
