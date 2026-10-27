@@ -193,11 +193,45 @@ namespace OfficeIMO.Word {
             if (justification == null) {
                 justification = new LevelJustification { Val = LevelJustificationValues.Left };
                 _level.AddChild(justification, true);
-            } else if (justification.Val == null || !justification.Val.HasValue) {
+            } else if (justification.Val == null || ReadLevelJustification(justification) == null) {
                 justification.Val = LevelJustificationValues.Left;
             }
 
             return justification;
+        }
+
+        /// <summary>
+        /// Reads a list level justification, accepting every ST_Jc token Word and other
+        /// producers write. The logical <c>start</c>/<c>end</c> values (written by
+        /// LibreOffice and strict producers) map to left/right for left-to-right lists;
+        /// paragraph-only values such as <c>both</c> fall back to left, as Word does.
+        /// </summary>
+        internal static LevelJustificationValues? ReadLevelJustification(LevelJustification? element) {
+            string? token = element?.Val?.InnerText;
+            if (string.IsNullOrWhiteSpace(token)) {
+                return null;
+            }
+
+            switch (token!.Trim()) {
+                case "left":
+                case "start":
+                    return LevelJustificationValues.Left;
+                case "right":
+                case "end":
+                    return LevelJustificationValues.Right;
+                case "center":
+                    return LevelJustificationValues.Center;
+                case "both":
+                case "distribute":
+                case "mediumKashida":
+                case "highKashida":
+                case "lowKashida":
+                case "thaiDistribute":
+                case "numTab":
+                    return LevelJustificationValues.Left;
+                default:
+                    return null;
+            }
         }
 
         private LevelSuffix GetLevelSuffixElement() {
@@ -310,7 +344,7 @@ namespace OfficeIMO.Word {
         public WordListLevelAlignment LevelJustification {
             get {
                 var element = GetLevelJustificationElement();
-                return (element.Val?.Value ?? LevelJustificationValues.Left).ToOfficeEnum();
+                return (ReadLevelJustification(element) ?? LevelJustificationValues.Left).ToOfficeEnum();
             }
             set {
                 var element = GetLevelJustificationElement();
