@@ -17,6 +17,15 @@ OfficeIMO 3.6 and PSWriteOffice 3.6 adopt one public API across C# and PowerShel
 - [ ] M4 Cross-format commands: `Convert`, `Read`, `Search`, `Get-…Info`, `Export-…Image`, `Test`/`Repair`, `Protect`/`Unprotect`, `Compare`/`Merge`/`Split`, and the PDF transform commands. Depends on M2 and M3.
 - [ ] M5 Format commands: consolidation and the shared DSL for Excel, Word, PDF, PowerPoint and Markdown, then Tier 2; invoice removal. Depends on M2 and M3.
 - [ ] M6 Visual quality: built-in themes, PowerPoint layouts with automatic selection and overflow handling, `Export-OfficePowerPoint` from data, Markdown outlines to decks, Word, Excel and PDF defaults, chart styling and visual acceptance. Depends on M1, then runs alongside M5.
+  - Fonts and themes: the theme model carries every value in `Build/Visual/themes.json`; fonts resolve through the theme fallback lists (Carlito for Calibri, Aptos to Carlito) and are embedded by default in every PDF route.
+  - Charts: one renderer with readable axis scales, per-point colours, rotated axis titles, label collision handling and trendlines; valid chart parts in Word and PowerPoint.
+  - Word: page numbers in content controls, tracked changes, symbol-font bullets, narrow tables, equations, floating shapes and TOC page numbers in PDF export; theme-based heading, table and column-width defaults.
+  - Excel: text overflow, merged ranges, automatic row heights, uncached formulas, custom number formats, header images and one scaling policy in PDF export; totals rows and print defaults.
+  - PDF writer: theme fonts and styles, table spacing and column fitting, form layout, page numbering, lists and panels; readable invoice output; Markdown to PDF lists, tables, code and pagination.
+  - HTML and Markdown: MathML diagnostics, monospace defaults, code blocks, task lists, local images, conic gradients and small caps in the HTML engine; Markdown to Word code, links, images and headings; Word to HTML code, TOC and column widths.
+  - PDF to Office: multi-column reading order, table detection, table styling, image placement, numeric cultures, fonts and form fields; Word, PowerPoint and Markdown round trips.
+  - PowerPoint: the layout system in `Build/Visual/powerpoint-layouts.json` replacing today's designer composition, with a text-style chain, placeholders, table fitting and balanced continuations.
+  - Every route reports what it drops; no supported input crashes a conversion.
 - [ ] M7 Scale: streaming export, parallel and resumable batches, measured runs. Depends on M4.
 - [ ] M8 Documentation: root and package READMEs with a quick start on the first screen, getting-started guides, help with executed examples, `about_` topics, the 3.6 migration section generated from the map, and the website. Depends on M5.
 - [ ] M9 Console experience: optional ConsoleMonster integration. Depends on M5.
