@@ -750,6 +750,15 @@
       "files": [
         "Build/ApiMap/New-PublicApiBaseline.ps1"
       ]
+    },
+    {
+      "change": "Maintained Windows and non-Windows package locks include the public API analyzer.",
+      "reason": "Refreshes the existing release restore graphs for the private build dependency, preserving their runtime identifiers, framework sets and platform-selection mechanism.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/packages.lock.json",
+        "OfficeIMO.Core/packages.nonwindows.lock.json"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

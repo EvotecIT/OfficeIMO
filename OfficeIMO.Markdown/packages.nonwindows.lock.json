@@ -2,6 +2,12 @@
   "version": 1,
   "dependencies": {
     ".NETStandard,Version=v2.0": {
+      "Microsoft.CodeAnalysis.PublicApiAnalyzers": {
+        "type": "Direct",
+        "requested": "[5.0.0, )",
+        "resolved": "5.0.0",
+        "contentHash": "Z6O53WR8EtZDZ9WNMULXI41hhJiBc88z8w/SY/UmcNrVwcsj1kBWwm6z47N+wQ3TM5DC8CyhHpLQHXfscpsegQ=="
+      },
       "NETStandard.Library": {
         "type": "Direct",
         "requested": "[2.0.3, )",
@@ -27,6 +33,12 @@
     ".NETStandard,Version=v2.0/win-arm64": {},
     ".NETStandard,Version=v2.0/win-x64": {},
     "net10.0": {
+      "Microsoft.CodeAnalysis.PublicApiAnalyzers": {
+        "type": "Direct",
+        "requested": "[5.0.0, )",
+        "resolved": "5.0.0",
+        "contentHash": "Z6O53WR8EtZDZ9WNMULXI41hhJiBc88z8w/SY/UmcNrVwcsj1kBWwm6z47N+wQ3TM5DC8CyhHpLQHXfscpsegQ=="
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
         "requested": "[10.0.13, )",
@@ -44,6 +56,12 @@
     "net10.0/win-arm64": {},
     "net10.0/win-x64": {},
     "net8.0": {
+      "Microsoft.CodeAnalysis.PublicApiAnalyzers": {
+        "type": "Direct",
+        "requested": "[5.0.0, )",
+        "resolved": "5.0.0",
+        "contentHash": "Z6O53WR8EtZDZ9WNMULXI41hhJiBc88z8w/SY/UmcNrVwcsj1kBWwm6z47N+wQ3TM5DC8CyhHpLQHXfscpsegQ=="
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
         "requested": "[8.0.32, )",

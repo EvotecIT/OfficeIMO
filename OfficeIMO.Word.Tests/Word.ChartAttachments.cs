@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -11,6 +12,23 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartAttachmentTests {
+    [Fact]
+    public void AddedLineSnapshotRetainsItsExistingSecondaryAxis() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart("Secondary series");
+        chart.SetData(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Primary", new[] { 100d, 200d }),
+                new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            }));
+        chart.AddChartAxisX(new() { "A", "B" });
+        var added = chart.AddLine("Added", new System.Collections.Generic.List<int> { 3, 4 }, OfficeColor.Blue);
+        Assert.Equal(OfficeChartAxisGroup.Secondary, added.ToOfficeSeries().AxisGroup);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(added.ToOfficeSeries().AxisGroup, Assert.Single(snapshot.Data.Series, series => series.Name == "Added").AxisGroup);
+    }
+
     [Theory]
     [InlineData("bar")]
     [InlineData("bar-array")]

@@ -6401,6 +6401,24 @@
         "net10.0"
       ],
       "runtimeIdentifier": "osx-arm64"
+    },
+    {
+      "change": "Maintained Windows and non-Windows package locks include the public API analyzer.",
+      "reason": "Refreshes the existing release restore graphs for the private build dependency, preserving their runtime identifiers, framework sets and platform-selection mechanism. Windows locks also remove the stale direct PDF-project dependency from the applied package split.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/packages.lock.json",
+        "OfficeIMO.Word/packages.nonwindows.lock.json"
+      ]
+    },
+    {
+      "change": "Returned Word chart series preserve their native primary or secondary axis assignment.",
+      "reason": "Attached-series inspection classifies the containing native plot through the existing shared axis classifier rather than assuming the primary axis. The supported column/secondary-line combination is covered by a native chart projection regression.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordChart.Attachments.cs",
+        "OfficeIMO.Word.Tests/Word.ChartAttachments.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
