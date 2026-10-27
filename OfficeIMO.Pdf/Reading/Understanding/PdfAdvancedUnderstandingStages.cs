@@ -393,9 +393,133 @@ public static partial class PdfAdvancedUnderstandingStages {
                         int baseline = right.BaselineY.CompareTo(left.BaselineY);
                         return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
                     });
-                AddStructuralSubregions(context, ordered, pageMedianFontSize, regions);
+                foreach (PdfUnderstandingLine[] column in SplitSideBySideColumns(context, ordered, depth: 0)) {
+                    AddStructuralSubregions(context, column, pageMedianFontSize, regions);
+                }
             }
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Splits a connected component at a vertical gutter when it holds side-by-side text columns. Lines from
+        /// neighbouring columns share baselines and can connect through a spanning title, so ordering the component by
+        /// baseline alone would interleave the columns. Lines that cross the gutter stay as their own bands.
+        /// </summary>
+        private static IEnumerable<PdfUnderstandingLine[]> SplitSideBySideColumns(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingLine[] component,
+            int depth) {
+            const int MinimumColumnLines = 3;
+            const double GutterTolerance = 1.5D;
+            if (depth >= 8 || component.Length < MinimumColumnLines * 2 ||
+                component.Any(static line => line.SourceKind == PdfLogicalContentSourceKind.Ocr && line.SourceSequence.HasValue)) {
+                yield return component;
+                yield break;
+            }
+            double left = component.Min(static line => line.XStart);
+            double right = component.Max(static line => line.XEnd);
+            double width = right - left;
+            double[] fontSizes = component.Select(static line => Math.Max(1D, line.FontSize)).OrderBy(static size => size).ToArray();
+            double medianFont = fontSizes[fontSizes.Length / 2];
+            double minimumGutter = Math.Max(6D, medianFont * 0.8D);
+            if (width <= minimumGutter * 4D) {
+                yield return component;
+                yield break;
+            }
+            // Find the widest vertical strip crossed by only a few lines. Titles, bylines and the odd merged line may
+            // cross a real gutter; they become spanning bands below.
+            int bins = (int)Math.Ceiling(width) + 1;
+            if (bins > 20_000) {
+                yield return component;
+                yield break;
+            }
+            context.ConsumeWork(component.Length + bins);
+            var coverage = new int[bins];
+            for (int index = 0; index < component.Length; index++) {
+                int start = Math.Max(0, (int)Math.Floor(component[index].XStart - left));
+                int end = Math.Min(bins - 1, (int)Math.Ceiling(component[index].XEnd - left));
+                for (int bin = start; bin <= end; bin++) coverage[bin]++;
+            }
+            int allowance = Math.Max(1, component.Length / 10);
+            int bestStart = -1, bestLength = 0, runStart = -1;
+            for (int bin = 0; bin <= bins; bin++) {
+                bool open = bin < bins && coverage[bin] <= allowance;
+                if (open) {
+                    if (runStart < 0) runStart = bin;
+                    continue;
+                }
+                if (runStart >= 0 && runStart > 0 && bin < bins && bin - runStart > bestLength) {
+                    bestStart = runStart;
+                    bestLength = bin - runStart;
+                }
+                runStart = -1;
+            }
+            if (bestStart < 0 || bestLength < minimumGutter) {
+                yield return component;
+                yield break;
+            }
+            double gutterStart = left + bestStart;
+            double gutterEnd = left + bestStart + bestLength;
+            var leftLines = new List<PdfUnderstandingLine>();
+            var rightLines = new List<PdfUnderstandingLine>();
+            for (int index = 0; index < component.Length; index++) {
+                PdfUnderstandingLine line = component[index];
+                if (line.XEnd <= gutterStart + GutterTolerance) leftLines.Add(line);
+                else if (line.XStart >= gutterEnd - GutterTolerance) rightLines.Add(line);
+            }
+            if (!IsTextColumn(leftLines, width, medianFont) || !IsTextColumn(rightLines, width, medianFont) ||
+                !ShareVerticalExtent(leftLines, rightLines, medianFont)) {
+                yield return component;
+                yield break;
+            }
+            // Emit bands top to bottom: a spanning line closes the current column band.
+            var currentLeft = new List<PdfUnderstandingLine>();
+            var currentRight = new List<PdfUnderstandingLine>();
+            for (int index = 0; index < component.Length; index++) {
+                PdfUnderstandingLine line = component[index];
+                if (line.XEnd <= gutterStart + GutterTolerance) { currentLeft.Add(line); continue; }
+                if (line.XStart >= gutterEnd - GutterTolerance) { currentRight.Add(line); continue; }
+                // A baseline shared by both columns can join their words into one line; split it at the gutter.
+                PdfUnderstandingWord[] leftWords = line.Words.Where(word => word.XEnd <= gutterStart + GutterTolerance).ToArray();
+                PdfUnderstandingWord[] rightWords = line.Words.Where(word => word.XStart >= gutterEnd - GutterTolerance).ToArray();
+                if (leftWords.Length > 0 && rightWords.Length > 0 && leftWords.Length + rightWords.Length == line.Words.Count) {
+                    currentLeft.Add(CreateLineSubset(context, line, leftWords));
+                    currentRight.Add(CreateLineSubset(context, line, rightWords));
+                    continue;
+                }
+                foreach (PdfUnderstandingLine[] band in FlushColumns()) yield return band;
+                yield return new[] { line };
+            }
+            foreach (PdfUnderstandingLine[] band in FlushColumns()) yield return band;
+
+            IEnumerable<PdfUnderstandingLine[]> FlushColumns() {
+                var bands = new List<PdfUnderstandingLine[]>();
+                if (currentLeft.Count > 0) bands.AddRange(SplitSideBySideColumns(context, currentLeft.ToArray(), depth + 1));
+                if (currentRight.Count > 0) bands.AddRange(SplitSideBySideColumns(context, currentRight.ToArray(), depth + 1));
+                currentLeft = new List<PdfUnderstandingLine>();
+                currentRight = new List<PdfUnderstandingLine>();
+                return bands;
+            }
+        }
+
+        private static bool IsTextColumn(List<PdfUnderstandingLine> lines, double componentWidth, double medianFont) {
+            if (lines.Count < 3) return false;
+            double[] widths = lines.Select(static line => line.XEnd - line.XStart).OrderBy(static value => value).ToArray();
+            double medianWidth = widths[widths.Length / 2];
+            // Short label/value pairs are not prose columns; require lines several words wide.
+            return medianWidth >= Math.Max(medianFont * 8D, componentWidth * 0.2D);
+        }
+
+        private static bool ShareVerticalExtent(
+            List<PdfUnderstandingLine> left,
+            List<PdfUnderstandingLine> right,
+            double medianFont) {
+            double leftTop = left.Max(static line => line.BaselineY);
+            double leftBottom = left.Min(static line => line.BaselineY);
+            double rightTop = right.Max(static line => line.BaselineY);
+            double rightBottom = right.Min(static line => line.BaselineY);
+            double overlap = Math.Min(leftTop, rightTop) - Math.Max(leftBottom, rightBottom);
+            return overlap >= medianFont * 2D;
         }
 
         private static double GetLowerMedianFontSize(IEnumerable<PdfUnderstandingLine> lines) {
@@ -679,10 +803,25 @@ public static partial class PdfAdvancedUnderstandingStages {
             if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
             if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic-list-marker", "The region begins with a bullet or numbered marker.");
+            // Figures such as KPI values, totals and page numbers are often set large, but text without any letters
+            // cannot introduce a section.
+            if (!HasLetter(text)) return (PdfUnderstandingSemanticKind.Paragraph, 0.7D, "semantic.non-textual-prominent-value", "Large or prominent text without letters is a value, not a heading.");
             if (IsLocalTypographicLead(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             if (IsCenteredSpanningBand(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-spanning-band", "A compact centered line forms a band above or below two separated content columns.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
+        }
+
+        /// <summary>
+        /// True when the text reads as words rather than a value: "1.8 h", "94.2%" or "Q3" are figures with a unit.
+        /// </summary>
+        internal static bool HasLetter(string text) {
+            int letters = 0, digits = 0;
+            for (int index = 0; index < text.Length; index++) {
+                if (char.IsLetter(text[index])) letters++;
+                else if (char.IsDigit(text[index])) digits++;
+            }
+            return letters >= 3 || letters > 0 && letters > digits * 2;
         }
 
         private static bool IsAdjacentTableCaption(
