@@ -25,6 +25,22 @@ public partial class MarkdownDocument {
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    // A file opened in a browser needs a doctype, charset and the stylesheet; a bare fragment renders unstyled.
+    private MarkdownHtmlExportOptions CreateFileDocumentOptions() => new MarkdownHtmlExportOptions {
+        Kind = MarkdownHtmlKind.Document,
+        Title = ResolveDefaultHtmlTitle()
+    };
+
+    private string ResolveDefaultHtmlTitle() {
+        foreach (IMarkdownBlock block in Blocks) {
+            if (block is HeadingBlock heading && heading.Level == 1 && !string.IsNullOrWhiteSpace(heading.Text)) {
+                return heading.Text.Trim();
+            }
+        }
+
+        return string.IsNullOrEmpty(FilePath) ? "Document" : Path.GetFileNameWithoutExtension(FilePath);
+    }
+
     private string RenderHtmlConversion(MarkdownHtmlExportOptions operation, out OfficeConversionReport report) {
         var timer = Stopwatch.StartNew();
         var diagnostics = new List<OfficeDiagnostic>();
@@ -39,10 +55,11 @@ public partial class MarkdownDocument {
     }
 
     /// <summary>Writes HTML to a file, including an external CSS sidecar when requested.</summary>
+    /// <remarks>Without options the file is a complete, styled HTML document; pass options to write a fragment.</remarks>
     public OfficeConversionReport SaveAsHtml(string path, MarkdownHtmlExportOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         var timer = Stopwatch.StartNew();
-        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender();
+        MarkdownHtmlExportOptions operation = (options ?? CreateFileDocumentOptions()).CloneForRender();
         if (operation.CssDelivery == MarkdownCssDelivery.ExternalFile) operation.ExternalCssOutputPath = Path.ChangeExtension(path, ".css");
         string html = RenderHtmlConversion(operation, out OfficeConversionReport report);
         global::OfficeIMO.Core.Internal.OfficeConversionFailures.Run(report, () => OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(html)));
@@ -60,9 +77,10 @@ public partial class MarkdownDocument {
     }
 
     /// <summary>Asynchronously writes HTML to a file, including an external CSS sidecar when requested.</summary>
+    /// <remarks>Without options the file is a complete, styled HTML document; pass options to write a fragment.</remarks>
     public async Task<OfficeConversionReport> SaveAsHtmlAsync(string path, MarkdownHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = (options ?? new MarkdownHtmlExportOptions()).CloneForRender();
+        options = (options ?? CreateFileDocumentOptions()).CloneForRender();
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();

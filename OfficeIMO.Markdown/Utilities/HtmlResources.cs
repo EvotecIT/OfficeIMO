@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
     internal static class HtmlResources {
         internal static string GetStyleCss(MarkdownHtmlStyle style) => style switch {
             MarkdownHtmlStyle.Plain => string.Empty,
-            MarkdownHtmlStyle.Clean => CleanCss,
+            MarkdownHtmlStyle.Clean => CleanThemeCss,
             MarkdownHtmlStyle.GithubLight => GithubLightCss,
             MarkdownHtmlStyle.GithubDark => GithubDarkCss,
             MarkdownHtmlStyle.GithubAuto => GithubAutoCss,
@@ -14,30 +14,44 @@ namespace OfficeIMO.Markdown;
             MarkdownHtmlStyle.ChatDark => ChatDarkCss,
             MarkdownHtmlStyle.ChatAuto => ChatAutoCss,
             MarkdownHtmlStyle.Word => WordCss,
-            _ => CleanCss
+            _ => CleanThemeCss
         };
 
-    // Minimal, readable defaults
+    // The default style follows the 3.6 visual design: OfficeTheme tokens (--office-*) drive the Clean rules.
+    private static readonly string CleanThemeCss =
+        global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(global::OfficeIMO.OfficeTheme.Default, ":root") + CleanCss;
+
+    // Modern defaults from the shared theme tokens; literal fallbacks keep the rules usable without them.
     private const string CleanCss = @"
 html,body { height: 100%; }
-body { background: #ffffff; color: #24292f; margin: 0; }
-article.markdown-body { max-width: 860px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: inherit; }
-article.markdown-body h1,article.markdown-body h2,article.markdown-body h3,article.markdown-body h4 { margin-top: 1.6em; margin-bottom: .6em; font-weight: 600; }
-article.markdown-body h1 { font-size: 2.0rem; }
-article.markdown-body h2 { font-size: 1.6rem; border-bottom: 1px solid #eaecef; padding-bottom: .3rem; }
-article.markdown-body h3 { font-size: 1.25rem; }
-article.markdown-body p { margin: .8em 0; }
-article.markdown-body a { color: #0969da; text-decoration: underline; text-underline-offset: .15em; }
+body { background: var(--office-bg, #ffffff); color: var(--office-text, #1b2433); margin: 0; }
+article.markdown-body { max-width: 860px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; font-family: var(--office-font-body, Aptos, Calibri, Carlito, ""Helvetica Neue"", Arial, sans-serif); font-size: var(--office-size-body, 11pt); color: inherit; }
+article.markdown-body h1,article.markdown-body h2,article.markdown-body h3,article.markdown-body h4,article.markdown-body h5,article.markdown-body h6 { font-family: var(--office-font-heading, Aptos, Calibri, Carlito, ""Helvetica Neue"", Arial, sans-serif); color: var(--office-text, #1b2433); font-weight: 700; line-height: 1.25; margin: 1.4em 0 .4em; }
+article.markdown-body h1 { font-size: var(--office-size-h1, 20pt); margin-top: .6em; }
+article.markdown-body h2 { font-size: var(--office-size-h2, 15pt); }
+article.markdown-body h3 { font-size: var(--office-size-h3, 12.5pt); }
+article.markdown-body h4 { font-size: var(--office-size-h4, 11pt); }
+article.markdown-body h5 { font-size: var(--office-size-h5, 11pt); }
+article.markdown-body h6 { font-size: var(--office-size-h6, 10pt); color: var(--office-muted, #5b6575); }
+article.markdown-body p { margin: 0 0 var(--office-paragraph-after, 8pt); }
+article.markdown-body a { color: var(--office-accent-1, #3f64d7); text-decoration: underline; text-underline-offset: .15em; }
 article.markdown-body a:hover { text-decoration-thickness: 2px; }
-article.markdown-body table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
-article.markdown-body th, article.markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
-article.markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
-article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 6px; }
-article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; }
-article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d7de; padding: 0 1em; margin: 0; }
-article.markdown-body blockquote.callout { border-left-color: #0969da; background: #f6f8fa; }
-article.markdown-body blockquote.callout.warning { border-left-color: #d4a72c; }
-article.markdown-body blockquote.callout.danger { border-left-color: #cf222e; }
+article.markdown-body ul, article.markdown-body ol { margin: 0 0 var(--office-paragraph-after, 8pt); padding-left: 1.6em; }
+article.markdown-body li { margin: .15em 0; }
+article.markdown-body li::marker { color: var(--office-accent-1, #3f64d7); }
+article.markdown-body table { border-collapse: collapse; width: 100%; font-size: .95em; font-variant-numeric: tabular-nums; margin: 0 0 1em; }
+article.markdown-body th, article.markdown-body td { padding: var(--office-table-cell-padding-y, 5pt) var(--office-table-cell-padding-x, 7pt); border-bottom: var(--office-table-border-width, .5pt) solid var(--office-table-border, #dce2ea); vertical-align: top; text-align: left; }
+article.markdown-body thead th { background: var(--office-table-header-fill, #eaf0fc); color: var(--office-table-header-text, #1b2433); font-weight: 700; border-bottom: 1pt solid var(--office-accent-1, #3f64d7); }
+article.markdown-body tbody tr:nth-child(2n) { background: var(--office-table-band-fill, #f6f8fb); }
+article.markdown-body code { font-family: var(--office-font-mono, ui-monospace, Menlo, Consolas, monospace); font-size: .9em; background: var(--office-table-band-fill, #f6f8fb); border: 1px solid var(--office-table-border, #dce2ea); padding: .05em .3em; border-radius: 3px; }
+article.markdown-body pre { font-family: var(--office-font-mono, ui-monospace, Menlo, Consolas, monospace); font-size: .9em; line-height: 1.45; background: var(--office-table-band-fill, #f6f8fb); border: 1px solid var(--office-table-border, #dce2ea); padding: 10px 12px; border-radius: 4px; overflow: auto; }
+article.markdown-body pre code { background: none; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
+article.markdown-body blockquote { color: var(--office-muted, #5b6575); border-left: 3px solid var(--office-table-border, #dce2ea); padding: 0 1em; margin: 0 0 var(--office-paragraph-after, 8pt); }
+article.markdown-body blockquote.callout { color: inherit; border-left-color: var(--office-accent-1, #3f64d7); background: var(--office-accent-1-tint, #ecf0fb); padding: .5em 1em; }
+article.markdown-body blockquote.callout.warning { border-left-color: var(--office-warning, #865500); background: var(--office-warning-fill, #f0ebe0); }
+article.markdown-body blockquote.callout.danger { border-left-color: var(--office-danger, #bf3b2c); background: var(--office-danger-fill, #f7e7e6); }
+article.markdown-body hr { border: 0; border-top: 1px solid var(--office-table-border, #dce2ea); margin: 1.2em 0; }
+article.markdown-body img { max-width: 100%; height: auto; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
 /* data-theme overrides */
 html[data-theme=dark] body { background: #0d1117; color: #c9d1d9; }
@@ -172,8 +186,9 @@ article.markdown-body a:hover { text-decoration-thickness: 2px; }
 article.markdown-body table { width: 100%; border-collapse: collapse; }
 article.markdown-body th, article.markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
 article.markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
-article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 6px; }
-article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; }
+article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; font-size: .9em; }
+article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; }
+article.markdown-body pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; }
 article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d7de; padding: 0 1em; margin: 0; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
 .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(27,31,36,.15); background: rgba(240,246,252,.9); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
@@ -203,8 +218,9 @@ article.markdown-body a { color: #2f81f7; text-decoration: underline; text-under
 article.markdown-body table { width: 100%; border-collapse: collapse; }
 article.markdown-body th, article.markdown-body td { border: 1px solid #30363d; padding: 6px 13px; }
 article.markdown-body tr:nth-child(2n) { background-color: #161b22; }
-article.markdown-body code { background: #161b22; padding: .2em .4em; border-radius: 6px; }
-article.markdown-body pre { background: #161b22; padding: 12px; border-radius: 6px; overflow: auto; }
+article.markdown-body code { background: #161b22; padding: .2em .4em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; font-size: .9em; }
+article.markdown-body pre { background: #161b22; padding: 12px; border-radius: 6px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; }
+article.markdown-body pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; }
 article.markdown-body blockquote { color: #8b949e; border-left: .25em solid #30363d; padding: 0 1em; margin: 0; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
 .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(240,246,252,.2); background: rgba(22,27,34,.85); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
@@ -234,8 +250,9 @@ article.markdown-body a { color: #0969da; text-decoration: underline; text-under
 article.markdown-body table { width: 100%; border-collapse: collapse; }
 article.markdown-body th, article.markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
 article.markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
-article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 6px; }
-article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; }
+article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; font-size: .9em; }
+article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, ""Liberation Mono"", ""Courier New"", monospace; }
+article.markdown-body pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; }
 article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d7de; padding: 0 1em; margin: 0; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
 
@@ -248,6 +265,7 @@ article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d
   article.markdown-body th, article.markdown-body td { border-color: #30363d; }
   article.markdown-body tr:nth-child(2n) { background-color: #161b22; }
   article.markdown-body code, article.markdown-body pre { background: #161b22; }
+  article.markdown-body pre code { background: none; }
   article.markdown-body blockquote { color: #8b949e; border-left-color: #30363d; }
 }
 /* data-theme overrides */
@@ -326,19 +344,17 @@ article.markdown-body .md-layout.two-col.right { grid-template-columns: 1fr var(
 article.markdown-body .md-layout.two-col > nav.md-toc.sidebar { float: none; width: auto; margin: 0; }
 article.markdown-body .md-layout.two-col .md-content { min-width: 0; }
 article.markdown-body .md-layout.two-col > nav.md-toc.sidebar.sticky { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; }
+/* Images never overflow the text column */
+article.markdown-body img { max-width: 100%; }
 /* Comfortable vertical rhythm for block elements */
 article.markdown-body table { margin: .75rem 0 1.1rem 0; }
 article.markdown-body pre { margin: .75rem 0 1.1rem 0; }
 article.markdown-body blockquote { margin: .65rem 0 1rem 0; }
 
 /* Task lists (GitHub-like) */
-article.markdown-body ul.contains-task-list,
-article.markdown-body ol.contains-task-list { list-style: none; padding-left: 0; }
-article.markdown-body ul.contains-task-list > li,
-article.markdown-body ol.contains-task-list > li { padding-left: 1.6rem; position: relative; }
+/* Only task items drop their marker; ordinary items in the same list keep their bullets. */
 article.markdown-body li.task-list-item { list-style: none; }
-article.markdown-body input.task-list-item-checkbox { margin: 0 .35rem 0 0; vertical-align: middle; }
-article.markdown-body li.task-list-item > input.task-list-item-checkbox { position: absolute; left: 0; top: .2em; }
+article.markdown-body input.task-list-item-checkbox { margin: 0 .35em .15em -1.4em; vertical-align: middle; }
 @media (max-width: 1000px) {
   article.markdown-body nav.md-toc.sidebar.right,
   article.markdown-body nav.md-toc.sidebar.left { float: none; width: auto; margin: 0 0 1rem 0; }
@@ -369,9 +385,11 @@ html[data-theme=light] article.markdown-body tr:nth-child(2n) { background-color
 html[data-theme=light] article.markdown-body th, html[data-theme=light] article.markdown-body td { border-color: #d0d7de; }
 html[data-theme=light] article.markdown-body pre { background: #f6f8fa; }
 html[data-theme=light] article.markdown-body code { background: rgba(175,184,193,.2); }
-/* Robust wrapping like GitHub: break long unbroken strings */
+html[data-theme=light] article.markdown-body pre code { background: none; }
+/* Robust wrapping like GitHub: break long unbroken strings only when they cannot fit.
+   overflow-wrap: break-word, unlike anywhere, does not shrink table columns below their longest word. */
 article.markdown-body,
-article.markdown-body .md-content { overflow-wrap: anywhere; word-wrap: break-word; }
+article.markdown-body .md-content { overflow-wrap: break-word; word-wrap: break-word; }
 article.markdown-body h1,
 article.markdown-body h2,
 article.markdown-body h3,
@@ -382,7 +400,7 @@ article.markdown-body p,
 article.markdown-body li,
 article.markdown-body blockquote,
 article.markdown-body td,
-article.markdown-body th { overflow-wrap: anywhere; word-break: break-word; }
+article.markdown-body th { overflow-wrap: break-word; }
 
 /* Footnotes */
 article.markdown-body section.footnotes { margin-top: 2rem; }
@@ -448,14 +466,17 @@ article.markdown-body ul, article.markdown-body ol { margin: .4rem 0 .8rem 1.6re
 article.markdown-body li { margin: .2rem 0; }
 
 /* Code */
-article.markdown-body code { background: #f2f2f2; padding: .15em .35em; border-radius: 4px; font-family: Consolas, 'Courier New', monospace; }
-article.markdown-body pre { background: #f2f2f2; padding: 12px; border-radius: 6px; overflow: auto; }
+article.markdown-body code { background: #f2f2f2; padding: .15em .35em; border-radius: 4px; font-family: Consolas, Menlo, 'Liberation Mono', 'Courier New', monospace; }
+article.markdown-body pre { background: #f2f2f2; padding: 12px; border-radius: 6px; overflow: auto; font-family: Consolas, Menlo, 'Liberation Mono', 'Courier New', monospace; }
+article.markdown-body pre code { background: none; padding: 0; border-radius: 0; }
 
 /* Tables – mimic Word's Grid Table style */
 article.markdown-body table { width: 100%; border-collapse: collapse; border: 1px solid #d6d6d6; margin: .8rem 0 1.2rem; }
 article.markdown-body thead th { background: #e7e6e6; color: #1f1f1f; font-weight: 600; }
 article.markdown-body th, article.markdown-body td { border: 1px solid #d6d6d6; padding: 6px 10px; vertical-align: top; }
 article.markdown-body tbody tr:nth-child(2n) { background: #f8f8f8; }
+
+article.markdown-body img { max-width: 100%; height: auto; }
 
 /* Blockquote – subtle Word-like bar */
 article.markdown-body blockquote { color: #404040; border-left: .25em solid #c8c8c8; padding: 0 1em; margin: .4rem 0 .9rem; }
@@ -472,8 +493,8 @@ article.markdown-body blockquote { color: #404040; border-left: .25em solid #c8c
 }
 
 /* Explicit wrapping for long tokens */
-article.markdown-body, article.markdown-body .md-content { overflow-wrap:anywhere; word-break:break-word; }
-article.markdown-body td, article.markdown-body th, article.markdown-body p, article.markdown-body li { overflow-wrap:anywhere; word-break:break-word; }
+article.markdown-body, article.markdown-body .md-content { overflow-wrap:break-word; }
+article.markdown-body td, article.markdown-body th, article.markdown-body p, article.markdown-body li { overflow-wrap:break-word; }
 ";
 
     internal static string ScrollSpyScript => @"

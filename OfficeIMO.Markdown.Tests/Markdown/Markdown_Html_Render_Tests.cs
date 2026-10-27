@@ -25,11 +25,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Default_VisualTheme_Emits_WordLike_Html_Css() {
-            string html = MarkdownDocument.Create()
+        public void Default_Style_Emits_OfficeTheme_Tokens_And_Word_Style_Keeps_WordLike_Css() {
+            string clean = MarkdownDocument.Create()
                 .H1("Title")
                 .P("Hello")
                 .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions { Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document });
+
+            Assert.Contains("--office-text: #" + global::OfficeIMO.OfficeTheme.Default.Palette.Text.ToRgbHex(), clean, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("var(--office-font-heading", clean, StringComparison.Ordinal);
+            Assert.DoesNotContain("--md-heading: #111827", clean, StringComparison.OrdinalIgnoreCase);
+
+            string html = MarkdownDocument.Create()
+                .H1("Title")
+                .P("Hello")
+                .ToHtml(new global::OfficeIMO.Markdown.MarkdownHtmlExportOptions { Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document, Style = global::OfficeIMO.Markdown.MarkdownHtmlStyle.Word });
 
             Assert.Contains("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
