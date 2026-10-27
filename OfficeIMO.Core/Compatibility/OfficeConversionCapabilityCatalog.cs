@@ -201,6 +201,8 @@ public sealed class OfficeConversionCapability {
 
     /// <summary>Gets the stable route identifier.</summary>
     public string Id { get; }
+    /// <summary>Whether the route needs a raster codec explicitly registered by a .NET caller.</summary>
+    public bool RequiresImageCodec => Id == "heic-pdf";
     /// <summary>Gets the source format label.</summary>
     public string Source { get; }
     /// <summary>Gets the destination format label.</summary>
@@ -339,8 +341,10 @@ public static class OfficeConversionCapabilityCatalog {
                 .Append(i3).Append("\"knownLimitations\":\"").Append(EscapeJson(route.KnownLimitations)).Append("\",").Append(newline)
                 .Append(i3).Append("\"resultContract\":\"").Append(EscapeJson(route.ResultContract)).Append("\",").Append(newline)
                 .Append(i3).Append("\"browserAvailable\":").Append(route.BrowserAvailable ? "true" : "false").Append(',').Append(newline)
-                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false").Append(newline)
-                .Append(i2).Append('}');
+                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false");
+            if (route.RequiresImageCodec)
+                json.Append(',').Append(newline).Append(i3).Append("\"requiresImageCodec\":true");
+            json.Append(newline).Append(i2).Append('}');
             if (index + 1 < All.Count) json.Append(',');
             json.Append(newline);
         }
@@ -354,12 +358,12 @@ public static class OfficeConversionCapabilityCatalog {
             "heic-pdf", "HEIC", "PDF", OfficeConversionInputKind.File,
             new[] { ".heic", ".heif", ".hif" }, ".pdf", "OfficeIMO.Pdf",
             "PdfDocument.CreateFromImages(sources, options)",
-            "Compose a HEIC/HEIF primary image as a PDF page through the registered operating-system codec.",
+            "Compose a HEIC/HEIF primary image as a PDF page through a raster codec explicitly registered by the .NET caller.",
             OfficeConversionFidelityKind.FixedLayout, "PdfDocument",
-            browserAvailable: false, agentDiscoverable: true,
+            browserAvailable: false, agentDiscoverable: false,
             supportLevel: OfficeConversionSupportLevel.Targeted,
             supportEvidence: "CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
-            knownLimitations: "Requires Apple ImageIO or Windows WIC with HEIF and HEVC extensions. No bundled decoder or Linux platform codec. The SDR primary image is retained; HDR gain maps and depth are not projected.",
+            knownLimitations: "Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected.",
             textFormatting: OfficeConversionTextFormattingKind.FlattenedRaster,
             textFormattingContract: "The source is a raster image; PDF output preserves its supported pixels without adding searchable or editable text."),
         Route("doc-pdf", "DOC", "PDF", OfficeConversionInputKind.File, new[] { ".doc" }, ".pdf", "OfficeIMO.Word.Pdf", "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)", "Convert supported binary Word documents to PDF with import and rendering evidence.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),

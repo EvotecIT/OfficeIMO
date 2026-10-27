@@ -65,6 +65,7 @@ public sealed class GetOfficeConversionRouteCommand : PSCmdlet
         string? target = NormalizeExtension(TargetExtension);
         foreach (OfficeConversionCapability route in OfficeConversionCapabilityCatalog.All)
         {
+            if (route.RequiresImageCodec) continue;
             if (Id != null && !Id.Contains(route.Id, StringComparer.OrdinalIgnoreCase)) continue;
             if (source != null && !route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase)) continue;
             if (target != null && !string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase)) continue;

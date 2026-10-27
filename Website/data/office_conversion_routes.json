@@ -10,16 +10,17 @@
       "targetExtension":".pdf",
       "packageId":"OfficeIMO.Pdf",
       "api":"PdfDocument.CreateFromImages(sources, options)",
-      "description":"Compose a HEIC/HEIF primary image as a PDF page through the registered operating-system codec.",
+      "description":"Compose a HEIC/HEIF primary image as a PDF page through a raster codec explicitly registered by the .NET caller.",
       "fidelity":"FixedLayout",
       "textFormatting":"FlattenedRaster",
       "textFormattingContract":"The source is a raster image; PDF output preserves its supported pixels without adding searchable or editable text.",
       "supportLevel":"Targeted",
       "supportEvidence":"CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
-      "knownLimitations":"Requires Apple ImageIO or Windows WIC with HEIF and HEVC extensions. No bundled decoder or Linux platform codec. The SDR primary image is retained; HDR gain maps and depth are not projected.",
+      "knownLimitations":"Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected.",
       "resultContract":"PdfDocument",
       "browserAvailable":false,
-      "agentDiscoverable":true
+      "agentDiscoverable":false,
+      "requiresImageCodec":true
     },
     {
       "id":"doc-pdf",

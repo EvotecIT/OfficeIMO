@@ -2,6 +2,8 @@
 
 Apple system raster decoding for OfficeIMO.Drawing, including HEIC/HEIF still-image tiles. The package calls ImageIO, CoreGraphics and CoreFoundation directly and adds no third-party runtime decoder or native binary.
 
+Registration is always the .NET caller's job. The package does not register itself, and the Workflows library does not register it on the application's behalf. Call `OfficeImageIOCodec.Register()` explicitly or set `ImageCodec` on a decode request.
+
 The `net8.0` and `net10.0` assemblies use the same framework imports on macOS and iOS. Building this library needs no Apple workload. Running it requires macOS 10.13+, iOS 11+, or Mac Catalyst 13.1+; the device and installed OS determine which HEVC profiles decode. iOS execution needs qualification in the consuming app.
 
 ```csharp

@@ -362,7 +362,7 @@ For incremental authoring, use `var document = PdfDocument.Create(options)` and
 add blocks through `document.Content`. The same builder supports both ordinary
 statements and fluent chains; callbacks remain useful for grouping and page setup.
 
-HEIC/HEIF still images also work through `PdfDocument.CreateFromImages` and image insertion after registering the optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider on macOS/iOS or [WIC](../OfficeIMO.Drawing.Wic/README.md) provider on Windows. Windows requires Microsoft's HEIF Image Extensions and HEVC Video Extensions. The shared image owner composes tiles, applies source orientation and color once, and stores PNG samples in the PDF. Missing system support raises `OfficeRasterDecodeException` with `image-codec-unavailable` and a platform reason; no HEVC implementation is bundled.
+HEIC/HEIF still images work through the .NET `PdfDocument.CreateFromImages` and image-insertion APIs after the caller explicitly registers [OfficeIMO.Drawing.ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) on macOS/iOS. Other hosts need a caller-supplied raster codec as a workaround. No codec is registered automatically. The shared image owner composes tiles, applies source orientation and colour once, and stores PNG samples in the PDF. Without a codec, `OfficeRasterDecodeException` reports `image-codec-unavailable` with `NoPlatformCodec`. No HEVC implementation is bundled.
 
 Image-file pages and image stamps accept at most 128 MiB of encoded data per
 image by default. Increase the limit for a trusted source when needed:

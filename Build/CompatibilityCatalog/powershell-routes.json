@@ -162,12 +162,6 @@
     "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
   },
   {
-    "route": "heic-pdf",
-    "cmdlet": "ConvertTo-OfficeDocument",
-    "example": "ConvertTo-OfficeDocument -InputPath ./in.heic -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertToOfficeDocumentCommand.cs: File parameters InputPath and OutputPath select the canonical OfficeWorkflowCatalog route; EndProcessingAsync calls OfficeWorkflowRunner.RunAsync with that route. Requires PowerShell 7.4 or newer and an available platform HEIC codec."
-  },
-  {
     "route": "html-confluence",
     "cmdlet": "Publish-OfficeConfluencePage",
     "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.html -Raw) -ContentFormat Html -PlanOnly",

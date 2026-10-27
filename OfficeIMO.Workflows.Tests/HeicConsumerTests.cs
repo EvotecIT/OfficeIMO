@@ -79,6 +79,12 @@ public sealed class HeicConsumerTests {
         OfficeWorkflowRoute? route = OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true);
         Assert.NotNull(route);
         OfficeConversionCapability capability = Assert.Single(OfficeConversionCapabilityCatalog.All, item => item.Id == route.Id);
+        Assert.True(capability.RequiresImageCodec);
+        Assert.True(route.RequiresImageCodec);
+        Assert.False(capability.AgentDiscoverable);
+        using var catalog = System.Text.Json.JsonDocument.Parse(OfficeConversionCapabilityCatalog.ToJson());
+        var jsonRoute = catalog.RootElement.GetProperty("routes").EnumerateArray().Single(item => item.GetProperty("id").GetString() == route.Id);
+        Assert.True(jsonRoute.GetProperty("requiresImageCodec").GetBoolean());
         Assert.Equal("OfficeIMO.Pdf", capability.PackageId);
         Assert.False(capability.BrowserAvailable);
         OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
@@ -93,11 +99,11 @@ public sealed class HeicConsumerTests {
     }
 
     [Theory]
-    [InlineData(OfficeRasterCodecUnavailableReason.NoPlatformCodec)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHeifExtensionMissing)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHevcExtensionMissing)]
-    public async Task ConversionAndAssemblyKeepCodecUnavailableReasonsAndPublishNothing(OfficeRasterCodecUnavailableReason reason) {
-        using var scope = new CodecScope(reason == OfficeRasterCodecUnavailableReason.NoPlatformCodec ? null : new UnavailableCodec(reason));
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConversionAndAssemblyKeepCodecUnavailableReasonsAndPublishNothing(bool registerUnavailableCodec) {
+        const OfficeRasterCodecUnavailableReason reason = OfficeRasterCodecUnavailableReason.NoPlatformCodec;
+        using var scope = new CodecScope(registerUnavailableCodec ? new UnavailableCodec(reason) : null);
         string source = Path.Combine(scope.Directory, "source.hif");
         File.Copy(Fixture, source);
         var runner = new OfficeWorkflowRunner();
@@ -184,8 +190,6 @@ public sealed class HeicConsumerTests {
     private sealed class CodecScope : IDisposable {
         private readonly IOfficeRasterImageCodec? _previous;
         internal CodecScope(IOfficeRasterImageCodec? codec) {
-            // Complete startup registration before substituting the external codec boundary.
-            _ = new OfficeWorkflowRunner();
             _previous = OfficeRasterImageCodecs.Platform;
             OfficeRasterImageCodecs.Platform = codec;
             Directory = Path.Combine(Path.GetTempPath(), "officeimo-heic-consumers-" + Guid.NewGuid().ToString("N"));

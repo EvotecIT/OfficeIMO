@@ -65,6 +65,7 @@ internal static class FormatMapProjection {
         new(routes.Select(static route => route.Id), StringComparer.Ordinal);
 
     private static string[] Surfaces(OfficeConversionCapability route, HashSet<string> studio, HashSet<string> cli, bool powershell) {
+        if (route.RequiresImageCodec) return new[] { "dotnet" };
         var surfaces = new List<string> { "dotnet" };
         if (route.BrowserAvailable) surfaces.Add("browser");
         if (cli.Contains(route.Id)) surfaces.Add("cli");

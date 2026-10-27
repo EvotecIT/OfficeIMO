@@ -11,7 +11,7 @@ namespace PSWriteOffice.Services;
 
 /// <summary>Captures the optional first-party workflow adapters shipped by this PowerShell host.</summary>
 internal static class OfficeWorkflowCommandUtilities {
-    private static readonly Lazy<IReadOnlyList<OfficeWorkflowRoute>> Routes = new(() => CreateRunner().ConversionRoutes);
+    private static readonly Lazy<IReadOnlyList<OfficeWorkflowRoute>> Routes = new(() => CreateRunner().ConversionRoutes.Where(route => !route.RequiresImageCodec).ToArray());
     internal static OfficeWorkflowRunner CreateRunner() => IWorkWorkflow.CreateRunner();
     internal static bool IsExecutable(string id) => Routes.Value.Any(route => route.Id == id);
 

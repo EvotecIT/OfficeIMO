@@ -18,15 +18,6 @@ namespace OfficeIMO.Workflows;
 /// Runs bounded local conversion and PDF health workflows and publishes validated artifacts atomically.
 /// </summary>
 public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
-    static OfficeWorkflowRunner() {
-        if (OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform == null) {
-            if (OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.IsSupported)
-                OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.Register();
-            if (OfficeIMO.Drawing.Wic.OfficeWicCodec.IsSupported)
-                OfficeIMO.Drawing.Wic.OfficeWicCodec.Register();
-        }
-    }
-
     /// <summary>Maximum number of requests accepted by one sequential batch.</summary>
     public const int MaximumBatchRequestCount = 250;
 

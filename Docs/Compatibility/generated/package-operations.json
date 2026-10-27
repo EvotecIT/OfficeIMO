@@ -7420,7 +7420,7 @@
       "evidence":"OfficeImageReader.NormalizeForEmbedding",
       "sourceCatalog":"OfficeIMO.Operations",
       "extensions":[".heic",".heif",".hif"],
-      "limitation":"Inserted as PNG using the registered platform codec. Requires ImageIO on Apple or WIC with the HEIF and HEVC extensions on Windows; no bundled decoder or Linux codec. HDR gain maps and depth are not retained."
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
     },
     {
       "id":"protection:xls-password:excel:create",
@@ -9310,7 +9310,7 @@
       "evidence":"CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".heic",".heif",".hif"],
-      "limitation":"Requires Apple ImageIO or Windows WIC with HEIF and HEVC extensions. No bundled decoder or Linux platform codec. The SDR primary image is retained; HDR gain maps and depth are not projected."
+      "limitation":"Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected."
     },
     {
       "id":"protection:pdf-password:pdf:create",
@@ -9870,7 +9870,7 @@
       "evidence":"OfficeImageReader.NormalizeForEmbedding",
       "sourceCatalog":"OfficeIMO.Operations",
       "extensions":[".heic",".heif",".hif"],
-      "limitation":"Inserted as PNG using the registered platform codec. Requires ImageIO on Apple or WIC with the HEIF and HEVC extensions on Windows; no bundled decoder or Linux codec. HDR gain maps and depth are not retained."
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
     },
     {
       "id":"protection:ppt-password:powerpoint:create",
@@ -16394,7 +16394,7 @@
       "evidence":"OfficeImageReader.NormalizeForEmbedding",
       "sourceCatalog":"OfficeIMO.Operations",
       "extensions":[".heic",".heif",".hif"],
-      "limitation":"Inserted as PNG using the registered platform codec. Requires ImageIO on Apple or WIC with the HEIF and HEVC extensions on Windows; no bundled decoder or Linux codec. HDR gain maps and depth are not retained."
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Controls.InlineContentControls:modern-to-legacy",

@@ -37,8 +37,7 @@
   ],
   "suites": {
     "platform-image-codecs": [
-      "OfficeIMO.Drawing.ImageIO.Tests",
-      "OfficeIMO.Drawing.Wic.Tests"
+      "OfficeIMO.Drawing.ImageIO.Tests"
     ],
     "archives-contracts": [
       "OfficeIMO.Archives.Tests"

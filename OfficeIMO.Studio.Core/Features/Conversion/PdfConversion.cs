@@ -19,7 +19,7 @@ internal sealed record PdfConversionResult(string Route, string Source, long Out
 internal static class PdfConversion {
     /// <summary>The formats that convert to PDF, one per route.</summary>
     internal static IReadOnlyList<PdfConversionSource> Sources { get; } = OfficeWorkflowCatalog.ExecutableRoutes
-        .Where(static route => string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase))
+        .Where(static route => !route.RequiresImageCodec && string.Equals(route.Target, "PDF", StringComparison.OrdinalIgnoreCase))
         .Select(static route => new PdfConversionSource(route.Id, route.Source, route.SourceExtensions.ToArray()))
         .ToArray();
 

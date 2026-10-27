@@ -9,7 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Drawing.ImageIO/OfficeIMO.Drawing.ImageIO.csproj" />
-    <ProjectReference Include="../../../OfficeIMO.Drawing.Wic/OfficeIMO.Drawing.Wic.csproj" />
     <Compile Include="../../../OfficeIMO.Drawing.ImageIO.Tests/AppleImageIOReference.cs" Link="AppleImageIOReference.cs" />
   </ItemGroup>
 </Project>

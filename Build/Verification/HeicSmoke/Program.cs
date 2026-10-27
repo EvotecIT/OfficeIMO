@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.ImageIO;
 using OfficeIMO.Drawing.ImageIO.Tests;
-using OfficeIMO.Drawing.Wic;
 using OfficeIMO.Pdf;
 
 if (args.Length == 3 && args[0] == "--compare") {
@@ -22,7 +21,6 @@ if (args.Length == 3 && args[0] == "--compare") {
 }
 if (args.Length != 2) throw new ArgumentException("Usage: HeicSmoke <fixture-directory> <output-directory>, or --compare <reference.png> <rendered.png>.");
 OfficeImageIOCodec.Register();
-OfficeWicCodec.Register();
 Directory.CreateDirectory(args[1]);
 foreach (string name in new[] { "basic-8bit-srgb.heic", "orientation-6.heic", "display-p3-10bit.heic" }) {
     string path = Path.Combine(args[0], name), stem = Path.GetFileNameWithoutExtension(name);

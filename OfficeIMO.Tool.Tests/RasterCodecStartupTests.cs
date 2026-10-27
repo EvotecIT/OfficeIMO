@@ -4,15 +4,17 @@ using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
 
-[CollectionDefinition("HEIC startup codec", DisableParallelization = true)]
-public sealed class HeicStartupCodecCollection { }
+[CollectionDefinition("Raster codec startup", DisableParallelization = true)]
+public sealed class RasterCodecStartupCollection { }
 
-[Collection("HEIC startup codec")]
-public sealed class HeicStartupCodecTests {
-    [Fact]
-    public async Task AutomaticStartupPreservesTheRegisteredProcessCodec() {
+[Collection("Raster codec startup")]
+public sealed class RasterCodecStartupTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StartupLeavesCodecRegistrationToTheCaller(bool registerCodec) {
         IOfficeRasterImageCodec? previous = OfficeRasterImageCodecs.Platform;
-        var registered = new CallerCodec();
+        IOfficeRasterImageCodec? registered = registerCodec ? new CallerCodec() : null;
         OfficeRasterImageCodecs.Platform = registered;
         try {
             _ = new OfficeWorkflowRunner();

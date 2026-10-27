@@ -32,10 +32,10 @@ public sealed class HeicCompositionTests {
     }
 
     [Theory]
-    [InlineData(OfficeRasterCodecUnavailableReason.NoPlatformCodec,false)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHeifExtensionMissing,true)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHevcExtensionMissing,false)]
-    public void StrictRasterRenderingRetainsCodecAvailability(OfficeRasterCodecUnavailableReason reason,bool explicitCodec) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StrictRasterRenderingRetainsCodecAvailability(bool explicitCodec) {
+        const OfficeRasterCodecUnavailableReason reason=OfficeRasterCodecUnavailableReason.NoPlatformCodec;
         var previous=OfficeRasterImageCodecs.Platform;
         var codec=new UnavailableCodec(reason);
         try {
@@ -222,11 +222,9 @@ public sealed class HeicCompositionTests {
         Assert.Equal(width,image!.Width);Assert.Equal(height,image.Height);
     }
 
-    [Theory]
-    [InlineData(OfficeRasterCodecUnavailableReason.NoPlatformCodec)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHeifExtensionMissing)]
-    [InlineData(OfficeRasterCodecUnavailableReason.WindowsHevcExtensionMissing)]
-    public void MissingPlatformComponentsKeepTheirDiagnostic(OfficeRasterCodecUnavailableReason reason) {
+    [Fact]
+    public void UnavailableCodecKeepsItsDiagnostic() {
+        const OfficeRasterCodecUnavailableReason reason=OfficeRasterCodecUnavailableReason.NoPlatformCodec;
         byte[] source=HeicTestFixture.Create(new[]{HeicTestFixture.Tile(1)});
         Assert.False(OfficeRasterImageDecoder.TryDecode(source,new OfficeRasterDecodeOptions{ImageCodec=new UnavailableCodec(reason)},out _,out var info));
         Assert.Equal("image-codec-unavailable",info.DiagnosticCode);

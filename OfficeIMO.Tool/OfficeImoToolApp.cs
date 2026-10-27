@@ -50,13 +50,6 @@ Run 'officeimo <area> --help' for area-specific commands and options.
         ArgumentNullException.ThrowIfNull(standardOutput);
         ArgumentNullException.ThrowIfNull(standardError);
 
-        if (OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform == null) {
-            if (OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.IsSupported)
-                OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.Register();
-            if (OfficeIMO.Drawing.Wic.OfficeWicCodec.IsSupported)
-                OfficeIMO.Drawing.Wic.OfficeWicCodec.Register();
-        }
-
         if (args.Length == 0 || IsHelp(args[0])) {
             await WriteUtf8Async(standardOutput, Usage + Environment.NewLine, cancellationToken).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;

@@ -847,9 +847,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task Conversion_names_its_formats_and_refuses_what_it_cannot_convert() {
         Assert.Contains(PdfConversion.Sources, source => source.Extensions.Contains(".docx"));
+        Assert.All(PdfConversion.Sources, source => Assert.False(
+            OfficeIMO.Workflows.OfficeWorkflowCatalog.Find(source.Route)!.RequiresImageCodec));
         Assert.Equal("txt-pdf", PdfConversion.RouteFor("notes.txt")?.Route);
         Assert.Equal("markdown-pdf", PdfConversion.RouteFor("README.md")?.Route);
-        Assert.Equal("heic-pdf", PdfConversion.RouteFor("photo.heic")?.Route);
         Assert.Null(PdfConversion.RouteFor("photo.unknown"));
 
         string unknown = Path.Combine(_root, "photo.unknown");

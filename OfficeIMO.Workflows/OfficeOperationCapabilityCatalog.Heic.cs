@@ -13,7 +13,7 @@ public static partial class OfficeOperationCapabilityCatalog {
                 OfficeOperationSupportState.Partial, api,
                 "OfficeImageReader.NormalizeForEmbedding", "OfficeIMO.Operations",
                 new[] { ".heic", ".heif", ".hif" }, target,
-                "Inserted as PNG using the registered platform codec. Requires ImageIO on Apple or WIC with the HEIF and HEVC extensions on Windows; no bundled decoder or Linux codec. HDR gain maps and depth are not retained."));
+                "Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."));
         }
     }
 }

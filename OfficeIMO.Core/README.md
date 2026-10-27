@@ -932,9 +932,9 @@ retained metadata as complete.
 
 ### HEIC and HEIF images
 
-HEIC still-image pixels come from the optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider on macOS/iOS or [WIC](../OfficeIMO.Drawing.Wic/README.md) provider on Windows. Core owns bounded item/grid composition, transforms, alpha and color conversion; no HEVC decoder is bundled. Register the platform provider once, or pass it through `OfficeRasterDecodeOptions.ImageCodec`. Windows also requires Microsoft's HEIF Image Extensions and HEVC Video Extensions. Unsupported hosts report `image-codec-unavailable` with an actionable reason.
+HEIC still-image decoding is an opt-in .NET feature. The optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider uses Apple frameworks on macOS/iOS. The caller registers it explicitly or passes it through `OfficeRasterDecodeOptions.ImageCodec`; no codec is registered automatically. Other hosts, including Windows, need a caller-supplied `IOfficeRasterImageCodec` as a workaround. Core owns bounded item/grid composition, transforms, alpha and colour conversion, stays COM-free and bundles no HEVC decoder. Without a registered codec, decoding reports `image-codec-unavailable` with `NoPlatformCodec`.
 
-See [the raster workflows](../Docs/officeimo.core-raster-workflows.md#decode-heic-with-the-installed-system-codec) for decode and document-embedding examples and the [support matrix](../Docs/officeimo.image-export-capability-matrix.md#heicheif-still-images-through-system-codecs) for limits.
+See [the raster workflows](../Docs/officeimo.core-raster-workflows.md#decode-heic-with-a-registered-codec) for decode and document-embedding examples and the [support matrix](../Docs/officeimo.image-export-capability-matrix.md#heicheif-still-images-with-an-opt-in-codec) for limits.
 
 ### Inspect and edit HEIF container metadata
 

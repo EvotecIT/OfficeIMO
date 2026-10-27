@@ -13,14 +13,6 @@ public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemb
     /// OnImport is called when the module is imported.
     /// </summary>
     public void OnImport() {
-#if NET8_0_OR_GREATER
-        if (OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform == null) {
-            if (OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.IsSupported)
-                OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.Register();
-            if (OfficeIMO.Drawing.Wic.OfficeWicCodec.IsSupported)
-                OfficeIMO.Drawing.Wic.OfficeWicCodec.Register();
-        }
-#endif
         if (IsNetFramework()) {
             AppDomain.CurrentDomain.AssemblyResolve += MyResolveEventHandler;
         }

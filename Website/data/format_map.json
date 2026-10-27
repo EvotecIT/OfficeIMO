@@ -1337,13 +1337,8 @@
       "fidelity": "FixedLayout",
       "api": "PdfDocument.CreateFromImages(sources, options)",
       "surfaces": [
-        "dotnet",
-        "cli",
-        "studio",
-        "powershell"
-      ],
-      "cmdlet": "ConvertTo-OfficeDocument",
-      "example": "ConvertTo-OfficeDocument -InputPath ./in.heic -OutputPath ./out.pdf"
+        "dotnet"
+      ]
     },
     {
       "id": "html-adf",
