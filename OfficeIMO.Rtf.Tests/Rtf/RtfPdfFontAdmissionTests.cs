@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -170,6 +171,73 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Equal(before, document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData("header")]
+    [InlineData("footer")]
+    [InlineData("field")]
+    [InlineData("converted")]
+    [InlineData("failed-conversion")]
+    [InlineData("disabled-image")]
+    [InlineData("disabled-story")]
+    [InlineData("plain-story")]
+    public void RunningImageFontAdmissionMatchesItsActualInlineProjection(string scenario) {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(document.AddFont("Helvetica"));
+        document.AddParagraph("BODY");
+        RtfStyle unused = document.AddStyle(7, "Image-only paragraph");
+        unused.FontId = document.AddFont(ExcludedFamily);
+        unused.FontSize = 12;
+        RtfParagraph paragraph = (scenario == "footer" ? document.AddFooter() : document.AddHeader())
+            .AddParagraph().SetStyle(7);
+        if (scenario == "field") paragraph = paragraph.AddField("MERGEFIELD picture").Result.SetStyle(7);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(12, 8, OfficeColor.Red));
+        bool converted = scenario is "converted" or "failed-conversion";
+        int imageCount = scenario == "converted" ? 2 : 1;
+        for (int index = 0; index < imageCount; index++) {
+            RtfImage image = paragraph.AddImage(converted ? RtfImageFormat.Emf : RtfImageFormat.Png,
+                converted ? new byte[] { 1, 2, 3 } : png);
+            image.DesiredWidthTwips = 240;
+            image.DesiredHeightTwips = 160;
+        }
+        var options = Options();
+        options.IncludeImages = scenario != "disabled-image";
+        options.IncludeHeaderFooters = scenario != "disabled-story";
+        if (scenario == "plain-story") options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Left;
+        int calls = 0;
+        options.ImageConverter = _ => { calls++; return scenario == "failed-conversion" ? null : png; };
+        byte[] before = document.ToBytes();
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        var read = PdfCore.PdfReadDocument.Open(pdf);
+        Assert.Single(read.Pages);
+        bool painted = options.IncludeImages && options.IncludeHeaderFooters &&
+            scenario is not ("plain-story" or "failed-conversion");
+        Assert.Equal(painted ? imageCount : 0,
+            read.Pages[0].GetImagePlacements().Count);
+        Assert.Contains("BODY", read.ExtractText());
+        Assert.Equal(converted ? imageCount : 0, calls);
+        bool realStrut = scenario is "disabled-image" or "failed-conversion";
+        Assert.Equal(realStrut, result.Warnings.Any(warning => warning.Code == "FontFamilySubstituted"
+            && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily));
+        if (scenario == "field") {
+            Assert.Single(result.Warnings, warning => warning.Code == "HeaderFooterFieldResultUsed");
+            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        } else if (painted) {
+            result.RequireNoLoss();
+        }
+        if (scenario == "failed-conversion") Assert.Single(result.Warnings, warning => warning.Code == "ImageConversionFailed");
+        if (scenario == "converted") {
+            // Replaying a completed PDF does not rerun callbacks, while a new
+            // conversion with the same caller options must prepare its own data.
+            result.ToBytes();
+            Assert.Equal(imageCount, calls);
+            document.ToPdfDocumentResult(options).ToBytes();
+            Assert.Equal(imageCount * 2, calls);
+        }
         Assert.Equal(before, document.ToBytes());
     }
 

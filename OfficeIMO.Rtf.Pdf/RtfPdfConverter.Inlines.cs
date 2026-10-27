@@ -147,7 +147,8 @@ internal static partial class RtfPdfConverter {
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
         AppendListMarker(paragraph, runs, state, options);
-        foreach (IRtfInline inline in paragraph.Inlines) {
+        for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
+            IRtfInline inline = paragraph.Inlines[inlineIndex];
             switch (inline) {
                 case RtfRun run:
                     AppendRun(document, document.Styles.Count > 0 || run.UseDefaultCharacterFormatting
@@ -175,7 +176,7 @@ internal static partial class RtfPdfConverter {
                     AppendGeneratedText(generatedText, runs, state, collectNotes);
                     break;
                 case RtfImage image when context == PdfInlineProjectionContext.RunningStory:
-                    AppendInlineImage(image, runs, options, "HeaderFooter/Paragraph/Image");
+                    AppendInlineImage(image, runs, options, paragraph, inlineIndex);
                     break;
                 case RtfObject rtfObject:
                     AddConversionWarning(options, "ObjectFlattened", "Inline/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);

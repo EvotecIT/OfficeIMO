@@ -197,7 +197,8 @@ internal static partial class RtfPdfConverter {
             foreach (RtfHeaderFooter story in stories) {
                 var storyNumbering = new RtfListNumbering(document);
                 foreach (RtfParagraph paragraph in story.Paragraphs)
-                    CollectReferencedFontIds(document, paragraph, options, fontIds, text, storyNumbering);
+                    CollectReferencedFontIds(document, paragraph, options, fontIds, text, storyNumbering,
+                        context: PdfInlineProjectionContext.RunningStory);
             }
 
             void CollectStories(RtfPageSetup setup, IReadOnlyList<RtfHeaderFooter> declarations) {
@@ -258,13 +259,15 @@ internal static partial class RtfPdfConverter {
     private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph,
         RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
         ISet<RtfNote>? referencedNotes = null, bool splitBodyParagraph = false,
-        bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null) {
+        bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null,
+        PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         options.CancellationToken.ThrowIfCancellationRequested();
         var runs = parentRuns ?? new List<PdfCore.PdfTextRun>();
         bool emitted = false;
         RtfListMarker? marker = numbering.Next(paragraph);
         if (marker != null) AddPlain(marker.Text + marker.Separator);
-        foreach (IRtfInline inline in paragraph.Inlines) {
+        for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
+            IRtfInline inline = paragraph.Inlines[inlineIndex];
             switch (inline) {
                 case RtfRun source:
                     RtfRun run = document.Styles.Count > 0 || source.UseDefaultCharacterFormatting
@@ -281,7 +284,7 @@ internal static partial class RtfPdfConverter {
                     // Field results append into the parent's runs; they have
                     // no independent paragraph line box, even when empty.
                     CollectReferencedFontIds(document, field.Result, options, fontIds, text, numbering,
-                        referencedNotes, appendStrut: false, parentRuns: runs);
+                        referencedNotes, appendStrut: false, parentRuns: runs, context: context);
                     break;
                 case RtfGeneratedText generated:
                     AddPlain(generated.ToPlainText());
@@ -292,6 +295,10 @@ internal static partial class RtfPdfConverter {
                     break;
                 case RtfShape shape:
                     AddPlain(shape.ToPlainText());
+                    break;
+                case RtfImage image when context == PdfInlineProjectionContext.RunningStory:
+                    PdfCore.PdfTextRun? prepared = PrepareRunningInlineImage(image, options, paragraph, inlineIndex);
+                    if (prepared != null) runs.Add(prepared);
                     break;
                 case RtfBreak rtfBreak when splitBodyParagraph &&
                     rtfBreak.Kind is RtfBreakKind.Page or RtfBreakKind.SoftPage or RtfBreakKind.Column:
