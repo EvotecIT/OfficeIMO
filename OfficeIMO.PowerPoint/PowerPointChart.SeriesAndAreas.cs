@@ -395,7 +395,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        // A pie or doughnut series fill colours every slice in PowerPoint, while LibreOffice
+        // A pie or doughnut series fill colours every slice in PowerPoint, while other renderers
         // keeps varying the slices when c:varyColors stays on. Turning it off, as PowerPoint
         // does when a series fill is chosen, makes every renderer draw the same chart.
         private static void UseSeriesColorForEverySlice(OpenXmlElement series) {

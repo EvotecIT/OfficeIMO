@@ -23,8 +23,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Keeps the graphic frame equal to the table grid (sum of column widths and row heights). PowerPoint
-        ///     and LibreOffice draw the grid, so a frame that disagrees misplaces selection handles and makes
+        ///     Keeps the graphic frame equal to the table grid (sum of column widths and row heights). Office applications
+        ///     draw the grid, so a frame that disagrees misplaces selection handles and makes
         ///     frame-based renderers stretch the table.
         /// </summary>
         internal void SyncFrameToGrid() {

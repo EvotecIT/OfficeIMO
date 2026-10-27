@@ -203,7 +203,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Reads a list level justification, accepting every ST_Jc token Word and other
         /// producers write. The logical <c>start</c>/<c>end</c> values (written by
-        /// LibreOffice and strict producers) map to left/right for left-to-right lists;
+        /// other office suites and strict producers) map to left/right for left-to-right lists;
         /// paragraph-only values such as <c>both</c> fall back to left, as Word does.
         /// </summary>
         internal static LevelJustificationValues? ReadLevelJustification(LevelJustification? element) {

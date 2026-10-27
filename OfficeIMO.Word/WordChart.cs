@@ -454,7 +454,7 @@ namespace OfficeIMO.Word {
         }
 
         // Literal series names use c:v. A c:strRef needs a formula into an embedded
-        // workbook; Word charts built here have none, and LibreOffice rejects the whole
+        // workbook; Word charts built here have none, and other consumers reject the whole
         // document when the reference formula is empty.
         internal NumericValue AddSeries(UInt32Value index, string series) =>
             new NumericValue() { Text = series };
