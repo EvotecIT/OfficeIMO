@@ -20,7 +20,8 @@ internal static partial class TableDetector {
             baseline.Add(line);
         }
         if (baseline.Count > 0 && TryCombineSameBaselineLines(baseline) is { } last) rows.Add(last);
-        var owned = new HashSet<PdfTextSpan>(tables.SelectMany(static table => table.SourceRuns));
+        var owned = new Dictionary<PdfTextSpan, int>();
+        foreach (PdfStructuredTable existing in tables) ChangeOwnership(existing.SourceRuns, 1);
         for (int index = 0; index + 2 < rows.Count; index++) {
             cancellationCheck?.Invoke();
             TextLayoutEngine.TextLine upper = rows[index], middle = rows[index + 1], lower = rows[index + 2];
@@ -58,20 +59,63 @@ internal static partial class TableDetector {
             var source = new List<TextLayoutEngine.TextLine> { upper, bounded, lower };
             PdfStructuredTable? table = BuildTableFromLinesAndSplits(source, splits, "bounded-row-region");
             if (table == null || !HasValidatedRows(table, source)) continue;
-            if (table.SourceRuns.Any(owned.Contains)) {
-                PdfStructuredTable[] overlaps = tables.Where(existing =>
-                    existing.SourceRuns.Any(table.SourceRuns.Contains)).ToArray();
+            var candidateRuns = new HashSet<PdfTextSpan>();
+            bool sharesOwnership = false;
+            foreach (PdfTextSpan span in table.SourceRuns) {
+                AccountWork();
+                candidateRuns.Add(span);
+                sharesOwnership |= owned.ContainsKey(span);
+            }
+            if (sharesOwnership) {
+                var overlaps = new List<PdfStructuredTable>();
+                foreach (PdfStructuredTable existing in tables) {
+                    AccountWork();
+                    foreach (PdfTextSpan span in existing.SourceRuns) {
+                        AccountWork();
+                        if (!candidateRuns.Contains(span)) continue;
+                        overlaps.Add(existing);
+                        break;
+                    }
+                    if (overlaps.Count > 1) break;
+                }
                 // A side annotation can also have been swallowed by an existing
                 // three-row candidate. Replace only that complete region, never
                 // remove a larger table or another independently owned region.
-                if (overlaps.Length != 1 || overlaps[0].Rows.Count != 3 ||
-                    overlaps[0].Columns.Count != table.Columns.Count ||
-                    !table.SourceRuns.All(overlaps[0].SourceRuns.Contains)) continue;
-                owned.ExceptWith(overlaps[0].SourceRuns);
+                if (overlaps.Count != 1 || overlaps[0].Rows.Count != 3 ||
+                    overlaps[0].Columns.Count != table.Columns.Count) continue;
+                var previousRuns = new HashSet<PdfTextSpan>();
+                foreach (PdfTextSpan span in overlaps[0].SourceRuns) {
+                    AccountWork();
+                    previousRuns.Add(span);
+                }
+                bool containedByPrevious = true;
+                foreach (PdfTextSpan span in candidateRuns) {
+                    AccountWork();
+                    if (!previousRuns.Contains(span)) { containedByPrevious = false; break; }
+                }
+                if (!containedByPrevious) continue;
+                ChangeOwnership(overlaps[0].SourceRuns, -1);
+                AccountWork(tables.Count);
                 tables.Remove(overlaps[0]);
             }
+            ChangeOwnership(table.SourceRuns, 1);
+            cancellationCheck?.Invoke();
             tables.Add(table);
-            owned.UnionWith(table.SourceRuns);
+        }
+
+        void AccountWork(long units = 1) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(units);
+        }
+
+        void ChangeOwnership(IEnumerable<PdfTextSpan> spans, int change) {
+            foreach (PdfTextSpan span in spans) {
+                AccountWork();
+                owned.TryGetValue(span, out int count);
+                int next = count + change;
+                if (next <= 0) owned.Remove(span);
+                else owned[span] = next;
+            }
         }
     }
 }

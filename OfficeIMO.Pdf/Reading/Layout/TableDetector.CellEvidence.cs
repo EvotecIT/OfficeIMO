@@ -22,6 +22,7 @@ internal static partial class TableDetector {
     private static bool HasValidatedRows(PdfStructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
         int columnCount = table.Columns.Count;
         if (columnCount < 2 || table.Rows.Count < 2) return false;
+        if (HasHangingListColumnEvidence(table, sourceLines)) return false;
 
         int denseRows = 0;
         bool hasTabularValueEvidence = false;
@@ -46,6 +47,16 @@ internal static partial class TableDetector {
                    emphasizedHeader ||
                    compactGrid ||
                    HasStableColumnAnchors(table, sourceLines)));
+    }
+
+    /// <summary>Aligned list markers are not a header column, even when the first item is emphasized.</summary>
+    private static bool HasHangingListColumnEvidence(PdfStructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+        if (sourceLines.Count < 2 || table.Rows[0].Length == 0 ||
+            !ContentStructureExtractor.TryParseListItemText(sourceLines[0].Text, out string marker, out _, out _) ||
+            !string.Equals(ContentStructureExtractor.NormalizeShattered(table.Rows[0][0]).Trim(), marker, StringComparison.Ordinal))
+            return false;
+        int listRows = sourceLines.Count(line => ContentStructureExtractor.TryParseListItemText(line.Text, out _, out _, out _));
+        return listRows >= 2 && listRows * 2 >= sourceLines.Count;
     }
 
     private static bool HasNarrativeColumnEvidence(PdfStructuredTable table) {
