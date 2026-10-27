@@ -36,22 +36,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Adds an image anchored to the specified cell. The top-left of the image will align to the cell's top-left,
-        /// with optional pixel offsets. Size is specified in pixels and converted to EMUs.
-        /// </summary>
-        /// <param name="row">1-based row index.</param>
-        /// <param name="column">1-based column index.</param>
-        /// <param name="imageBytes">Image bytes.</param>
-        /// <param name="contentType">Content type, e.g. image/png or image/jpeg.</param>
-        /// <param name="widthPixels">Width in pixels.</param>
-        /// <param name="heightPixels">Height in pixels.</param>
-        /// <param name="offsetXPixels">Optional X offset from cell origin in pixels.</param>
-        /// <param name="offsetYPixels">Optional Y offset from cell origin in pixels.</param>
-        public void AddImageAt(int row, int column, byte[] imageBytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
-            AddImage(row, column, imageBytes, contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
-        }
-
-        /// <summary>
         /// Adds an image anchored to the specified cell and returns a wrapper for setting metadata and sizing.
         /// </summary>
         /// <param name="row">1-based row index.</param>

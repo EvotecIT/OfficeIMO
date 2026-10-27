@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## Returned Excel authoring objects
+
+`AddMacro` returns an attached `ExcelMacroProject`; manual row and column page-break
+Add methods return `ExcelPageBreak`. Ignored-error Add methods return their region
+metadata, and `AddBackLinksToToc` returns hyperlink metadata keyed by worksheet.
+Recompile callers that use these methods as delegates. Replace `AddImageAt` with
+`AddImage`, which returns the created image. Removed or replaced project and
+page-break handles reject operations against a replacement.
+
 ## Streaming Excel exports
 
 Replace `ExcelDocument.WriteRows`, `WriteRowsAsync` and `WriteDataReader` with

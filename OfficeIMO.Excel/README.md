@@ -38,6 +38,14 @@ reads current criteria and table ownership. Creating the handle preserves deferr
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
+`AddManualRowPageBreak` and `AddManualColumnPageBreak` return an attached
+`ExcelPageBreak` with its worksheet, index, orientation and `Remove()` method.
+`AddMacro` returns the attached `ExcelMacroProject`, which can read, save or remove
+the VBA payload. Removed or replaced handles reject further operations.
+`AddIgnoredErrorRegion` returns the created `ExcelIgnoredErrorRegionInfo`.
+`AddBackLinksToToc` returns hyperlink metadata keyed by the worksheets receiving
+links. Use `AddImage` to create an image and receive its `ExcelImage`.
+
 ## Install
 
 ```powershell

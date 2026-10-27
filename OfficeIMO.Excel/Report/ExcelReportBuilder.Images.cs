@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         /// <param name="offsetXPixels">Optional X offset in pixels.</param>
         /// <param name="offsetYPixels">Optional Y offset in pixels.</param>
         public ExcelReportBuilder ImageAt(int row, int column, byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
-            Sheet.AddImageAt(row, column, bytes, contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
+            Sheet.AddImage(row, column, bytes, contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
             return this;
         }
 

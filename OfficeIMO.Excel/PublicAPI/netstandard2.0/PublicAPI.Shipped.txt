@@ -1151,10 +1151,10 @@ OfficeIMO.Excel.ExcelDocument
 OfficeIMO.Excel.ExcelDocument.AccessMode.get -> OfficeIMO.DocumentAccessMode
 OfficeIMO.Excel.ExcelDocument.ActiveWorksheet.get -> OfficeIMO.Excel.ExcelSheet?
 OfficeIMO.Excel.ExcelDocument.ActiveWorksheetIndex.get -> int
-OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string! tocSheetName = "TOC", int row = 2, int col = 1, string! text = "← TOC") -> void
-OfficeIMO.Excel.ExcelDocument.AddMacro(System.IO.Stream! stream, long? maxBytes = null) -> void
-OfficeIMO.Excel.ExcelDocument.AddMacro(byte[]! data) -> void
-OfficeIMO.Excel.ExcelDocument.AddMacro(string! filePath) -> void
+OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string! tocSheetName = "TOC", int row = 2, int col = 1, string! text = "← TOC") -> System.Collections.Generic.IReadOnlyDictionary<OfficeIMO.Excel.ExcelSheet!, OfficeIMO.Excel.ExcelHyperlinkInfo!>!
+OfficeIMO.Excel.ExcelDocument.AddMacro(System.IO.Stream! stream, long? maxBytes = null) -> OfficeIMO.Excel.ExcelMacroProject!
+OfficeIMO.Excel.ExcelDocument.AddMacro(byte[]! data) -> OfficeIMO.Excel.ExcelMacroProject!
+OfficeIMO.Excel.ExcelDocument.AddMacro(string! filePath) -> OfficeIMO.Excel.ExcelMacroProject!
 OfficeIMO.Excel.ExcelDocument.AddPivotSlicer(string! pivotTableName, string! sourceField, string! worksheetName, OfficeIMO.Excel.ExcelSlicerViewOptions? options = null) -> OfficeIMO.Excel.ExcelPivotInteractionInfo!
 OfficeIMO.Excel.ExcelDocument.AddPivotSlicerCache(string! pivotTableName, string! sourceField, string? cacheName = null) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddPivotTimeline(string! pivotTableName, string! sourceField, string! worksheetName, OfficeIMO.Excel.ExcelTimelineViewOptions? options = null) -> OfficeIMO.Excel.ExcelPivotInteractionInfo!
@@ -1841,6 +1841,12 @@ OfficeIMO.Excel.ExcelLoadOptions.ValidateContentTypeWhenPresent.get -> bool
 OfficeIMO.Excel.ExcelLoadOptions.ValidateContentTypeWhenPresent.set -> void
 OfficeIMO.Excel.ExcelLoadOptions.ValidateZipHeader.get -> bool
 OfficeIMO.Excel.ExcelLoadOptions.ValidateZipHeader.set -> void
+OfficeIMO.Excel.ExcelMacroProject
+OfficeIMO.Excel.ExcelMacroProject.Document.get -> OfficeIMO.Excel.ExcelDocument!
+OfficeIMO.Excel.ExcelMacroProject.PartUri.get -> string!
+OfficeIMO.Excel.ExcelMacroProject.Remove() -> void
+OfficeIMO.Excel.ExcelMacroProject.Save(string! path, long maximumBytes = 67108864) -> void
+OfficeIMO.Excel.ExcelMacroProject.ToBytes(long maximumBytes = 67108864) -> byte[]!
 OfficeIMO.Excel.ExcelMarginPreset
 OfficeIMO.Excel.ExcelMarginPreset.Moderate = 2 -> OfficeIMO.Excel.ExcelMarginPreset
 OfficeIMO.Excel.ExcelMarginPreset.Narrow = 1 -> OfficeIMO.Excel.ExcelMarginPreset
@@ -1947,6 +1953,11 @@ OfficeIMO.Excel.ExcelPackagePartInfo.ContentType.get -> string!
 OfficeIMO.Excel.ExcelPackagePartInfo.RelationshipId.get -> string!
 OfficeIMO.Excel.ExcelPackagePartInfo.RelationshipType.get -> string!
 OfficeIMO.Excel.ExcelPackagePartInfo.Uri.get -> string!
+OfficeIMO.Excel.ExcelPageBreak
+OfficeIMO.Excel.ExcelPageBreak.Index.get -> int
+OfficeIMO.Excel.ExcelPageBreak.IsRowBreak.get -> bool
+OfficeIMO.Excel.ExcelPageBreak.Remove(bool save = true) -> void
+OfficeIMO.Excel.ExcelPageBreak.Sheet.get -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelPageOrder
 OfficeIMO.Excel.ExcelPageOrder.DownThenOver = 0 -> OfficeIMO.Excel.ExcelPageOrder
 OfficeIMO.Excel.ExcelPageOrder.OverThenDown = 1 -> OfficeIMO.Excel.ExcelPageOrder
@@ -3063,10 +3074,9 @@ OfficeIMO.Excel.ExcelSheet.AddDashboard(System.Data.DataTable! data, OfficeIMO.E
 OfficeIMO.Excel.ExcelSheet.AddDashboardChart(OfficeIMO.Excel.ExcelDashboardChartOptions! options) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddFunnelChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Funnel", bool sortDescending = true, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddHistogramChart(System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Histogram", int? binCount = null, double? binWidth = null, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddIgnoredErrorRegion(System.Collections.Generic.IEnumerable<string!>! ranges, OfficeIMO.Excel.ExcelIgnoredErrorKind errors) -> void
+OfficeIMO.Excel.ExcelSheet.AddIgnoredErrorRegion(System.Collections.Generic.IEnumerable<string!>! ranges, OfficeIMO.Excel.ExcelIgnoredErrorKind errors) -> OfficeIMO.Excel.ExcelIgnoredErrorRegionInfo!
 OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[]! imageBytes, string! contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) -> OfficeIMO.Excel.ExcelImage!
 OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(int xPixels, int yPixels, byte[]! imageBytes, string! contentType = "image/png", int widthPixels = 96, int heightPixels = 32, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddImageAt(int row, int column, byte[]! imageBytes, string! contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) -> void
 OfficeIMO.Excel.ExcelSheet.AddImageFromFile(int row, int column, string! path, int? widthPixels = null, int? heightPixels = null, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
 OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(string! range, string! path, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
 OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string! url, double scalePercent, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
@@ -3080,8 +3090,8 @@ OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string! range, string! ur
 OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddImageToRange(string! range, byte[]! imageBytes, string! contentType = "image/png", int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
 OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string! dataRangeA1, int row, int column, string! title = "KPI Scorecard", int widthPixels = 520, int heightPixels = 300, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddManualColumnPageBreak(int column, bool save = true) -> void
-OfficeIMO.Excel.ExcelSheet.AddManualRowPageBreak(int row, bool save = true) -> void
+OfficeIMO.Excel.ExcelSheet.AddManualColumnPageBreak(int column, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
+OfficeIMO.Excel.ExcelSheet.AddManualRowPageBreak(int row, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
 OfficeIMO.Excel.ExcelSheet.AddModernChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.Excel.ExcelModernChartType chartType, string? title = null, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelModernChart!
 OfficeIMO.Excel.ExcelSheet.AddParetoChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Pareto", int widthPixels = 720, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string! pivotTableName, string! dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0) -> OfficeIMO.Excel.ExcelChart!

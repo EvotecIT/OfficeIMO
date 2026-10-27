@@ -106,7 +106,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
         /// </summary>
-        public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
+        public IReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo> AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
+            var links = new Dictionary<ExcelSheet, ExcelHyperlinkInfo>();
             var tocSheet = SheetNameLookup.FindByRequestedName(this.Sheets, tocSheetName);
             string resolvedTocName = SheetNameLookup.ResolveExistingOrNormalizedOrRequested(this.Sheets, tocSheetName);
             foreach (var sh in this.Sheets) {
@@ -115,7 +116,9 @@ namespace OfficeIMO.Excel {
                     sh.SetInternalLink(row, col, tocSheet, "A1", text);
                 else
                     sh.SetInternalLink(row, col, SheetNameLookup.BuildInternalLocation(this.Sheets, tocSheetName, "A1", normalizeFallback: true), text);
+                links.Add(sh, sh.GetHyperlinks()[ExcelA1.CellReference(row, col)]);
             }
+            return new System.Collections.ObjectModel.ReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo>(links);
         }
 
         private void MoveSheetToBeginning(string sheetName) {

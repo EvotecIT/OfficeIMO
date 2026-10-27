@@ -253,35 +253,39 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a manual worksheet row page break after the specified one-based row.
         /// </summary>
-        public void AddManualRowPageBreak(int row, bool save = true) {
+        public ExcelPageBreak AddManualRowPageBreak(int row, bool save = true) {
             if (row <= 0 || row > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
+            ExcelPageBreak? pageBreak = null;
             WriteLock(() => {
                 RowBreaks breaks = GetOrCreateRowBreaks();
-                AddManualPageBreak(breaks, (uint)row, 16383U);
+                pageBreak = new ExcelPageBreak(this, AddManualPageBreak(breaks, (uint)row, 16383U), true);
                 if (save) {
                     WorksheetRoot.Save();
                 }
             });
+            return pageBreak!;
         }
 
         /// <summary>
         /// Adds a manual worksheet column page break after the specified one-based column.
         /// </summary>
-        public void AddManualColumnPageBreak(int column, bool save = true) {
+        public ExcelPageBreak AddManualColumnPageBreak(int column, bool save = true) {
             if (column <= 0 || column > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
+            ExcelPageBreak? pageBreak = null;
             WriteLock(() => {
                 ColumnBreaks breaks = GetOrCreateColumnBreaks();
-                AddManualPageBreak(breaks, (uint)column, 1048575U);
+                pageBreak = new ExcelPageBreak(this, AddManualPageBreak(breaks, (uint)column, 1048575U), false);
                 if (save) {
                     WorksheetRoot.Save();
                 }
             });
+            return pageBreak!;
         }
 
         /// <summary>
@@ -541,10 +545,24 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        private static void AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
+        internal void EnsurePageBreakAttached(Break element, bool isRowBreak) {
+            bool correctKind = isRowBreak ? element.Parent is RowBreaks : element.Parent is ColumnBreaks;
+            if (SheetElement.Parent == null || !correctKind || !ReferenceEquals(element.Parent?.Parent, WorksheetRoot))
+                throw new InvalidOperationException("The page break has been removed or replaced.");
+        }
+
+        internal void RemovePageBreak(Break element, bool isRowBreak, bool save) {
+            WriteLock(() => {
+                EnsurePageBreakAttached(element, isRowBreak);
+                RemoveManualPageBreak((OpenXmlCompositeElement)element.Parent!, element.Id!.Value);
+                if (save) WorksheetRoot.Save();
+            });
+        }
+
+        private static Break AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
             Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
             if (existing == null) {
-                breaks.Append(new Break {
+                existing = breaks.AppendChild(new Break {
                     Id = id,
                     Min = 0U,
                     Max = max,
@@ -557,6 +575,7 @@ namespace OfficeIMO.Excel {
             }
 
             UpdatePageBreakCounts(breaks);
+            return existing;
         }
 
         private static bool RemoveManualPageBreak(OpenXmlCompositeElement? breaks, uint id) {
