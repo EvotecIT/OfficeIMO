@@ -113,18 +113,14 @@ if (arrowBatch.Length != 1 || arrowBatch.Schema.FieldsList.Count != 2) {
 }
 
 using var excelSourceStream = new System.IO.MemoryStream();
-ExcelDocument.WriteRows(
-    excelSourceStream,
-    new[] {
+using (var writer = ExcelDocument.CreateWriter(excelSourceStream, new ExcelWriterOptions {
+    IncludeCellReferences = false, UseSharedStrings = false
+}, leaveOpen: true)) {
+    writer.WriteTable("Data", new[] {
         new AotExcelRow { Id = 1, Name = "Ada" },
         new AotExcelRow { Id = 2, Name = "Grace" }
-    },
-    new[] { "Id", "Name" },
-    static (writer, row) => writer.Write(row.Id).Write(row.Name),
-    new ExcelWriterOptions {
-        IncludeCellReferences = false,
-        UseSharedStrings = false
-    });
+    }, new[] { "Id", "Name" }, static (rowWriter, row) => rowWriter.Write(row.Id).Write(row.Name));
+}
 excelSourceStream.Position = 0;
 using var excelSourceReader = ExcelDocument.OpenReader(
     excelSourceStream,
@@ -133,13 +129,11 @@ using var excelSourceReader = ExcelDocument.OpenReader(
         InferSchema = true
     });
 using var excelStream = new System.IO.MemoryStream();
-ExcelDocument.WriteDataReader(
-    excelStream,
-    excelSourceReader,
-    new ExcelWriterOptions {
-        IncludeCellReferences = false,
-        UseSharedStrings = false
-    });
+using (var writer = ExcelDocument.CreateWriter(excelStream, new ExcelWriterOptions {
+    IncludeCellReferences = false, UseSharedStrings = false
+}, leaveOpen: true)) {
+    writer.WriteTable("Data", excelSourceReader);
+}
 excelStream.Position = 0;
 using var excelReader = ExcelDocument.OpenReader(
     excelStream,

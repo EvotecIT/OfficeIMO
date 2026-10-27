@@ -21,7 +21,7 @@ public sealed class ExcelDataReaderOutputTests
                 using (OfficeFileCommitClaim.Acquire(destination))
                 {
                     Assert.Throws<IOException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                        destination, reader, new ExcelWriterOptions(), overwrite: false));
+                        destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: false));
                     Assert.False(reader.IsClosed);
                     Assert.False(File.Exists(destination));
                 }
@@ -49,7 +49,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 Assert.Throws<IOException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelWriterOptions(), overwrite: false));
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: false));
                 Assert.False(reader.IsClosed);
                 Assert.True(reader.Read());
                 Assert.Equal("first", reader.GetString(0));
@@ -78,7 +78,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 var result = ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelWriterOptions(), overwrite: true);
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true);
                 Assert.Equal(1, result.RowCount);
                 Assert.Equal(2, result.ColumnCount);
                 Assert.False(reader.IsClosed);
@@ -117,7 +117,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 Assert.Throws<UnauthorizedAccessException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelWriterOptions(), overwrite: true));
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true));
                 Assert.False(reader.IsClosed);
             }
 
@@ -148,7 +148,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 var result = ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelWriterOptions(), overwrite: true);
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true);
                 Assert.Equal(1, result.RowCount);
                 Assert.False(reader.IsClosed);
             }

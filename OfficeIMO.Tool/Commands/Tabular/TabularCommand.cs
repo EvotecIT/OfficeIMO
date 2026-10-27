@@ -179,15 +179,13 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                     FileShare.None,
                     128 * 1024,
                     FileOptions.Asynchronous | FileOptions.SequentialScan);
-                ExcelDocument.WriteDataReader(
-                    stream,
-                    reader,
-                    new ExcelWriterOptions {
-                        IncludeHeaders = options.HasHeaderRow,
-                        CreateTable = false,
-                        UseSharedStrings = false
-                    },
-                    cancellationToken);
+                using (var writer = ExcelDocument.CreateWriter(stream, new ExcelWriterOptions {
+                    IncludeHeaders = options.HasHeaderRow,
+                    CreateTable = false,
+                    UseSharedStrings = false
+                }, leaveOpen: true)) {
+                    writer.WriteTable("Data", reader, cancellationToken);
+                }
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 return;
             }

@@ -24,7 +24,7 @@ public sealed partial class ExportOfficeExcelCommand
             SheetName = WorksheetName,
             IncludeHeaders = !NoHeader.IsPresent,
             CreateTable = !NoTable.IsPresent,
-            TableName = TableName,
+            TableName = string.IsNullOrWhiteSpace(TableName) ? "ReaderData" : TableName,
             TableStyle = style,
             IncludeAutoFilter = !NoAutoFilter.IsPresent,
             IncludeCellReferences = false,

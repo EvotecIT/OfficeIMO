@@ -5326,6 +5326,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "ExcelColumnWidth.CharacterCount and PhysicalLength expose nullable, unit-preserving inspection without requiring a live worksheet or font resolver. Internal StoredWidth and StoredHeight retain exact native values for codecs and adapters. Reader, Google Sheets, HTML, PDF, OpenDocument, iWork, markup and PowerShell summary consumers perform explicit conversions to preserve their existing output units. Native and legacy inspection round trips keep character widths and point heights."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "ExcelWorkbookWriter.WriteTable returns ExcelDataSetImportResult, or Task<ExcelDataSetImportResult> for asynchronous sources, with final observed row/column counts, sanitized sheet/table names and occupied range. The existing tabular result model is shared by imports and streaming writes. Results retain only schema and counts, never source rows. IDataReader headers use the existing native blank-name and duplicate-name normalization."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PSWriteOffice and the CLI direct XLSX reader exports and the combined AOT smoke use CreateWriter(...).WriteTable(...). PowerShell preserves ReaderData as its default table name, Sheet1 for blank worksheet names, native header normalization, caller resource ownership and the existing atomic file commit. Remaining static row/reader/DataSet consumers and the superseded public entry points remain pending the writer-removal batch."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

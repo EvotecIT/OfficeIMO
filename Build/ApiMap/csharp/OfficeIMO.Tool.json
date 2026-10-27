@@ -17,6 +17,11 @@
       "change": "Saved job, report and batch command tests use OfficeBatchOptions/OfficeBatchReport and the canonical v2 JSON contract. Removed the duplicate host-retention test now owned by OfficeIMO.Tests.",
       "reason": "The command surface serializes shared library reports and no longer owns a separate collector contract.",
       "status": "applied"
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The tabular CSV-to-XLSX route uses CreateWriter(...).WriteTable(...) with the existing header policy, cancellation, streaming reader and atomic output commit."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

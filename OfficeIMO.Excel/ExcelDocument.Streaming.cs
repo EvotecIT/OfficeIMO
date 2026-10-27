@@ -61,7 +61,7 @@ public partial class ExcelDocument {
             _archive = new ZipArchive(_position ?? output, ZipArchiveMode.Create, leaveOpen: true);
         }
 
-        internal async Task WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
+        internal async Task<ExcelDataSetImportResult> WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
             Action<ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken) {
             if (_disposed) throw new ObjectDisposedException(nameof(ExcelWorkbookWriter));
             if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
@@ -90,8 +90,10 @@ public partial class ExcelDocument {
                     _options.TableStyle, _options.IncludeHeaders, _options.IncludeAutoFilter, _options.CreateTable,
                     false, false, null, _options.UseCellValueNumberFormats, includeCellReferences: _options.IncludeCellReferences);
                 var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
-                await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, cancellationToken).ConfigureAwait(false);
+                int rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, cancellationToken).ConfigureAwait(false);
                 _sheets.Add(sheet);
+                return new ExcelDataSetImportResult(sheetName, tableName,
+                    ExcelSheet.BuildObjectExportRange(1, names.Length, rowCount, _options.IncludeHeaders), rowCount, names.Length);
             } catch { _failed = true; throw; }
             finally { Volatile.Write(ref _busy, 0); }
         }

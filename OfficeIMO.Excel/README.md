@@ -63,11 +63,12 @@ using System.Linq;
 
 var events = Enumerable.Range(1, 1000).Select(id => new { Id = id, Name = $"Event {id}" });
 using var writer = ExcelDocument.CreateWriter("events.xlsx", theme: OfficeTheme.Modern);
-writer.WriteTable("Events", events);
+ExcelDataSetImportResult written = writer.WriteTable("Events", events);
+Console.WriteLine($"{written.RowCount} rows written to {written.SheetName}!{written.Range}");
 ```
 
 `WriteTable` also accepts an `IAsyncEnumerable<T>` (await the returned task),
-`DataTable`, or forward-only `IDataReader`. Readers remain caller-owned. An
+`DataTable`, or forward-only `IDataReader`. Each call returns the final sheet and table names, occupied range, row count and column count. Readers remain caller-owned. An
 explicit header list and row callback supports schemas without reflection. Each
 call creates another worksheet; each source is consumed once. Dispose completes
 the package. File destinations are replaced atomically after successful output;

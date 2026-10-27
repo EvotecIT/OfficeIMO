@@ -6,24 +6,24 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel;
 
 /// <summary>Writes XLSX worksheets as rows arrive, retaining schemas and workbook metadata rather than source rows.</summary>
-/// <remarks>Dispose completes the package. File destinations are published only after every table succeeds.</remarks>
+/// <remarks>Each table returns its observed row count and occupied range. Dispose completes the package; file destinations are published only after every table succeeds.</remarks>
 public sealed class ExcelWorkbookWriter : IDisposable {
     private readonly ExcelDocument.StreamingWorkbook _workbook;
 
     internal ExcelWorkbookWriter(ExcelDocument.StreamingWorkbook workbook) => _workbook = workbook;
 
     /// <summary>Writes one worksheet and its table from the readable scalar properties of <typeparamref name="T"/>.</summary>
-    public void WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+    public ExcelDataSetImportResult WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         string name, IEnumerable<T> rows, CancellationToken cancellationToken = default) {
         try {
             if (rows == null) throw new ArgumentNullException(nameof(rows));
             var projection = ExcelSheet.CreateStreamingRowProjection<T>();
-            WriteTable(name, rows, projection.Headers, projection.WriteRow, cancellationToken);
+            return WriteTable(name, rows, projection.Headers, projection.WriteRow, cancellationToken);
         } catch { _workbook.Abort(); throw; }
     }
 
     /// <summary>Writes one worksheet from an asynchronous sequence, awaiting and releasing one row at a time.</summary>
-    public Task WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+    public Task<ExcelDataSetImportResult> WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         string name, IAsyncEnumerable<T> rows, CancellationToken cancellationToken = default) {
         try {
             if (rows == null) throw new ArgumentNullException(nameof(rows));
@@ -33,36 +33,36 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     }
 
     /// <summary>Writes a single-pass sequence using an explicit column schema and a row callback.</summary>
-    public void WriteTable<T>(string name, IEnumerable<T> rows, IReadOnlyList<string> headers,
+    public ExcelDataSetImportResult WriteTable<T>(string name, IEnumerable<T> rows, IReadOnlyList<string> headers,
         Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken = default) {
         try {
             if (rows == null) throw new ArgumentNullException(nameof(rows));
-            _workbook.WriteTable(name, new SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
+            return _workbook.WriteTable(name, new SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
         } catch { _workbook.Abort(); throw; }
     }
 
     /// <summary>Writes an asynchronous single-pass sequence using an explicit schema and a row callback.</summary>
-    public Task WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
+    public Task<ExcelDataSetImportResult> WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
         Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken = default) =>
         _workbook.WriteTable(name, rows, headers, writeRow, cancellationToken);
 
     /// <summary>Writes the rows and schema of an existing data table without copying its rows.</summary>
-    public void WriteTable(string name, DataTable table, CancellationToken cancellationToken = default) {
+    public ExcelDataSetImportResult WriteTable(string name, DataTable table, CancellationToken cancellationToken = default) {
         try {
             if (table == null) throw new ArgumentNullException(nameof(table));
             string[] headers = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
-            WriteTable(name, table.Rows.Cast<DataRow>(), headers, (writer, row) => {
+            return WriteTable(name, table.Rows.Cast<DataRow>(), headers, (writer, row) => {
                 for (int column = 0; column < headers.Length; column++) writer.Write(row[column]);
             }, cancellationToken);
         } catch { _workbook.Abort(); throw; }
     }
 
     /// <summary>Writes a forward-only reader in one pass. The caller retains ownership of the reader.</summary>
-    public void WriteTable(string name, IDataReader reader, CancellationToken cancellationToken = default) {
+    public ExcelDataSetImportResult WriteTable(string name, IDataReader reader, CancellationToken cancellationToken = default) {
         try {
             if (reader == null) throw new ArgumentNullException(nameof(reader));
-            string[] headers = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
-            WriteTable(name, ReadRows(reader), headers, (writer, row) => {
+            string[] headers = ExcelSheet.BuildReaderHeaders(reader);
+            return WriteTable(name, ReadRows(reader), headers, (writer, row) => {
                 for (int column = 0; column < headers.Length; column++) writer.Write(row.GetValue(column));
             }, cancellationToken);
         } catch { _workbook.Abort(); throw; }

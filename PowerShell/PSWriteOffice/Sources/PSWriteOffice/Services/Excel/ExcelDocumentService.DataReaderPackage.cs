@@ -55,7 +55,10 @@ internal static partial class ExcelDocumentService
                 81920,
                 FileOptions.SequentialScan))
             {
-                result = ExcelDocument.WriteDataReader(stream, reader, options);
+                using (var writer = ExcelDocument.CreateWriter(stream, options, leaveOpen: true))
+                {
+                    result = writer.WriteTable(string.IsNullOrWhiteSpace(options.SheetName) ? "Sheet1" : options.SheetName, reader);
+                }
                 stream.Flush();
             }
 

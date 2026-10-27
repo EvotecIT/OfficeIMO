@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Describes a worksheet created while importing a <see cref="System.Data.DataSet"/>.
+    /// Describes a worksheet written or imported from tabular data.
     /// </summary>
     public sealed class ExcelDataSetImportResult {
         internal ExcelDataSetImportResult(string sheetName, string? tableName, string range, int rowCount, int columnCount) {
