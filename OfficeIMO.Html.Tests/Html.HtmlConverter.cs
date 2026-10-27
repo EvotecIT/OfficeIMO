@@ -146,7 +146,7 @@ public partial class Html {
         string expected = WordFontResolver.Resolve("monospace")!;
         Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(expected, roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(", monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
 

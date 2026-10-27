@@ -35,6 +35,29 @@ public class PdfDefaultFontEmbeddingTests {
     }
 
     [Fact]
+    public void BoardroomHeadingsUseTheirOwnFamilyAndBodyKeepsItsFont() {
+        var options = new PdfCreateOptions { Theme = OfficeTheme.Boardroom, EmbedDefaultFonts = true };
+        PdfHeadingStyle heading = PdfTheme.FromOfficeTheme(OfficeTheme.Boardroom).HeadingStyles!.Level1!;
+        Assert.Equal(OfficeTheme.Boardroom.Fonts.Heading.Family, heading.FontFamily);
+        Assert.Equal(PdfStandardFont.TimesRoman, heading.Font);
+        options.ApplyDefaultFontEmbedding();
+        if (!options.HasNamedFontFamily(heading.FontFamily) || !HasInstalledDefaultSansFont()) return;
+
+        using PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Content(content =>
+            content.Title("Executive").H1("Quarterly review").Paragraph(p => p.Text("Regular, body text."))));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        string headingFont = Assert.Single(words, word => word.Text == "Quarterly").Letters[0].FontName;
+        string bodyFont = Assert.Single(words, word => word.Text == "Regular,").Letters[0].FontName;
+        string titleFont = Assert.Single(words, word => word.Text == "Executive").Letters[0].FontName;
+
+        Assert.NotEqual(headingFont.Split('+').Last(), bodyFont.Split('+').Last());
+        Assert.Contains(options.NamedFontFamilies.Values, family => headingFont.Contains(
+            family.FamilyName.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase) && titleFont.Contains(
+            family.FamilyName.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void OptingOutWritesStandardFontsWithoutDiagnostics() {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions { EmbedDefaultFonts = false }.ReportDiagnosticsTo(report);

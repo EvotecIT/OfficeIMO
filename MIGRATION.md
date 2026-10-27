@@ -24,6 +24,15 @@ current text and omits deletions; the conversion report carries
 `tracked-revisions-projected` when a document has tracked changes. Use
 `WordPdfTrackedChangeView.Markup` to show both.
 
+## PDF text replacement fonts
+
+Replacement text that an embedded source-font subset cannot encode now uses
+the detected standard substitute when its encoding covers the text. Inspect
+`PdfTextEditResult.Warnings` for substitution and its possible effect on width
+or letterforms. Set `PdfTextEditOptions.Font` to choose a standard face explicitly.
+Unsupported shaping and text outside both encodings still fail before returning
+an edited document; the source remains unchanged.
+
 ## PDF adapter package direction
 
 `OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`
@@ -277,7 +286,15 @@ Visible raw text measured without a selected program reports `HtmlRenderFontMetr
 
 `WordParagraph.AddFootNote` rejects header and footer paragraphs, including their table cells, with `InvalidOperationException` before changing the document. Place footnote references in body paragraphs or body table cells. Earlier calls in running stories could produce invalid DOCX; existing malformed inputs remain subject to conversion loss reporting.
 
-The balanced PDF resource policy embeds installed document fonts by default for Word, Excel, PowerPoint, HTML and Markdown. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
+The balanced PDF resource policy embeds installed document fonts by default for Word, Excel, PowerPoint and Markdown. HTML-to-PDF uses `PdfResourcePolicy.CreateLibraryFontDefault()`: library-selected installed fonts are embedded, while CSS-selected host fonts require an explicit `AllowDocumentFontEmbedding` permission. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as embedded faces replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
+
+`PdfOptions.EmbedDefaultFonts = false` disables automatic embedding for standard PDF font slots. HTML fonts retained by the render engine and explicitly supplied fonts keep their separate resource policy.
+
+HTML page images backed by embedded PDF fonts retain their exact glyph contours
+in SVG, with source text in accessible labels. Code that inspects these images
+must handle paths rather than assuming every word is an SVG `<text>` element or
+an `OfficeDrawingText`. Use the retained HTML scene for text and style inspection;
+outlined SVG glyphs are not selectable text.
 
 Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordPdfExportOptions` used for PDF export when customizing layout.
 

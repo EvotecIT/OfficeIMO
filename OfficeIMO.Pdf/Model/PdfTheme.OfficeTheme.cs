@@ -86,7 +86,7 @@ public sealed partial class PdfTheme {
 
     private static PdfHeadingStyle CreateHeading(OfficeTheme theme, int level, double size, PdfColor color) {
         OfficeThemeParagraphSpacing spacing = theme.TextStyle.GetHeadingSpacing(level);
-        return new PdfHeadingStyle {
+        var style = new PdfHeadingStyle {
             FontSize = size,
             LineHeight = HeadingLineHeight,
             SpacingBefore = spacing.Before.ToPoints(),
@@ -94,6 +94,18 @@ public sealed partial class PdfTheme {
             Bold = theme.TextStyle.HeadingBold,
             Color = color,
             KeepWithNext = true
+        };
+        ApplyThemeHeadingFont(theme, style);
+        return style;
+    }
+
+    internal static void ApplyThemeHeadingFont(OfficeTheme theme, PdfHeadingStyle style) {
+        if (string.Equals(theme.Fonts.Heading.Family, theme.Fonts.Body.Family, StringComparison.OrdinalIgnoreCase)) return;
+        style.FontFamily = theme.Fonts.Heading.Family;
+        style.Font = OfficeDocumentFontSubstitutions.ClassifyGenericFamily(theme.Fonts.Heading.Family) switch {
+            "serif" => PdfStandardFont.TimesRoman,
+            "monospace" => PdfStandardFont.Courier,
+            _ => PdfStandardFont.Helvetica
         };
     }
 

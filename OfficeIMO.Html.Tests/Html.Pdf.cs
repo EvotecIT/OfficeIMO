@@ -373,7 +373,7 @@ public sealed class HtmlPdfTests {
         string appearance = GetFieldAppearanceContent(pdf, field.Name);
         Assert.DoesNotContain(password, appearance, StringComparison.Ordinal);
         Assert.DoesNotContain(passwordHex, appearance, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", appearance, StringComparison.Ordinal);
+        Assert.Equal(new string('*', password.Length), GetFlattenedFormAppearanceText(pdf));
     }
 
     [Fact]
@@ -550,9 +550,10 @@ public sealed class HtmlPdfTests {
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string appearance = GetFieldAppearanceContent(pdf, "letters");
 
-        Assert.Contains("<416C706861> Tj", appearance, StringComparison.Ordinal);
-        Assert.Contains("<42657461> Tj", appearance, StringComparison.Ordinal);
-        Assert.Contains("<47616D6D61> Tj", appearance, StringComparison.Ordinal);
+        string paintedText = GetFlattenedFormAppearanceText(pdf);
+        Assert.Contains("Alpha", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Beta", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Gamma", paintedText, StringComparison.Ordinal);
         Assert.Contains("0.153 0.392 0.8 rg", appearance, StringComparison.Ordinal);
         Assert.Contains("1 1 1 rg", appearance, StringComparison.Ordinal);
     }
@@ -568,8 +569,9 @@ public sealed class HtmlPdfTests {
         Assert.Contains("/I [1]", syntax, StringComparison.Ordinal);
         Assert.Equal(new[] { 1 }, field.SelectedIndices);
         Assert.Equal("Second", Assert.Single(field.SelectedOptions).DisplayText);
-        Assert.Contains("<4669727374> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
-        Assert.Contains("<5365636F6E64> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
+        string paintedText = GetFlattenedFormAppearanceText(pdf);
+        Assert.Contains("First", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Second", paintedText, StringComparison.Ordinal);
         string searchableText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Second", searchableText, StringComparison.Ordinal);
         Assert.DoesNotContain("First", searchableText, StringComparison.Ordinal);
@@ -2565,6 +2567,13 @@ public sealed class HtmlPdfTests {
         }
 
         return count;
+    }
+
+    private static string GetFlattenedFormAppearanceText(byte[] pdf) {
+        using var source = PdfCore.PdfDocument.Load(new MemoryStream(pdf));
+        using var flattened = source.Forms.Flatten();
+        using var read = UglyToad.PdfPig.PdfDocument.Open(flattened.ToBytes());
+        return string.Concat(read.GetPages().Select(page => page.Text));
     }
 
     private static string GetFieldAppearanceContent(byte[] pdf, string fieldName) {

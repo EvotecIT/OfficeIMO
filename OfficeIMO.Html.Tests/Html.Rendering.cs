@@ -598,7 +598,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_DocumentFontPolicyPreventsCssFamiliesFromLocatingHostFonts() {
-        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+        string? installedFamily = new[] { "Trebuchet MS", "Verdana", "DejaVu Sans", "Calibri", "Arial", "Liberation Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         if (installedFamily == null) return;
 
@@ -613,8 +613,15 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(options.GetResourcePolicySummary().AllowSystemFontEmbedding);
         Assert.False(options.GetResourcePolicySummary().AllowDocumentFontEmbedding);
-        Assert.Empty(result.Value.Options.EmbeddedFonts);
-        Assert.Contains("Document font boundary", PdfCore.PdfReadDocument.Open(result.Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.NotEmpty(result.Value.Options.EmbeddedFonts);
+        using PdfCore.PdfDocument control = HtmlConversionDocument
+            .Parse("<p style=\"font-family:'OfficeIMO absent sans family'\">Document font boundary</p>")
+            .ToPdf(options);
+        using var actualPdf = UglyToad.PdfPig.PdfDocument.Open(result.Value.ToBytes());
+        using var controlPdf = UglyToad.PdfPig.PdfDocument.Open(control.ToBytes());
+        Assert.Equal(controlPdf.GetPage(1).Letters.Select(letter => letter.FontName),
+            actualPdf.GetPage(1).Letters.Select(letter => letter.FontName));
+        Assert.Contains("Document font boundary", actualPdf.GetPage(1).Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -8,6 +8,11 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    private static void ApplyLibraryDefaultFontEmbedding(HtmlToPdfOptions options, PdfCore.PdfCreateOptions fonts) {
+        if (options.ResourcePolicy.AllowSystemFontEmbedding) fonts.ApplyDefaultFontEmbedding(standardMetrics: true);
+        else fonts.EmbedDefaultFonts = false;
+    }
+
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
         HtmlToPdfOptions options,
         PdfCore.PdfCreateOptions measurementOptions) {
@@ -34,7 +39,7 @@ internal static partial class HtmlPdfRenderedConverter {
             if (useInstalledFonts && font.FamilyName.Length > 0
                 && HtmlRenderCssValues.TrySplitTopLevelCommas(
                     font.FamilyName, MaximumCssFontFamilyCandidates, out _)) {
-                IReadOnlyList<string> families = EnumerateFamilies(font.FamilyName).ToList();
+                IReadOnlyList<string> families = EnumerateBoundedSystemFamilies(font.FamilyName).ToList();
                 foreach (string familyName in families) {
                     if (NeedsNumericSystemFace(descriptor)
                         && TryRegisterSystemFace(measurementOptions, familyName, text, descriptor,
@@ -120,7 +125,6 @@ internal static partial class HtmlPdfRenderedConverter {
                 }
             }
         }
-        if (familyNames.IndexOf(',') < 0) return familyNames;
         foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
             string request = OfficeFontFamilyParser.Quote(familyName);
             if (NamedFontCoversTextWithStyleFallback(options, request, text, bold, italic)) return request;
@@ -258,23 +262,25 @@ internal static partial class HtmlPdfRenderedConverter {
             if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies) break;
         }
 
-        foreach (string familyName in textRuns
-                     .SelectMany(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName))
-                     .Where(familyName => !activeWebFontFamilies.Contains(familyName))
-                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                     .Take(MaximumSystemFontFamilyCandidates)) {
-            cancellationToken.ThrowIfCancellationRequested();
-            var familyRuns = textRuns
-                .Where(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName).Contains(familyName, StringComparer.OrdinalIgnoreCase))
-                .ToList();
-            if (familyRuns.Count == 0 || pdf.Options.HasNamedFontFamily(familyName)) continue;
-            if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies) break;
-            if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family)
-                || family == null) continue;
-
-            if (!pdf.Options.TryRegisterNamedFontFamily(family)) break;
-            reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
-            loadedFamilyCount++;
+        var attemptedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in textRuns.GroupBy(run => run.Font.FamilyName, StringComparer.OrdinalIgnoreCase)) {
+            var familyRuns = group.ToList();
+            foreach (string familyName in EnumerateBoundedSystemFamilies(group.Key)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (activeWebFontFamilies.Contains(familyName)) continue;
+                if (!pdf.Options.HasNamedFontFamily(familyName)) {
+                    if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies ||
+                        attemptedFamilies.Count >= MaximumSystemFontFamilyCandidates) break;
+                    if (!attemptedFamilies.Add(familyName) ||
+                        !PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family) || family == null) continue;
+                    if (!pdf.Options.TryRegisterNamedFontFamily(family)) break;
+                    reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
+                    loadedFamilyCount++;
+                }
+                // Stop after a face covers this stack's runs rather than loading every installed substitute.
+                if (familyRuns.All(run => NamedFontCoversTextWithStyleFallback(pdf.Options, familyName,
+                        run.Text, run.Font.IsBold, run.Font.IsItalic))) break;
+            }
         }
     }
 
@@ -491,11 +497,22 @@ internal static partial class HtmlPdfRenderedConverter {
     private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
         HtmlRenderCssValues.FontFamilyNames(familyNames);
 
-    private static IEnumerable<string> EnumerateBoundedSystemFamilies(string? familyNames) =>
-        HtmlRenderCssValues.TrySplitTopLevelCommas(
-            familyNames, MaximumCssFontFamilyCandidates, out _)
-            ? EnumerateFamilies(familyNames)
-            : Enumerable.Empty<string>();
+    private static IEnumerable<string> EnumerateBoundedSystemFamilies(string? familyNames) {
+        if (!HtmlRenderCssValues.TrySplitTopLevelCommas(familyNames, MaximumCssFontFamilyCandidates, out _))
+            yield break;
+        string[] requested = EnumerateFamilies(familyNames).Where(name => name.Length <= 256).ToArray();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // CSS's explicit stack wins before the shared Office substitutions are considered.
+        foreach (string family in requested) {
+            if (seen.Add(family)) yield return family;
+        }
+        foreach (string family in requested) {
+            foreach (string substitute in OfficeDocumentFontSubstitutions.Enumerate(family)) {
+                if (seen.Count >= MaximumSystemFontFamilyCandidates) yield break;
+                if (seen.Add(substitute)) yield return substitute;
+            }
+        }
+    }
 
     private sealed class RegisteredWebFonts {
         internal RegisteredWebFonts(

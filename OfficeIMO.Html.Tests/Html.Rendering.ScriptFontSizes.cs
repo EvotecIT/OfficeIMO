@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -36,9 +35,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1D, text.BaselineScale);
         Assert.Equal(expectedBaseline, text.Baseline);
 
-        XElement painted = Assert.Single(XDocument.Parse(document.ToSvg(options)).Descendants(),
-            node => node.Name.LocalName == "text" && node.Value == "X");
-        Assert.Equal(expectedSize, ParseScriptCoordinate(painted, "font-size"), 3);
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(document.ToSvg(options));
+        HtmlSvgPaintAssertions.TextPaint(HtmlSvgPaintAssertions.Read(svg), svg, "X");
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
@@ -135,13 +133,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(raised ? OfficeTextBaseline.Superscript : OfficeTextBaseline.Normal, call.Baseline);
         Assert.Equal(raised, call.BaselineOffset < 0D);
 
-        XElement[] svgText = XDocument.Parse(document.ToSvg(options)).Descendants()
-            .Where(node => node.Name.LocalName == "text").ToArray();
-        XElement svgCall = Assert.Single(svgText, node => node.Value == "1");
-        XElement svgBase = Assert.Single(svgText, node => node.Value == "BASE");
-        Assert.Equal(expectedSize, ParseScriptCoordinate(svgCall, "font-size"), 3);
-        if (raised) Assert.True(ParseScriptCoordinate(svgCall, "y") < ParseScriptCoordinate(svgBase, "y"));
-        else Assert.Equal(ParseScriptCoordinate(svgBase, "y"), ParseScriptCoordinate(svgCall, "y"), 3);
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(document.ToSvg(options));
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(svg);
+        HtmlSvgPaintAssertions.TextPaint(svgDrawing, svg, "1");
+        HtmlSvgPaintAssertions.TextPaint(svgDrawing, svg, "BASE");
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
@@ -152,6 +147,4 @@ public sealed partial class HtmlRenderingTests {
         else Assert.Equal(pdfBase.StartBaseLine.Y, pdfCall.StartBaseLine.Y, 3);
     }
 
-    private static double ParseScriptCoordinate(XElement node, string attribute) =>
-        HtmlSvgTestCoordinates.CssValue(node, attribute);
 }

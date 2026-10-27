@@ -204,8 +204,7 @@ public sealed class HtmlEpubImageExportTests {
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
             OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
-            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
-                text.Text == "Styled EPUB" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.TextPaint(drawing, result.Bytes, "Styled EPUB", OfficeFontStyle.Italic);
             HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }

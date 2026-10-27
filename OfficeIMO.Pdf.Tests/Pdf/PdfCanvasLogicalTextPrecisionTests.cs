@@ -3,18 +3,23 @@ using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfCanvasLogicalTextPrecisionTests {
     [Theory]
-    [InlineData(.2214321D, false)]
-    [InlineData(.0044321D, false)]
-    [InlineData(.2214321D, true)]
-    [InlineData(.0044321D, true)]
-    public void BoundedActualText_FractionalHeightPreservesAuthoredAdvance(double height, bool embedded) {
+    [InlineData(.2214321D, false, false)]
+    [InlineData(.0044321D, false, false)]
+    [InlineData(.2214321D, true, false)]
+    [InlineData(.0044321D, true, false)]
+    [InlineData(.2214321D, true, true)]
+    [InlineData(.0044321D, true, true)]
+    public void BoundedActualText_FractionalHeightPreservesAuthoredAdvance(double height, bool embedded, bool customProvider) {
         var options = new PdfCreateOptions { CompressContentStreams = false };
+        var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+        if (customProvider) options.SetTextShapingProvider(provider);
         if (embedded) {
             string path = Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf");
             Assert.True(File.Exists(path));
@@ -30,6 +35,7 @@ public class PdfCanvasLogicalTextPrecisionTests {
         Assert.Equal(50D, span.Advance, 2);
         Assert.Equal(height, span.FontSize, 6);
         Assert.Equal(10D, span.X, 3);
+        if (customProvider) Assert.DoesNotContain(provider.Requests, request => string.IsNullOrWhiteSpace(request.Text));
     }
 
     [Theory]

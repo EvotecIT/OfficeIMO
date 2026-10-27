@@ -46,6 +46,7 @@ public sealed partial class PdfDocument {
             Color = PdfColor.FromOfficeColor(theme.Palette.Text),
             KeepWithNext = true
         };
+        if (style == null) PdfTheme.ApplyThemeHeadingFont(theme, resolved);
         AddBlock(new HeadingBlock(1, text, align, color, style: resolved) { IsTitle = true });
         return this;
     }

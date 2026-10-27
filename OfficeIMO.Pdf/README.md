@@ -371,8 +371,8 @@ content, components, logical groups, and row columns. This keeps reusable conten
 independent of where it is placed.
 
 Composition defaults come from `PdfCreateOptions.Theme`, an `OfficeTheme` that
-defaults to `OfficeTheme.Default`. Headings use the theme type scale, heading
-colour and spacing; tables without a style use the theme table style with a
+defaults to `OfficeTheme.Default`. Headings use the theme heading family, type
+scale, colour and spacing; tables without a style use the theme table style with a
 header rule, hairline rows, columns fitted to their content and right-aligned
 numbers; lists, panels and footer text follow the theme as well, and page numbers
 read `Page N of M`. Explicit default styles and block styles take precedence.
@@ -2571,8 +2571,10 @@ default. Select `RejectOverflow` to reject an over-wide line before mutation,
 or `ShrinkToFit` to reduce it no lower than `MinimumFontSize`.
 When `PdfTextEditOptions.Font` is null, safe horizontal runs reuse embedded
 TrueType fonts and Identity-H CID fonts with readable ToUnicode maps. Replacement
-text must fit the existing map; a missing subset glyph throws before returning an
-edited document. Set `Font` explicitly to permit Standard 14 substitution.
+text that fits the existing map keeps that font. A missing subset glyph uses the
+detected standard substitute when its encoding covers the replacement, and adds
+a warning. Set `Font` explicitly to choose another standard face. Text outside
+both encodings is rejected before returning an edited document.
 Mapped replacement text that requires shaping, bidirectional layout or
 combining-mark positioning is also rejected by source-font reuse.
 Other source fonts use the detected standard substitute and report a warning.

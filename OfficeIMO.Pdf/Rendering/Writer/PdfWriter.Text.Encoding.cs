@@ -127,7 +127,8 @@ internal static partial class PdfWriter {
     }
 
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfCreateOptions options, int count = 1) {
-        PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
+        // The invisible carrier owns the caller's semantic bounds, not shaped paint.
+        PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options, preservesPaintedGlyphs: true);
         return command.ActualText == null ? command
             : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs, tracking: command.Tracking,
                 advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount,

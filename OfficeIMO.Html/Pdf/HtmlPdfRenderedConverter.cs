@@ -137,6 +137,7 @@ internal static partial class HtmlPdfRenderedConverter {
             measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
                 renderOptions.LibrarySelectedDefaultFontFamily);
         }
+        ApplyLibraryDefaultFontEmbedding(options, measurementOptions);
         renderOptions.AllowSystemFontFallback = renderOptions.AllowSystemFontFallback
             && options.ResourcePolicy.AllowSystemFontEmbedding;
         renderOptions.MathOnlySystemFontFallback = renderOptions.MathOnlySystemFontFallback
@@ -316,9 +317,9 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfCreateOptions documentOptions = options.PdfOptions.Clone();
         documentOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         documentOptions.UseContentStreamCompressionByDefault();
-        // The HTML engine lays text out with standard-font metrics for families it could not resolve, so the
-        // writer must not swap another face into those slots after layout.
-        documentOptions.EmbedDefaultFonts = false;
+        // Layout and paint use the same library-selected compatibility faces. Source-selected
+        // host fonts remain subject to the separate document-font permission below.
+        ApplyLibraryDefaultFontEmbedding(options, documentOptions);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
         var mathMlFiles = new HtmlPdfMathMlFiles(options.MathMlSourceModificationDate);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");

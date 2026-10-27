@@ -32,6 +32,7 @@ internal static partial class HtmlPdfRenderedConverter {
         measurement.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurement.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         measurement.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.LibrarySelectedDefaultFontFamily);
+        ApplyLibraryDefaultFontEmbedding(options, measurement);
         options.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurement);
         options.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurement);
         return true;

@@ -194,13 +194,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
+    public void HtmlRendering_SizedSingleSelectWithoutSelectionShowsOptionsWithoutSelectingOne() {
         const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
 
-        Assert.DoesNotContain("First choice", rendered.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("First choice", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Second choice", rendered.Text, StringComparison.Ordinal);
+        HtmlRenderFormField field = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderFormField>());
+        Assert.False(field.IsComboBox);
+        Assert.Empty(field.SelectedOptionIndices);
+        Assert.Empty(field.Value);
     }
 
     [Fact]

@@ -38,6 +38,13 @@ public sealed partial class PdfCreateOptions {
     /// </param>
     internal void ApplyDefaultFontEmbedding(bool standardMetrics = false) {
         if (!_embedDefaultFonts) return;
+        if (!standardMetrics && !string.Equals(EffectiveTheme.Fonts.Heading.Family,
+                EffectiveTheme.Fonts.Body.Family, StringComparison.OrdinalIgnoreCase) &&
+            !HasNamedFontFamily(EffectiveTheme.Fonts.Heading.Family)) {
+            OfficeThemeFont heading = EffectiveTheme.Fonts.Heading;
+            TryRegisterNamedOfficeFontFamily(string.Join(", ", new[] { heading.Family }.Concat(heading.Fallbacks)
+                .Where(family => !IsGenericFamilyKeyword(family)).Select(OfficeFontFamilyParser.Quote)), out _);
+        }
         _defaultFontsUseStandardMetrics |= standardMetrics;
         foreach (PdfStandardFont slot in DefaultFontFamilySlots) {
             if (HasAnyEmbeddedStyle(slot)) continue;

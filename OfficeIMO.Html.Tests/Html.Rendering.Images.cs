@@ -670,7 +670,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visual.Drawing.Images);
         OfficeColor foreignBackground = raster.GetPixel(75, 45);
         Assert.True(foreignBackground.G > 100 && foreignBackground.G > foreignBackground.R && foreignBackground.G > foreignBackground.B, foreignBackground.ToString());
-        Assert.Contains(">FX</text>", exportedSvg, StringComparison.Ordinal);
+        byte[] exportedSvgBytes = Encoding.UTF8.GetBytes(exportedSvg);
+        HtmlSvgPaintAssertions.TextPaint(HtmlSvgPaintAssertions.Read(exportedSvgBytes), exportedSvgBytes, "FX");
         Assert.Equal("FX", extracted);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal(4, options.Clone().MaxSvgForeignObjectDepth);

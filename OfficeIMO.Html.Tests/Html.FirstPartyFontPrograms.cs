@@ -191,11 +191,12 @@ public sealed class HtmlFirstPartyFontProgramTests {
             .Sum(shape => shape.Shape.PathCommands.Count);
 
         Assert.True(shapedCommandCount < unshapedCommandCount);
-        Assert.True(shapingProvider.Requests.Count >= 2);
-        Assert.All(shapingProvider.Requests, request => Assert.Equal(725F, request.VariationCoordinates["wght"]));
+        var variableRequests = shapingProvider.Requests.Where(request => request.FontData.SequenceEqual(fontData)).ToArray();
+        Assert.True(variableRequests.Length >= 2);
+        Assert.All(variableRequests, request => Assert.Equal(725F, request.VariationCoordinates["wght"]));
         Assert.All(shapingProvider.Requests, request => Assert.Equal("pl-PL", request.Language));
-        object cacheKey = Assert.IsAssignableFrom<object>(shapingProvider.Requests[0].FontProgramCacheKeyForShaping);
-        Assert.All(shapingProvider.Requests, request => Assert.Same(cacheKey, request.FontProgramCacheKeyForShaping));
+        object cacheKey = Assert.IsAssignableFrom<object>(variableRequests[0].FontProgramCacheKeyForShaping);
+        Assert.All(variableRequests, request => Assert.Same(cacheKey, request.FontProgramCacheKeyForShaping));
     }
 
     [Theory]
