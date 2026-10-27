@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicture(imagePath, 0, 0, 2000000, 2000000);
+                PowerPointPicture picture = slide.AddPicture(imagePath, 0, 0, 2000000, 2000000).WithFrame(0, 0, 2000000, 2000000);
                 picture.FitToBox(400, 200, crop: false);
                 presentation.Save();
             }

@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Hello", left, top, width, height);
-                PowerPointPicture picture = slide.AddPicture(imagePath, left, top, width, height);
+                PowerPointPicture picture = slide.AddPicture(imagePath, left, top, width, height).WithFrame(left, top, width, height);
                 PowerPointTable table = slide.AddTable(2, 2, left, top, width, height);
 
                 Assert.Equal(left, textBox.Left);

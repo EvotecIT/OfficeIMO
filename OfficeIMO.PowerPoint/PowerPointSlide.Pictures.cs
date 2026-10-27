@@ -64,6 +64,8 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            // Keep the image's own aspect ratio inside the requested box instead of stretching it.
+            pic.ContainInFrame();
             return pic;
         }
 
@@ -131,6 +133,8 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            // Keep the image's own aspect ratio inside the requested box instead of stretching it.
+            pic.ContainInFrame();
             return pic;
         }
 

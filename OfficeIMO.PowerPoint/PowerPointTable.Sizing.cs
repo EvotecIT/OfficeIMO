@@ -19,7 +19,31 @@ namespace OfficeIMO.PowerPoint {
             }
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
             column.Width = width;
+            SyncFrameWidthToGrid();
         }
+
+        /// <summary>
+        ///     Keeps the graphic frame equal to the table grid (sum of column widths and row heights). PowerPoint
+        ///     and LibreOffice draw the grid, so a frame that disagrees misplaces selection handles and makes
+        ///     frame-based renderers stretch the table.
+        /// </summary>
+        internal void SyncFrameToGrid() {
+            SyncFrameWidthToGrid();
+            SyncFrameHeightToGrid();
+        }
+
+        internal void SyncFrameWidthToGrid() {
+            long width = TableElement.TableGrid?.Elements<A.GridColumn>().Sum(c => c.Width?.Value ?? 0L) ?? 0L;
+            A.Extents? extents = Frame.Transform?.Extents;
+            if (extents != null && width > 0) extents.Cx = width;
+        }
+
+        internal void SyncFrameHeightToGrid() {
+            long height = TableElement.Elements<A.TableRow>().Sum(r => r.Height?.Value ?? 0L);
+            A.Extents? extents = Frame.Transform?.Extents;
+            if (extents != null && height > 0) extents.Cy = height;
+        }
+
 
         /// <summary>
         ///     Gets the width of a specific column in EMUs.
@@ -154,6 +178,7 @@ namespace OfficeIMO.PowerPoint {
                 A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(adjustIndex);
                 column.Width = (column.Width ?? 0) + (totalWidth - assigned);
             }
+            SyncFrameWidthToGrid();
         }
 
         /// <summary>
@@ -175,6 +200,7 @@ namespace OfficeIMO.PowerPoint {
             }
             A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             row.Height = height;
+            SyncFrameHeightToGrid();
         }
 
         /// <summary>
