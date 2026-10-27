@@ -110,4 +110,8 @@
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Studio" />
+    <InternalsVisibleTo Include="PSWriteOffice" />
+  </ItemGroup>
 </Project>

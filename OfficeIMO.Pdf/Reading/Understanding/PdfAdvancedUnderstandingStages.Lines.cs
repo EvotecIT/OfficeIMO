@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAdvancedUnderstandingStages {
+internal static partial class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedLineGroupingStage : IPdfLineGroupingStage {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
             var groups = new List<BaselineGroup>();

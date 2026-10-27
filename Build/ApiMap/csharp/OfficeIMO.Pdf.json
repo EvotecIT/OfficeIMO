@@ -2,11 +2,12 @@
   "package": "OfficeIMO.Pdf",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 148,
+    "changes": 167,
     "byAction": {
-      "change": 39,
-      "internalize": 3,
-      "merge": 57,
+      "change": 38,
+      "internalize": 22,
+      "keep": 10,
+      "merge": 48,
       "move": 3,
       "remove": 15,
       "rename": 31
@@ -18,7 +19,8 @@
       "naming": 21,
       "options": 4,
       "package": 1,
-      "units": 18
+      "units": 18,
+      "visibility": 19
     },
     "packageMoves": 1
   },
@@ -303,6 +305,279 @@
     {
       "type": "OfficeIMO.Pdf.PdfProjectionOptions",
       "why": "Options for OfficeDocumentModel projection; only the Reader.All facade exposes it."
+    },
+    {
+      "type": "OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions",
+      "file": [
+        "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.ReadingOrder.cs",
+        "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 0
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfAdvancedUnderstandingStages",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.Lines.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.SelectionGeometry.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfAdvancedUnderstandingStages",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 8
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfDocumentFormsCompatibilityExtensions",
+      "file": [
+        "OfficeIMO.Pdf/Core/PdfDocumentFormsCompatibilityExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfDocumentFormsCompatibilityExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 0
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfFontDiagnostics",
+      "file": [
+        "OfficeIMO.Pdf/Model/PdfFontDiagnostics.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfFontDiagnostics",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfIccProfiles",
+      "file": [
+        "OfficeIMO.Pdf/Model/PdfIccProfiles.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfIccProfiles",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalParagraphContinuations",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalParagraphContinuations.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalParagraphContinuations",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalReadingOrderAnalysis",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.Tables.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalReadingOrderAnalysis",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalTableContinuations",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalTableContinuations",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 4
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableTextExport.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 8
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalTableValueAnalysis",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueAnalysis.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalTableValueAnalysis",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfLogicalTableValueParser",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueParser.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfLogicalTableValueParser",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 7
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfOpenTypeFontInspector",
+      "file": [
+        "OfficeIMO.Pdf/Model/PdfOpenTypeFontInspector.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfOpenTypeFontInspector",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfPageChangeAnalyzer",
+      "file": [
+        "OfficeIMO.Pdf/Rendering/PdfPageChangeAnalyzer.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfPageChangeAnalyzer",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfReadPageExtensions",
+      "file": [
+        "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfReadPageExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfRenderCapabilities",
+      "file": [
+        "OfficeIMO.Pdf/Rendering/PdfRenderCapabilities.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfRenderCapabilities",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfRewritePreservation",
+      "file": [
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.Actions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.Navigation.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.SourceStructure.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfRewritePreservation",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 4
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfRewritePreservationMatrix",
+      "file": [
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservationMatrix.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfRewritePreservationMatrix",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfStandardFontMapper",
+      "file": [
+        "OfficeIMO.Pdf/Utilities/PdfStandardFontMapper.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfStandardFontMapper",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfTextPreflight",
+      "file": [
+        "OfficeIMO.Pdf/Model/PdfTextPreflight.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Pdf.PdfTextPreflight",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 4
+      }
     }
   ],
   "frameworks": {
@@ -2290,6 +2565,253 @@
       "notes": "Two load-time option types for one document; merge into PdfLoadOptions.",
       "phase": "A",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.ReadingOrder.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAdvancedUnderstandingStages",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.Lines.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentFormsCompatibilityExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocumentFormsCompatibilityExtensions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFontDiagnostics",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Model/PdfFontDiagnostics.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfIccProfiles",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Model/PdfIccProfiles.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalParagraphContinuations",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalParagraphContinuations.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalReadingOrderAnalysis",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.Tables.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableContinuations",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableTextExport.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableValueAnalysis",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueAnalysis.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableValueParser",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueParser.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfOpenTypeFontInspector",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Model/PdfOpenTypeFontInspector.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageChangeAnalyzer",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfPageChangeAnalyzer.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadPageExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRenderCapabilities",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfRenderCapabilities.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRewritePreservation",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.Actions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRewritePreservationMatrix",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRewritePreservationMatrix.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfStandardFontMapper",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Utilities/PdfStandardFontMapper.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextPreflight",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Pdf/Model/PdfTextPreflight.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
     }
   ],
   "packageMoves": [
@@ -2445,6 +2967,51 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Ten name-based units entries describe raster bytes, aggregate pixel budgets/counters or coordinate density; those APIs remain scalar. Migration generation supports the explicit C# keep action. Physical page and tolerance geometry entries remain pending."
+    },
+    {
+      "change": "19 undocumented static helper types are internal after generated candidate review.",
+      "reason": "These types implement rendering, parsing, package metadata or serialization behind the documented object model. Public models, syntax nodes, exceptions, attributes and virtual contracts remain visible.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Core/PdfDocumentFormsCompatibilityExtensions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.Actions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.Navigation.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.SourceStructure.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservationMatrix.cs",
+        "OfficeIMO.Pdf/Model/PdfFontDiagnostics.cs",
+        "OfficeIMO.Pdf/Model/PdfIccProfiles.cs",
+        "OfficeIMO.Pdf/Model/PdfOpenTypeFontInspector.cs",
+        "OfficeIMO.Pdf/Model/PdfTextPreflight.cs",
+        "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.ReadingOrder.cs",
+        "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.cs",
+        "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalParagraphContinuations.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.Tables.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableTextExport.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueAnalysis.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableValueParser.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.Lines.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.SelectionGeometry.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.cs",
+        "OfficeIMO.Pdf/Rendering/PdfPageChangeAnalyzer.cs",
+        "OfficeIMO.Pdf/Rendering/PdfRenderCapabilities.cs",
+        "OfficeIMO.Pdf/Utilities/PdfStandardFontMapper.cs"
+      ]
+    },
+    {
+      "change": "Implementation access to internal helpers uses explicit friend assemblies.",
+      "reason": "Callers were identified from actual C# identifier syntax in existing projects. Public third-party plug-in contracts remain public and receive no friend access.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+      ],
+      "friendAssemblies": [
+        "OfficeIMO.Studio",
+        "PSWriteOffice"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

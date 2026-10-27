@@ -123,7 +123,7 @@ public sealed class PdfRenderCapabilityManifest {
 }
 
 /// <summary>Stable capability registry shared by the manifest and per-page diagnostics.</summary>
-public static class PdfRenderCapabilities {
+internal static class PdfRenderCapabilities {
     internal static bool HasIncompleteVisualProjection(IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics) =>
         diagnostics.Any(diagnostic => diagnostic.Code != FontSubstitutionId ||
             !diagnostic.IsStandardFontSubstitution);

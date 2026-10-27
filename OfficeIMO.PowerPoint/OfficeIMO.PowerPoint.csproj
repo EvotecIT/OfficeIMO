@@ -128,4 +128,9 @@
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.PowerPoint" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

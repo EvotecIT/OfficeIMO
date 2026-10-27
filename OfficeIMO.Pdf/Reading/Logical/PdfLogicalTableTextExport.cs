@@ -65,7 +65,7 @@ public sealed class PdfLogicalTableTextExportOptions {
 /// <summary>
 /// Table-focused Markdown and HTML export helpers over the first-party logical PDF read model.
 /// </summary>
-public static class PdfLogicalTableTextExportExtensions {
+internal static class PdfLogicalTableTextExportExtensions {
     /// <summary>
     /// Exports normalized logical PDF tables as Markdown tables.
     /// </summary>

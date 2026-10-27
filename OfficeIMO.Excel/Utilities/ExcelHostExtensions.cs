@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel;
 /// <summary>
 /// Helper extensions for common Excel document tasks (sheet resolution, A1 parsing).
 /// </summary>
-public static class ExcelHostExtensions
+internal static class ExcelHostExtensions
 {
     /// <summary>
     /// Returns the named sheet if it exists, otherwise creates it; falls back to the last sheet.

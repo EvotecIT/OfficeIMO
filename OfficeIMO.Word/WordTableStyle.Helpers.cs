@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 // Provides helper methods for working with table styles.
-public static partial class WordTableStyles {
+internal static partial class WordTableStyles {
     /// <summary>
     /// Converts a style name into its corresponding <see cref="WordTableStyle"/> value.
     /// </summary>

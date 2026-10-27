@@ -35,11 +35,12 @@ internal sealed class DocumentationIndex {
 
     private static bool IsEvidence(string file, string package, string format) {
         if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-            return file.StartsWith("OfficeIMO.Examples/", StringComparison.Ordinal);
+            return file.StartsWith("OfficeIMO.Examples/", StringComparison.Ordinal)
+                || file.StartsWith("OfficeIMO.MarkdownRenderer.SamplePlugin/", StringComparison.Ordinal);
         if (file.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             return file.StartsWith("PowerShell/PSWriteOffice/Examples/", StringComparison.Ordinal);
         if (!file.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) return false;
-        if (package == "OfficeIMO.Core" && file.StartsWith("OfficeIMO", StringComparison.Ordinal) && file.EndsWith("/README.md", StringComparison.Ordinal)) return true;
+        if (file.StartsWith("OfficeIMO", StringComparison.Ordinal) && file.EndsWith("/README.md", StringComparison.Ordinal)) return true;
         if (file.Equals("README.md", StringComparison.Ordinal) || file.Equals($"{package}/README.md", StringComparison.Ordinal)) return true;
         if (file.StartsWith($"OfficeIMO.{format}.", StringComparison.Ordinal) && file.EndsWith("/README.md", StringComparison.Ordinal)) return true;
         if (!file.StartsWith("Docs/", StringComparison.Ordinal) && !file.StartsWith("Website/content/docs/", StringComparison.Ordinal)) return false;

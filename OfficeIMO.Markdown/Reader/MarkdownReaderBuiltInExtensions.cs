@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Helper methods for registering OfficeIMO.Markdown's built-in block syntax extensions onto a reader profile.
 /// </summary>
-public static class MarkdownReaderBuiltInExtensions {
+internal static class MarkdownReaderBuiltInExtensions {
     /// <summary>Stable registration name for Docs-style callouts.</summary>
     public const string CalloutsExtensionName = "OfficeIMO.Callouts";
 

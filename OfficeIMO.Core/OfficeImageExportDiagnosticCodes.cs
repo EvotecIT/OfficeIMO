@@ -1,7 +1,7 @@
 namespace OfficeIMO.Drawing;
 
 /// <summary>Stable diagnostic codes shared by OfficeIMO image exporters.</summary>
-public static class OfficeImageExportDiagnosticCodes {
+internal static class OfficeImageExportDiagnosticCodes {
     /// <summary>The requested raster scale was reduced to satisfy allocation or encoder limits.</summary>
     public const string RasterScaleReduced = "IMAGE_RASTER_SCALE_REDUCED";
 

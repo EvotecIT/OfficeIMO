@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRewritePreservation {
+internal static partial class PdfRewritePreservation {
     private static void CompareNavigationMetadata(List<PdfRewritePreservationIssue> issues, PdfDocumentInfo original, PdfDocumentInfo rewritten, PdfRewritePreservationOptions options) {
         CompareNamedDestinations(issues, original.NamedDestinations, rewritten.NamedDestinations, options);
         ComparePageLabels(issues, original.PageLabels, rewritten.PageLabels, options);

@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-public static partial class OfficeSvgImageRenderer {
+internal static partial class OfficeSvgImageRenderer {
     /// <summary>Uses inspected source pixels before considering a final SVG placeholder or custom-format codec.</summary>
     internal static bool TryDecodeRasterForSvg(byte[] bytes, string? contentType,
         IOfficeRasterImageCodec? imageCodec, CancellationToken cancellationToken, out OfficeRasterImage? raster, out bool useDecodedPayload) {

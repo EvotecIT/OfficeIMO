@@ -107,7 +107,7 @@ public sealed class PdfLogicalReadingOrderItem {
 }
 
 /// <summary>Shared logical reading-order analysis for reverse-conversion adapters.</summary>
-public static partial class PdfLogicalReadingOrderAnalysis {
+internal static partial class PdfLogicalReadingOrderAnalysis {
     private const double SpanningWidthRatio = 0.62D;
 
     /// <summary>

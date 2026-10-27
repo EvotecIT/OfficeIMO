@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Well-known semantic fenced-block kinds shared across markdown readers, writers, and renderers.
 /// Hosts may define additional values for their own contracts.
 /// </summary>
-public static class MarkdownSemanticKinds {
+internal static class MarkdownSemanticKinds {
     /// <summary>Fallback semantic kind for blocks without a more specific contract.</summary>
     public const string Custom = "custom";
 

@@ -528,7 +528,7 @@ internal static partial class TextLayoutEngine {
 /// <summary>
 /// Convenience helpers for callers to get column-aware text from a PdfReadPage.
 /// </summary>
-public static class PdfReadPageExtensions {
+internal static class PdfReadPageExtensions {
     /// <summary>
     /// Extracts text from a page with simple two-column detection when present.
     /// </summary>

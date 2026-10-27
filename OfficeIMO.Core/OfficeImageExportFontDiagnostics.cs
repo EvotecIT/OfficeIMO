@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared font-resolution diagnostics for dependency-free image exporters.</summary>
-public static class OfficeImageExportFontDiagnostics {
+internal static class OfficeImageExportFontDiagnostics {
     private const int MaximumDiagnosticLookups = 256;
     private const int MaximumDiagnosticElements = 4096;
     private const int MaximumDiagnosticDepth = 64;

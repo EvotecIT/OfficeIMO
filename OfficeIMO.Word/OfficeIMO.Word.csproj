@@ -130,4 +130,9 @@
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Benchmarks" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
+  </ItemGroup>
 </Project>

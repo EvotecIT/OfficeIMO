@@ -2,7 +2,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Stable diagnostic codes emitted by PowerPoint image export.
     /// </summary>
-    public static class PowerPointImageExportDiagnosticCodes {
+    internal static class PowerPointImageExportDiagnosticCodes {
         /// <summary>A PowerPoint shape or one of its visual features could not be projected exactly.</summary>
         public const string UnsupportedShape = "unsupported-shape";
 

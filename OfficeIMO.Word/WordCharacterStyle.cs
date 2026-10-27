@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Helper methods for working with <see cref="WordCharacterStyles"/> values.
     /// </summary>
-    public static class WordCharacterStyle {
+    internal static class WordCharacterStyle {
         /// <summary>
         /// Gets the <see cref="Style"/> definition for the specified character style.
         /// </summary>

@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     /// Convenience presets for common read conversions to keep user code minimal.
     /// Provides several choices from minimal to more aggressive conversions.
     /// </summary>
-    public static class ExcelReadPresets {
+    internal static class ExcelReadPresets {
         /// <summary>
         /// No extra converters. Equivalent to default ExcelReaderOptions with only built-in behavior.
         /// </summary>

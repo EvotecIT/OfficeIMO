@@ -41,7 +41,7 @@ public sealed class OfficeConversionFidelityDiagnostic {
 }
 
 /// <summary>Shared composition helpers for typed conversion diagnostics.</summary>
-public static class OfficeConversionFidelityDiagnostics {
+internal static class OfficeConversionFidelityDiagnostics {
     /// <summary>Flattens stage diagnostics without collapsing their loss categories.</summary>
     public static IReadOnlyList<OfficeConversionFidelityDiagnostic> Flatten(
         IEnumerable<IOfficeConversionReport> reports) {

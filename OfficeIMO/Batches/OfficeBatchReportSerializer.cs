@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace OfficeIMO;
 
 /// <summary>Shared, source-generated JSON for bounded batch reports and streaming item/summary events.</summary>
-public static class OfficeBatchReportSerializer {
+internal static class OfficeBatchReportSerializer {
     /// <summary>Maximum UTF-8 size of a report or report event.</summary>
     public const int MaximumReportBytes = 20 * 1024 * 1024;
     internal static readonly OfficeBatchReportJsonContext Context = new(new JsonSerializerOptions {

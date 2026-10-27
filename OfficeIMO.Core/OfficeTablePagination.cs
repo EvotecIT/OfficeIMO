@@ -16,7 +16,7 @@ public sealed class OfficeTablePage {
 }
 
 /// <summary>Shared measured-row pagination for drawing and native document tables.</summary>
-public static class OfficeTablePagination {
+internal static class OfficeTablePagination {
     /// <summary>
     /// Packs consecutive measured rows without splitting or dropping them. Every page includes headerHeight.
     /// Invalid dimensions, an unfit row, or an exceeded page budget fail before a partial result is returned.

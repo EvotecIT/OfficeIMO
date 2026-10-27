@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Built-in inline render extension registrations for portable or host-specific output shaping.
 /// </summary>
-public static class MarkdownInlineRenderBuiltInExtensions {
+internal static class MarkdownInlineRenderBuiltInExtensions {
     /// <summary>Stable registration name for the CommonMark strikethrough markdown fallback.</summary>
     public const string CommonMarkStrikethroughMarkdownName = "CommonMark.Strikethrough.Markdown";
 

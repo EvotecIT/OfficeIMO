@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Maps Office document dash and line-pattern vocabularies to the shared renderer stroke dash style.
 /// </summary>
-public static class OfficeStrokeDashStyleMapper {
+internal static class OfficeStrokeDashStyleMapper {
     /// <summary>
     /// Maps a Visio <c>LinePattern</c> cell value to the shared stroke dash style.
     /// </summary>

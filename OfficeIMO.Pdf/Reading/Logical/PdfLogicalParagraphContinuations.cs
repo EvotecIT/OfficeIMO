@@ -103,7 +103,7 @@ public sealed class PdfLogicalParagraphContinuationGroup {
 }
 
 /// <summary>Conservative, bounded cross-page paragraph continuation analysis.</summary>
-public static class PdfLogicalParagraphContinuations {
+internal static class PdfLogicalParagraphContinuations {
     /// <summary>
     /// Returns every paragraph in document order, grouping only adjacent page-edge segments whose
     /// geometry, typography, and text-boundary evidence meet the configured confidence threshold.

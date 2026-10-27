@@ -14,7 +14,7 @@ namespace OfficeIMO.Markdown;
 /// Use document transforms for AST-level upgrades after markdown is parseable.
 /// Keep malformed-input repair in <see cref="MarkdownInputNormalizer"/> so the parser sees valid structure first.
 /// </example>
-public static class MarkdownDocumentTransformPipeline {
+internal static class MarkdownDocumentTransformPipeline {
     /// <summary>
     /// Applies the supplied transforms in order.
     /// </summary>

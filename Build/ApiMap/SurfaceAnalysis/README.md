@@ -6,7 +6,9 @@ signature closure spans the selected packages, so a documented Word API can reta
 its Core options and result models. Concrete Markdown syntax nodes, caller-visible
 exception types, attribute contracts, virtual extension points and concrete
 subtypes of exposed abstract model classes also remain public. Examples count across
-format directories because conversion examples use more than one package. Public interfaces, overrides, operators and
+format directories and package READMEs because conversion examples use more than
+one package. The supported renderer plug-in sample also defines a public extension
+contract; it never receives friend-assembly access. Public interfaces, overrides, operators and
 exposed model data retain their contracts. Public constructors, value-type members
 and immutable `With...` copies that return the same model type also survive the
 signature closure.

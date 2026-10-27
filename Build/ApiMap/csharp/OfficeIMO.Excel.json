@@ -2,10 +2,10 @@
   "package": "OfficeIMO.Excel",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 299,
+    "changes": 308,
     "byAction": {
       "change": 162,
-      "internalize": 4,
+      "internalize": 13,
       "merge": 94,
       "remove": 19,
       "rename": 20
@@ -17,7 +17,7 @@
       "naming": 1,
       "options": 11,
       "units": 123,
-      "visibility": 1
+      "visibility": 10
     },
     "packageMoves": 1
   },
@@ -379,6 +379,132 @@
     {
       "type": "OfficeIMO.Excel.Fluent.SheetComposer+ColumnComposer",
       "why": "Nested public builder; keep as ExcelReportBuilder.ColumnComposer only if Columns(...) stays in the report API."
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelCompatibilityCatalog",
+      "file": [
+        "OfficeIMO.Excel/ExcelCompatibilityCatalog.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelCompatibilityCatalog",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelFormatCatalog",
+      "file": [
+        "OfficeIMO.Excel/ExcelFormatCatalog.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelFormatCatalog",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelHostExtensions",
+      "file": [
+        "OfficeIMO.Excel/Utilities/ExcelHostExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelHostExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelImageExportDiagnosticCodes",
+      "file": [
+        "OfficeIMO.Excel/ExcelImageExportDiagnosticCodes.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelImageExportDiagnosticCodes",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 78
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelNumberFormats",
+      "file": [
+        "OfficeIMO.Excel/Utilities/ExcelNumberFormats.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelNumberFormats",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelObjectDataTableBuilder",
+      "file": [
+        "OfficeIMO.Excel/Utilities/ExcelObjectDataTableBuilder.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelObjectDataTableBuilder",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelReadPresets",
+      "file": [
+        "OfficeIMO.Excel/Read/Presets/ExcelReadPresets.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelReadPresets",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelRuntimePreflight",
+      "file": [
+        "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelRuntimePreflight",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelTableStyleCatalog",
+      "file": [
+        "OfficeIMO.Excel/ExcelTableStyleCompatibility.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelTableStyleCatalog",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
     }
   ],
   "colors": {
@@ -5092,6 +5218,123 @@
         "status": "applied"
       },
       "note": "Column widths retain native character units; row heights retain native point lengths. Detached inspection values remain readable after the workbook is disposed."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCompatibilityCatalog",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/ExcelCompatibilityCatalog.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelFormatCatalog",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/ExcelFormatCatalog.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelHostExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/Utilities/ExcelHostExtensions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImageExportDiagnosticCodes",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/ExcelImageExportDiagnosticCodes.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelNumberFormats",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/Utilities/ExcelNumberFormats.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelObjectDataTableBuilder",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/Utilities/ExcelObjectDataTableBuilder.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelReadPresets",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/Read/Presets/ExcelReadPresets.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRuntimePreflight",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/ExcelRuntimePreflight.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTableStyleCatalog",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Excel/ExcelTableStyleCompatibility.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
     }
   ],
   "packageMoves": [
@@ -5382,6 +5625,36 @@
       "files": [
         "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
         "OfficeIMO.Excel.Tests/Excel.AddedRuleObjects.cs"
+      ]
+    },
+    {
+      "change": "9 undocumented static helper types are internal after generated candidate review.",
+      "reason": "These types implement rendering, parsing, package metadata or serialization behind the documented object model. Public models, syntax nodes, exceptions, attributes and virtual contracts remain visible.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelCompatibilityCatalog.cs",
+        "OfficeIMO.Excel/ExcelFormatCatalog.cs",
+        "OfficeIMO.Excel/ExcelImageExportDiagnosticCodes.cs",
+        "OfficeIMO.Excel/ExcelRuntimePreflight.cs",
+        "OfficeIMO.Excel/ExcelTableStyleCompatibility.cs",
+        "OfficeIMO.Excel/Read/Presets/ExcelReadPresets.cs",
+        "OfficeIMO.Excel/Utilities/ExcelHostExtensions.cs",
+        "OfficeIMO.Excel/Utilities/ExcelNumberFormats.cs",
+        "OfficeIMO.Excel/Utilities/ExcelObjectDataTableBuilder.cs"
+      ]
+    },
+    {
+      "change": "Implementation access to internal helpers uses explicit friend assemblies.",
+      "reason": "Callers were identified from actual C# identifier syntax in existing projects. Public third-party plug-in contracts remain public and receive no friend access.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/Properties/AssemblyInfo.cs"
+      ],
+      "friendAssemblies": [
+        "OfficeIMO.CompatibilityCatalog.Tool",
+        "OfficeIMO.Html.Tests",
+        "OfficeIMO.Reader.Tests",
+        "PSWriteOffice"
       ]
     }
   ],

@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Inspects the current runtime for Excel workflow compatibility issues.
     /// </summary>
-    public static class ExcelRuntimePreflight {
+    internal static class ExcelRuntimePreflight {
         /// <summary>
         /// Inspects the current process for culture/runtime settings that commonly affect spreadsheet workflows.
         /// </summary>

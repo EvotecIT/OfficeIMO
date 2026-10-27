@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Preserves the original source-compatible form-operation calls without making
 /// an untyped <see langword="null"/> ambiguous with <see cref="PdfLoadOptions"/>.
 /// </summary>
-public static class PdfDocumentFormsCompatibilityExtensions {
+internal static class PdfDocumentFormsCompatibilityExtensions {
     /// <summary>Attempts to fill string form values with explicit form options.</summary>
     internal static PdfOperationResult<PdfDocument> FillResult(
         this PdfDocumentForms forms,

@@ -68,7 +68,7 @@ public enum PdfLogicalTableContinuationEvidence {
 /// <summary>
 /// Bounded continuation analysis shared by structured conversion adapters.
 /// </summary>
-public static class PdfLogicalTableContinuations {
+internal static class PdfLogicalTableContinuations {
     private const int MaximumRepeatedHeaderRows = 4;
 
     /// <summary>

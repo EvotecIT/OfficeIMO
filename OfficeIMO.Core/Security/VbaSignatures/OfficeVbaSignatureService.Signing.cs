@@ -8,7 +8,7 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Security;
 
-public static partial class OfficeVbaSignatureService {
+internal static partial class OfficeVbaSignatureService {
     /// <summary>Creates legacy, agile, and V3 VBA signatures with managed MS-OVBA canonicalization and provider-backed CMS.</summary>
     public static OfficeVbaSigningResult TrySign(
         string filePath,

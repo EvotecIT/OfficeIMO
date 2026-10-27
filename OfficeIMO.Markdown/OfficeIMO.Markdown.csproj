@@ -73,4 +73,8 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
     </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Adf" />
+    <InternalsVisibleTo Include="OfficeIMO.Adf.Tests" />
+  </ItemGroup>
 </Project>

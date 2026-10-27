@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Helpers for normalizing blank-line runs in markdown text.
 /// </summary>
-public static class MarkdownBlankLines {
+internal static class MarkdownBlankLines {
     /// <summary>
     /// Collapses consecutive blank lines into a single blank line while preserving the input line-ending style.
     /// </summary>

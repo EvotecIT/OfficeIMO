@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Renders semantic diagram snapshots as reusable drawing primitives.</summary>
-public static class OfficeDiagramDrawingRenderer {
+internal static class OfficeDiagramDrawingRenderer {
     private static readonly OfficeColor[] NodeColors = {
         OfficeColor.FromRgb(37, 99, 235),
         OfficeColor.FromRgb(14, 116, 144),

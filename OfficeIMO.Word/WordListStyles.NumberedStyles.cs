@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 // Defines built-in list styles.
-public static partial class WordListStyles {
+internal static partial class WordListStyles {
     private static AbstractNum Numbered {
         get {
             AbstractNum abstractNum1 = CreateNewAbstractNum();
