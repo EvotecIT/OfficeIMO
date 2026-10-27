@@ -87,14 +87,7 @@ internal static partial class RtfPdfConverter {
     /// <summary>Keeps empty and control-only source lines' available character boxes without introducing visible text.</summary>
     private static void EnsureParagraphLineBoxStrut(RtfDocument document, RtfParagraph source,
         List<PdfCore.PdfTextRun> runs, PdfRenderState state, int bodyStartIndex = 0) {
-        PdfCore.PdfTextRun? controlStyle = null;
-        for (int index = bodyStartIndex; index < runs.Count; index++) {
-            PdfCore.PdfTextRun run = runs[index];
-            if (run.IsLineBoxStrut || run.InlineElement != null ||
-                run.Text.Any(character => character is not ('\r' or '\n' or '\t'))) return;
-            if (run.Text.Length > 0 && run.FontSize is double size && size > 0D &&
-                !double.IsNaN(size) && !double.IsInfinity(size)) controlStyle = run;
-        }
+        if (!TryGetParagraphLineBoxControlStyle(runs, bodyStartIndex, out PdfCore.PdfTextRun? controlStyle)) return;
 
         PdfCore.PdfTextRun strut;
         if (controlStyle != null) {
@@ -133,6 +126,20 @@ internal static partial class RtfPdfConverter {
             }
         }
         runs.Add(strut);
+    }
+
+    /// <summary>Shares blank-line font selection between resource admission and actual paragraph painting.</summary>
+    private static bool TryGetParagraphLineBoxControlStyle(IReadOnlyList<PdfCore.PdfTextRun> runs,
+        int bodyStartIndex, out PdfCore.PdfTextRun? controlStyle) {
+        controlStyle = null;
+        for (int index = bodyStartIndex; index < runs.Count; index++) {
+            PdfCore.PdfTextRun run = runs[index];
+            if (run.IsLineBoxStrut || run.InlineElement != null ||
+                run.Text.Any(character => character is not ('\r' or '\n' or '\t'))) return false;
+            if (run.Text.Length > 0 && run.FontSize is double size && size > 0D &&
+                !double.IsNaN(size) && !double.IsInfinity(size)) controlStyle = run;
+        }
+        return true;
     }
 
     private enum PdfInlineProjectionContext { Text, RunningStory }

@@ -139,6 +139,7 @@ internal static partial class RtfPdfConverter {
         options.CancellationToken.ThrowIfCancellationRequested();
         var fontIds = new HashSet<int>();
         var text = new List<string>();
+        var numbering = new RtfListNumbering(document);
         // Detached notes and references omitted by the body projection do not
         // consume resources needed by visible text. Markers remain body text.
         var referencedNotes = options.IncludeNotes ? new HashSet<RtfNote>() : null;
@@ -148,10 +149,10 @@ internal static partial class RtfPdfConverter {
 
         if (document.Sections.Count > 0) {
             foreach (RtfSection section in document.Sections) {
-                CollectReferencedFontIds(document, section.Blocks, options, fontIds, text, referencedNotes);
+                CollectReferencedFontIds(document, section.Blocks, options, fontIds, text, numbering, referencedNotes);
             }
         } else {
-            CollectReferencedFontIds(document, document.Blocks, options, fontIds, text, referencedNotes);
+            CollectReferencedFontIds(document, document.Blocks, options, fontIds, text, numbering, referencedNotes);
         }
 
         if (referencedNotes != null) {
@@ -159,7 +160,7 @@ internal static partial class RtfPdfConverter {
                 if (note.Kind == RtfNoteKind.Annotation && note.Author != null) text.Add(note.Author);
                 foreach (RtfParagraph paragraph in note.Paragraphs) {
                     // Note bodies do not append nested note references.
-                    CollectReferencedFontIds(document, paragraph, options, fontIds, text);
+                    CollectReferencedFontIds(document, paragraph, options, fontIds, text, numbering);
                 }
             }
         }
@@ -193,14 +194,19 @@ internal static partial class RtfPdfConverter {
                     }
                 }
             }
-            foreach (RtfHeaderFooter story in stories)
+            foreach (RtfHeaderFooter story in stories) {
+                var storyNumbering = new RtfListNumbering(document);
                 foreach (RtfParagraph paragraph in story.Paragraphs)
-                    CollectReferencedFontIds(document, paragraph, options, fontIds, text);
+                    CollectReferencedFontIds(document, paragraph, options, fontIds, text, storyNumbering);
+            }
 
             void CollectStories(RtfPageSetup setup, IReadOnlyList<RtfHeaderFooter> declarations) {
                 foreach (bool isFooter in new[] { false, true }) {
-                    if (HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter)) continue;
-                    foreach (RtfHeaderFooter story in GetSelectedHeaderFooters(document, setup, declarations, isFooter)) stories.Add(story);
+                    bool plain = HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter);
+                    foreach (RtfHeaderFooter story in GetSelectedHeaderFooters(document, setup, declarations, isFooter)) {
+                        if (plain) text.Add(NormalizeHeaderFooterText(story.ToPlainText()));
+                        else stories.Add(story);
+                    }
                 }
             }
         }
@@ -211,11 +217,12 @@ internal static partial class RtfPdfConverter {
 
     private static void CollectReferencedFontIds(RtfDocument document, IEnumerable<IRtfBlock> blocks,
         RtfToPdfOptions options, HashSet<int> fontIds, List<string> text,
-        ISet<RtfNote>? referencedNotes = null, bool inTableCell = false) {
+        RtfListNumbering numbering, ISet<RtfNote>? referencedNotes = null, bool inTableCell = false) {
         foreach (IRtfBlock block in blocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (block is RtfParagraph paragraph) {
-                CollectReferencedFontIds(document, paragraph, options, fontIds, text, referencedNotes);
+                CollectReferencedFontIds(document, paragraph, options, fontIds, text, numbering, referencedNotes,
+                    splitBodyParagraph: !inTableCell);
             } else if (block is RtfTable table && options.IncludeTables) {
                 if (inTableCell) {
                     // Nested tables paint plain text in the default family;
@@ -227,7 +234,7 @@ internal static partial class RtfPdfConverter {
                     foreach (RtfTableCell cell in row.Cells) {
                         if (cell.HorizontalMerge == RtfTableCellMerge.Continue ||
                             cell.VerticalMerge == RtfTableCellMerge.Continue) continue;
-                        CollectReferencedFontIds(document, cell.Blocks, options, fontIds, text, referencedNotes,
+                        CollectReferencedFontIds(document, cell.Blocks, options, fontIds, text, numbering, referencedNotes,
                             inTableCell: true);
                     }
                 }
@@ -249,16 +256,14 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, ISet<RtfNote>? referencedNotes = null) {
+        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
+        ISet<RtfNote>? referencedNotes = null, bool splitBodyParagraph = false,
+        bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null) {
         options.CancellationToken.ThrowIfCancellationRequested();
-        RtfListFormatting? list = document.ResolveListFormatting(paragraph);
-        if (list != null) {
-            // Number expansion is ASCII; authored marker scalars still need
-            // coverage even though marker runs use the document's default font.
-            string? marker = !list.IsDefined && paragraph.ListText != null
-                ? paragraph.ListText.ToPlainText() : list.Level.Text;
-            if (marker != null) text.Add(marker);
-        }
+        var runs = parentRuns ?? new List<PdfCore.PdfTextRun>();
+        bool emitted = false;
+        RtfListMarker? marker = numbering.Next(paragraph);
+        if (marker != null) AddPlain(marker.Text + marker.Separator);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun source:
@@ -268,31 +273,56 @@ internal static partial class RtfPdfConverter {
                     if (!string.IsNullOrEmpty(run.Text)) {
                         if (run.FontId.HasValue) fontIds.Add(run.FontId.Value);
                         text.Add(run.Text!);
+                        runs.Add(new PdfCore.PdfTextRun(run.Text!, fontSize: run.FontSize));
                     }
                     if (run.Note != null) referencedNotes?.Add(run.Note);
                     break;
                 case RtfField field:
-                    CollectReferencedFontIds(document, field.Result, options, fontIds, text, referencedNotes);
+                    // Field results append into the parent's runs; they have
+                    // no independent paragraph line box, even when empty.
+                    CollectReferencedFontIds(document, field.Result, options, fontIds, text, numbering,
+                        referencedNotes, appendStrut: false, parentRuns: runs);
                     break;
                 case RtfGeneratedText generated:
-                    text.Add(generated.ToPlainText());
+                    AddPlain(generated.ToPlainText());
                     if (generated.Note != null) referencedNotes?.Add(generated.Note);
                     break;
                 case RtfObject rtfObject:
-                    text.Add(rtfObject.ToPlainText());
+                    AddPlain(rtfObject.ToPlainText());
                     break;
                 case RtfShape shape:
-                    text.Add(shape.ToPlainText());
+                    AddPlain(shape.ToPlainText());
+                    break;
+                case RtfBreak rtfBreak when splitBodyParagraph &&
+                    rtfBreak.Kind is RtfBreakKind.Page or RtfBreakKind.SoftPage or RtfBreakKind.Column:
+                case RtfImage when splitBodyParagraph:
+                case RtfBookmarkMarker { Kind: RtfBookmarkMarkerKind.Start } when splitBodyParagraph:
+                    AdmitInheritedStrut();
+                    runs.Clear();
+                    emitted = true;
+                    break;
+                case RtfBreak:
+                    runs.Add(PdfCore.PdfTextRun.LineBreak());
                     break;
             }
         }
 
-        // Font admission follows the same inherited character formatting as
-        // paint, including the line-box strut of empty/control-only paragraphs.
-        int? paragraphFontId = document.GetRunFormatting(paragraph, new RtfRun(string.Empty) {
-            UseDefaultCharacterFormatting = paragraph.UseParsedParagraphDefaults
-        }).FontId;
-        if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
+        if (appendStrut && (runs.Count > 0 || !emitted)) AdmitInheritedStrut();
+
+        void AddPlain(string value) {
+            if (value.Length == 0) return;
+            text.Add(value);
+            runs.Add(new PdfCore.PdfTextRun(value));
+        }
+
+        void AdmitInheritedStrut() {
+            if (!TryGetParagraphLineBoxControlStyle(runs, 0, out PdfCore.PdfTextRun? controlStyle) ||
+                controlStyle != null) return;
+            int? paragraphFontId = document.GetRunFormatting(paragraph, new RtfRun(string.Empty) {
+                UseDefaultCharacterFormatting = paragraph.UseParsedParagraphDefaults
+            }).FontId;
+            if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
+        }
     }
 
     private static bool TryRegisterDocumentFont(

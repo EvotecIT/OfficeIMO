@@ -109,6 +109,70 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.Equal(sourceBefore, document.ToBytes());
     }
 
+    [Theory]
+    [InlineData("body")]
+    [InlineData("table")]
+    [InlineData("header")]
+    [InlineData("field-empty")]
+    [InlineData("field-visible")]
+    [InlineData("styled-tab")]
+    public void ExplicitRunsDoNotAdmitUnusedParagraphDefaults(string scenario) {
+        RtfDocument document = RtfDocument.Create();
+        int visible = document.AddFont("Helvetica");
+        document.Settings.SetDefaultFont(visible);
+        RtfStyle unused = document.AddStyle(7, "Unused paragraph font");
+        unused.FontId = document.AddFont(ExcludedFamily);
+        unused.FontSize = 12;
+        RtfParagraph paragraph = scenario switch {
+            "table" => document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph(),
+            "header" => document.AddHeader().AddParagraph(),
+            "field-empty" or "field-visible" => document.AddParagraph("BODY").AddField("MERGEFIELD sample").Result,
+            _ => document.AddParagraph()
+        };
+        if (scenario == "header") document.AddParagraph("BODY");
+        paragraph.SetStyle(7);
+        if (scenario != "field-empty") {
+            RtfRun run = paragraph.AddText(scenario == "styled-tab" ? "\t" : "VISIBLE");
+            run.FontId = visible;
+            run.FontSize = 12;
+        }
+        byte[] before = document.ToBytes();
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
+        Assert.Equal(1, actual.NumberOfPages);
+        if (scenario != "styled-tab") Assert.NotEmpty(actual.GetPage(1).Letters);
+        Assert.All(actual.GetPage(1).Letters, letter => Assert.Contains("Helvetica", letter.FontName));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Details.TryGetValue("fontFamily", out string? family)
+            && family == ExcludedFamily);
+        result.RequireNoLoss();
+        Assert.Equal(before, document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData("empty")]
+    [InlineData("empty-before-page-break")]
+    public void RealParagraphStrutsRetainTheirFontLoss(string scenario) {
+        RtfDocument document = RtfDocument.Create();
+        int visible = document.AddFont("Helvetica");
+        document.Settings.SetDefaultFont(visible);
+        document.AddStyle(7, "Real paragraph font").FontId = document.AddFont(ExcludedFamily);
+        RtfParagraph paragraph = document.AddParagraph().SetStyle(7);
+        if (scenario == "empty-before-page-break") {
+            paragraph.AddPageBreak();
+            paragraph.AddText("BODY").FontId = visible;
+        }
+        byte[] before = document.ToBytes();
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
+        Assert.True(actual.NumberOfPages >= 1);
+        Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
+            && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Equal(before, document.ToBytes());
+    }
+
     private static RtfToPdfOptions Options() => new RtfToPdfOptions {
         PdfOptions = new PdfCore.PdfOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica },
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
