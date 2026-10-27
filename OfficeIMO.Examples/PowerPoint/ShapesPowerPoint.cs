@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointShapes(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Shape operations");
             string filePath = Path.Combine(folderPath, "Shape Operations.pptx");
-            string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
+            string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "Kulek.jpg");
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
             const double marginCm = 1.5;
@@ -97,7 +97,12 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             if (File.Exists(imagePath)) {
                 PowerPointPicture picture = slide.AddPicture(imagePath, rightColumn);
-                picture.FitToBox(1200, 800, crop: true);
+                // AddPicture keeps the image's aspect ratio; to fill the column instead, restore the box and crop.
+                picture.Left = rightColumn.Left;
+                picture.Top = rightColumn.Top;
+                picture.Width = rightColumn.Width;
+                picture.Height = rightColumn.Height;
+                picture.FitToBox(crop: true);
             } else {
                 PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)", rightColumn);
                 placeholder.FillColor = "F3F3F3";

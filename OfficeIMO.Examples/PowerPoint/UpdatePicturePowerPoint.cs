@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointUpdatePicture(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Update picture");
             string filePath = Path.Combine(folderPath, "Update Picture.pptx");
-            string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
+            string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "Kulek.jpg");
             string newImagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -31,7 +31,6 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             if (File.Exists(imagePath)) {
                 PowerPointPicture original = slide.AddPicture(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
-                original.FitToBox(1200, 800, crop: false);
                 slide.AddTextBox("Original", leftColumn.Left, leftColumn.Top + leftColumn.Height - PowerPointUnits.FromCentimeters(0.8),
                     leftColumn.Width, PowerPointUnits.FromCentimeters(0.6));
 
@@ -39,7 +38,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 if (File.Exists(newImagePath)) {
                     updated.UpdateImage(newImagePath);
                 }
-                updated.FitToBox(800, 800, crop: false);
+                // Restore the column box, then fit the new image's own aspect ratio inside it.
+                updated.Left = rightColumn.Left;
+                updated.Top = rightColumn.Top;
+                updated.Width = rightColumn.Width;
+                updated.Height = rightColumn.Height;
+                updated.FitToBox(crop: false);
                 slide.AddTextBox("Updated via UpdateImage()", rightColumn.Left,
                     rightColumn.Top + rightColumn.Height - PowerPointUnits.FromCentimeters(0.8), rightColumn.Width, PowerPointUnits.FromCentimeters(0.6));
             } else {

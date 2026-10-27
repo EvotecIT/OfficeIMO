@@ -77,7 +77,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                 bodyPlaceholder.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
                 bodyPlaceholder.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
             } else {
-                second.AddTextBoxCm("Body placeholder not found in layout.", marginCm, 3.4, content.WidthCm, 1.2);
+                // The slide has no body placeholder of its own: place the text in the layout's body area instead.
+                PowerPointLayoutPlaceholderInfo? layoutBody = second.GetLayoutPlaceholder(PowerPointPlaceholderType.Body);
+                PowerPointTextBox body = layoutBody?.Bounds is PowerPointLayoutBox bounds
+                    ? second.AddTextBox(string.Empty, bounds)
+                    : second.AddTextBoxCm(string.Empty, marginCm, 3.4, content.WidthCm, 4);
+                body.AddBullets(new[] {
+                    "Title and body placeholders from the layout",
+                    "Text flows in the layout-defined box",
+                    "Margins and spacing stay consistent"
+                });
             }
 
             second.Notes.Text = "Slide created using master/layout indexes and placeholders.";

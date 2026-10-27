@@ -78,10 +78,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                 rightColumn.WidthCm,
                 captionHeightCm);
 
-            string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
+            string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
             if (File.Exists(imagePath)) {
                 slide2.AddPicture(imagePath, mediaBox);
-                PowerPointTextBox caption = slide2.AddTextBox("Illustration scaled to fit.", captionBox);
+                PowerPointTextBox caption = slide2.AddTextBox("Photograph fitted to the box at its own aspect ratio.", captionBox);
                 caption.FontSize = 12;
                 caption.Color = "666666";
             } else {
