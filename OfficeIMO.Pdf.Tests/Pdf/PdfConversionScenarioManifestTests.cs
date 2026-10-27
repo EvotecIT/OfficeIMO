@@ -2049,12 +2049,9 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.NotEmpty(body.Descendants<Table>());
             DocumentFormat.OpenXml.Wordprocessing.Drawing imageDrawing = Assert.Single(
                 body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
-            Assert.NotNull(imageDrawing.Anchor);
-            Assert.Null(imageDrawing.Inline);
-            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page,
-                imageDrawing.Anchor!.HorizontalPosition?.RelativeFrom?.Value);
-            Assert.Equal(DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page,
-                imageDrawing.Anchor.VerticalPosition?.RelativeFrom?.Value);
+            // The image does not sit behind source text, so it flows inline with the reconstructed content.
+            Assert.NotNull(imageDrawing.Inline);
+            Assert.Null(imageDrawing.Anchor);
             Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
             string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
             Assert.StartsWith("OfficeIMO_Pdf_Dest_Details", anchor, StringComparison.Ordinal);

@@ -933,7 +933,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal(2, page.Images.Count);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -1035,7 +1035,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.NotEmpty(textSpans);
         Assert.All(textSpans, text => Assert.True(text.PaintOrder < placement.PaintOrder));
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
+        // An image painted over text floats only when positioned placement is requested; by default it is
+        // placed inline so reflowed text stays readable.
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.InFrontOfText,
