@@ -26,8 +26,8 @@ namespace OfficeIMO.Examples.Word
                     var paragraph4 = document.AddParagraph();
                     paragraph4 = paragraph4.AddText("Justified heading with spacing and indentation");
                     paragraph4.SetAlignment(WordParagraphAlignment.Both);
-                    paragraph4.SpacingBefore = (int)(12 * 20);
-                    paragraph4.SpacingAfter = (int)(12 * 20);
+                    paragraph4.LineSpacingBeforePoints = 12;
+                    paragraph4.LineSpacingAfterPoints = 12;
                     paragraph4.LineSpacing = (int)(24 * 20);
                     paragraph4.IndentationBefore = (int)(24 * 20);
                     paragraph4.IndentationFirstLine = (int)(24 * 20);

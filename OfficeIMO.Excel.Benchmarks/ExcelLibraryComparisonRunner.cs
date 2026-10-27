@@ -1658,7 +1658,9 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteDataSetDirectExportBytes(DataSet dataSet) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteDataSet(stream, dataSet);
+        using (var writer = ExcelDocument.CreateWriter(stream, leaveOpen: true)) {
+            foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+        }
         return stream.ToArray();
     }
 

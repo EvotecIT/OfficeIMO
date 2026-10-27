@@ -105,7 +105,10 @@ namespace OfficeIMO.Tests {
             var dataSet = new DataSet();
             dataSet.Tables.Add(table);
 
-            ExcelDocument.WriteDataSet(stream, dataSet, dateSystem: ExcelDateSystem.NineteenFour);
+            using (var writer = ExcelDocument.CreateWriter(stream,
+                new ExcelWriterOptions { DateSystem = ExcelDateSystem.NineteenFour, CreateTable = true, UseSharedStrings = false }, leaveOpen: true)) {
+                foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+            }
             stream.Position = 0;
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, false);

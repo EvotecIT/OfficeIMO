@@ -819,8 +819,12 @@
       "category": "lifecycle",
       "notes": "Static Stream writers become the explicit streaming writer of the design (writer.WriteTable(name, IEnumerable<T> | IAsyncEnumerable<T> | DataTable | IDataReader)).",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The typed AddTable and bounded streaming writer are Phase B authoring work."
+      "applied": "phase-b-applied",
+      "note": "Removed the static entry point and migrated every caller. Streaming exports loop through CreateWriter(...).WriteTable(table.TableName, table); shared-string planning and editable schema formatting use InsertDataSet followed by Save. No compatibility wrapper remains.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.OpenFileBacked(string filePath, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
@@ -5691,6 +5695,33 @@
       "files": [
         "OfficeIMO.Excel/packages.lock.json",
         "OfficeIMO.Excel/packages.nonwindows.lock.json"
+      ]
+    },
+    {
+      "change": "DataSet export callers use the streaming writer or editable workbook; the old static writer is removed.",
+      "reason": "Preserves multi-table results, 1904 dates, scalar formatting and resource ownership. Shared-string planning and schema formatting retain the editable model owner. Fourteen meaningful DataSet/table contracts move out of the oversized regression file; the empty-DataSet test only pinned the removed static API and is removed.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.cs",
+        "OfficeIMO.Excel/PublicAPI.Shipped.txt",
+        "OfficeIMO.Excel/PublicAPI/netstandard2.0/PublicAPI.Shipped.txt",
+        "OfficeIMO.Excel/PublicAPI/net472/PublicAPI.Shipped.txt",
+        "OfficeIMO.Excel.Tests/Excel.DataSetExport.cs",
+        "OfficeIMO.Excel.Tests/Excel.PerformanceReviewRegression.cs",
+        "OfficeIMO.Excel.Tests/Excel.CreateStream.cs",
+        "OfficeIMO.Excel.Tests/Excel.DateSystem.cs",
+        "OfficeIMO.Reader.Dbf.Tests/DbfConversionTests.cs",
+        "OfficeIMO.Excel.Benchmarks/ExcelLibraryComparisonRunner.cs"
+      ]
+    },
+    {
+      "change": "Executable examples compile against the document model after fluent and Add-return migrations.",
+      "reason": "Report examples use document TOC/backlink methods and compare status text with text before choosing a typed callout kind.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Examples/Excel/DomainDetective.Report.Sheets.cs",
+        "OfficeIMO.Examples/Excel/DomainDetective.Report.Sheets.Classic.cs",
+        "OfficeIMO.Examples/Excel/DomainDetective.Report.cs"
       ]
     }
   ],

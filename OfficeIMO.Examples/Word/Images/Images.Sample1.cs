@@ -22,10 +22,9 @@ namespace OfficeIMO.Examples.Word {
             var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.BehindText });
 
             var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the inserted image.");
-            var paragraphImageImage = Guard.NotNull(paragraphImage.Image, "Paragraph should contain the inserted image.");
 
             Console.WriteLine(paragraph1Image.WrapText);
-            Console.WriteLine(paragraphImageImage.WrapText);
+            Console.WriteLine(paragraphImage.WrapText);
 
             var paragraph2 = paragraph1.AddText("and more text");
             paragraph2.Bold = true;

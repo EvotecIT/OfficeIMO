@@ -78,7 +78,9 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             using MemoryStream output = new MemoryStream();
             DataSet dataSet = new DataSet();
             dataSet.Tables.Add(table);
-            ExcelDocument.WriteDataSet(output, dataSet);
+            using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+                foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+            }
             output.Position = 0;
             using ExcelWorkbookDataReader reopened = ExcelDocument.OpenReader(output);
             Assert.True(reopened.Read());

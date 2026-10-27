@@ -6419,6 +6419,15 @@
         "OfficeIMO.Word/WordChart.Attachments.cs",
         "OfficeIMO.Word.Tests/Word.ChartAttachments.cs"
       ]
+    },
+    {
+      "change": "Executable examples compile against the document model after fluent and Add-return migrations.",
+      "reason": "Paragraph formatting uses the existing spacing properties; returned image objects are used directly.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Examples/Word/Fluent/Fluent.ParagraphFormatting.cs",
+        "OfficeIMO.Examples/Word/Images/Images.Sample1.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

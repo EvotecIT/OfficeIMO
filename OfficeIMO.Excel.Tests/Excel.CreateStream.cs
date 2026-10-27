@@ -442,7 +442,11 @@ namespace OfficeIMO.Tests {
             dataSet.Tables.Add(customers);
 
             using var memory = new MemoryStream();
-            var results = ExcelDocument.WriteDataSet(memory, dataSet);
+            var results = new List<ExcelDataSetImportResult>();
+            using (var writer = ExcelDocument.CreateWriter(memory, leaveOpen: true)) {
+                foreach (DataTable table in dataSet.Tables) results.Add(writer.WriteTable(table.TableName, table));
+            }
+            memory.Position = 0;
             Assert.Equal(2, results.Count);
             Assert.Equal("Orders", results[0].TableName);
             Assert.Equal("Customers", results[1].TableName);
