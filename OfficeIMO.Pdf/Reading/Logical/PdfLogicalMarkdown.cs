@@ -65,7 +65,9 @@ public static class PdfLogicalMarkdownExtensions {
         items.Sort(CompareMarkdownItems);
 
         for (int i = 0; i < items.Count; i++) {
-            AppendBlock(builder, items[i].Markdown);
+            // Consecutive list items form one tight list; a blank line between them would make every item a paragraph.
+            bool continuesList = i > 0 && items[i].IsListItem && items[i - 1].IsListItem;
+            AppendBlock(builder, items[i].Markdown, continuesList);
         }
     }
 
@@ -81,7 +83,7 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.Heading:
                     PdfLogicalHeading heading = page.Headings[item.SourceIndex];
                     int level = Math.Min(Math.Max(heading.Level, 1), 6);
-                    markdown = new string('#', level) + " " + EscapeInline(heading.Text);
+                    markdown = new string('#', level) + " " + EscapeInline(heading.Text, escapeLinePrefix: false);
                     break;
                 case PdfLogicalReadingOrderKind.Paragraph:
                     markdown = EscapeInline(page.Paragraphs[item.SourceIndex].Text);
@@ -99,7 +101,8 @@ public static class PdfLogicalMarkdownExtensions {
                     break;
                 default: continue;
             }
-            if (markdown.Length > 0) items.Add(new MarkdownItem(null, 0, sequence++, markdown, canonical: true));
+            if (markdown.Length > 0) items.Add(new MarkdownItem(null, 0, sequence++, markdown, canonical: true,
+                isListItem: item.Kind == PdfLogicalReadingOrderKind.ListItem));
         }
 
         IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
@@ -200,17 +203,18 @@ public static class PdfLogicalMarkdownExtensions {
         return left.Sequence.CompareTo(right.Sequence);
     }
 
-    private static void AppendBlock(StringBuilder builder, string markdown) {
+    private static void AppendBlock(StringBuilder builder, string markdown, bool tight = false) {
         if (string.IsNullOrWhiteSpace(markdown)) {
             return;
         }
 
         if (builder.Length > 0) {
             builder.AppendLine();
-            builder.AppendLine();
+            if (!tight) builder.AppendLine();
         }
 
-        builder.Append(markdown.Trim());
+        // Keep leading indentation: it carries list nesting.
+        builder.Append(tight ? markdown.TrimEnd() : markdown.Trim());
     }
 
     private static string RenderTable(PdfLogicalTable table, PdfLogicalMarkdownOptions options) {
@@ -286,7 +290,7 @@ public static class PdfLogicalMarkdownExtensions {
         return digitCount > 0;
     }
 
-    private static string EscapeInline(string text) {
+    private static string EscapeInline(string text, bool escapeLinePrefix = true) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;
         }
@@ -313,12 +317,13 @@ public static class PdfLogicalMarkdownExtensions {
             builder.Append(ch);
         }
 
-        EscapeLinePrefix(builder);
+        if (escapeLinePrefix) EscapeLinePrefix(builder);
         return builder.ToString();
     }
 
     private static string EscapeTableCell(string text) {
-        return EscapeInline(text).Replace("|", "\\|");
+        // A cell never starts a Markdown line, so block markers such as "1." or "+2.4" stay literal.
+        return EscapeInline(text, escapeLinePrefix: false).Replace("|", "\\|");
     }
 
     private static string EscapeLinkTarget(string uri) {
@@ -441,7 +446,13 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         char first = builder[index];
-        if (first == '#' || first == '-' || first == '+' || first == '>') {
+        bool followedBySpace = index + 1 >= builder.Length || char.IsWhiteSpace(builder[index + 1]);
+        // Only escape text that CommonMark would read as a block marker: "# " headings, "- "/"+ " list items,
+        // "---" breaks and quotes. "-2.8%" or "+10.6%" are ordinary text.
+        if (first == '>' ||
+            (first == '#' && (followedBySpace || IsAtxRun(builder, index))) ||
+            ((first == '-' || first == '+') && followedBySpace) ||
+            (first == '-' && IsThematicBreak(builder, index))) {
             builder.Insert(index, '\\');
             return;
         }
@@ -455,9 +466,26 @@ public static class PdfLogicalMarkdownExtensions {
             digitEnd++;
         }
 
-        if (digitEnd < builder.Length && (builder[digitEnd] == '.' || builder[digitEnd] == ')')) {
+        if (digitEnd - index <= 9 && digitEnd < builder.Length && (builder[digitEnd] == '.' || builder[digitEnd] == ')') &&
+            (digitEnd + 1 >= builder.Length || char.IsWhiteSpace(builder[digitEnd + 1]))) {
             builder.Insert(digitEnd, '\\');
         }
+    }
+
+    private static bool IsAtxRun(StringBuilder builder, int index) {
+        int end = index;
+        while (end < builder.Length && builder[end] == '#') end++;
+        return end - index <= 6 && (end >= builder.Length || char.IsWhiteSpace(builder[end]));
+    }
+
+    private static bool IsThematicBreak(StringBuilder builder, int index) {
+        int dashes = 0;
+        for (int position = index; position < builder.Length; position++) {
+            char ch = builder[position];
+            if (ch == '-') dashes++;
+            else if (!char.IsWhiteSpace(ch)) return false;
+        }
+        return dashes >= 3;
     }
 
     private static string NormalizeMarkdownComparison(string? text) {
@@ -495,13 +523,16 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private sealed class MarkdownItem {
-        public MarkdownItem(double? y, double x, int sequence, string markdown, bool canonical = false) {
+        public MarkdownItem(double? y, double x, int sequence, string markdown, bool canonical = false, bool isListItem = false) {
             Y = y;
             X = x;
             Sequence = sequence;
             Markdown = markdown;
             Canonical = canonical;
+            IsListItem = isListItem;
         }
+
+        public bool IsListItem { get; }
 
         public double? Y { get; }
 

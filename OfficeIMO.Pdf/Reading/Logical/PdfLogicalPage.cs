@@ -297,6 +297,9 @@ public sealed partial class PdfLogicalPage {
     /// <summary>True when the page content, an invoked resource, or a page annotation uses optional-content membership.</summary>
     public bool HasOptionalContentUsage { get; }
 
+    /// <summary>Visible artifact-marked text spans (running headers, footers, page numbers) left out of this page.</summary>
+    internal int OmittedArtifactTextSpanCount { get; set; }
+
     private static List<PdfUnderstandingLine> GetRetainedProjectionLines(PdfUnderstandingPageResult analysis) {
         return new List<PdfUnderstandingLine>(analysis.LogicalProjectionLines);
     }
