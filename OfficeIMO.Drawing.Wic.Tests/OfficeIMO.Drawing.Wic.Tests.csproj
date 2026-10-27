@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <ProjectReference Include="../OfficeIMO.Drawing.Wic/OfficeIMO.Drawing.Wic.csproj" />
+    <None Include="../OfficeIMO.Drawing.Wic/Resources/Probe.heic" Link="Probe.heic" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Images/Heic/*.heic" Link="Heic/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Images/Heic/*.heif" Link="Heic/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="AotSmoke/**/*.cs" />
+    <!-- Share only native ABI declarations and reference ownership, never the production decode pipeline. -->
+    <Compile Include="../OfficeIMO.Drawing.Wic/Interop/*.cs" Link="Interop/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
