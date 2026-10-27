@@ -17,7 +17,7 @@ public sealed partial class PdfInvoiceDocument {
         InvoicePdfLineColumn.Item => LineText(line, selectedColumns: true),
         InvoicePdfLineColumn.Quantity => NumberText(line.Quantity) + (_layout.LineColumns.Contains(InvoicePdfLineColumn.Unit) ? string.Empty : " " + Unit(line.UnitCode)),
         InvoicePdfLineColumn.NetPrice => Price(line.UnitPrice, line),
-        InvoicePdfLineColumn.Vat => line.Tax.Code + (line.Tax.Rate.HasValue ? " " + NumberText(line.Tax.Rate.Value) + "%" : string.Empty),
+        InvoicePdfLineColumn.Vat => VatCategory(line.Tax.Code, line.Tax.Rate),
         InvoicePdfLineColumn.NetAmount => Money(_amounts.Lines[index]),
         InvoicePdfLineColumn.Unit => Unit(line.UnitCode),
         InvoicePdfLineColumn.LineIdentifier => line.Id,
@@ -57,6 +57,7 @@ public sealed partial class PdfInvoiceDocument {
         InvoicePdfLineColumn.Description => 2.5D,
         InvoicePdfLineColumn.Period => 2D,
         InvoicePdfLineColumn.Unit => 1.7D,
+        InvoicePdfLineColumn.Vat => 1.9D,
         InvoicePdfLineColumn.NetPrice or InvoicePdfLineColumn.NetAmount or InvoicePdfLineColumn.GrossPrice or InvoicePdfLineColumn.PriceDiscount => 1.7D,
         _ => 1.3D
     }).ToList();
@@ -67,8 +68,12 @@ public sealed partial class PdfInvoiceDocument {
         ? PdfColumnAlign.Right : PdfColumnAlign.Left).ToList();
 
     private string Unit(string code) => CodeDescription(code, _layout.UnitCodeDisplay, language => language.GetUnitDescription(code));
-    private string PaymentMeans(InvoicePayment payment) => Join(CodeDescription(payment.MeansCode, _layout.PaymentCodeDisplay,
-        language => language.GetPaymentDescription(payment.MeansCode)), payment.MeansText).Replace("\n", " ");
+    private string PaymentMeans(InvoicePayment payment) {
+        string means = CodeDescription(payment.MeansCode, _layout.PaymentCodeDisplay, language => language.GetPaymentDescription(payment.MeansCode));
+        // Authored text that repeats the translated description is shown once.
+        string? text = payment.MeansText != null && System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(means, payment.MeansText.Trim(), System.Globalization.CompareOptions.IgnoreCase) >= 0 ? null : payment.MeansText;
+        return Join(means, text).Replace("\n", " ");
+    }
     private string CodeDescription(string code, InvoicePdfCodeDisplay mode, Func<InvoicePdfLanguagePack, string?> translate) {
         if (mode == InvoicePdfCodeDisplay.Code) return code;
         string description = string.Join(_layout.LabelSeparator, _layout.Languages.Select(translate)

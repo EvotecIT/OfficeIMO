@@ -10,7 +10,7 @@ public sealed partial class PdfInvoiceDocument {
         content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
         if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
-        else content.H2(title, PdfAlign.Left, theme?.Text);
+        else content.H2(title, PdfAlign.Left, theme?.Text, style: SectionHeadingStyle());
     }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {
         var references = new List<string[]>();
@@ -21,7 +21,7 @@ public sealed partial class PdfInvoiceDocument {
         Add(Label(InvoicePdfText.Tender), _invoice.TenderReference); Add(Label(InvoicePdfText.AccountingReference), _invoice.AccountingReference);
         Add(Label(InvoicePdfText.InvoicedObject), Identifier(Label(InvoicePdfText.Identifier), _invoice.ObjectIdentifier));
         Add(Label(InvoicePdfText.BusinessProcess), _invoice.BusinessProcessId);
-        Add(Label(InvoicePdfText.DocumentType), _invoice.TypeCode);
+        Add(Label(InvoicePdfText.DocumentType), DocumentType(_invoice.TypeCode));
         Add(Label(InvoicePdfText.Period), Period(_invoice.Period));
         Add(Label(InvoicePdfText.TaxPoint), _invoice.TaxPointDate.HasValue ? Date(_invoice.TaxPointDate) : _invoice.TaxPointDateCode);
         foreach (InvoiceReference preceding in _invoice.PrecedingInvoices) Add(Label(InvoicePdfText.PrecedingInvoice), preceding.Number + " " + Date(preceding.IssueDate));
@@ -51,7 +51,8 @@ public sealed partial class PdfInvoiceDocument {
                 if (payment.CardNumber != null) rows.Add(new[] { Label(InvoicePdfText.Card), Join(Label(InvoicePdfText.Ending) + " " + payment.CardNumber, payment.CardNetworkId, payment.CardHolder) });
                 content.Table(rows, style: DetailTableStyle(theme));
             }
-            if (_invoice.PaymentTerms != null) Paragraph(content, _invoice.PaymentTerms);
+            // The modern layout already shows the payment terms beside the totals.
+            if (_invoice.PaymentTerms != null && theme == null) Paragraph(content, _invoice.PaymentTerms);
         }
         if (_invoice.Notes.Count != 0) {
             DetailHeading(content, Label(InvoicePdfText.Notes), theme);
@@ -69,6 +70,7 @@ public sealed partial class PdfInvoiceDocument {
             HeaderRowCount = 0,
             FontSize = 9D,
             SpacingAfter = 10D,
+            AutoFitColumns = true,
             RowStripeFill = null,
             BorderColor = theme.Border,
             BorderWidth = 0.6D,

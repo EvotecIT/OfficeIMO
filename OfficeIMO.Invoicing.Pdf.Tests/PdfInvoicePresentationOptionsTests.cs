@@ -56,7 +56,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         for (int index = 0; index < document.Pages.Count; index++) {
             string text = document.Pages[index].ExtractUnwrappedText();
             Assert.Contains(invoice.Number, text);
-            Assert.Contains("Strona " + (index + 1) + " / " + document.Pages.Count, text);
+            Assert.Contains("Strona " + (index + 1) + " z " + document.Pages.Count, text);
             Assert.Contains(index == 0 ? "FIRST-HEADER" : index % 2 == 1 ? "EVEN-HEADER" : "RUNNING-HEADER", text);
             Assert.DoesNotContain("OLD-FIRST-FOOTER", text);
             Assert.DoesNotContain("OLD-EVEN-FOOTER", text);
@@ -79,8 +79,8 @@ public sealed class PdfInvoicePresentationOptionsTests {
     }
 
     [Theory]
-    [InlineData(InvoicePdfLineColumn.GrossPrice, "110 / 1 C62")]
-    [InlineData(InvoicePdfLineColumn.PriceDiscount, "10 / 1 C62")]
+    [InlineData(InvoicePdfLineColumn.GrossPrice, "110 / 1 piece")]
+    [InlineData(InvoicePdfLineColumn.PriceDiscount, "10 / 1 piece")]
     public void OptionalBusinessColumnsRetainTheirOwnValues(InvoicePdfLineColumn priceColumn, string price) {
         Invoice invoice = InvoiceFixture.Rich();
         invoice.Lines[0].SellerItemIdentifier = "SELLERKEY"; invoice.Lines[0].BuyerItemIdentifier = "BUYERKEY";

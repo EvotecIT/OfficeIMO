@@ -12,6 +12,12 @@ public sealed partial class InvoicePdfLanguagePack {
     /// <summary>Returns the translated description of a supported UNCL 4461 payment code, or null when unknown.</summary>
     public string? GetPaymentDescription(string code) => CodeLabel(code, _paymentDescriptions, PaymentDescriptions);
 
+    /// <summary>Returns the translated description of a UNCL 5305 VAT category code, or null when unknown.</summary>
+    internal string? GetVatCategoryDescription(string code) => CodeLabel(code, null, VatCategoryDescriptions);
+
+    /// <summary>Returns the translated description of a UNCL 1001 document type code, or null when unknown.</summary>
+    internal string? GetDocumentTypeDescription(string code) => CodeLabel(code, null, DocumentTypeDescriptions);
+
     /// <summary>Creates an independent pack with caller-supplied code descriptions overriding built-in descriptions. Each dictionary accepts up to 512 entries, with codes up to 32 and descriptions up to 256 characters.</summary>
     public InvoicePdfLanguagePack WithCodeDescriptions(IReadOnlyDictionary<string, string>? units = null, IReadOnlyDictionary<string, string>? payments = null) =>
         new InvoicePdfLanguagePack(Culture, _labels, _builtInAdditionalLabels) {
@@ -64,5 +70,25 @@ public sealed partial class InvoicePdfLanguagePack {
         ["49"] = new[] { "Direct debit", "Lastschrift", "Polecenie zapłaty", "Prélèvement", "Domiciliación", "Addebito diretto", "Automatische incasso", "Débito direto", "Inkaso", "Inkaso" },
         ["58"] = new[] { "SEPA credit transfer", "SEPA-Überweisung", "Przelew SEPA", "Virement SEPA", "Transferencia SEPA", "Bonifico SEPA", "SEPA-overschrijving", "Transferência SEPA", "Převod SEPA", "Prevod SEPA" },
         ["59"] = new[] { "SEPA direct debit", "SEPA-Lastschrift", "Polecenie zapłaty SEPA", "Prélèvement SEPA", "Domiciliación SEPA", "Addebito diretto SEPA", "SEPA-incasso", "Débito direto SEPA", "Inkaso SEPA", "Inkaso SEPA" }
+    };
+
+    private static readonly IReadOnlyDictionary<string, string[]> VatCategoryDescriptions = new Dictionary<string, string[]>(StringComparer.Ordinal) {
+        ["S"] = new[] { "Standard rate", "Normalsatz", "Stawka podstawowa", "Taux normal", "Tipo general", "Aliquota ordinaria", "Standaardtarief", "Taxa normal", "Základní sazba", "Základná sadzba" },
+        ["AA"] = new[] { "Reduced rate", "Ermäßigter Satz", "Stawka obniżona", "Taux réduit", "Tipo reducido", "Aliquota ridotta", "Verlaagd tarief", "Taxa reduzida", "Snížená sazba", "Znížená sadzba" },
+        ["Z"] = new[] { "Zero rate", "Nullsatz", "Stawka zerowa", "Taux zéro", "Tipo cero", "Aliquota zero", "Nultarief", "Taxa zero", "Nulová sazba", "Nulová sadzba" },
+        ["E"] = new[] { "Exempt", "Steuerbefreit", "Zwolnione", "Exonéré", "Exento", "Esente", "Vrijgesteld", "Isento", "Osvobozeno", "Oslobodené" },
+        ["AE"] = new[] { "Reverse charge", "Umkehr der Steuerschuld", "Odwrotne obciążenie", "Autoliquidation", "Inversión del sujeto pasivo", "Inversione contabile", "Btw verlegd", "Autoliquidação", "Přenesená daňová povinnost", "Prenesenie daňovej povinnosti" },
+        ["K"] = new[] { "Intra-community supply", "Innergemeinschaftliche Lieferung", "Wewnątrzwspólnotowa dostawa", "Livraison intracommunautaire", "Entrega intracomunitaria", "Cessione intracomunitaria", "Intracommunautaire levering", "Fornecimento intracomunitário", "Dodání do jiného členského státu", "Dodanie do iného členského štátu" },
+        ["G"] = new[] { "Export outside the EU", "Ausfuhr außerhalb der EU", "Eksport poza UE", "Exportation hors UE", "Exportación fuera de la UE", "Esportazione fuori UE", "Uitvoer buiten de EU", "Exportação fora da UE", "Vývoz mimo EU", "Vývoz mimo EÚ" },
+        ["O"] = new[] { "Not subject to VAT", "Nicht steuerbar", "Niepodlegające VAT", "Hors champ de la TVA", "No sujeto a IVA", "Fuori campo IVA", "Niet onderworpen aan btw", "Não sujeito a IVA", "Nepodléhá DPH", "Nepodlieha DPH" }
+    };
+
+    private static readonly IReadOnlyDictionary<string, string[]> DocumentTypeDescriptions = new Dictionary<string, string[]>(StringComparer.Ordinal) {
+        ["380"] = new[] { "Commercial invoice", "Handelsrechnung", "Faktura handlowa", "Facture commerciale", "Factura comercial", "Fattura commerciale", "Handelsfactuur", "Fatura comercial", "Obchodní faktura", "Obchodná faktúra" },
+        ["381"] = new[] { "Credit note", "Gutschrift", "Nota uznaniowa", "Avoir", "Nota de crédito", "Nota di credito", "Creditnota", "Nota de crédito", "Dobropis", "Dobropis" },
+        ["384"] = new[] { "Corrected invoice", "Korrigierte Rechnung", "Faktura korygująca", "Facture corrigée", "Factura corregida", "Fattura corretta", "Gecorrigeerde factuur", "Fatura corrigida", "Opravená faktura", "Opravená faktúra" },
+        ["386"] = new[] { "Prepayment invoice", "Vorauszahlungsrechnung", "Faktura zaliczkowa", "Facture d'acompte", "Factura de anticipo", "Fattura di acconto", "Voorschotfactuur", "Fatura de adiantamento", "Zálohová faktura", "Zálohová faktúra" },
+        ["389"] = new[] { "Self-billed invoice", "Selbstfakturierte Rechnung", "Samofakturowanie", "Autofacturation", "Autofactura", "Autofattura", "Zelf gefactureerde factuur", "Autofaturação", "Samofakturace", "Samofakturácia" },
+        ["326"] = new[] { "Partial invoice", "Teilrechnung", "Faktura częściowa", "Facture partielle", "Factura parcial", "Fattura parziale", "Deelfactuur", "Fatura parcial", "Dílčí faktura", "Čiastková faktúra" }
     };
 }

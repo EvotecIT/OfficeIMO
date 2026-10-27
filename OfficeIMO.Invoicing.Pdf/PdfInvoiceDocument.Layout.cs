@@ -32,16 +32,17 @@ public sealed partial class PdfInvoiceDocument {
         if (_invoice.AllowancesAndCharges.Count != 0) {
             TableGroup(content, Label(InvoicePdfText.DocumentAdjustments), _invoice.AllowancesAndCharges.Select(item => new[] {
                 Label(item.IsCharge ? InvoicePdfText.Charge : InvoicePdfText.Allowance), AdjustmentDetails(item),
-                item.Tax!.Code + (item.Tax.Rate.HasValue ? " " + NumberText(item.Tax.Rate.Value) + "%" : string.Empty), Money(item.Amount)
+                VatCategory(item.Tax!.Code, item.Tax.Rate), Money(item.Amount)
             }));
         }
         var taxes = new List<string[]> { new[] { Label(InvoicePdfText.VatCategory), Label(InvoicePdfText.TaxableAmount), Label(InvoicePdfText.VatAmount), Label(InvoicePdfText.Exemption) } };
         taxes.AddRange(_amounts.Taxes.Select(tax => new[] {
-            tax.CategoryCode + (tax.Rate.HasValue ? " " + NumberText(tax.Rate.Value) + "%" : string.Empty),
+            VatCategory(tax.CategoryCode, tax.Rate),
             Money(tax.TaxableAmount), Money(tax.TaxAmount), Join(tax.ExemptionReasonCode, tax.ExemptionReason)
         }));
         if (_amounts.Taxes.Count != 0)
-            content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = 9, SpacingAfter = 12 });
+            content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = 9, SpacingAfter = 12,
+                Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left } });
         var summaryRows = new List<string[]>();
         void AddSummary(InvoicePdfText label, decimal? value) {
             if (value.HasValue) summaryRows.Add(new[] { Label(label), Money(value.Value) });
@@ -63,11 +64,27 @@ public sealed partial class PdfInvoiceDocument {
         }), new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
         ComposeDetails(content);
     }
+    // Invoice sections are compact labels in a dense document rather than document-level headings.
+    private static PdfHeadingStyle SectionHeadingStyle() => new PdfHeadingStyle {
+        FontSize = 12D, LineHeight = 1.2D, SpacingBefore = 14D, SpacingAfter = 6D, KeepWithNext = true
+    };
     private static PdfTableStyle PlainTable() => new PdfTableStyle { HeaderRowCount = 0, FontSize = 9, SpacingAfter = 10, RowStripeFill = null };
     private string Label(InvoicePdfText text) => string.Join(_layout.LabelSeparator,
         _layout.Languages.Select(language => language[text]).Distinct(StringComparer.Ordinal));
-    private string Money(decimal value) => value.ToString("0.00", _layout.FormattingCulture) + " " + _invoice.Currency;
-    private string NumberText(decimal value) => value.ToString("0.############################", _layout.FormattingCulture);
+    private string Money(decimal value) => value.ToString("#,##0.00", _layout.FormattingCulture) + " " + _invoice.Currency;
+    private string NumberText(decimal value) => value.ToString("#,##0.############################", _layout.FormattingCulture);
+    // A VAT category reads as "Standard rate 23%" rather than its UNCL 5305 code.
+    private string VatCategory(string code, decimal? rate) {
+        string description = string.Join(_layout.LabelSeparator, _layout.Languages.Select(language => language.GetVatCategoryDescription(code))
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal));
+        if (description.Length == 0) description = code;
+        return description + (rate.HasValue ? " " + NumberText(rate.Value) + "%" : string.Empty);
+    }
+    private string DocumentType(string code) {
+        string description = string.Join(_layout.LabelSeparator, _layout.Languages.Select(language => language.GetDocumentTypeDescription(code))
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal));
+        return description.Length == 0 ? code : description;
+    }
     private string Date(DateTime? value) => value?.ToString(_layout.DateFormat, _layout.FormattingCulture) ?? string.Empty;
     private string? Period(InvoicePeriod? period) => period == null ? null :
         period.Start.HasValue && period.End.HasValue ? Date(period.Start) + " " + Label(InvoicePdfText.To) + " " + Date(period.End) :
@@ -81,7 +98,10 @@ public sealed partial class PdfInvoiceDocument {
         string.Join("\n", party.TaxRegistrations.Select(registration => registration.SchemeId + ": " + registration.Identifier)),
         string.Join("\n", party.Identifiers.Select(identifier => Identifier(Label(InvoicePdfText.Identifier), identifier))),
         Identifier(Label(InvoicePdfText.LegalRegistration), party.LegalRegistration), Identifier(Label(InvoicePdfText.ElectronicAddress), party.ElectronicAddress),
-        party.LegalInformation, party.Contact?.Name, party.Contact?.Email, party.Contact?.Telephone);
+        party.LegalInformation, party.Contact?.Name,
+        // The contact e-mail is shown once when it repeats the electronic address.
+        string.Equals(party.Contact?.Email, party.ElectronicAddress?.Value, StringComparison.OrdinalIgnoreCase) ? null : party.Contact?.Email,
+        party.Contact?.Telephone);
     private string LineText(InvoiceLine line, bool selectedColumns = false) {
         bool Inline(InvoicePdfLineColumn column) => !selectedColumns || !_layout.LineColumns.Contains(column);
         return Join((Inline(InvoicePdfLineColumn.LineIdentifier) ? line.Id + ". " : string.Empty) + line.Name,
