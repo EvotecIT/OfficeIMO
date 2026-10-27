@@ -4,8 +4,10 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("contains-comma", "A4:B7", 4, 4, 50d)]
         [InlineData("equals-grouped", "A4:B6", 3, 4, 20d)]
@@ -111,9 +113,11 @@ namespace OfficeIMO.Tests {
         [InlineData("percent-two-decimal", 10d)]
         [InlineData("currency-zero-decimal", 10d)]
         [InlineData("parenthesized-negative", 10d)]
-        public void Test_PivotFormattedNumericLabel_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotFormattedNumericLabel_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
-            ExcelPivotFilter filter = kind switch {
+            ExcelPivotFilter filter = kind switch
+            {
                 "contains-comma" => ExcelPivotFilter.LabelContains("Item", ","),
                 "equals-grouped" => ExcelPivotFilter.LabelEquals("Item", "1,000"),
                 "general-contains-one" => ExcelPivotFilter.LabelContains("Item", "1"),
@@ -142,61 +146,176 @@ namespace OfficeIMO.Tests {
                 "percent-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "12.50%"),
                 "currency-zero-decimal" => ExcelPivotFilter.LabelEquals("Item", "$1,235"),
                 "parenthesized-negative" => ExcelPivotFilter.LabelEquals("Item", "(1,234.50)"),
-                _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")
-            };
-            using (var document = ExcelDocument.Create()) {
+                _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")};
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
-                double[] keys = kind == "midpoint-positive" ? new[] { 2.5d, 4.5d }
-                    : kind == "midpoint-negative" ? new[] { -2.5d, 4.5d }
-                    : kind == "decimal-two" ? new[] { 1.2d, 2.3d }
-                    : kind == "percent-one" ? new[] { 0.125d, 0.25d }
-                    : kind == "decimal-midpoint" ? new[] { 1.25d, 2.25d }
-                    : kind == "decimal-three" ? new[] { 1.2344d, 1.2346d, 2.5d }
-                    : kind == "grouped-three-decimal" ? new[] { 1234.5674d, 1234.5676d, 2000d }
-                    : kind.StartsWith("range-general-", StringComparison.Ordinal) ? new[] { 1d, 2d, 10d, 20d }
-                    : kind == "range-grouped-between" ? new[] { 900d, 1000d, 1500d, 2000d, 3000d }
-                    : kind == "range-decimal-greater" ? new[] { -2.5d, -1.25d, 1.2d, 1.25d, 2.3d }
-                    : kind.StartsWith("range-signed-", StringComparison.Ordinal) ? new[] { -20d, -2d, -1d, 1d, 2d, 20d }
-                    : kind == "currency-positive" ? new[] { 1000d, 2000d }
-                    : kind == "currency-negative" ? new[] { -1000d, 2000d }
-                    : kind == "grouped-two-decimal" ? new[] { 1234.5d, 2000d }
-                    : kind == "percent-two-decimal" ? new[] { 0.125d, 0.25d }
-                    : kind == "currency-zero-decimal" ? new[] { 1234.5d, 2000d }
-                    : kind == "parenthesized-negative" ? new[] { -1234.5d, 2000d }
-                    : new[] { 10d, 1000d, 2000d };
-                for (int index = 0; index < keys.Length; index++) {
+                double[] keys = kind == "midpoint-positive" ? new[]
+                {
+                    2.5d,
+                    4.5d
+                }
+
+                : kind == "midpoint-negative" ? new[]
+                {
+                    -2.5d,
+                    4.5d
+                }
+
+                : kind == "decimal-two" ? new[]
+                {
+                    1.2d,
+                    2.3d
+                }
+
+                : kind == "percent-one" ? new[]
+                {
+                    0.125d,
+                    0.25d
+                }
+
+                : kind == "decimal-midpoint" ? new[]
+                {
+                    1.25d,
+                    2.25d
+                }
+
+                : kind == "decimal-three" ? new[]
+                {
+                    1.2344d,
+                    1.2346d,
+                    2.5d
+                }
+
+                : kind == "grouped-three-decimal" ? new[]
+                {
+                    1234.5674d,
+                    1234.5676d,
+                    2000d
+                }
+
+                : kind.StartsWith("range-general-", StringComparison.Ordinal) ? new[]
+                {
+                    1d,
+                    2d,
+                    10d,
+                    20d
+                }
+
+                : kind == "range-grouped-between" ? new[]
+                {
+                    900d,
+                    1000d,
+                    1500d,
+                    2000d,
+                    3000d
+                }
+
+                : kind == "range-decimal-greater" ? new[]
+                {
+                    -2.5d,
+                    -1.25d,
+                    1.2d,
+                    1.25d,
+                    2.3d
+                }
+
+                : kind.StartsWith("range-signed-", StringComparison.Ordinal) ? new[]
+                {
+                    -20d,
+                    -2d,
+                    -1d,
+                    1d,
+                    2d,
+                    20d
+                }
+
+                : kind == "currency-positive" ? new[]
+                {
+                    1000d,
+                    2000d
+                }
+
+                : kind == "currency-negative" ? new[]
+                {
+                    -1000d,
+                    2000d
+                }
+
+                : kind == "grouped-two-decimal" ? new[]
+                {
+                    1234.5d,
+                    2000d
+                }
+
+                : kind == "percent-two-decimal" ? new[]
+                {
+                    0.125d,
+                    0.25d
+                }
+
+                : kind == "currency-zero-decimal" ? new[]
+                {
+                    1234.5d,
+                    2000d
+                }
+
+                : kind == "parenthesized-negative" ? new[]
+                {
+                    -1234.5d,
+                    2000d
+                }
+
+                : new[]
+                {
+                    10d,
+                    1000d,
+                    2000d
+                };
+                for (int index = 0; index < keys.Length; index++)
+                {
                     source.CellValue(index + 2, 1, keys[index]);
                     source.CellValue(index + 2, 2, 10 * (index + 1));
                 }
-                var builder = source.Pivot($"A1:B{keys.Length + 1}").Rows("Item").Sum("Sales", "Metric");
-                if (NumericLabelFormat(kind) is string fieldFormat) builder.FieldNumberFormat("Item", fieldFormat);
-                builder.Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+
+                var builder = new ExcelPivotTableOptions();
+                builder.RowFields.Add("Item");
+                builder.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                if (NumericLabelFormat(kind)is string fieldFormat)
+                {
+                    builder.FieldOptions.Add(new ExcelPivotFieldOptions("Item", numberFormat: fieldFormat));
+                }
+
+                {
+                    builder.Layout = ExcelPivotLayout.Tabular;
+                    builder.PivotFilters.Add(filter);
+                    builder.Name = "FilteredPivot";
+                    source.AddPivotTable($"A1:B{keys.Length + 1}", "D4", builder);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
-                if (NumericLabelFormat(kind) is string outputFormat)
+                if (NumericLabelFormat(kind)is string outputFormat)
                     Assert.Equal(outputFormat, source.GetCellStyle(5, 4).NumberFormatCode);
                 var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
-                if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative"
-                    or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three"
-                    or "grouped-three-decimal"
-                    or "currency-positive" or "currency-negative" or "grouped-two-decimal"
-                    or "percent-two-decimal" or "currency-zero-decimal" or "parenthesized-negative") {
-                    var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!
-                        .Elements<FilterColumn>().Single();
+                if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative" or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three" or "grouped-three-decimal" or "currency-positive" or "currency-negative" or "grouped-two-decimal" or "percent-two-decimal" or "currency-zero-decimal" or "parenthesized-negative")
+                {
+                    var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!.Elements<FilterColumn>().Single();
                     Assert.Null(column.GetFirstChild<CustomFilters>());
                     Assert.Equal(filter.Value1, Assert.Single(column.GetFirstChild<Filters>()!.Elements<Filter>()).Val!.Value);
                 }
+
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
-            if (NumericLabelFormat(kind) is string savedFormat)
+            if (NumericLabelFormat(kind)is string savedFormat)
                 Assert.Equal(savedFormat, reopened.GetSheet("Source").GetCellStyle(5, 4).NumberFormatCode);
         }
 
@@ -218,9 +337,9 @@ namespace OfficeIMO.Tests {
             "duplicate-caption-unfiltered" or "duplicate-caption-equals" => "0.0",
             _ => "#,##0"
         };
-
         [Fact]
-        public void Test_PivotNumericLabelRange_RejectsUnqualifiedOneDecimalCaptionBeforeWriting() {
+        public void Test_PivotNumericLabelRange_RejectsUnqualifiedOneDecimalCaptionBeforeWriting()
+        {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             source.CellValue(1, 1, "Item");
@@ -229,10 +348,17 @@ namespace OfficeIMO.Tests {
             source.CellValue(2, 2, 10d);
             source.CellValue(3, 1, 2.3d);
             source.CellValue(3, 2, 20d);
-            source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric")
-                .FieldNumberFormat("Item", "0.0").Layout(ExcelPivotLayout.Tabular)
-                .Filter(ExcelPivotFilter.LabelGreaterThan("Item", "1.2"))
-                .At("D4", "FilteredPivot");
+            {
+                var pivotOptions1 = new ExcelPivotTableOptions();
+                pivotOptions1.RowFields.Add("Item");
+                pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                pivotOptions1.PivotFilters.Add(ExcelPivotFilter.LabelGreaterThan("Item", "1.2"));
+                pivotOptions1.FieldOptions.Add(new ExcelPivotFieldOptions("Item", numberFormat: "0.0"));
+                pivotOptions1.Name = "FilteredPivot";
+                source.AddPivotTable("A1:B3", "D4", pivotOptions1);
+            }
+
             var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
             string beforeView = source.WorksheetPart.Worksheet.OuterXml;
             string beforePivot = pivot.OuterXml;
@@ -244,34 +370,54 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("duplicate-caption-unfiltered", 60d, 8)]
         [InlineData("duplicate-caption-equals", 30d, 7)]
-        public void Test_PivotDuplicateFormattedCaptions_TemplateFreePublicApi(string kind, double grand, int lastRow) {
+        public void Test_PivotDuplicateFormattedCaptions_TemplateFreePublicApi(string kind, double grand, int lastRow)
+        {
             string file = $"pivot-label-number-{kind}-conformance.xlsx";
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
             using var oracle = ExcelDocumentReader.Open(path);
             var expected = oracle.GetSheet("Grouped").ReadRange($"A4:B{lastRow}");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
-                double[] keys = { 1.21d, 1.24d, 2.26d };
-                for (int index = 0; index < keys.Length; index++) {
+                double[] keys =
+                {
+                    1.21d,
+                    1.24d,
+                    2.26d
+                };
+                for (int index = 0; index < keys.Length; index++)
+                {
                     source.CellValue(index + 2, 1, keys[index]);
                     source.CellValue(index + 2, 2, 10d * (index + 1));
                 }
-                var builder = source.Pivot("A1:B4").Rows("Item").Sum("Sales", "Metric")
-                    .FieldNumberFormat("Item", "0.0").Layout(ExcelPivotLayout.Tabular);
-                if (kind == "duplicate-caption-equals") builder.Filter(ExcelPivotFilter.LabelEquals("Item", "1.2"));
-                builder.At("D4", "DuplicateCaptionPivot");
+
+                var builder = new ExcelPivotTableOptions();
+                builder.RowFields.Add("Item");
+                builder.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                builder.Layout = ExcelPivotLayout.Tabular;
+                builder.FieldOptions.Add(new ExcelPivotFieldOptions("Item", numberFormat: "0.0"));
+                if (kind == "duplicate-caption-equals")
+                {
+                    builder.PivotFilters.Add(ExcelPivotFilter.LabelEquals("Item", "1.2"));
+                }
+
+                {
+                    builder.Name = "DuplicateCaptionPivot";
+                    source.AddPivotTable("A1:B4", "D4", builder);
+                }
+
                 var result = source.MaterializePivotTable("DuplicateCaptionPivot");
                 Assert.Equal($"D4:E{lastRow}", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(grand, source.GetPivotData("DuplicateCaptionPivot", "Metric").Value);
                 Assert.Equal(10d, source.GetPivotData("DuplicateCaptionPivot", "Metric", new Dictionary<string, object?> { ["Item"] = 1.21d }).Value);
                 Assert.Equal(20d, source.GetPivotData("DuplicateCaptionPivot", "Metric", new Dictionary<string, object?> { ["Item"] = 1.24d }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange($"D4:E{lastRow}");
             for (int row = 0; row <= lastRow - 4; row++)
@@ -316,32 +462,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotFormattedNumericSubtotal_TemplateFreePublicApi() {
+        public void Test_PivotFormattedNumericSubtotal_TemplateFreePublicApi()
+        {
             string output = Path.Combine(_directoryWithFiles, "Filter.label-number-subtotal.Authored.xlsx");
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
-                "pivot-label-number-subtotal-conformance.xlsx");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", "pivot-label-number-subtotal-conformance.xlsx");
             using var oracle = ExcelDocumentReader.Open(path);
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:C10");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Quantity");
                 source.CellValue(1, 2, "Product");
                 source.CellValue(1, 3, "Sales");
-                source.CellValue(2, 1, 1000d); source.CellValue(2, 2, "A"); source.CellValue(2, 3, 10d);
-                source.CellValue(3, 1, 1000d); source.CellValue(3, 2, "B"); source.CellValue(3, 3, 20d);
-                source.CellValue(4, 1, 2000d); source.CellValue(4, 2, "A"); source.CellValue(4, 3, 30d);
-                source.Pivot("A1:C4").Rows("Quantity", "Product").Sum("Sales", "Metric")
-                    .FieldNumberFormat("Quantity", "#,##0")
-                    .Layout(ExcelPivotLayout.Tabular).At("E4", "FilteredPivot");
+                source.CellValue(2, 1, 1000d);
+                source.CellValue(2, 2, "A");
+                source.CellValue(2, 3, 10d);
+                source.CellValue(3, 1, 1000d);
+                source.CellValue(3, 2, "B");
+                source.CellValue(3, 3, 20d);
+                source.CellValue(4, 1, 2000d);
+                source.CellValue(4, 2, "A");
+                source.CellValue(4, 3, 30d);
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Quantity");
+                    pivotOptions2.RowFields.Add("Product");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions2.FieldOptions.Add(new ExcelPivotFieldOptions("Quantity", numberFormat: "#,##0"));
+                    pivotOptions2.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:C4", "E4", pivotOptions2);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
                 Assert.Equal("E4:G10", result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 Assert.Equal(60d, source.GetPivotData("FilteredPivot", "Metric").Value);
                 var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
-                Assert.All(pivot.PivotFields!.Elements<PivotField>().Take(2),
-                    field => Assert.False(field.ShowAll!.Value));
+                Assert.All(pivot.PivotFields!.Elements<PivotField>().Take(2), field => Assert.False(field.ShowAll!.Value));
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange("E4:G10");
             for (int row = 0; row < 7; row++)
@@ -350,18 +511,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotExplicitShowAll_RejectsHeadlessMaterializationWithoutChangingView() {
+        public void Test_PivotExplicitShowAll_RejectsHeadlessMaterializationWithoutChangingView()
+        {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             source.CellValue(1, 1, "Quantity");
             source.CellValue(1, 2, "Product");
             source.CellValue(1, 3, "Sales");
-            source.CellValue(2, 1, 1000d); source.CellValue(2, 2, "A"); source.CellValue(2, 3, 10d);
-            source.CellValue(3, 1, 1000d); source.CellValue(3, 2, "B"); source.CellValue(3, 3, 20d);
-            source.CellValue(4, 1, 2000d); source.CellValue(4, 2, "A"); source.CellValue(4, 3, 30d);
-            source.Pivot("A1:C4").Rows("Quantity", "Product").Sum("Sales", "Metric")
-                .FieldDisplay("Quantity", showAll: true).Layout(ExcelPivotLayout.Tabular)
-                .At("E4", "ShowAllPivot");
+            source.CellValue(2, 1, 1000d);
+            source.CellValue(2, 2, "A");
+            source.CellValue(2, 3, 10d);
+            source.CellValue(3, 1, 1000d);
+            source.CellValue(3, 2, "B");
+            source.CellValue(3, 3, 20d);
+            source.CellValue(4, 1, 2000d);
+            source.CellValue(4, 2, "A");
+            source.CellValue(4, 3, 30d);
+            {
+                var pivotOptions3 = new ExcelPivotTableOptions();
+                pivotOptions3.RowFields.Add("Quantity");
+                pivotOptions3.RowFields.Add("Product");
+                pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions3.Layout = ExcelPivotLayout.Tabular;
+                pivotOptions3.FieldOptions.Add(new ExcelPivotFieldOptions("Quantity", showAll: true));
+                pivotOptions3.Name = "ShowAllPivot";
+                source.AddPivotTable("A1:C4", "E4", pivotOptions3);
+            }
+
             var definition = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
             string beforePivot = definition.OuterXml;
             string beforeView = source.WorksheetPart.Worksheet.OuterXml;

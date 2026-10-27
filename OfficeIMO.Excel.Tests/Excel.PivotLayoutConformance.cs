@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_PivotLayoutMaterialization_RejectsAmbiguousMeasureCaptionsBeforeMutation() {
             using var document = ExcelDocument.Load(PivotLayoutOraclePath);
@@ -16,14 +18,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddPivotTable_RejectsAmbiguousMeasureCaptionsBeforeCreatingParts() {
+        public void Test_AddPivotTable_RejectsAmbiguousMeasureCaptionsBeforeCreatingParts()
+        {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Source");
-            sheet.CellValue(1, 1, "Key"); sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "A"); sheet.CellValue(2, 2, 1d);
-            Assert.Throws<ArgumentException>(() => sheet.AddPivotTable("A1:B2", "D1", "Pivot", rowFields: new[] { "Key" },
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"),
-                    new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "revenue") }));
+            sheet.CellValue(1, 1, "Key");
+            sheet.CellValue(1, 2, "Amount");
+            sheet.CellValue(2, 1, "A");
+            sheet.CellValue(2, 2, 1d);
+            Assert.Throws<ArgumentException>(() => sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "revenue") } }));
             Assert.Empty(sheet.WorksheetPart.PivotTableParts);
         }
 
@@ -31,19 +34,23 @@ namespace OfficeIMO.Tests {
         [InlineData(false, false, 2)]
         [InlineData(true, false, 2)]
         [InlineData(false, true, 0)]
-        public void Test_AddPivotTable_RejectsInvalidValuesPositionBeforeCreatingParts(
-            bool valuesOnRows, bool singleMeasure, int position) {
+        public void Test_AddPivotTable_RejectsInvalidValuesPositionBeforeCreatingParts(bool valuesOnRows, bool singleMeasure, int position)
+        {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Source");
-            sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Channel"); sheet.CellValue(1, 3, "Sales");
-            sheet.CellValue(2, 1, "East"); sheet.CellValue(2, 2, "Retail"); sheet.CellValue(2, 3, 10d);
-            var measures = new List<ExcelPivotDataField> {
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Channel");
+            sheet.CellValue(1, 3, "Sales");
+            sheet.CellValue(2, 1, "East");
+            sheet.CellValue(2, 2, "Retail");
+            sheet.CellValue(2, 3, 10d);
+            var measures = new List<ExcelPivotDataField>
+            {
                 new("Sales", ExcelPivotDataFunction.Sum, "Metric")
             };
-            if (!singleMeasure) measures.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Count, "Count"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddPivotTable("A1:C2", "E1", "Pivot",
-                rowFields: new[] { "Region" }, columnFields: new[] { "Channel" }, dataFields: measures,
-                dataOnRows: valuesOnRows, options: new ExcelPivotTableOptions { ValuesAxisPosition = position }));
+            if (!singleMeasure)
+                measures.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Count, "Count"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions { ValuesAxisPosition = position, Name = "Pivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Channel" }, DataFields = (measures)is { } authoredDataFields1 ? System.Linq.Enumerable.ToList(authoredDataFields1) : System.Array.Empty<ExcelPivotDataField>(), DataOnRows = valuesOnRows }));
             Assert.Empty(sheet.WorksheetPart.PivotTableParts);
             Assert.Null(document.WorkbookPartRoot.Workbook.PivotCaches);
             Assert.Empty(sheet.GetPivotTables());
@@ -61,18 +68,19 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false, "F1:O7")]
         [InlineData(true, "F1:J14")]
-        public void Test_PivotLayoutMaterialization_CreatesMultipleMeasuresWithoutTemplate(bool valuesOnRows, string range) {
+        public void Test_PivotLayoutMaterialization_CreatesMultipleMeasuresWithoutTemplate(bool valuesOnRows, string range)
+        {
             string output = Path.Combine(_directoryWithFiles, valuesOnRows ? "MultiTemplateRows.xlsx" : "MultiTemplateColumns.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotLayoutOraclePath);
             var source = oracle.GetSheet("Source").ReadRange("A1:D9");
-            using (var document = ExcelDocument.Create(output)) {
+            using (var document = ExcelDocument.Create(output))
+            {
                 var sheet = document.AddWorksheet("Sales");
-                for (int row = 1; row <= 9; row++) for (int column = 1; column <= 4; column++)
-                    if (source[row - 1, column - 1] != null) sheet.CellValue(row, column, source[row - 1, column - 1]);
-                sheet.AddPivotTable("A1:D9", "F1", "SalesPivot", rowFields: new[] { "Region" }, columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"),
-                        new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, "AvgUnits"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") },
-                    layout: ExcelPivotLayout.Tabular, dataOnRows: valuesOnRows);
+                for (int row = 1; row <= 9; row++)
+                    for (int column = 1; column <= 4; column++)
+                        if (source[row - 1, column - 1] != null)
+                            sheet.CellValue(row, column, source[row - 1, column - 1]);
+                sheet.AddPivotTable("A1:D9", "F1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, "AvgUnits"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, Layout = ExcelPivotLayout.Tabular, DataOnRows = valuesOnRows });
                 Assert.True(Assert.Single(sheet.GetPivotTables()).HasValuesAxisField);
                 var result = sheet.MaterializePivotTable("SalesPivot");
                 Assert.Equal(range, result.OutputRange);
@@ -82,6 +90,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(7d, sheet.GetPivotData("SalesPivot", "Entries").Value);
                 document.Save();
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Equal(2.375d, reopened.GetSheet("Sales").GetPivotData("SalesPivot", "AvgUnits").Value);
         }

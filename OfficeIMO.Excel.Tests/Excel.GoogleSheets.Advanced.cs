@@ -4,8 +4,10 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.GoogleSheets;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_GoogleSheetsBatch_CompilesRichTextConditionalFormattingAndOutlines() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedCells.xlsx");
@@ -454,9 +456,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_MapsPopulationAggregatesExactly() {
+        public void Test_GoogleSheetsPivot_MapsPopulationAggregatesExactly()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPopulationPivot.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
@@ -467,30 +471,24 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 20d);
                 sheet.CellValue(4, 1, "North");
                 sheet.CellValue(4, 2, 30d);
-                sheet.AddPivotTable(
-                    "A1:B4",
-                    "D1",
-                    name: "PopulationPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] {
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"),
-                    });
-
+                sheet.AddPivotTable("A1:B4", "D1", options: new ExcelPivotTableOptions { Name = "PopulationPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"), } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(new[] { "COUNTA", "COUNT", "STDEVP", "VARP" }, pivot.Values.Select(value => value.SummarizeFunction).ToArray());
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_SuppressesCachedOutputWhenNativePivotIsEmitted() {
+        public void Test_GoogleSheetsPivot_SuppressesCachedOutputWhenNativePivotIsEmitted()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCachedPivot.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
@@ -503,25 +501,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 5, "Cached Total");
                 sheet.CellValue(2, 4, "North");
                 sheet.CellValue(2, 5, 10d);
-                sheet.AddPivotTable(
-                    "A1:B3",
-                    "D1",
-                    name: "CachedPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
-
+                sheet.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "CachedPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
-
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(0, pivot.DestinationRowIndex);
                 Assert.Equal(3, pivot.DestinationColumnIndex);
-                GoogleSheetsUpdateCellsRequest cells = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(),
-                    request => request.SheetName == "Data");
+                GoogleSheetsUpdateCellsRequest cells = Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(), request => request.SheetName == "Data");
                 Assert.Contains(cells.Cells, cell => cell.RowIndex == 0 && cell.ColumnIndex == 0 && Equals(cell.Value.Value, "Region"));
                 Assert.DoesNotContain(cells.Cells, cell => cell.RowIndex <= 1 && cell.ColumnIndex >= 3 && cell.ColumnIndex <= 4);
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
     }

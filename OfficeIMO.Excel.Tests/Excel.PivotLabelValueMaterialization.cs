@@ -1,8 +1,10 @@
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("equal", "A4:B6", 3, 60d)]
         [InlineData("not-equal", "A4:B9", 6, 155d)]
@@ -50,21 +52,30 @@ namespace OfficeIMO.Tests {
         [InlineData("ends", 115d)]
         [InlineData("not-ends", 100d)]
         [InlineData("not-contains", 100d)]
-        public void Test_PivotLabelPredicates_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotLabelPredicates_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-{kind}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    ("East", 60d), ("North", 30d), ("Northeast", 40d),
-                    ("Southeast", 15d), ("West", 70d)
+                var entries = new[]
+                {
+                    ("East", 60d),
+                    ("North", 30d),
+                    ("Northeast", 40d),
+                    ("Southeast", 15d),
+                    ("West", 70d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                ExcelPivotFilter filter = kind switch {
+
+                ExcelPivotFilter filter = kind switch
+                {
                     "equal" => ExcelPivotFilter.LabelEquals("Region", "East"),
                     "not-equal" => ExcelPivotFilter.LabelNotEquals("Region", "East"),
                     "begins" => ExcelPivotFilter.LabelBeginsWith("Region", "North"),
@@ -72,16 +83,23 @@ namespace OfficeIMO.Tests {
                     "ends" => ExcelPivotFilter.LabelEndsWith("Region", "east"),
                     "not-ends" => ExcelPivotFilter.LabelNotEndsWith("Region", "east"),
                     "not-contains" => ExcelPivotFilter.LabelNotContains("Region", "east"),
-                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
-                };
-                source.Pivot("A1:B6").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))};
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Region");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.PivotFilters.Add(filter);
+                    pivotOptions1.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B6", "D4", pivotOptions1);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -90,9 +108,11 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("E*st", 60d)]
         [InlineData("E~*st", 20d)]
-        public void Test_PivotLabelEquals_UsesExcelWildcardRules(string criterion, double total) {
+        public void Test_PivotLabelEquals_UsesExcelWildcardRules(string criterion, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-equal-{total}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
@@ -102,16 +122,22 @@ namespace OfficeIMO.Tests {
                 source.CellValue(3, 2, 40d);
                 source.CellValue(4, 1, "North");
                 source.CellValue(4, 2, 30d);
-                source.Pivot("A1:B4").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular)
-                    .Filter(ExcelPivotFilter.LabelEquals("Region", criterion))
-                    .At("D4", "FilteredPivot");
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Region");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions2.PivotFilters.Add(ExcelPivotFilter.LabelEquals("Region", criterion));
+                    pivotOptions2.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B4", "D4", pivotOptions2);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -169,33 +195,55 @@ namespace OfficeIMO.Tests {
         [InlineData("label", 115d)]
         [InlineData("value", 170d)]
         [InlineData("combined", 100d)]
-        public void Test_PivotLabelValueFilters_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotLabelValueFilters_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    ("East", 25d), ("East", 35d), ("North", 10d), ("North", 20d),
-                    ("Northeast", 40d), ("Southeast", 15d), ("West", 70d)
+                var entries = new[]
+                {
+                    ("East", 25d),
+                    ("East", 35d),
+                    ("North", 10d),
+                    ("North", 20d),
+                    ("Northeast", 40d),
+                    ("Southeast", 15d),
+                    ("West", 70d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                var builder = source.Pivot("A1:B8").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular);
+
+                var builder = new ExcelPivotTableOptions();
+                builder.RowFields.Add("Region");
+                builder.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                builder.Layout = ExcelPivotLayout.Tabular;
                 if (kind == "label" || kind == "combined")
-                    builder.Filter(ExcelPivotFilter.LabelContains("Region", "east"));
+                {
+                    builder.PivotFilters.Add(ExcelPivotFilter.LabelContains("Region", "east"));
+                }
+
                 if (kind == "value" || kind == "combined")
-                    builder.Filter(ExcelPivotFilter.ValueGreaterThan("Region", "Metric", 30));
-                builder.At("D4", "FilteredPivot");
+                {
+                    builder.PivotFilters.Add(ExcelPivotFilter.ValueGreaterThan("Region", "Metric", 30));
+                }
+
+                {
+                    builder.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B8", "D4", builder);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -207,42 +255,57 @@ namespace OfficeIMO.Tests {
         [InlineData("error", "#DIV/0!", 20d)]
         [InlineData("wildcard", "E*st", 60d)]
         [InlineData("escaped-wildcard", "E~*st", 20d)]
-        public void Test_PivotLabelContains_UsesDisplayedCaptionsAndExcelWildcards(
-            string kind, string criterion, double total) {
+        public void Test_PivotLabelContains_UsesDisplayedCaptionsAndExcelWildcards(string kind, string criterion, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
-                if (kind == "boolean") {
+                if (kind == "boolean")
+                {
                     source.CellValue(2, 1, true);
                     source.CellValue(3, 1, false);
                     source.CellValue(4, 1, true);
-                } else if (kind == "blank") {
+                }
+                else if (kind == "blank")
+                {
                     source.CellValue(2, 1, "East");
                     source.CellValue(4, 1, "West");
-                } else if (kind == "error") {
+                }
+                else if (kind == "error")
+                {
                     source.CellError(2, 1, "#DIV/0!");
                     source.CellValue(3, 1, "North");
                     source.CellValue(4, 1, "East");
-                } else {
+                }
+                else
+                {
                     source.CellValue(2, 1, "E*st");
                     source.CellValue(3, 1, "North");
                     source.CellValue(4, 1, "East");
                 }
+
                 source.CellValue(2, 2, 20d);
                 source.CellValue(3, 2, 30d);
                 source.CellValue(4, 2, 40d);
-                source.Pivot("A1:B4").Rows("Item").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular)
-                    .Filter(ExcelPivotFilter.LabelContains("Item", criterion))
-                    .At("D4", "FilteredPivot");
+                {
+                    var pivotOptions3 = new ExcelPivotTableOptions();
+                    pivotOptions3.RowFields.Add("Item");
+                    pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions3.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions3.PivotFilters.Add(ExcelPivotFilter.LabelContains("Item", criterion));
+                    pivotOptions3.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B4", "D4", pivotOptions3);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -251,29 +314,46 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("date")]
         [InlineData("other-number-format")]
-        public void Test_PivotLabelContains_DoesNotMaterializeUnqualifiedFormattedCaptions(string kind) {
+        public void Test_PivotLabelContains_DoesNotMaterializeUnqualifiedFormattedCaptions(string kind)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Unqualified.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
-                if (kind == "date") {
+                if (kind == "date")
+                {
                     source.CellValue(2, 1, new DateTime(2025, 1, 1));
                     source.CellValue(3, 1, new DateTime(2026, 1, 1));
-                } else {
+                }
+                else
+                {
                     source.CellValue(2, 1, 1000d);
                     source.CellValue(3, 1, 2000d);
                 }
+
                 source.CellValue(2, 2, 20d);
                 source.CellValue(3, 2, 30d);
-                var builder = source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric");
-                if (kind != "date") builder.FieldNumberFormat("Item", "0.0000");
-                builder.Layout(ExcelPivotLayout.Tabular)
-                    .Filter(ExcelPivotFilter.LabelContains("Item", kind == "date" ? "2025" : "1"))
-                    .At("D4", "FilteredPivot");
+                var builder = new ExcelPivotTableOptions();
+                builder.RowFields.Add("Item");
+                builder.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                if (kind != "date")
+                {
+                    builder.FieldOptions.Add(new ExcelPivotFieldOptions("Item", numberFormat: "0.0000"));
+                }
+
+                {
+                    builder.Layout = ExcelPivotLayout.Tabular;
+                    builder.PivotFilters.Add(ExcelPivotFilter.LabelContains("Item", kind == "date" ? "2025" : "1"));
+                    builder.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B3", "D4", builder);
+                }
+
                 Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
         }
@@ -284,36 +364,52 @@ namespace OfficeIMO.Tests {
         [InlineData("greater-or-equal", 200d)]
         [InlineData("less", 15d)]
         [InlineData("less-or-equal", 45d)]
-        public void Test_PivotValueComparisons_TemplateFreePublicApi(string comparison, double total) {
+        public void Test_PivotValueComparisons_TemplateFreePublicApi(string comparison, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-{comparison}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    ("East", 60d), ("North", 30d), ("Northeast", 40d),
-                    ("Southeast", 15d), ("West", 70d)
+                var entries = new[]
+                {
+                    ("East", 60d),
+                    ("North", 30d),
+                    ("Northeast", 40d),
+                    ("Southeast", 15d),
+                    ("West", 70d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                ExcelPivotFilter filter = comparison switch {
+
+                ExcelPivotFilter filter = comparison switch
+                {
                     "equal" => ExcelPivotFilter.ValueEquals("Region", "Metric", 30d),
                     "not-equal" => ExcelPivotFilter.ValueNotEquals("Region", "Metric", 30d),
                     "greater-or-equal" => ExcelPivotFilter.ValueGreaterThanOrEqual("Region", "Metric", 30d),
                     "less" => ExcelPivotFilter.ValueLessThan("Region", "Metric", 30d),
                     "less-or-equal" => ExcelPivotFilter.ValueLessThanOrEqual("Region", "Metric", 30d),
-                    _ => throw new ArgumentOutOfRangeException(nameof(comparison))
-                };
-                source.Pivot("A1:B6").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                    _ => throw new ArgumentOutOfRangeException(nameof(comparison))};
+                {
+                    var pivotOptions4 = new ExcelPivotTableOptions();
+                    pivotOptions4.RowFields.Add("Region");
+                    pivotOptions4.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions4.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions4.PivotFilters.Add(filter);
+                    pivotOptions4.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B6", "D4", pivotOptions4);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);

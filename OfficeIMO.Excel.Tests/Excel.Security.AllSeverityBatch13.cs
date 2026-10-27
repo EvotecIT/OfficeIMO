@@ -1,5 +1,4 @@
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using OfficeIMO.Drawing;
 using OfficeIMO.Data;
 using System.Data;
@@ -7,8 +6,8 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
-
-public sealed class ExcelAllSeverityBatch13SecurityTests {
+public sealed class ExcelAllSeverityBatch13SecurityTests
+{
     [Fact]
     public async Task RemoteImageInsertionRejectsLoopbackDestinationByDefault() {
         using var stream = new MemoryStream();
@@ -130,37 +129,54 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
-    public void RowsFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
+    public void RowsFromStopsUnboundedSourceEnumerationAtConfiguredLimit()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(InfiniteRows(), options => options.MaxRows = 3)));
-
+        {
+            var sheet1 = document.AddWorksheet("Data");
+            int nextRow2 = 1;
+            var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
+            (projection3).MaxRows = 3;
+            var table4 = sheet1.AddTable(InfiniteRows(), new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection3 }, row: nextRow2);
+            nextRow2 = table4.AsRange().LastRow + 1;
+        });
         Assert.Contains("3-row", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RowsFromStopsStreamingSourceAtCellLimit() {
+    public void RowsFromStopsStreamingSourceAtCellLimit()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
         int enumeratedRows = 0;
-
-        IEnumerable<WideSimpleRow> StreamingRows() {
-            while (true) {
+        IEnumerable<WideSimpleRow> StreamingRows()
+        {
+            while (true)
+            {
                 enumeratedRows++;
-                yield return new WideSimpleRow { Left = enumeratedRows, Right = enumeratedRows };
+                yield return new WideSimpleRow
+                {
+                    Left = enumeratedRows,
+                    Right = enumeratedRows
+                };
             }
         }
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(StreamingRows(), options => {
-                    options.MaxRows = 5;
-                    options.MaxCells = 5;
-                })));
+        {
+            var sheet5 = document.AddWorksheet("Data");
+            int nextRow6 = 1;
+            var projection7 = new OfficeIMO.Data.ObjectFlattenerOptions();
+            {
+                (projection7).MaxRows = 5;
+                (projection7).MaxCells = 5;
+            }
 
+            var table8 = sheet5.AddTable(StreamingRows(), new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection7 }, row: nextRow6);
+            nextRow6 = table8.AsRange().LastRow + 1;
+        });
         Assert.Contains("5-cell", exception.Message, StringComparison.Ordinal);
         Assert.Equal(2, enumeratedRows);
     }
@@ -168,89 +184,131 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void RowsFromEmptyInputSkipsUnrenderedProjectionLimits(bool constrainColumns) {
-        using var stream = new MemoryStream();
-        using ExcelDocument document = ExcelDocument.Create(stream);
-
-        Exception? exception = Record.Exception(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(Array.Empty<WideSimpleRow>(), options => {
-                    if (constrainColumns) {
-                        options.MaxColumns = 1;
-                    } else {
-                        options.MaxCells = 1;
-                    }
-                })));
-
-        Assert.Null(exception);
+    public void EmptyNativeTableHeadersHonorProjectionLimits(bool constrainColumns)
+    {
+        using ExcelDocument document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Data");
+        var projection = new ObjectFlattenerOptions();
+        if (constrainColumns)
+            projection.MaxColumns = 1;
+        else
+            projection.MaxCells = 1;
+        Assert.Throws<InvalidDataException>(() => sheet.AddTable(Array.Empty<WideSimpleRow>(), new ExcelTableOptions { Projection = projection }));
+        Assert.Empty(document.Inspect().Worksheets.Single().Cells);
     }
 
     [Fact]
-    public void TableFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
+    public void TableFromStopsUnboundedSourceEnumerationAtConfiguredLimit()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(
-            () => document.Compose("Data", sheet => sheet.TableFrom(
-                InfiniteRows(), configure: options => options.MaxRows = 3)));
-
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(sheet => sheet.AddTable(InfiniteRows(), configure: options => options.MaxRows = 3)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
         Assert.Contains("3-row", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RowsFromStopsNestedExpansionAtConfiguredLimit() {
+    public void RowsFromStopsNestedExpansionAtConfiguredLimit()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-        var rows = new[] { new NestedRow { Name = "item", Values = new[] { 1, 2, 3 } } };
-
+        var rows = new[]
+        {
+            new NestedRow
+            {
+                Name = "item",
+                Values = new[]
+                {
+                    1,
+                    2,
+                    3
+                }
+            }
+        };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(rows, options => {
-                    options.MaxRows = 2;
-                    options.CollectionMode = CollectionMode.ExpandRows;
-                })));
+        {
+            var sheet13 = document.AddWorksheet("Data");
+            int nextRow14 = 1;
+            var projection15 = new OfficeIMO.Data.ObjectFlattenerOptions();
+            {
+                (projection15).MaxRows = 2;
+                (projection15).CollectionMode = CollectionMode.ExpandRows;
+            }
 
+            var table16 = sheet13.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection15 }, row: nextRow14);
+            nextRow14 = table16.AsRange().LastRow + 1;
+        });
         Assert.Contains("nested expansion", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RowsFromHonorsPerCollectionLimitDuringNestedExpansion() {
+    public void RowsFromHonorsPerCollectionLimitDuringNestedExpansion()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-        var rows = new[] { new NestedEnumerableRow { Values = InfiniteValues() } };
-
+        var rows = new[]
+        {
+            new NestedEnumerableRow
+            {
+                Values = InfiniteValues()
+            }
+        };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(rows, options => {
-                    options.MaxRows = 100;
-                    options.MaxCollectionItems = 2;
-                    options.CollectionMode = CollectionMode.ExpandRows;
-                })));
+        {
+            var sheet17 = document.AddWorksheet("Data");
+            int nextRow18 = 1;
+            var projection19 = new OfficeIMO.Data.ObjectFlattenerOptions();
+            {
+                (projection19).MaxRows = 100;
+                (projection19).MaxCollectionItems = 2;
+                (projection19).CollectionMode = CollectionMode.ExpandRows;
+            }
 
+            var table20 = sheet17.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection19 }, row: nextRow18);
+            nextRow18 = table20.AsRange().LastRow + 1;
+        });
         Assert.Contains("2-item", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RowsFromSimpleFastPathRejectsColumnsBeyondConfiguredLimit() {
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            SheetBuilder.EnsureRowsFromColumnLimit(2, 1));
-
+    public void RowsFromSimpleFastPathRejectsColumnsBeyondConfiguredLimit()
+    {
+        using ExcelDocument document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Data");
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => sheet.AddTable(new[] { new WideSimpleRow() }, new ExcelTableOptions { Projection = new ObjectFlattenerOptions { MaxColumns = 1 } }));
         Assert.Contains("1-column", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RowsFromHonorsFinalCellLimitDuringNestedExpansion() {
+    public void RowsFromHonorsFinalCellLimitDuringNestedExpansion()
+    {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-        var rows = new[] { new NestedRow { Name = "A", Values = new[] { 1, 2, 3 } } };
-
+        var rows = new[]
+        {
+            new NestedRow
+            {
+                Name = "A",
+                Values = new[]
+                {
+                    1,
+                    2,
+                    3
+                }
+            }
+        };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.AsFluent().Sheet("Data", sheet =>
-                sheet.RowsFrom(rows, options => {
-                    options.MaxCells = 5;
-                    options.CollectionMode = CollectionMode.ExpandRows;
-                })));
+        {
+            var sheet21 = document.AddWorksheet("Data");
+            int nextRow22 = 1;
+            var projection23 = new OfficeIMO.Data.ObjectFlattenerOptions();
+            {
+                (projection23).MaxCells = 5;
+                (projection23).CollectionMode = CollectionMode.ExpandRows;
+            }
 
+            var table24 = sheet21.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection23 }, row: nextRow22);
+            nextRow22 = table24.AsRange().LastRow + 1;
+        });
         Assert.Contains("5-cell", exception.Message, StringComparison.Ordinal);
     }
 

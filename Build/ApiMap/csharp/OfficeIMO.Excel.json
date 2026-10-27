@@ -1012,11 +1012,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ChartBuilder",
@@ -1029,11 +1029,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ColumnBuilder",
@@ -1046,11 +1046,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ColumnCollectionBuilder",
@@ -1063,11 +1063,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ColumnSizingOptions",
@@ -1080,11 +1080,11 @@
       "notes": "Used by ExcelReportBuilder.ApplyColumnSizing.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ExcelFluentWorkbook",
@@ -1097,11 +1097,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ExcelInfoBuilder",
@@ -1114,11 +1114,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.ExcelTableBuilder",
@@ -1131,11 +1131,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.HeaderFooterBuilder",
@@ -1149,11 +1149,11 @@
       "notes": "Also used by the public object-model method ExcelSheet.HeaderFooter(Action<HeaderFooterBuilder>) (OfficeIMO.Excel/Fluent/ExcelSheet.HeaderFooter.Fluent.cs) and ExcelReportBuilder.HeaderFooter.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.IconSetOptions",
@@ -1165,11 +1165,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.OverflowMode",
@@ -1198,11 +1198,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.RangeBuilder",
@@ -1215,11 +1215,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.RowBuilder",
@@ -1232,11 +1232,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetBuilder",
@@ -1249,11 +1249,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer",
@@ -1266,11 +1266,11 @@
       "notes": "Public ctor SheetComposer(ExcelDocument workbook, string sheetName, SheetTheme? theme) creates the sheet itself; the target is ExcelSheet.Report(ExcelReportOptions options = null) on an existing sheet, so the ctor becomes internal.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer+ColumnComposer",
@@ -1283,11 +1283,11 @@
       "notes": "Nested public builder used by Columns(...); keep only if multi-column report layout stays public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetIndex",
@@ -1299,11 +1299,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetTheme",
@@ -1315,11 +1315,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SparklineBuilder",
@@ -1332,11 +1332,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.StatusPalettes",
@@ -1348,11 +1348,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.StyleBuilder",
@@ -1365,11 +1365,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.TableVisualOptions",
@@ -1382,11 +1382,11 @@
       "notes": "Used by ExcelReportBuilder.TableFrom.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Excel fluent surface is removed. Native sheet, cell, range, table, chart, pivot and sparkline objects retain its authoring capabilities; worksheet reports use sheet.Report(). Geometry and shared chart options are qualified separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.HeaderFooter(Action<HeaderFooterBuilder> configure)",
@@ -1415,11 +1415,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The constructor is internal. ExcelSheet.Report(ExcelReportOptions) builds content on the existing sheet."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(int row, int column, byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
@@ -1596,28 +1596,28 @@
       "notes": "Returns the table name (string) today.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the created ExcelTable; consumers that need its address read Range. Empty report inputs retain their placeholder content as a headerless native table."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.TableFrom(DataTable table, string title = null, Action<ObjectFlattenerOptions> configure = null, ExcelTableStyle style = TableStyleMedium9, bool autoFilter = True, bool freezeHeaderRow = True, Action<TableVisualOptions> visuals = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddTable<T>(IEnumerable<T> rows, ...) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddTable(DataTable table, ...) : ExcelTable",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.Table.DataTable.cs",
       "category": "authoring",
       "notes": "Returns the table name (string) today.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the created ExcelTable; consumers that need its address read Range. Empty report inputs retain their placeholder content as a headerless native table."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null)",
@@ -2361,11 +2361,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One public AddPivotTable(sourceRange, destinationCell, ExcelPivotTableOptions) returns ExcelPivotTable. The options contain field definitions, filters, grouping, captions, layout and cache interaction settings; the native writer remains private."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotTable(string sourceRange, string destinationCell, string name = null, IEnumerable<string> rowFields = null, IEnumerable<string> columnFields = null, IEnumerable<string> pageFields = null, IEnumerable<ExcelPivotDataField> dataFields = null, bool showRowGrandTotals = True, bool showColumnGrandTotals = True, string pivotStyleName = null, ExcelPivotLayout layout = Compact, bool? dataOnRows = null, bool? showHeaders = null, bool? showEmptyRows = null, bool? showEmptyColumns = null, bool? showDrill = null, IEnumerable<ExcelPivotFieldOptions> fieldOptions = null, string rowHeaderCaption = null, string columnHeaderCaption = null, string grandTotalCaption = null, string missingCaption = null, string errorCaption = null, bool? showDataDropDown = null, bool? showDropZones = null, bool? showDataTips = null, bool? showMemberPropertyTips = null, bool? fieldListSortAscending = null, bool? customListSort = null, IEnumerable<ExcelPivotFilter> pivotFilters = null, IEnumerable<ExcelPivotCalculatedField> calculatedFields = null, IEnumerable<ExcelPivotGrouping> groupings = null, ExcelPivotTableOptions options = null)",
@@ -2377,11 +2377,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One public AddPivotTable(sourceRange, destinationCell, ExcelPivotTableOptions) returns ExcelPivotTable. The options contain field definitions, filters, grouping, captions, layout and cache interaction settings; the native writer remains private."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName, IReadOnlyDictionary<string, string[]> groups)",
@@ -2750,11 +2750,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Both native overloads return ExcelSparklineGroup and take nullable OfficeColor values. String parsing stays at consumer boundaries."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddSparklines(string dataRange, string locationRange, bool displayMarkers = False, bool displayHighLow = False, bool displayFirstLast = False, bool displayNegative = False, bool displayAxis = False, string seriesColor = null, string axisColor = null, string negativeColor = null, string markersColor = null, string highColor = null, string lowColor = null, string firstColor = null, string lastColor = null)",
@@ -2766,11 +2766,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Both native overloads return ExcelSparklineGroup and take nullable OfficeColor values. String parsing stays at consumer boundaries."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null)",
@@ -5031,6 +5031,42 @@
       "change": "Typed table authoring on Excel",
       "applied": "phase-b-applied",
       "note": "The shared declared-schema projection handles public properties, fields and string-keyed dictionaries without arbitrary object graph reflection. Word also retains rectangular text/matrix input and an explicit dynamic-object overload; PowerPoint retains configurable object flattening with an explicit configure argument; Excel retains DataTable values and returns native ExcelTable wrappers. Focused authoring tests: 10/10 per modern target; final table signature check: 4/4 per target."
+    },
+    {
+      "subject": "Excel native table projection and range editing",
+      "status": "applied",
+      "phase": "B",
+      "note": "ExcelTableOptions adds bounded nested-object projection and native style/filter options. The internal projection kernel preserves typed values, column ordering, collection joining/expansion and deferred save paths from RowsFrom. ExcelRange.SetValues and CellAt preserve rectangular and relative-cell authoring."
+    },
+    {
+      "subject": "Excel report options and theme roles",
+      "status": "applied",
+      "phase": "B",
+      "note": "ExcelReportOptions snapshots OfficeTheme, optional OfficeColor fill overrides and block spacing. Callouts use OfficeCalloutKind and shared theme roles. SheetTheme and StatusPalettes are removed; example-only label palettes remain with the examples."
+    },
+    {
+      "subject": "Local worksheet addresses",
+      "status": "applied",
+      "phase": "B",
+      "note": "CellAt(string) and native ExcelRange preserve the removed builders’ rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
+    },
+    {
+      "subject": "Excel report AddTable(DataTable) target correction",
+      "status": "applied",
+      "phase": "B",
+      "note": "The generated map gave the DataTable overload a generic IEnumerable target. The native DataTable overload survives beside typed AddTable<T> and returns ExcelTable."
+    },
+    {
+      "subject": "Native chart recipes",
+      "status": "applied",
+      "phase": "B",
+      "note": "ChartBuilder callers use the existing AddRevenueTrendChart, AddStatusBreakdownChart, AddTopNBarChart, AddVarianceColumnChart, AddKpiScorecardChart, AddContributionChart and AddVarianceWaterfallChart methods. Those native methods preserve recipe dimensions, titles and chart defaults without an alternate chart builder."
+    },
+    {
+      "subject": "Retired fluent row comparison",
+      "phase": "B",
+      "status": "applied",
+      "note": "The write-fluent-rowsfrom-direct benchmark and package-profile lane are removed with RowsFrom. Existing native typed-object row lanes cover the same plain-row workload; AddTable writes additional native table parts and is a different workload. Historical evidence is retained."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

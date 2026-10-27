@@ -7,8 +7,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_StructuralRows_DoesNotRewriteSpacedFunctionTokensAsCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
@@ -162,7 +164,8 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static ExcelSheet CreatePivotSheet(ExcelDocument document) {
+        private static ExcelSheet CreatePivotSheet(ExcelDocument document)
+        {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
@@ -170,14 +173,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddPivotTable(
-                sourceRange: "A1:B3",
-                destinationCell: "E10",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] {
-                    new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum)
-                });
+            sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             return sheet;
         }
 

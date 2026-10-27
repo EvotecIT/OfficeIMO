@@ -5,11 +5,12 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelCellAndRangeTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelCellAndRangeTests
+    {
         private static string GetCellValue(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             if (cell.DataType?.Value == CellValues.InlineString) {
@@ -26,14 +27,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CanSetSingleCell() {
+        public void CanSetSingleCell()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Cell(2, 3, "Hello"));
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet1 = document.AddWorksheet("Data");
+
+                    sheet1.Cell(2, 3, "Hello");
+                }
+
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -45,28 +54,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CellEnforces1BasedIndexing() {
+        public void CellEnforces1BasedIndexing()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Cell(0, 1, "X")));
-                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Cell(1, 0, "X")));
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                {
+                    var sheet3 = document.AddWorksheet("Data");
+
+                    sheet3.Cell(0, 1, "X");
+                });
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                {
+                    var sheet5 = document.AddWorksheet("Data");
+
+                    sheet5.Cell(1, 0, "X");
+                });
             }
+
             File.Delete(filePath);
         }
 
         [Fact]
-        public void CanSetRangeOfValues() {
+        public void CanSetRangeOfValues()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            object[,] values = {
-                { "A", "B" },
-                { "C", "D" }
+            object[, ] values =
+            {
+                {
+                    "A",
+                    "B"
+                },
+                {
+                    "C",
+                    "D"
+                }
             };
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Range(1, 1, 2, 2, values));
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet7 = document.AddWorksheet("Data");
+
+                    var range9 = sheet7.Range(ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(2, 2));
+                    range9.SetValues(values);
+                }
+
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -108,12 +146,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RangeEnforces1BasedIndexing() {
+        public void RangeEnforces1BasedIndexing()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Range(0, 1, 1, 1, null)));
-                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Range(1, 0, 1, 1, null)));
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                {
+                    var sheet10 = document.AddWorksheet("Data");
+
+                    var range12 = sheet10.Range(ExcelA1.CellReference(0, 1) + ":" + ExcelA1.CellReference(1, 1));
+                    range12.SetValues(null);
+                });
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                {
+                    var sheet13 = document.AddWorksheet("Data");
+
+                    var range15 = sheet13.Range(ExcelA1.CellReference(1, 0) + ":" + ExcelA1.CellReference(1, 1));
+                    range15.SetValues(null);
+                });
             }
+
             File.Delete(filePath);
         }
 

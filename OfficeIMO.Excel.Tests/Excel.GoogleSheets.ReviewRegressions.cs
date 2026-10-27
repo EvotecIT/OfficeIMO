@@ -4,8 +4,10 @@ using OfficeIMO.Excel.GoogleSheets;
 using System.Globalization;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_GoogleSheetsBatch_SizesGridForDimensionsAndProtectionExceptions() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataGridSizing.xlsx");
@@ -328,9 +330,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange() {
+        public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPivotSourceHeaders.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
@@ -340,26 +344,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 4, 10d);
                 sheet.CellValue(3, 3, "South");
                 sheet.CellValue(3, 4, 20d);
-                sheet.AddPivotTable(
-                    "C1:D3",
-                    "AA2000",
-                    name: "ScopedHeaders",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
-
+                sheet.AddPivotTable("C1:D3", "AA2000", options: new ExcelPivotTableOptions { Name = "ScopedHeaders", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
-
-                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
+                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(0, Assert.Single(pivot.Rows).SourceColumnOffset);
                 Assert.Equal(1, Assert.Single(pivot.Values).SourceColumnOffset);
-                GoogleSheetsAddSheetRequest addSheet = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsAddSheetRequest>(),
-                    request => request.SheetName == "Data");
+                GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
                 Assert.True(addSheet.RowCount >= 2000);
                 Assert.True(addSheet.ColumnCount >= 27);
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
     }

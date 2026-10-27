@@ -3,8 +3,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("manual-group-filter-conformance.xlsx", "PivotManualGrouped", "A4:C9", "A4:C12", 9, 3, 6)]
         [InlineData("numeric-group-filter-conformance.xlsx", "PivotGrouped", "A4:B9", "A4:B10", 7, 2, 7)]
@@ -39,30 +41,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotGroupedItemFilter_ManualAuthoringMatchesExcel() {
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                "Documents", "ExcelPivotCorpus", "manual-group-filter-conformance.xlsx");
+        public void Test_PivotGroupedItemFilter_ManualAuthoringMatchesExcel()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", "manual-group-filter-conformance.xlsx");
             using var oracle = ExcelDocumentReader.Open(path);
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:C9");
             string output = Path.Combine(_directoryWithFiles, "ManualGroup.Filtered.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var sheet = document.AddWorksheet("Source");
-                object?[,] source = oracle.GetSheet("Source").ReadRange("A1:B6");
+                object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B6");
                 for (int row = 0; row < 6; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, source[row, column]);
-                sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
-                    .HideItems("Product", "Apple")
-                    .Layout(ExcelPivotLayout.Tabular).At("E4", "PivotManualGrouped");
-                sheet.AddPivotManualGrouping("PivotManualGrouped", "Product", "Product2",
-                    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } },
-                    hiddenGroupItems: new[] { "Carrot" });
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Product");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.FieldOptions.Add(new ExcelPivotFieldOptions("Product", hiddenItems: new[] { "Apple" }));
+                    pivotOptions1.Name = "PivotManualGrouped";
+                    sheet.AddPivotTable("A1:B6", "E4", pivotOptions1);
+                }
+
+                sheet.AddPivotManualGrouping("PivotManualGrouped", "Product", "Product2", new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } }, hiddenGroupItems: new[] { "Carrot" });
                 Assert.True(sheet.MaterializePivotTable("PivotManualGrouped").Mutation.PackageIsValid);
                 Assert.Equal(60d, sheet.GetPivotData("PivotManualGrouped", "Metric").Value);
-                Assert.Equal(20d, sheet.GetPivotData("PivotManualGrouped", "Metric",
-                    new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
+                Assert.Equal(20d, sheet.GetPivotData("PivotManualGrouped", "Metric", new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange("E4:G9");
             for (int row = 0; row < 6; row++)
@@ -71,39 +79,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotGroupedItemFilter_NumericAndDateAuthoring() {
+        public void Test_PivotGroupedItemFilter_NumericAndDateAuthoring()
+        {
             using var document = ExcelDocument.Create();
             var numeric = document.AddWorksheet("Numbers");
-            using (var oracle = ExcelDocumentReader.Open(PivotNumericGroupOraclePath)) {
-                object?[,] source = oracle.GetSheet("Source").ReadRange("A1:B9");
+            using (var oracle = ExcelDocumentReader.Open(PivotNumericGroupOraclePath))
+            {
+                object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B9");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
                         numeric.CellValue(row + 1, column + 1, source[row, column]);
             }
-            numeric.Pivot("A1:B9").Rows("Quantity").Sum("Sales", "Metric")
-                .NumberGroup("Quantity", 10, 0, 30).HideItems("Quantity", "0-9")
-                .At("D4", "FilteredBuckets");
+
+            {
+                var pivotOptions2 = new ExcelPivotTableOptions();
+                pivotOptions2.RowFields.Add("Quantity");
+                pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions2.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 10, 0, 30));
+                pivotOptions2.FieldOptions.Add(new ExcelPivotFieldOptions("Quantity", hiddenItems: new[] { "0-9" }));
+                pivotOptions2.Name = "FilteredBuckets";
+                numeric.AddPivotTable("A1:B9", "D4", pivotOptions2);
+            }
+
             Assert.True(numeric.MaterializePivotTable("FilteredBuckets").Mutation.PackageIsValid);
             Assert.Equal(813d, numeric.GetPivotData("FilteredBuckets", "Metric").Value);
-            Assert.Equal("#REF!", numeric.GetPivotData("FilteredBuckets", "Metric",
-                new Dictionary<string, object?> { ["Quantity"] = "0-9" }).Value);
-
+            Assert.Equal("#REF!", numeric.GetPivotData("FilteredBuckets", "Metric", new Dictionary<string, object?> { ["Quantity"] = "0-9" }).Value);
             var dates = document.AddWorksheet("Dates");
-            dates.CellValue(1, 1, "OrderDate"); dates.CellValue(1, 2, "Sales");
-            var values = new[] { new DateTime(2025, 1, 15), new DateTime(2025, 3, 20),
-                new DateTime(2025, 7, 1), new DateTime(2026, 1, 10), new DateTime(2026, 4, 5) };
-            for (int index = 0; index < values.Length; index++) {
+            dates.CellValue(1, 1, "OrderDate");
+            dates.CellValue(1, 2, "Sales");
+            var values = new[]
+            {
+                new DateTime(2025, 1, 15),
+                new DateTime(2025, 3, 20),
+                new DateTime(2025, 7, 1),
+                new DateTime(2026, 1, 10),
+                new DateTime(2026, 4, 5)
+            };
+            for (int index = 0; index < values.Length; index++)
+            {
                 dates.CellValue(index + 2, 1, values[index]);
                 dates.CellValue(index + 2, 2, (index + 1) * 10d);
             }
-            dates.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
-                .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
-                .HideItems("OrderDate Years", "2026")
-                .At("D4", "FilteredYears");
+
+            {
+                var pivotOptions3 = new ExcelPivotTableOptions();
+                pivotOptions3.RowFields.Add("OrderDate");
+                pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions3.Groupings.Add(ExcelPivotGrouping.DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months));
+                pivotOptions3.FieldOptions.Add(new ExcelPivotFieldOptions("OrderDate Years", hiddenItems: new[] { "2026" }));
+                pivotOptions3.Name = "FilteredYears";
+                dates.AddPivotTable("A1:B6", "D4", pivotOptions3);
+            }
+
             Assert.True(dates.MaterializePivotTable("FilteredYears").Mutation.PackageIsValid);
             Assert.Equal(60d, dates.GetPivotData("FilteredYears", "Metric").Value);
-            Assert.Equal("#REF!", dates.GetPivotData("FilteredYears", "Metric",
-                new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
+            Assert.Equal("#REF!", dates.GetPivotData("FilteredYears", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
         }
 
         [Fact]

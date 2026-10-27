@@ -1,8 +1,10 @@
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("between", "A4:B8", 5, 90d)]
         [InlineData("not-between", "A4:B8", 5, 110d)]
@@ -80,21 +82,31 @@ namespace OfficeIMO.Tests {
         [InlineData("bottom-percent", 100d)]
         [InlineData("top-sum", 100d)]
         [InlineData("bottom-sum", 60d)]
-        public void Test_PivotValueRangeRanking_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotValueRangeRanking_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-{kind}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    ("Alpha", 10d), ("Bravo", 20d), ("Charlie", 30d),
-                    ("Delta", 40d), ("Echo", 50d), ("Foxtrot", 50d)
+                var entries = new[]
+                {
+                    ("Alpha", 10d),
+                    ("Bravo", 20d),
+                    ("Charlie", 30d),
+                    ("Delta", 40d),
+                    ("Echo", 50d),
+                    ("Foxtrot", 50d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                ExcelPivotFilter filter = kind switch {
+
+                ExcelPivotFilter filter = kind switch
+                {
                     "between" => ExcelPivotFilter.ValueBetween("Region", "Metric", 20, 40),
                     "not-between" => ExcelPivotFilter.ValueNotBetween("Region", "Metric", 20, 40),
                     "top-count" => ExcelPivotFilter.TopCount("Region", "Metric", 1),
@@ -103,16 +115,23 @@ namespace OfficeIMO.Tests {
                     "bottom-percent" => ExcelPivotFilter.BottomPercent("Region", "Metric", 40),
                     "top-sum" => ExcelPivotFilter.TopSum("Region", "Metric", 90),
                     "bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 35),
-                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
-                };
-                source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))};
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Region");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.PivotFilters.Add(filter);
+                    pivotOptions1.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B7", "D4", pivotOptions1);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -121,13 +140,14 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("top-sum-tie")]
         [InlineData("top-percent-tie")]
-        public void Test_PivotValueRanking_TiedCumulativeCutoffRejectsUnqualifiedExcelOrder(string kind) {
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
-                $"pivot-value-{kind}-conformance.xlsx");
+        public void Test_PivotValueRanking_TiedCumulativeCutoffRejectsUnqualifiedExcelOrder(string kind)
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", $"pivot-value-{kind}-conformance.xlsx");
             AssertPivotMultiFieldFixtureHash(path);
             using var oracle = ExcelDocumentReader.Open(path);
             AssertPivotLookupOracleValue(50d, oracle.GetSheet("Lookups").ReadRange("B1:B1")[0, 0]);
-            using (var imported = ExcelDocument.Load(path)) {
+            using (var imported = ExcelDocument.Load(path))
+            {
                 var grouped = imported.GetSheet("Grouped");
                 Assert.Equal(50d, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 var error = Assert.Throws<NotSupportedException>(() => grouped.MaterializePivotTable("ValuePivot"));
@@ -139,19 +159,32 @@ namespace OfficeIMO.Tests {
             var source = authored.AddWorksheet("Source");
             source.CellValue(1, 1, "Region");
             source.CellValue(1, 2, "Sales");
-            var entries = new[] {
-                ("Alpha", 10d), ("Bravo", 20d), ("Charlie", 30d),
-                ("Delta", 40d), ("Echo", 50d), ("Foxtrot", 50d)
+            var entries = new[]
+            {
+                ("Alpha", 10d),
+                ("Bravo", 20d),
+                ("Charlie", 30d),
+                ("Delta", 40d),
+                ("Echo", 50d),
+                ("Foxtrot", 50d)
             };
-            for (int index = 0; index < entries.Length; index++) {
+            for (int index = 0; index < entries.Length; index++)
+            {
                 source.CellValue(index + 2, 1, entries[index].Item1);
                 source.CellValue(index + 2, 2, entries[index].Item2);
             }
-            ExcelPivotFilter filter = kind == "top-sum-tie"
-                ? ExcelPivotFilter.TopSum("Region", "Metric", 40d)
-                : ExcelPivotFilter.TopPercent("Region", "Metric", 10);
-            source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
-                .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "ValuePivot");
+
+            ExcelPivotFilter filter = kind == "top-sum-tie" ? ExcelPivotFilter.TopSum("Region", "Metric", 40d) : ExcelPivotFilter.TopPercent("Region", "Metric", 10);
+            {
+                var pivotOptions2 = new ExcelPivotTableOptions();
+                pivotOptions2.RowFields.Add("Region");
+                pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions2.Layout = ExcelPivotLayout.Tabular;
+                pivotOptions2.PivotFilters.Add(filter);
+                pivotOptions2.Name = "ValuePivot";
+                source.AddPivotTable("A1:B7", "D4", pivotOptions2);
+            }
+
             var authoredError = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
             Assert.Contains("tied cutoff", authoredError.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(authored.ValidateOpenXml());
@@ -174,40 +207,103 @@ namespace OfficeIMO.Tests {
         [InlineData("mixed-negative-bottom-percent", -25d)]
         [InlineData("balanced-top-percent", 0d)]
         [InlineData("balanced-bottom-percent", 0d)]
-        public void Test_PivotNonpositiveRanking_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotNonpositiveRanking_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-{kind}.Authored.xlsx");
-            double[] amounts = kind.StartsWith("zero-", StringComparison.Ordinal) ? new double[] { 0, 10, 20, 30, 40, 50 }
-                : kind.StartsWith("mixed-negative-", StringComparison.Ordinal) ? new double[] { 30, -10, -15, -20, -20, -25 }
-                : kind.StartsWith("mixed-", StringComparison.Ordinal) ? new double[] { -40, -10, 0, 20, 30, 50 }
-                : kind.StartsWith("negative-", StringComparison.Ordinal) ? new double[] { -60, -50, -40, -30, -20, -10 }
-                : new double[] { -50, -20, 0, 10, 20, 40 };
-            ExcelPivotFilter filter = kind switch {
+            double[] amounts = kind.StartsWith("zero-", StringComparison.Ordinal) ? new double[]
+            {
+                0,
+                10,
+                20,
+                30,
+                40,
+                50
+            }
+
+            : kind.StartsWith("mixed-negative-", StringComparison.Ordinal) ? new double[]
+            {
+                30,
+                -10,
+                -15,
+                -20,
+                -20,
+                -25
+            }
+
+            : kind.StartsWith("mixed-", StringComparison.Ordinal) ? new double[]
+            {
+                -40,
+                -10,
+                0,
+                20,
+                30,
+                50
+            }
+
+            : kind.StartsWith("negative-", StringComparison.Ordinal) ? new double[]
+            {
+                -60,
+                -50,
+                -40,
+                -30,
+                -20,
+                -10
+            }
+
+            : new double[]
+            {
+                -50,
+                -20,
+                0,
+                10,
+                20,
+                40
+            };
+            ExcelPivotFilter filter = kind switch
+            {
                 "mixed-top-count" => ExcelPivotFilter.TopCount("Region", "Metric", 1),
                 "mixed-bottom-count" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
                 "zero-top-sum" or "mixed-top-sum" => ExcelPivotFilter.TopSum("Region", "Metric", 60),
                 "zero-bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 60),
                 "mixed-bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 20),
-                "zero-top-percent" or "mixed-top-percent" or "negative-top-percent" or "mixed-negative-top-percent" or "balanced-top-percent"
-                    => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
-                _ => ExcelPivotFilter.BottomPercent("Region", "Metric", 40)
-            };
-            using (var document = ExcelDocument.Create()) {
+                "zero-top-percent" or "mixed-top-percent" or "negative-top-percent" or "mixed-negative-top-percent" or "balanced-top-percent" => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
+                _ => ExcelPivotFilter.BottomPercent("Region", "Metric", 40)};
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                string[] names = { "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot" };
-                for (int index = 0; index < names.Length; index++) {
+                string[] names =
+                {
+                    "Alpha",
+                    "Bravo",
+                    "Charlie",
+                    "Delta",
+                    "Echo",
+                    "Foxtrot"
+                };
+                for (int index = 0; index < names.Length; index++)
+                {
                     source.CellValue(index + 2, 1, names[index]);
                     source.CellValue(index + 2, 2, amounts[index]);
                 }
-                source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+
+                {
+                    var pivotOptions3 = new ExcelPivotTableOptions();
+                    pivotOptions3.RowFields.Add("Region");
+                    pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions3.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions3.PivotFilters.Add(filter);
+                    pivotOptions3.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B7", "D4", pivotOptions3);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -226,60 +322,79 @@ namespace OfficeIMO.Tests {
         [InlineData("div-zero-top-count", 50d)]
         [InlineData("value-bottom-sum", 60d)]
         [InlineData("mixed-group-bottom-percent", 60d)]
-        public void Test_PivotErrorRanking_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotErrorRanking_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-error-{kind}.Authored.xlsx");
-            ExcelPivotDataFunction function = kind switch {
+            ExcelPivotDataFunction function = kind switch
+            {
                 "average-top-count" => ExcelPivotDataFunction.Average,
                 "count-top-count" => ExcelPivotDataFunction.Count,
                 "count-numbers-bottom-count" => ExcelPivotDataFunction.CountNumbers,
                 _ => ExcelPivotDataFunction.Sum
             };
-            ExcelPivotFilter filter = kind switch {
-                "top-count" or "average-top-count" or "count-top-count" or "div-zero-top-count"
-                    => ExcelPivotFilter.TopCount("Region", "Metric", 1),
-                "bottom-count" or "count-numbers-bottom-count"
-                    => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+            ExcelPivotFilter filter = kind switch
+            {
+                "top-count" or "average-top-count" or "count-top-count" or "div-zero-top-count" => ExcelPivotFilter.TopCount("Region", "Metric", 1),
+                "bottom-count" or "count-numbers-bottom-count" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
                 "top-percent" => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
                 "bottom-percent" or "mixed-group-bottom-percent" => ExcelPivotFilter.BottomPercent("Region", "Metric", 40),
                 "top-sum" => ExcelPivotFilter.TopSum("Region", "Metric", 60),
-                _ => ExcelPivotFilter.BottomSum("Region", "Metric", 60)
-            };
-            using (var document = ExcelDocument.Create()) {
+                _ => ExcelPivotFilter.BottomSum("Region", "Metric", 60)};
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                string[] names = { "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot" };
-                double[] amounts = { 10, 0, 20, 30, 40, 50 };
-                string error = kind == "div-zero-top-count" ? "#DIV/0!"
-                    : kind == "value-bottom-sum" ? "#VALUE!" : "#N/A";
-                for (int index = 0; index < names.Length; index++) {
+                string[] names =
+                {
+                    "Alpha",
+                    "Bravo",
+                    "Charlie",
+                    "Delta",
+                    "Echo",
+                    "Foxtrot"
+                };
+                double[] amounts =
+                {
+                    10,
+                    0,
+                    20,
+                    30,
+                    40,
+                    50
+                };
+                string error = kind == "div-zero-top-count" ? "#DIV/0!" : kind == "value-bottom-sum" ? "#VALUE!" : "#N/A";
+                for (int index = 0; index < names.Length; index++)
+                {
                     source.CellValue(index + 2, 1, names[index]);
-                    if (index == 1) source.CellError(index + 2, 2, error);
-                    else source.CellValue(index + 2, 2, amounts[index]);
+                    if (index == 1)
+                        source.CellError(index + 2, 2, error);
+                    else
+                        source.CellValue(index + 2, 2, amounts[index]);
                 }
+
                 bool mixedGroup = kind == "mixed-group-bottom-percent";
-                if (mixedGroup) {
+                if (mixedGroup)
+                {
                     source.CellValue(8, 1, "Bravo");
                     source.CellValue(8, 2, 15d);
                 }
-                source.AddPivotTable(mixedGroup ? "A1:B8" : "A1:B7", "D4", "FilteredPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", function, "Metric") },
-                    layout: ExcelPivotLayout.Tabular,
-                    pivotFilters: new[] { filter });
+
+                source.AddPivotTable(mixedGroup ? "A1:B8" : "A1:B7", "D4", options: new ExcelPivotTableOptions { Name = "FilteredPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", function, "Metric") }, Layout = ExcelPivotLayout.Tabular, PivotFilters = new[] { filter } });
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
         }
 
         [Fact]
-        public void Test_PivotTopPercent_LargeFiniteTotalDoesNotOverflowThreshold() {
+        public void Test_PivotTopPercent_LargeFiniteTotalDoesNotOverflowThreshold()
+        {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             source.CellValue(1, 1, "Region");
@@ -288,10 +403,16 @@ namespace OfficeIMO.Tests {
             source.CellValue(2, 2, 6e306);
             source.CellValue(3, 1, "Bravo");
             source.CellValue(3, 2, 4e306);
-            source.Pivot("A1:B3").Rows("Region").Sum("Sales", "Metric")
-                .Layout(ExcelPivotLayout.Tabular)
-                .Filter(ExcelPivotFilter.TopPercent("Region", "Metric", 40))
-                .At("D4", "FilteredPivot");
+            {
+                var pivotOptions4 = new ExcelPivotTableOptions();
+                pivotOptions4.RowFields.Add("Region");
+                pivotOptions4.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions4.Layout = ExcelPivotLayout.Tabular;
+                pivotOptions4.PivotFilters.Add(ExcelPivotFilter.TopPercent("Region", "Metric", 40));
+                pivotOptions4.Name = "FilteredPivot";
+                source.AddPivotTable("A1:B3", "D4", pivotOptions4);
+            }
+
             var result = source.MaterializePivotTable("FilteredPivot");
             Assert.True(result.Mutation.PackageIsValid);
             Assert.Equal(6e306, source.GetPivotData("FilteredPivot", "Metric").Value);

@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using System.Globalization;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static string PivotNumericGroupOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "Documents", "ExcelPivotCorpus", "numeric-group-conformance.xlsx");
         private static string PivotNumericGroupRefreshOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -54,28 +56,34 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Test_PivotNumericGroupMaterialization_TemplateFreePublicApiMatchesExcel(bool numbersStoredAsText) {
-            string output = Path.Combine(_directoryWithFiles, numbersStoredAsText
-                ? "NumericGroup.TextNumbers.xlsx" : "NumericGroup.TemplateFree.xlsx");
+        public void Test_PivotNumericGroupMaterialization_TemplateFreePublicApiMatchesExcel(bool numbersStoredAsText)
+        {
+            string output = Path.Combine(_directoryWithFiles, numbersStoredAsText ? "NumericGroup.TextNumbers.xlsx" : "NumericGroup.TemplateFree.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotNumericGroupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B9");
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:B10");
-            using (var document = ExcelDocument.Create(output)) {
+            using (var document = ExcelDocument.Create(output))
+            {
                 var sheet = document.AddWorksheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0
-                            ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture)
-                            : sourceValues[row, column]);
-                sheet.Pivot("A1:B9").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 10, 0, 30).Layout(ExcelPivotLayout.Tabular)
-                    .At("D4", "PivotGrouped");
+                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Quantity");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 10, 0, 30));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.Name = "PivotGrouped";
+                    sheet.AddPivotTable("A1:B9", "D4", pivotOptions1);
+                }
+
                 var result = sheet.MaterializePivotTable("PivotGrouped");
                 Assert.Equal("D4:E10", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange("D4:E10");
             for (int row = 0; row < 7; row++)
@@ -117,20 +125,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotNumericGroupAuthoring_FieldOptionsUseGroupLabels() {
+        public void Test_PivotNumericGroupAuthoring_FieldOptionsUseGroupLabels()
+        {
             string output = Path.Combine(_directoryWithFiles, "NumericGroup.HiddenBucket.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotNumericGroupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B9");
-            using (var document = ExcelDocument.Create(output)) {
+            using (var document = ExcelDocument.Create(output))
+            {
                 var sheet = document.AddWorksheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
-                sheet.Pivot("A1:B9").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 10, 0, 30).HideItems("Quantity", "0-9")
-                    .At("D4", "PivotGrouped");
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Quantity");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 10, 0, 30));
+                    pivotOptions2.FieldOptions.Add(new ExcelPivotFieldOptions("Quantity", hiddenItems: new[] { "0-9" }));
+                    pivotOptions2.Name = "PivotGrouped";
+                    sheet.AddPivotTable("A1:B9", "D4", pivotOptions2);
+                }
+
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             var pivot = Assert.Single(reopened.GetPivotTables());
             var field = Assert.Single(pivot.Fields, field => field.FieldName == "Quantity");

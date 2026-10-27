@@ -440,9 +440,9 @@ namespace OfficeIMO.Examples {
             // // Excel/ValidateDocument
             // Excel.ValidateDocument.Example(folderPath, false);
             // // Excel/Fluent
-            // Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
-            // Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
-            // Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
+            // Excel.WorkbookAuthoring.Example_Workbook(folderPath, false);
+            // Excel.WorkbookAuthoring.Example_Ranges(folderPath, false);
+            // Excel.WorkbookAuthoring.Example_Workbook_AutoFilter(folderPath, false);
             // Excel.TestDateTime.Example_TestDateTime(folderPath, false);
             // // Excel/Read with custom converters
             // Excel.ReadWithConverters.Example(folderPath, false);

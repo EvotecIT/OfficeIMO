@@ -3,8 +3,10 @@ using System.Globalization;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("greater", "A4:B8", 5, 150d)]
         [InlineData("greater-equal", "A4:B9", 6, 180d)]
@@ -50,37 +52,54 @@ namespace OfficeIMO.Tests {
         [InlineData("less-equal", 60d)]
         [InlineData("between", 140d)]
         [InlineData("not-between", 70d)]
-        public void Test_PivotLabelRange_TemplateFreePublicApi(string kind, double total) {
+        public void Test_PivotLabelRange_TemplateFreePublicApi(string kind, double total)
+        {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-range-{kind}.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    ("Alpha", 10d), ("Bravo", 20d), ("charlie", 30d),
-                    ("Delta", 40d), ("Echo", 50d), ("Foxtrot", 60d)
+                var entries = new[]
+                {
+                    ("Alpha", 10d),
+                    ("Bravo", 20d),
+                    ("charlie", 30d),
+                    ("Delta", 40d),
+                    ("Echo", 50d),
+                    ("Foxtrot", 60d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                ExcelPivotFilter filter = kind switch {
+
+                ExcelPivotFilter filter = kind switch
+                {
                     "greater" => ExcelPivotFilter.LabelGreaterThan("Region", "Charlie"),
                     "greater-equal" => ExcelPivotFilter.LabelGreaterThanOrEqual("Region", "Charlie"),
                     "less" => ExcelPivotFilter.LabelLessThan("Region", "Charlie"),
                     "less-equal" => ExcelPivotFilter.LabelLessThanOrEqual("Region", "Charlie"),
                     "between" => ExcelPivotFilter.LabelBetween("Region", "Bravo", "Echo"),
                     "not-between" => ExcelPivotFilter.LabelNotBetween("Region", "Bravo", "Echo"),
-                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
-                };
-                source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))};
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Region");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.PivotFilters.Add(filter);
+                    pivotOptions1.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B7", "D4", pivotOptions1);
+                }
+
                 var result = source.MaterializePivotTable("FilteredPivot");
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(diagnostic => diagnostic.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
@@ -121,9 +140,11 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("cs-CZ", 30d)]
         [InlineData("en-US", 20d)]
-        public void Test_PivotLabelRange_UsesCurrentCultureForAsciiDigraphOrdering(string cultureName, double total) {
+        public void Test_PivotLabelRange_UsesCurrentCultureForAsciiDigraphOrdering(string cultureName, double total)
+        {
             CultureInfo original = CultureInfo.CurrentCulture;
-            try {
+            try
+            {
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
                 using var document = ExcelDocument.Create();
                 var source = document.AddWorksheet("Source");
@@ -133,13 +154,21 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 2, 10d);
                 source.CellValue(3, 1, "Echo");
                 source.CellValue(3, 2, 20d);
-                source.Pivot("A1:B3").Rows("Region").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular)
-                    .Filter(ExcelPivotFilter.LabelGreaterThan("Region", "D"))
-                    .At("D4", "FilteredPivot");
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Region");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions2.PivotFilters.Add(ExcelPivotFilter.LabelGreaterThan("Region", "D"));
+                    pivotOptions2.Name = "FilteredPivot";
+                    source.AddPivotTable("A1:B3", "D4", pivotOptions2);
+                }
+
                 Assert.True(source.MaterializePivotTable("FilteredPivot").Mutation.PackageIsValid);
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
-            } finally {
+            }
+            finally
+            {
                 CultureInfo.CurrentCulture = original;
             }
         }

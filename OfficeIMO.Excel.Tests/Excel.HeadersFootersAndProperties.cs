@@ -10,34 +10,36 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
-        [Trait("Category","ExcelPropsHF")]
-        public void Excel_HeaderFooter_And_Properties_Roundtrip() {
+        [Trait("Category", "ExcelPropsHF")]
+        public void Excel_HeaderFooter_And_Properties_Roundtrip()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "PropsHeaderFooter.xlsx");
-            if (File.Exists(filePath)) File.Delete(filePath);
-
+            if (File.Exists(filePath))
+                File.Delete(filePath);
             using (var doc = ExcelDocument.Create(filePath))
             {
                 // Set workbook info via fluent
-                doc.AsFluent().Info(i => i
-                    .Title("Roundtrip Title")
-                    .Author("Roundtrip Author")
-                    .Company("Roundtrip Co")
-                    .Application("OfficeIMO.Excel")
-                    .Keywords("test,excel,header,footer")
-                ).End();
+                {
+                    doc.BuiltinDocumentProperties.Title = "Roundtrip Title";
+                    doc.BuiltinDocumentProperties.Creator = "Roundtrip Author";
+                    doc.ApplicationProperties.Company = "Roundtrip Co";
+                    doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
+                    doc.BuiltinDocumentProperties.Keywords = "test,excel,header,footer";
+                }
 
                 var sheet = doc.AddWorksheet("Summary");
                 sheet.Cell(1, 1, "Hello");
-
                 // Header/footer with tokens and image
                 string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 byte[]? logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
                 sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
-                if (logo != null) sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 96, heightPoints: 32);
-
+                if (logo != null)
+                    sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 96, heightPoints: 32);
                 // Save and close
                 doc.Save();
             }
@@ -48,7 +50,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Roundtrip Title", verify.BuiltinDocumentProperties.Title);
                 Assert.Equal("Roundtrip Author", verify.BuiltinDocumentProperties.Creator);
                 Assert.Equal("Roundtrip Co", verify.ApplicationProperties.Company);
-
                 var summary = verify.Sheets.FirstOrDefault(s => s.Name == "Summary");
                 Assert.NotNull(summary);
                 var hf = summary!.GetHeaderFooter();
@@ -289,6 +290,5 @@ namespace OfficeIMO.Tests {
                 }
             });
         }
-
     }
 }

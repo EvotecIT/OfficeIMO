@@ -10,8 +10,10 @@ using OfficeIMO.Excel;
 using Xunit;
 using Cx = DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public async Task Test_QueryRefresh_RejectsRecreatedBindingBeforeWritingResults() {
             using var document = ExcelDocument.Create(new MemoryStream());
@@ -56,38 +58,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_PivotInteraction_ExplicitNameIsUniqueInsideTransaction() {
+        public async Task Test_PivotInteraction_ExplicitNameIsUniqueInsideTransaction()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");
             data.CellValue(1, 1, "Region");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, "East");
             data.CellValue(2, 2, 10d);
-            data.AddPivotTable(
-                "A1:B2",
-                "D2",
-                "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+            data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             using var start = new ManualResetEventSlim(false);
             int successes = 0;
-            Task[] callers = Enumerable.Range(0, 8).Select(_ => Task.Run(() => {
+            Task[] callers = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            {
                 start.Wait();
-                try {
-                    document.AddPivotSlicer(
-                        "SalesPivot",
-                        "Region",
-                        data.Name,
-                        new ExcelSlicerViewOptions { Name = "SharedFilter", Row = 6, Column = 1 });
+                try
+                {
+                    document.AddPivotSlicer("SalesPivot", "Region", data.Name, new ExcelSlicerViewOptions { Name = "SharedFilter", Row = 6, Column = 1 });
                     Interlocked.Increment(ref successes);
-                } catch (InvalidOperationException) {
-                    // The first transaction owns the explicit name; every contender must be rejected.
+                }
+                catch (InvalidOperationException)
+                {
+                // The first transaction owns the explicit name; every contender must be rejected.
                 }
             })).ToArray();
-
             start.Set();
             await Task.WhenAll(callers);
-
             Assert.Equal(1, successes);
             Assert.Equal("SharedFilter", Assert.Single(document.GetPivotInteractions()).Name);
             Assert.Empty(document.ValidateOpenXml());

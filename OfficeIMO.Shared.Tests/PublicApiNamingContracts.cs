@@ -218,7 +218,7 @@ public sealed class PublicApiNamingContracts {
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
         MethodInfo[] templateMethods = typeof(ExcelTemplateImage).GetMethods(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
-        MethodInfo[] composerMethods = typeof(OfficeIMO.Excel.Fluent.SheetComposer).GetMethods(
+        MethodInfo[] composerMethods = typeof(OfficeIMO.Excel.ExcelReportBuilder).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
         Assert.Contains(sheetMethods, static method => method.Name == "AddImageFromUrlAsync");
@@ -519,7 +519,7 @@ public sealed class PublicApiNamingContracts {
         Assert.NotNull(typeof(OfficeIMO.Markdown.ListItem).GetProperty("NestedBlocks"));
         Assert.NotNull(typeof(OfficeIMO.Markdown.ListItem).GetProperty("ChildBlocks"));
         Assert.Null(typeof(OfficeIMO.Markdown.ListItem).GetProperty("Children"));
-        Assert.Null(typeof(OfficeIMO.Excel.Fluent.SheetComposer).GetMethod("DefinitionList"));
+        Assert.Null(typeof(OfficeIMO.Excel.ExcelReportBuilder).GetMethod("DefinitionList"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Inches"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Points"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Cm"));

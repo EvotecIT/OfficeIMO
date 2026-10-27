@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Spreadsheet;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -607,17 +608,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
-            string normalizedAddress = address.Replace("$", string.Empty);
-            if (ExcelA1.TryParseRange(normalizedAddress, out int r1, out int c1, out int r2, out int c2)) {
-                return (r1, c1, r2, c2);
-            }
-
-            var cell = ExcelA1.ParseCellRef(normalizedAddress);
-            if (cell.Row <= 0 || cell.Col <= 0) {
-                throw new ArgumentException($"Invalid A1 range or cell reference '{address}'.", nameof(address));
-            }
-
-            return (cell.Row, cell.Col, cell.Row, cell.Col);
+            var syntax = SpreadsheetRangeReference.Parse(address, SpreadsheetAddressDialect.ExcelA1);
+            if (!syntax.Start.IsCell || !(syntax.End ?? syntax.Start).IsCell)
+                throw new ArgumentException("Range must contain cell endpoints.", nameof(address));
+            if (syntax.Start.SheetName != null || syntax.End?.SheetName != null)
+                throw new ArgumentException("Range must not qualify a different worksheet.", nameof(address));
+            var end = syntax.End ?? syntax.Start;
+            return (checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value,
+                checked((int)end.Row!.Value), end.Column!.Value);
         }
 
         private static string ToRangeAddress(int r1, int c1, int r2, int c2) {

@@ -8,8 +8,10 @@ using Xunit;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 using Xm = DocumentFormat.OpenXml.Office.Excel;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_StructuralRows_PreservesOutOfGridNamesStructuredReferencesAndExternalTargets() {
             using var document = ExcelDocument.Create(new MemoryStream());
@@ -195,7 +197,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_StructuralRows_InvalidatesNameBasedPivotSources() {
+        public void Test_StructuralRows_InvalidatesNameBasedPivotSources()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
@@ -204,18 +207,8 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddTable(
-                "A1:B3",
-                hasHeader: true,
-                name: "PivotSourceData",
-                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-            sheet.AddPivotTable(
-                sourceRange: "A1:B3",
-                destinationCell: "E10",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+            sheet.AddTable("A1:B3", hasHeader: true, name: "PivotSourceData", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
+            sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = Assert.Single(sheet.WorksheetPart.PivotTableParts);
             PivotTableCacheDefinitionPart cachePart = pivotPart.PivotTableCacheDefinitionPart!;
             WorksheetSource source = cachePart.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
@@ -224,26 +217,17 @@ namespace OfficeIMO.Tests {
             source.Sheet = null;
             cachePart.PivotCacheDefinition.RefreshOnLoad = false;
             cachePart.PivotCacheDefinition.SaveData = true;
-
             sheet.InsertRows(3);
-
             Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
             Assert.False(cachePart.PivotCacheDefinition.SaveData!.Value);
-            Assert.Equal(
-                0U,
-                cachePart.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
-
+            Assert.Equal(0U, cachePart.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
             cachePart.PivotCacheDefinition.RefreshOnLoad = false;
             cachePart.PivotCacheDefinition.SaveData = true;
             cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count = 1U;
-
             sheet.DeleteRows(4);
-
             Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
             Assert.False(cachePart.PivotCacheDefinition.SaveData!.Value);
-            Assert.Equal(
-                0U,
-                cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count!.Value);
+            Assert.Equal(0U, cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count!.Value);
         }
 
         private static void AppendSharedFormulaGroup(

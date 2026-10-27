@@ -11,8 +11,10 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Utilities;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_OpenFileBacked_BoundsCompressedContentTypesBeforeNormalization() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
@@ -42,58 +44,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_RemovePivotInteraction_RechecksSharedCacheInsideTransaction() {
+        public async Task Test_RemovePivotInteraction_RechecksSharedCacheInsideTransaction()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");
             data.CellValue(1, 1, "Region");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, "East");
             data.CellValue(2, 2, 10d);
-            data.AddPivotTable(
-                "A1:B2",
-                "D2",
-                "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-            ExcelPivotInteractionInfo first = document.AddPivotSlicer(
-                "SalesPivot",
-                "Region",
-                data.Name,
-                new ExcelSlicerViewOptions { Name = "FirstFilter", Row = 6, Column = 1 });
-
+            data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
+            ExcelPivotInteractionInfo first = document.AddPivotSlicer("SalesPivot", "Region", data.Name, new ExcelSlicerViewOptions { Name = "FirstFilter", Row = 6, Column = 1 });
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
             workbookLock.EnterReadLock();
             Task<bool>? removal = null;
             using var removalStarted = new ManualResetEventSlim();
-            try {
-                removal = Task.Factory.StartNew(
-                    () => {
-                        removalStarted.Set();
-                        return document.RemovePivotInteraction("FirstFilter");
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+            try
+            {
+                removal = Task.Factory.StartNew(() =>
+                {
+                    removalStarted.Set();
+                    return document.RemovePivotInteraction("FirstFilter");
+                }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                 Assert.True(removalStarted.Wait(TimeSpan.FromSeconds(10)));
-                Assert.True(
-                    SpinWait.SpinUntil(
-                        () => workbookLock.WaitingWriteCount > 0 || removal.IsCompleted,
-                        TimeSpan.FromSeconds(10)),
-                    $"Removal task did not reach the transaction boundary (status: {removal.Status}).");
+                Assert.True(SpinWait.SpinUntil(() => workbookLock.WaitingWriteCount > 0 || removal.IsCompleted, TimeSpan.FromSeconds(10)), $"Removal task did not reach the transaction boundary (status: {removal.Status}).");
                 Assert.False(removal.IsCompleted, "Removal completed before it acquired the held workbook transaction lock.");
-                using (data.BeginNoLock()) {
-                    document.AddPivotSlicer(
-                        "SalesPivot",
-                        "Region",
-                        data.Name,
-                        new ExcelSlicerViewOptions {
-                            Name = "SecondFilter",
-                            CacheName = first.CacheName,
-                            Row = 6,
-                            Column = 5
-                        });
+                using (data.BeginNoLock())
+                {
+                    document.AddPivotSlicer("SalesPivot", "Region", data.Name, new ExcelSlicerViewOptions { Name = "SecondFilter", CacheName = first.CacheName, Row = 6, Column = 5 });
                 }
-            } finally {
+            }
+            finally
+            {
                 workbookLock.ExitReadLock();
             }
 

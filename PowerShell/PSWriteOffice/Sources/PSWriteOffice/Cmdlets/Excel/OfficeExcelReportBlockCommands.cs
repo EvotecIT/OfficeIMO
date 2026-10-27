@@ -157,7 +157,13 @@ public sealed class AddOfficeExcelReportCalloutCommand : PSWriteOffice.Cmdlets.O
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var context = ExcelDslContext.Require(this);
-        context.RequireComposer().Callout(Kind.ToString(), Title, Body, WidthColumns);
+        var kind = Kind switch {
+            OfficeExcelReportCalloutKind.Success => OfficeIMO.OfficeCalloutKind.Success,
+            OfficeExcelReportCalloutKind.Warning => OfficeIMO.OfficeCalloutKind.Warning,
+            OfficeExcelReportCalloutKind.Error or OfficeExcelReportCalloutKind.Critical => OfficeIMO.OfficeCalloutKind.Danger,
+            _ => OfficeIMO.OfficeCalloutKind.Info
+        };
+        context.RequireComposer().Callout(kind, Title, Body, WidthColumns);
         WritePassThru(context.RequireSheet());
     }
 }
@@ -384,7 +390,7 @@ public sealed class AddOfficeExcelReportTableCommand : PSCmdlet {
         var style = TableStyle;
 
         var composer = ExcelDslContext.Require(this).RequireComposer();
-        var range = composer.TableFrom(
+        var range = composer.AddTable(
             table,
             Title,
             configure: options => {
@@ -400,7 +406,7 @@ public sealed class AddOfficeExcelReportTableCommand : PSCmdlet {
                 options.ShowLastColumn = ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowLastColumn), ShowLastColumn);
                 options.ShowRowStripes = !ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(NoRowStripes), NoRowStripes);
                 options.ShowColumnStripes = ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowColumnStripes), ShowColumnStripes);
-            });
+            }).Range!;
 
         if (PassThru.IsPresent) {
             WriteObject(range);

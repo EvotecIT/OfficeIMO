@@ -116,20 +116,19 @@ alternate ways to open a workbook.
 
 Set selected cell edges with `sheet.CellBorder(1, 1, ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")` or the cell wrapper's `SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; the existing `CellBorder(row, column, style, color)` overload applies to all four sides. Cell coordinates are one-based.
 
-`AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
-workbook model. Call `End()` when direct worksheet APIs are more convenient:
+Write typed rows into editable native tables, or stack report content on a worksheet:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
 using var document = ExcelDocument.Create("report.xlsx");
-
-document.AsFluent()
-    .Sheet("Data", sheet => sheet
-        .Cell(1, 1, "Name")
-        .Cell(1, 2, "Value")
-        .Cell(2, 1, "Alpha")
-        .Cell(2, 2, 42))
-    .End();
-
+var sheet = document.AddWorksheet("Data");
+var table = sheet.AddTable(new[] { new { Name = "Alpha", Value = 42 } },
+    new OfficeTableOptions { Name = "Measurements" });
+var report = document.AddWorksheet("Summary").Report();
+report.Section("Measurements");
+report.AddTable(new[] { new { Name = "Alpha", Value = 42 } });
 document.Save();
 ```
 
@@ -137,7 +136,7 @@ document.Save();
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
 - Reads tabular values through the forward-only `ExcelDocument.OpenReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
-- Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
+- Edits loaded workbooks through the normal worksheet, cell, range, table, and report APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
 - Renders supported numeric display formats consistently in PDF and image export, including mixed fractions that retain whole values beyond `Int64`, optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
 - Renders common date/time and elapsed formats through the same formatter in PDF and image export. Custom patterns retain date separators, quoted or escaped labels, 12-hour markers, elapsed unit padding, and selected negative or conditional sections. Fractional seconds support one to seven digits and round across component boundaries. Month and weekday names use invariant English; locale directives and alternate calendars are not localized.

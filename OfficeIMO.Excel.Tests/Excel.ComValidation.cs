@@ -10,8 +10,10 @@ using OfficeIMO.Excel;
 using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static readonly TimeSpan ExcelComOpenTimeout = TimeSpan.FromMinutes(2);
         private static readonly TimeSpan ExcelComLockTimeout = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ExcelComWorkerTimeout = ExcelComLockTimeout + ExcelComOpenTimeout;
@@ -285,7 +287,8 @@ namespace OfficeIMO.Tests {
             return filePath;
         }
 
-        private static string CreateDesktopExcelRecipeChartWorkbook(string filePath) {
+        private static string CreateDesktopExcelRecipeChartWorkbook(string filePath)
+        {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Dashboard");
             sheet.CellValue(1, 1, "Month");
@@ -297,19 +300,13 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 13d);
             sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-
             sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
             sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
             sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
             sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
             sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
-            sheet.ChartFromTable("RevenueData")
-                .StatusBreakdown("Revenue Mix")
-                .At(86, 5);
-            sheet.ChartFromTable("RevenueData")
-                .VarianceWaterfall("Revenue Bridge")
-                .At(103, 5);
-
+            sheet.AddStatusBreakdownChart(sheet.GetTableRange("RevenueData")!, row: 86, column: 5, widthPixels: 520, heightPixels: 320, title: "Revenue Mix", includeCachedData: true, hasHeaders: true);
+            sheet.AddVarianceWaterfallChart(sheet.GetTableRange("RevenueData")!, row: 103, column: 5, widthPixels: 720, heightPixels: 360, title: "Revenue Bridge", includeCachedData: true, hasHeaders: true);
             document.Save();
             return filePath;
         }
@@ -325,17 +322,12 @@ namespace OfficeIMO.Tests {
             return filePath;
         }
 
-        private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath) {
+        private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath)
+        {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet source = document.AddWorksheet("Source");
             WriteDesktopPivotSource(source, 3);
-            source.AddPivotTable(
-                sourceRange: "A1:C4",
-                destinationCell: "E2",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
-
+            source.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
             ExcelSheet expanded = document.AddWorksheet("Expanded");
             WriteDesktopPivotSource(expanded, 4);
             source.UpdatePivotTableSource("SalesPivot", expanded, "$A$1:$C$5");

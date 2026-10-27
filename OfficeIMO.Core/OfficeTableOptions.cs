@@ -1,7 +1,7 @@
 namespace OfficeIMO;
 
 /// <summary>Shared options for projecting typed rows into an editable native table.</summary>
-public sealed class OfficeTableOptions {
+public class OfficeTableOptions {
     /// <summary>Includes a first row containing the selected member names. Defaults to true.</summary>
     public bool IncludeHeaders { get; set; } = true;
 

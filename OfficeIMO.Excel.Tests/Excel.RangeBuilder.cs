@@ -4,11 +4,12 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelRangeBuilderTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelRangeBuilderTests
+    {
         private static string GetCellValue(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             if (cell.DataType?.Value == CellValues.InlineString) {
@@ -25,16 +26,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RangeBuilderSetsValues() {
+        public void RangeBuilderSetsValues()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            object[,] values = { { "A", "B" }, { "C", "D" } };
+            object[, ] values =
+            {
+                {
+                    "A",
+                    "B"
+                },
+                {
+                    "C",
+                    "D"
+                }
+            };
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet1 = document.AddWorksheet("Data");
 
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Range("A1:B2", r => r.Set(values)));
+                    var range3 = sheet1.Range("A1:B2");
+                    range3.SetValues(values);
+                }
+
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -47,15 +66,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RangeBuilderSetsSingleCell() {
+        public void RangeBuilderSetsSingleCell()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet4 = document.AddWorksheet("Data");
 
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Range("A1:C3", r => r.Cell(2, 2, "X")));
+                    var range6 = sheet4.Range("A1:C3");
+                    sheet4.Cell(range6.CellAt(2, 2).Row, range6.CellAt(2, 2).Column, "X");
+                }
+
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -67,19 +94,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RangeBuilderAppliesNumberFormat() {
+        public void RangeBuilderAppliesNumberFormat()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            object[,] values = { { 1.2, 3.4 }, { 5.6, 7.8 } };
+            object[, ] values =
+            {
+                {
+                    1.2,
+                    3.4
+                },
+                {
+                    5.6,
+                    7.8
+                }
+            };
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet7 = document.AddWorksheet("Data");
 
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Range("A1:B2", r => {
-                    r.Set(values);
-                    r.NumberFormat("0.00");
-                }));
+                    var range9 = sheet7.Range("A1:B2");
+                    range9.SetValues(values);
+                    range9.SetNumberFormat("0.00");
+                }
+
                 document.Save();
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart;
                 Assert.NotNull(workbookPart);
                 var wsPart = workbookPart.WorksheetParts.First();
@@ -105,19 +148,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RangeBuilderCanClearValues() {
+        public void RangeBuilderCanClearValues()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            object[,] values = { { "A", "B" }, { "C", "D" } };
+            object[, ] values =
+            {
+                {
+                    "A",
+                    "B"
+                },
+                {
+                    "C",
+                    "D"
+                }
+            };
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet10 = document.AddWorksheet("Data");
 
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent().Sheet("Data", s => s.Range("A1:B2", r => {
-                    r.Set(values);
-                    r.Clear();
-                }));
+                    var range12 = sheet10.Range("A1:B2");
+                    range12.SetValues(values);
+                    for (int r = range12.FirstRow; r <= range12.LastRow; r++)
+                        for (int column = range12.FirstColumn; column <= range12.LastColumn; column++)
+                            sheet10.CellValue(r, column, string.Empty);
+                }
+
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -130,4 +191,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

@@ -6,14 +6,17 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
-        public void Test_ExcelRefreshOnOpen_UpdatesPivotCachesAndConnections() {
+        public void Test_ExcelRefreshOnOpen_UpdatesPivotCachesAndConnections()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelRefreshOnOpen.PivotConnections.xlsx");
             const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>";
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
@@ -21,18 +24,8 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10);
                 sheet.CellValue(3, 1, "West");
                 sheet.CellValue(3, 2, 20);
-                sheet.AddPivotTable(
-                    sourceRange: "A1:B3",
-                    destinationCell: "E2",
-                    name: "SalesPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales") },
-                    options: new ExcelPivotTableOptions {
-                        RefreshOnOpen = false,
-                        SaveSourceData = true
-                    });
+                sheet.AddPivotTable("A1:B3", "E2", options: new ExcelPivotTableOptions { RefreshOnOpen = false, SaveSourceData = true, Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales") } });
                 document.AddWorkbookConnectionMetadata(connectionXml);
-
                 ExcelRefreshOnOpenResult result = document.SetRefreshOnOpen(savePivotSourceData: false);
                 Assert.True(result.Enabled);
                 Assert.Equal(1, result.PivotCacheCount);
@@ -40,11 +33,11 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var cacheDefinition = spreadsheet.WorkbookPart!.PivotTableCacheDefinitionParts.Single().PivotCacheDefinition!;
                 Assert.True(cacheDefinition.RefreshOnLoad!.Value);
                 Assert.False(cacheDefinition.SaveData!.Value);
-
                 string connectionText = ReadSinglePackagePartText(spreadsheet.WorkbookPart!, "connections");
                 XDocument connections = XDocument.Parse(connectionText);
                 XElement connection = connections.Descendants().Single(element => element.Name.LocalName == "connection");

@@ -11,8 +11,10 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private const int DefaultChartFontSize = 1100;
 
         private static WorksheetPart GetWorksheetPartByName(SpreadsheetDocument spreadsheet, string sheetName) {
@@ -179,10 +181,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelCharts_FluentRangeBuilder_CreatesChart() {
+        public void Test_ExcelCharts_FluentRangeBuilder_CreatesChart()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.FluentRange.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Summary");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
@@ -193,23 +196,17 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, "Q2");
                 sheet.CellValue(3, 2, 20);
                 sheet.CellValue(3, 3, 22);
-
-                sheet.Chart("A1:C3")
-                    .Line()
-                    .Title("Quarterly")
-                    .Size(480, 320)
-                    .At(1, 6);
-
+                sheet.AddChartFromRange("A1:C3", row: 1, column: 6, widthPixels: 480, heightPixels: 320, title: "Quarterly", includeCachedData: true, type: ExcelChartType.Line, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 Assert.Equal("Quarterly", chart.Title!.Descendants<A.Text>().First().Text);
                 Assert.NotNull(chart.PlotArea!.GetFirstChild<C.LineChart>());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -217,10 +214,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelCharts_RadarChart_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_RadarChart_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Radar.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Coverage");
                 sheet.CellValue(1, 1, "Area");
                 sheet.CellValue(1, 2, "Current");
@@ -234,32 +232,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Identity");
                 sheet.CellValue(4, 2, 2);
                 sheet.CellValue(4, 3, 5);
-
-                var chart = sheet.Chart("A1:C4")
-                    .Radar()
-                    .Title("Coverage")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                chart.UpdateData(new ExcelChartData(
-                    new[] { "Mail", "DNS", "Identity", "Device" },
-                    new[] {
-                        new ExcelChartSeries("Current", new[] { 4d, 3d, 5d, 2d }, ExcelChartType.Radar),
-                        new ExcelChartSeries("Target", new[] { 5d, 5d, 5d, 4d }, ExcelChartType.Radar)
-                    }));
-                chart.SetSeriesLineColor("Current", "2563EB", widthPoints: 1.25)
-                    .SetSeriesMarker("Target", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12");
-
+                var chart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "Coverage", includeCachedData: true, type: ExcelChartType.Radar, hasHeaders: true);
+                chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Current", new[] { 4d, 3d, 5d, 2d }, ExcelChartType.Radar), new ExcelChartSeries("Target", new[] { 5d, 5d, 5d, 4d }, ExcelChartType.Radar) }));
+                chart.SetSeriesLineColor("Current", "2563EB", widthPoints: 1.25).SetSeriesMarker("Target", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12");
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
                 var radarChart = plotArea.GetFirstChild<C.RadarChart>();
-
                 Assert.NotNull(radarChart);
                 Assert.Equal(C.RadarStyleValues.Standard, radarChart!.RadarStyle?.Val?.Value);
                 Assert.Equal("Coverage", chart.Title!.Descendants<A.Text>().First().Text);
@@ -267,32 +252,29 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, radarChart.Elements<C.AxisId>().Count());
                 Assert.NotNull(plotArea.GetFirstChild<C.CategoryAxis>());
                 Assert.NotNull(plotArea.GetFirstChild<C.ValueAxis>());
-
                 var series = radarChart.Elements<C.RadarChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 var targetSeries = radarChart.Elements<C.RadarChartSeries>().Skip(1).First();
                 Assert.Equal(C.MarkerStyleValues.Circle, targetSeries.GetFirstChild<C.Marker>()?.Symbol?.Val?.Value);
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_StockChart_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_StockChart_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Stock.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Prices");
                 sheet.CellValue(1, 1, "Date");
                 sheet.CellValue(1, 2, "Open");
@@ -314,33 +296,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 3, 116);
                 sheet.CellValue(4, 4, 106);
                 sheet.CellValue(4, 5, 113);
-
-                var chart = sheet.Chart("A1:E4")
-                    .Stock()
-                    .Title("Price Range")
-                    .Size(560, 340)
-                    .At(1, 7);
-
-                chart.UpdateData(new ExcelChartData(
-                    new[] { "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04" },
-                    new[] {
-                        new ExcelChartSeries("Open", new[] { 102d, 105d, 109d, 112d }, ExcelChartType.Stock),
-                        new ExcelChartSeries("High", new[] { 108d, 111d, 116d, 118d }, ExcelChartType.Stock),
-                        new ExcelChartSeries("Low", new[] { 99d, 101d, 106d, 110d }, ExcelChartType.Stock),
-                        new ExcelChartSeries("Close", new[] { 105d, 109d, 113d, 116d }, ExcelChartType.Stock)
-                    }));
+                var chart = sheet.AddChartFromRange("A1:E4", row: 1, column: 7, widthPixels: 560, heightPixels: 340, title: "Price Range", includeCachedData: true, type: ExcelChartType.Stock, hasHeaders: true);
+                chart.UpdateData(new ExcelChartData(new[] { "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04" }, new[] { new ExcelChartSeries("Open", new[] { 102d, 105d, 109d, 112d }, ExcelChartType.Stock), new ExcelChartSeries("High", new[] { 108d, 111d, 116d, 118d }, ExcelChartType.Stock), new ExcelChartSeries("Low", new[] { 99d, 101d, 106d, 110d }, ExcelChartType.Stock), new ExcelChartSeries("Close", new[] { 105d, 109d, 113d, 116d }, ExcelChartType.Stock) }));
                 chart.SetSeriesLineColor("Close", "2563EB", widthPoints: 1.25);
-
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
                 var stockChart = plotArea.GetFirstChild<C.StockChart>();
-
                 Assert.NotNull(stockChart);
                 Assert.Equal("Price Range", chart.Title!.Descendants<A.Text>().First().Text);
                 Assert.Equal(4, stockChart!.Elements<C.LineChartSeries>().Count());
@@ -349,29 +317,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, stockChart.Elements<C.AxisId>().Count());
                 Assert.NotNull(plotArea.GetFirstChild<C.CategoryAxis>());
                 Assert.NotNull(plotArea.GetFirstChild<C.ValueAxis>());
-
                 var closeSeries = stockChart.Elements<C.LineChartSeries>().Last();
-                var valuesCache = closeSeries.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = closeSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", closeSeries.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_SurfaceChart_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_SurfaceChart_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Surface.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Terrain");
                 sheet.CellValue(1, 1, "Zone");
                 sheet.CellValue(1, 2, "Low");
@@ -389,32 +355,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 2, 14);
                 sheet.CellValue(4, 3, 20);
                 sheet.CellValue(4, 4, 27);
-
-                var chart = sheet.Chart("A1:D4")
-                    .Surface()
-                    .Title("Surface")
-                    .Size(560, 340)
-                    .At(1, 6);
-
-                chart.UpdateData(new ExcelChartData(
-                    new[] { "North", "Central", "South", "West" },
-                    new[] {
-                        new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, ExcelChartType.Surface),
-                        new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, ExcelChartType.Surface),
-                        new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, ExcelChartType.Surface)
-                    }));
+                var chart = sheet.AddChartFromRange("A1:D4", row: 1, column: 6, widthPixels: 560, heightPixels: 340, title: "Surface", includeCachedData: true, type: ExcelChartType.Surface, hasHeaders: true);
+                chart.UpdateData(new ExcelChartData(new[] { "North", "Central", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, ExcelChartType.Surface), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, ExcelChartType.Surface), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, ExcelChartType.Surface) }));
                 chart.SetSeriesFillColor("High", "22C55E");
-
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
                 var surfaceChart = plotArea.GetFirstChild<C.Surface3DChart>();
-
                 Assert.NotNull(surfaceChart);
                 Assert.Equal("Surface", chart.Title!.Descendants<A.Text>().First().Text);
                 Assert.Equal(3, surfaceChart!.Elements<C.SurfaceChartSeries>().Count());
@@ -422,29 +375,27 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(plotArea.GetFirstChild<C.CategoryAxis>());
                 Assert.NotNull(plotArea.GetFirstChild<C.ValueAxis>());
                 Assert.NotNull(plotArea.GetFirstChild<C.SeriesAxis>());
-
                 var highSeries = surfaceChart.Elements<C.SurfaceChartSeries>().Last();
-                var valuesCache = highSeries.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = highSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("22C55E", highSeries.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_SurfaceVariantCharts_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_SurfaceVariantCharts_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SurfaceVariants.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Surface");
                 sheet.CellValue(1, 1, "Bucket");
                 sheet.CellValue(1, 2, "Low");
@@ -462,71 +413,36 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 2, 12);
                 sheet.CellValue(4, 3, 20);
                 sheet.CellValue(4, 4, 28);
-
-                var wireframeChart = sheet.Chart("A1:D4")
-                    .SurfaceWireframe()
-                    .Title("Wireframe Surface")
-                    .Size(520, 340)
-                    .At(1, 6);
-
-                wireframeChart.UpdateData(new ExcelChartData(
-                    new[] { "North", "East", "South", "West" },
-                    new[] {
-                        new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, ExcelChartType.SurfaceWireframe),
-                        new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, ExcelChartType.SurfaceWireframe),
-                        new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, ExcelChartType.SurfaceWireframe)
-                    }));
+                var wireframeChart = sheet.AddChartFromRange("A1:D4", row: 1, column: 6, widthPixels: 520, heightPixels: 340, title: "Wireframe Surface", includeCachedData: true, type: ExcelChartType.SurfaceWireframe, hasHeaders: true);
+                wireframeChart.UpdateData(new ExcelChartData(new[] { "North", "East", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, ExcelChartType.SurfaceWireframe), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, ExcelChartType.SurfaceWireframe), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, ExcelChartType.SurfaceWireframe) }));
                 wireframeChart.SetSeriesFillColor("High", "22C55E");
-
-                sheet.Chart("A1:D4")
-                    .SurfaceContour()
-                    .Title("Contour Surface")
-                    .Size(520, 340)
-                    .At(18, 6);
-
-                sheet.Chart("A1:D4")
-                    .SurfaceContourWireframe()
-                    .Title("Wireframe Contour")
-                    .Size(520, 340)
-                    .At(35, 6);
-
+                sheet.AddChartFromRange("A1:D4", row: 18, column: 6, widthPixels: 520, heightPixels: 340, title: "Contour Surface", includeCachedData: true, type: ExcelChartType.SurfaceContour, hasHeaders: true);
+                sheet.AddChartFromRange("A1:D4", row: 35, column: 6, widthPixels: 520, heightPixels: 340, title: "Wireframe Contour", includeCachedData: true, type: ExcelChartType.SurfaceContourWireframe, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(3, chartParts.Count);
-
-                var plotAreas = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!)
-                    .ToList();
-
-                var surface3DChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Surface3DChart>())
-                    .Single(chart => chart != null);
-                var contourCharts = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.SurfaceChart>())
-                    .Where(chart => chart != null)
-                    .ToList();
-
+                var plotAreas = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!).ToList();
+                var surface3DChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Surface3DChart>()).Single(chart => chart != null);
+                var contourCharts = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.SurfaceChart>()).Where(chart => chart != null).ToList();
                 Assert.NotNull(surface3DChart);
                 Assert.True(surface3DChart!.GetFirstChild<C.Wireframe>()!.Val!.Value);
                 Assert.Equal(3, surface3DChart.Elements<C.SurfaceChartSeries>().Count());
                 Assert.Equal(3, surface3DChart.Elements<C.AxisId>().Count());
                 Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.Surface3DChart>() == surface3DChart).GetFirstChild<C.SeriesAxis>());
-
                 var highSeries = surface3DChart.Elements<C.SurfaceChartSeries>().Last();
-                var valuesCache = highSeries.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = highSeries.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("22C55E", highSeries.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 Assert.Equal(2, contourCharts.Count);
                 Assert.Contains(contourCharts, chart => chart!.GetFirstChild<C.Wireframe>()!.Val!.Value == false);
                 Assert.Contains(contourCharts, chart => chart!.GetFirstChild<C.Wireframe>()!.Val!.Value);
-                foreach (var contourChart in contourCharts) {
+                foreach (var contourChart in contourCharts)
+                {
                     Assert.Equal(3, contourChart!.Elements<C.SurfaceChartSeries>().Count());
                     Assert.Equal(3, contourChart.Elements<C.AxisId>().Count());
                     Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.SurfaceChart>() == contourChart).GetFirstChild<C.SeriesAxis>());
@@ -537,16 +453,18 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_Pie3DChart_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_Pie3DChart_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Pie3D.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Category");
                 sheet.CellValue(1, 2, "Share");
@@ -556,61 +474,46 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 28);
                 sheet.CellValue(4, 1, "Identity");
                 sheet.CellValue(4, 2, 30);
-
-                var chart = sheet.Chart("A1:B4")
-                    .Pie3D()
-                    .Title("Workload Mix")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                chart.UpdateData(new ExcelChartData(
-                    new[] { "Mail", "DNS", "Identity", "Device" },
-                    new[] {
-                        new ExcelChartSeries("Share", new[] { 40d, 24d, 26d, 10d }, ExcelChartType.Pie3D)
-                    }));
-                chart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false)
-                    .SetSeriesFillColor("Share", "2563EB");
-
+                var chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "Workload Mix", includeCachedData: true, type: ExcelChartType.Pie3D, hasHeaders: true);
+                chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Share", new[] { 40d, 24d, 26d, 10d }, ExcelChartType.Pie3D) }));
+                chart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", "2563EB");
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
                 var pieChart = plotArea.GetFirstChild<C.Pie3DChart>();
-
                 Assert.NotNull(pieChart);
                 Assert.Equal("Workload Mix", chart.Title!.Descendants<A.Text>().First().Text);
                 Assert.True(pieChart!.VaryColors?.Val?.Value);
-
                 var series = Assert.Single(pieChart.Elements<C.PieChartSeries>());
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 var labels = pieChart.GetFirstChild<C.DataLabels>();
                 Assert.True(labels!.GetFirstChild<C.ShowValue>()!.Val!.Value);
                 Assert.True(labels.GetFirstChild<C.ShowCategoryName>()!.Val!.Value);
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_OfPieCharts_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_OfPieCharts_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.OfPie.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Share");
                 sheet.CellValue(1, 1, "Segment");
                 sheet.CellValue(1, 2, "Share");
@@ -622,78 +525,53 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 2, 26);
                 sheet.CellValue(5, 1, "Other");
                 sheet.CellValue(5, 2, 10);
-
-                var pieChart = sheet.Chart("A1:B5")
-                    .PieOfPie()
-                    .Title("Pie of Pie")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                pieChart.UpdateData(new ExcelChartData(
-                    new[] { "Core", "Growth", "Services", "Other", "Legacy" },
-                    new[] {
-                        new ExcelChartSeries("Share", new[] { 38d, 25d, 24d, 9d, 4d }, ExcelChartType.PieOfPie)
-                    }));
-                pieChart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false)
-                    .SetSeriesFillColor("Share", "2563EB");
-
-                sheet.Chart("A1:B5")
-                    .BarOfPie()
-                    .Title("Bar of Pie")
-                    .Size(520, 340)
-                    .At(18, 5);
-
+                var pieChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "Pie of Pie", includeCachedData: true, type: ExcelChartType.PieOfPie, hasHeaders: true);
+                pieChart.UpdateData(new ExcelChartData(new[] { "Core", "Growth", "Services", "Other", "Legacy" }, new[] { new ExcelChartSeries("Share", new[] { 38d, 25d, 24d, 9d, 4d }, ExcelChartType.PieOfPie) }));
+                pieChart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", "2563EB");
+                sheet.AddChartFromRange("A1:B5", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "Bar of Pie", includeCachedData: true, type: ExcelChartType.BarOfPie, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
-
-                var ofPieCharts = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.OfPieChart>())
-                    .ToList();
-
+                var ofPieCharts = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.OfPieChart>()).ToList();
                 var pieChart = ofPieCharts.First(chart => chart?.GetFirstChild<C.OfPieType>()?.Val?.Value == C.OfPieValues.Pie);
                 var barChart = ofPieCharts.First(chart => chart?.GetFirstChild<C.OfPieType>()?.Val?.Value == C.OfPieValues.Bar);
-
                 Assert.NotNull(pieChart);
                 Assert.Single(pieChart!.Elements<C.PieChartSeries>());
                 Assert.NotNull(pieChart.GetFirstChild<C.SeriesLines>());
                 Assert.Equal((ushort)75, pieChart.GetFirstChild<C.SecondPieSize>()!.Val!.Value);
                 Assert.Equal(C.SplitValues.Position, pieChart.GetFirstChild<C.SplitType>()!.Val!.Value);
-
                 var series = Assert.Single(pieChart.Elements<C.PieChartSeries>());
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)5, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
-
                 var labels = pieChart.GetFirstChild<C.DataLabels>();
                 Assert.True(labels!.GetFirstChild<C.ShowValue>()!.Val!.Value);
                 Assert.True(labels.GetFirstChild<C.ShowCategoryName>()!.Val!.Value);
-
                 Assert.NotNull(barChart);
                 Assert.Single(barChart!.Elements<C.PieChartSeries>());
                 Assert.NotNull(barChart.GetFirstChild<C.SeriesLines>());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_BarStacked100Variants_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_BarStacked100Variants_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.BarStacked100.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
@@ -707,75 +585,50 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Q3");
                 sheet.CellValue(4, 2, 24);
                 sheet.CellValue(4, 3, 26);
-
-                var columnChart = sheet.Chart("A1:C4")
-                    .ColumnStacked100()
-                    .Title("100% Stacked Columns")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                columnChart.UpdateData(new ExcelChartData(
-                    new[] { "Q1", "Q2", "Q3", "Q4" },
-                    new[] {
-                        new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, ExcelChartType.ColumnStacked100),
-                        new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, ExcelChartType.ColumnStacked100)
-                    }));
-                columnChart.SetSeriesFillColor("Sales", "2563EB")
-                    .SetDataLabels(showValue: true);
-
-                sheet.Chart("A1:C4")
-                    .BarStacked100()
-                    .Title("100% Stacked Bars")
-                    .Size(520, 340)
-                    .At(18, 5);
-
+                var columnChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "100% Stacked Columns", includeCachedData: true, type: ExcelChartType.ColumnStacked100, hasHeaders: true);
+                columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, ExcelChartType.ColumnStacked100), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, ExcelChartType.ColumnStacked100) }));
+                columnChart.SetSeriesFillColor("Sales", "2563EB").SetDataLabels(showValue: true);
+                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "100% Stacked Bars", includeCachedData: true, type: ExcelChartType.BarStacked100, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
-
-                var barCharts = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.BarChart>())
-                    .ToList();
-
+                var barCharts = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.BarChart>()).ToList();
                 var columnChart = barCharts.First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Column);
                 var barChart = barCharts.First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Bar);
-
                 Assert.NotNull(columnChart);
                 Assert.Equal(C.BarGroupingValues.PercentStacked, columnChart!.BarGrouping?.Val?.Value);
                 Assert.Equal(2, columnChart.Elements<C.BarChartSeries>().Count());
                 Assert.Equal(2, columnChart.Elements<C.AxisId>().Count());
-
                 var series = columnChart.Elements<C.BarChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(columnChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 Assert.NotNull(barChart);
                 Assert.Equal(C.BarGroupingValues.PercentStacked, barChart!.BarGrouping?.Val?.Value);
                 Assert.Equal(2, barChart.Elements<C.AxisId>().Count());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_Bar3DCharts_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_Bar3DCharts_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Bar3D.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
@@ -789,111 +642,62 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Q3");
                 sheet.CellValue(4, 2, 24);
                 sheet.CellValue(4, 3, 26);
-
-                var columnChart = sheet.Chart("A1:C4")
-                    .Column3DClustered()
-                    .Title("3D Columns")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                columnChart.UpdateData(new ExcelChartData(
-                    new[] { "Q1", "Q2", "Q3", "Q4" },
-                    new[] {
-                        new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, ExcelChartType.Column3DClustered),
-                        new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, ExcelChartType.Column3DClustered)
-                    }));
-                columnChart.SetSeriesFillColor("Sales", "2563EB")
-                    .SetDataLabels(showValue: true);
-
-                sheet.Chart("A1:C4")
-                    .Bar3DStacked()
-                    .Title("3D Bars")
-                    .Size(520, 340)
-                    .At(18, 5);
-
-                sheet.Chart("A1:C4")
-                    .Column3DStacked100()
-                    .Title("3D 100% Columns")
-                    .Size(520, 340)
-                    .At(35, 5);
-
-                sheet.Chart("A1:C4")
-                    .Bar3DStacked100()
-                    .Title("3D 100% Bars")
-                    .Size(520, 340)
-                    .At(52, 5);
-
+                var columnChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "3D Columns", includeCachedData: true, type: ExcelChartType.Column3DClustered, hasHeaders: true);
+                columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, ExcelChartType.Column3DClustered), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, ExcelChartType.Column3DClustered) }));
+                columnChart.SetSeriesFillColor("Sales", "2563EB").SetDataLabels(showValue: true);
+                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "3D Bars", includeCachedData: true, type: ExcelChartType.Bar3DStacked, hasHeaders: true);
+                sheet.AddChartFromRange("A1:C4", row: 35, column: 5, widthPixels: 520, heightPixels: 340, title: "3D 100% Columns", includeCachedData: true, type: ExcelChartType.Column3DStacked100, hasHeaders: true);
+                sheet.AddChartFromRange("A1:C4", row: 52, column: 5, widthPixels: 520, heightPixels: 340, title: "3D 100% Bars", includeCachedData: true, type: ExcelChartType.Bar3DStacked100, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(4, chartParts.Count);
-
-                var plotAreas = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!)
-                    .ToList();
-
-                var columnChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>())
-                    .First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Column
-                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered);
-                var barChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>())
-                    .First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Bar
-                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked);
-                var percentColumnChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>())
-                    .First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Column
-                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.PercentStacked);
-                var percentBarChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>())
-                    .First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Bar
-                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.PercentStacked);
-
+                var plotAreas = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!).ToList();
+                var columnChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>()).First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Column && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered);
+                var barChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>()).First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Bar && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked);
+                var percentColumnChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>()).First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Column && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.PercentStacked);
+                var percentBarChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Bar3DChart>()).First(chart => chart?.BarDirection?.Val?.Value == C.BarDirectionValues.Bar && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.PercentStacked);
                 Assert.NotNull(columnChart);
                 Assert.Equal(C.BarGroupingValues.Clustered, columnChart!.BarGrouping?.Val?.Value);
                 Assert.Equal(2, columnChart.Elements<C.BarChartSeries>().Count());
                 Assert.Equal(3, columnChart.Elements<C.AxisId>().Count());
                 Assert.Equal(C.ShapeValues.Box, columnChart.GetFirstChild<C.Shape>()?.Val?.Value);
                 Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.Bar3DChart>() == columnChart).GetFirstChild<C.SeriesAxis>());
-
                 var series = columnChart.Elements<C.BarChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(columnChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 Assert.NotNull(barChart);
                 Assert.Equal(C.BarGroupingValues.Stacked, barChart!.BarGrouping?.Val?.Value);
                 Assert.Equal(3, barChart.Elements<C.AxisId>().Count());
-
                 Assert.NotNull(percentColumnChart);
                 Assert.Equal(3, percentColumnChart!.Elements<C.AxisId>().Count());
                 Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.Bar3DChart>() == percentColumnChart).GetFirstChild<C.SeriesAxis>());
-
                 Assert.NotNull(percentBarChart);
                 Assert.Equal(3, percentBarChart!.Elements<C.AxisId>().Count());
                 Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.Bar3DChart>() == percentBarChart).GetFirstChild<C.SeriesAxis>());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_LineStackedVariants_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_LineStackedVariants_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LineStacked.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
@@ -907,69 +711,41 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 20);
                 sheet.CellValue(4, 3, 23);
-
-                var stackedChart = sheet.Chart("A1:C4")
-                    .LineStacked()
-                    .Title("Stacked Line")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                stackedChart.UpdateData(new ExcelChartData(
-                    new[] { "Jan", "Feb", "Mar", "Apr" },
-                    new[] {
-                        new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, ExcelChartType.LineStacked),
-                        new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, ExcelChartType.LineStacked)
-                    }));
-                stackedChart.SetSeriesLineColor("Actual", "2563EB", widthPoints: 1.25)
-                    .SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12")
-                    .SetDataLabels(showValue: true);
-
-                sheet.Chart("A1:C4")
-                    .LineStacked100()
-                    .Title("100% Stacked Line")
-                    .Size(520, 340)
-                    .At(18, 5);
-
+                var stackedChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "Stacked Line", includeCachedData: true, type: ExcelChartType.LineStacked, hasHeaders: true);
+                stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, ExcelChartType.LineStacked), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, ExcelChartType.LineStacked) }));
+                stackedChart.SetSeriesLineColor("Actual", "2563EB", widthPoints: 1.25).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12").SetDataLabels(showValue: true);
+                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "100% Stacked Line", includeCachedData: true, type: ExcelChartType.LineStacked100, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
-
-                var lineCharts = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.LineChart>())
-                    .ToList();
-
+                var lineCharts = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.LineChart>()).ToList();
                 var stackedChart = lineCharts.First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Stacked);
                 var percentChart = lineCharts.First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.PercentStacked);
-
                 Assert.NotNull(stackedChart);
                 Assert.Equal(2, stackedChart!.Elements<C.LineChartSeries>().Count());
                 Assert.Equal(2, stackedChart.Elements<C.AxisId>().Count());
-
                 var series = stackedChart.Elements<C.LineChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(stackedChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 var planSeries = stackedChart.Elements<C.LineChartSeries>().Skip(1).First();
                 Assert.Equal(C.MarkerStyleValues.Circle, planSeries.GetFirstChild<C.Marker>()?.Symbol?.Val?.Value);
-
                 Assert.NotNull(percentChart);
                 Assert.Equal(2, percentChart!.Elements<C.LineChartSeries>().Count());
                 Assert.Equal(2, percentChart.Elements<C.AxisId>().Count());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1004,10 +780,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelCharts_Line3DChart_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_Line3DChart_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Line3D.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
@@ -1021,65 +798,48 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 20);
                 sheet.CellValue(4, 3, 23);
-
-                var chart = sheet.Chart("A1:C4")
-                    .Line3D()
-                    .Title("3D Line")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                chart.UpdateData(new ExcelChartData(
-                    new[] { "Jan", "Feb", "Mar", "Apr" },
-                    new[] {
-                        new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, ExcelChartType.Line3D),
-                        new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, ExcelChartType.Line3D)
-                    }));
-                chart.SetSeriesLineColor("Actual", "2563EB", widthPoints: 1.25)
-                    .SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12")
-                    .SetDataLabels(showValue: true);
-
+                var chart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "3D Line", includeCachedData: true, type: ExcelChartType.Line3D, hasHeaders: true);
+                chart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, ExcelChartType.Line3D), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, ExcelChartType.Line3D) }));
+                chart.SetSeriesLineColor("Actual", "2563EB", widthPoints: 1.25).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: 6, fillColor: "F97316", lineColor: "7C2D12").SetDataLabels(showValue: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var lineChart = plotArea.GetFirstChild<C.Line3DChart>();
-
                 Assert.NotNull(lineChart);
                 Assert.Equal(C.GroupingValues.Standard, lineChart!.Grouping?.Val?.Value);
                 Assert.Equal(2, lineChart.Elements<C.LineChartSeries>().Count());
                 Assert.Equal(3, lineChart.Elements<C.AxisId>().Count());
                 Assert.NotNull(lineChart.GetFirstChild<C.GapDepth>());
                 Assert.NotNull(plotArea.GetFirstChild<C.SeriesAxis>());
-
                 var series = lineChart.Elements<C.LineChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(lineChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 var planSeries = lineChart.Elements<C.LineChartSeries>().Skip(1).First();
                 Assert.Equal(C.MarkerStyleValues.Circle, planSeries.GetFirstChild<C.Marker>()?.Symbol?.Val?.Value);
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_AreaStackedVariants_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_AreaStackedVariants_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AreaStacked.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Services");
@@ -1093,74 +853,49 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 48);
                 sheet.CellValue(4, 3, 29);
-
-                var stackedChart = sheet.Chart("A1:C4")
-                    .AreaStacked()
-                    .Title("Stacked Area")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                stackedChart.UpdateData(new ExcelChartData(
-                    new[] { "Jan", "Feb", "Mar", "Apr" },
-                    new[] {
-                        new ExcelChartSeries("Services", new[] { 36d, 44d, 50d, 54d }, ExcelChartType.AreaStacked),
-                        new ExcelChartSeries("Licenses", new[] { 19d, 25d, 31d, 34d }, ExcelChartType.AreaStacked)
-                    }));
-                stackedChart.SetSeriesFillColor("Services", "2563EB")
-                    .SetDataLabels(showValue: true);
-
-                sheet.Chart("A1:C4")
-                    .AreaStacked100()
-                    .Title("100% Stacked Area")
-                    .Size(520, 340)
-                    .At(18, 5);
-
+                var stackedChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "Stacked Area", includeCachedData: true, type: ExcelChartType.AreaStacked, hasHeaders: true);
+                stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Services", new[] { 36d, 44d, 50d, 54d }, ExcelChartType.AreaStacked), new ExcelChartSeries("Licenses", new[] { 19d, 25d, 31d, 34d }, ExcelChartType.AreaStacked) }));
+                stackedChart.SetSeriesFillColor("Services", "2563EB").SetDataLabels(showValue: true);
+                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "100% Stacked Area", includeCachedData: true, type: ExcelChartType.AreaStacked100, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
-
-                var areaCharts = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.AreaChart>())
-                    .ToList();
-
+                var areaCharts = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.AreaChart>()).ToList();
                 var stackedChart = areaCharts.First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Stacked);
                 var percentChart = areaCharts.First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.PercentStacked);
-
                 Assert.NotNull(stackedChart);
                 Assert.Equal(2, stackedChart!.Elements<C.AreaChartSeries>().Count());
                 Assert.Equal(2, stackedChart.Elements<C.AxisId>().Count());
-
                 var series = stackedChart.Elements<C.AreaChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(stackedChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 Assert.NotNull(percentChart);
                 Assert.Equal(2, percentChart!.Elements<C.AreaChartSeries>().Count());
                 Assert.Equal(2, percentChart.Elements<C.AxisId>().Count());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_Area3DCharts_CanCreateAndUpdate() {
+        public void Test_ExcelCharts_Area3DCharts_CanCreateAndUpdate()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Area3D.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Volume");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
@@ -1174,91 +909,54 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 21);
                 sheet.CellValue(4, 3, 24);
-
-                var areaChart = sheet.Chart("A1:C4")
-                    .Area3D()
-                    .Title("3D Area")
-                    .Size(520, 340)
-                    .At(1, 5);
-
-                areaChart.UpdateData(new ExcelChartData(
-                    new[] { "Jan", "Feb", "Mar", "Apr" },
-                    new[] {
-                        new ExcelChartSeries("Actual", new[] { 11d, 17d, 22d, 28d }, ExcelChartType.Area3D),
-                        new ExcelChartSeries("Plan", new[] { 13d, 19d, 25d, 31d }, ExcelChartType.Area3D)
-                    }));
-                areaChart.SetSeriesFillColor("Actual", "2563EB")
-                    .SetDataLabels(showValue: true);
-
-                sheet.Chart("A1:C4")
-                    .Area3DStacked()
-                    .Title("3D Stacked Area")
-                    .Size(520, 340)
-                    .At(18, 5);
-
-                sheet.Chart("A1:C4")
-                    .Area3DStacked100()
-                    .Title("3D 100% Stacked Area")
-                    .Size(520, 340)
-                    .At(35, 5);
-
+                var areaChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 520, heightPixels: 340, title: "3D Area", includeCachedData: true, type: ExcelChartType.Area3D, hasHeaders: true);
+                areaChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 17d, 22d, 28d }, ExcelChartType.Area3D), new ExcelChartSeries("Plan", new[] { 13d, 19d, 25d, 31d }, ExcelChartType.Area3D) }));
+                areaChart.SetSeriesFillColor("Actual", "2563EB").SetDataLabels(showValue: true);
+                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, widthPixels: 520, heightPixels: 340, title: "3D Stacked Area", includeCachedData: true, type: ExcelChartType.Area3DStacked, hasHeaders: true);
+                sheet.AddChartFromRange("A1:C4", row: 35, column: 5, widthPixels: 520, heightPixels: 340, title: "3D 100% Stacked Area", includeCachedData: true, type: ExcelChartType.Area3DStacked100, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(3, chartParts.Count);
-
-                var plotAreas = chartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!)
-                    .ToList();
-
-                var standardChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>())
-                    .First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Standard);
-                var stackedChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>())
-                    .First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Stacked);
-                var percentChart = plotAreas
-                    .Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>())
-                    .First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.PercentStacked);
-
+                var plotAreas = chartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!).ToList();
+                var standardChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>()).First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Standard);
+                var stackedChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>()).First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.Stacked);
+                var percentChart = plotAreas.Select(plotArea => plotArea.GetFirstChild<C.Area3DChart>()).First(chart => chart?.Grouping?.Val?.Value == C.GroupingValues.PercentStacked);
                 Assert.NotNull(standardChart);
                 Assert.Equal(2, standardChart!.Elements<C.AreaChartSeries>().Count());
                 Assert.Equal(3, standardChart.Elements<C.AxisId>().Count());
                 Assert.NotNull(standardChart.GetFirstChild<C.GapDepth>());
                 Assert.NotNull(plotAreas.First(plotArea => plotArea.GetFirstChild<C.Area3DChart>() == standardChart).GetFirstChild<C.SeriesAxis>());
-
                 var series = standardChart.Elements<C.AreaChartSeries>().First();
-                var valuesCache = series.GetFirstChild<C.Values>()!
-                    .GetFirstChild<C.NumberReference>()!
-                    .GetFirstChild<C.NumberingCache>()!;
+                var valuesCache = series.GetFirstChild<C.Values>()!.GetFirstChild<C.NumberReference>()!.GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)4, valuesCache.PointCount!.Val!.Value);
                 Assert.Contains("2563EB", series.OuterXml, StringComparison.OrdinalIgnoreCase);
                 Assert.True(standardChart.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
-
                 Assert.NotNull(stackedChart);
                 Assert.Equal(3, stackedChart!.Elements<C.AxisId>().Count());
-
                 Assert.NotNull(percentChart);
                 Assert.Equal(3, percentChart!.Elements<C.AxisId>().Count());
-
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_ExcelCharts_RecipeHelpers_CreateExpectedChartTypes() {
+        public void Test_ExcelCharts_RecipeHelpers_CreateExpectedChartTypes()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeHelpers.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Revenue");
@@ -1269,48 +967,30 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 13);
                 sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-
                 sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
                 sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
                 sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
                 sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
                 sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
-                sheet.ChartFromTable("RevenueData")
-                    .StatusBreakdown("Revenue Mix")
-                    .At(86, 5);
-                sheet.ChartFromTable("RevenueData")
-                    .VarianceWaterfall("Revenue Bridge")
-                    .At(103, 5);
-
+                sheet.AddStatusBreakdownChart(sheet.GetTableRange("RevenueData")!, row: 86, column: 5, widthPixels: 520, heightPixels: 320, title: "Revenue Mix", includeCachedData: true, hasHeaders: true);
+                sheet.AddVarianceWaterfallChart(sheet.GetTableRange("RevenueData")!, row: 103, column: 5, widthPixels: 720, heightPixels: 360, title: "Revenue Bridge", includeCachedData: true, hasHeaders: true);
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
-                var charts = wsPart.DrawingsPart!.ChartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
-                    .ToList();
+                var charts = wsPart.DrawingsPart!.ChartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!).ToList();
                 var plotAreas = charts.Select(chart => chart.GetFirstChild<C.PlotArea>()!).ToList();
-
                 Assert.Equal(7, plotAreas.Count);
                 Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.LineChart>() != null);
                 Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.DoughnutChart>() != null);
-                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
-                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Bar));
-                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
-                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column));
-                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
-                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column
-                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked));
-                Assert.Contains(charts, chart => chart.GetFirstChild<C.Legend>() == null
-                    && chart.GetFirstChild<C.PlotArea>()!.Elements<C.BarChart>().Any());
-                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels =>
-                    labels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value == true
-                    && labels.GetFirstChild<C.ShowPercent>()?.Val?.Value == true);
-                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels =>
-                    labels.GetFirstChild<C.ShowValue>()?.Val?.Value == true
-                    && labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value == C.DataLabelPositionValues.OutsideEnd);
-
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>().Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Bar));
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>().Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column));
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>().Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked));
+                Assert.Contains(charts, chart => chart.GetFirstChild<C.Legend>() == null && chart.GetFirstChild<C.PlotArea>()!.Elements<C.BarChart>().Any());
+                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels => labels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value == true && labels.GetFirstChild<C.ShowPercent>()?.Val?.Value == true);
+                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels => labels.GetFirstChild<C.ShowValue>()?.Val?.Value == true && labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value == C.DataLabelPositionValues.OutsideEnd);
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -1428,40 +1108,6 @@ namespace OfficeIMO.Tests {
                     .Single();
 
                 Assert.Equal(C.DataLabelPositionValues.BestFit, position.Val!.Value);
-            }
-        }
-
-        [Fact]
-        public void Test_ExcelCharts_RecipeCustomizationDoesNotLeakToNextBuilderChart() {
-            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeBuilderReuse.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Dashboard");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Revenue");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 16);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 13);
-                sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-
-                var builder = sheet.ChartFromTable("RevenueData");
-                builder.KpiScorecard("Revenue KPI").At(1, 5);
-                builder.ColumnClustered().Title("Revenue").At(18, 5);
-                document.Save();
-            }
-
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
-                var charts = wsPart.DrawingsPart!.ChartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
-                    .ToList();
-
-                Assert.Equal(2, charts.Count);
-                Assert.Single(charts, chart => chart.GetFirstChild<C.Legend>() == null);
-                Assert.Single(charts, chart => chart.GetFirstChild<C.Legend>() != null);
             }
         }
 

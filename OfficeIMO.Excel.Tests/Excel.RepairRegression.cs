@@ -6,8 +6,10 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Utilities;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void ComplexWorkbookMaintainsCellOrderAndPackageIntegrity() {
             string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.xlsx");
@@ -63,11 +65,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MixedFeatureWorkbookValidatesWithoutRepairSignals() {
+        public void MixedFeatureWorkbookValidatesWithoutRepairSignals()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.MixedFeatures.xlsx");
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Label");
                 summary.CellValue(1, 2, "Value");
@@ -77,7 +80,8 @@ namespace OfficeIMO.Tests {
                 summary.SetHyperlink(3, 1, "https://example.org", display: "Example");
                 summary.SetInternalLink(4, 1, "'Summary'!A1", display: "Back to top");
                 summary.SetHeaderFooter(headerCenter: "Repair Regression", headerRight: "Page &P of &N");
-                if (File.Exists(logoPath)) {
+                if (File.Exists(logoPath))
+                {
                     summary.SetHeaderImage(ExcelHeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", widthPoints: 96, heightPoints: 32);
                 }
 
@@ -86,36 +90,28 @@ namespace OfficeIMO.Tests {
                 data.CellValue(1, 2, "Amount");
                 data.CellValue(1, 3, "Trend1");
                 data.CellValue(1, 4, "Trend2");
-
                 data.CellValue(2, 1, "A");
                 data.CellValue(2, 2, 10);
                 data.CellValue(2, 3, 3d);
                 data.CellValue(2, 4, 5d);
-
                 data.CellValue(3, 1, "B");
                 data.CellValue(3, 2, 20);
                 data.CellValue(3, 3, 4d);
                 data.CellValue(3, 4, 6d);
-
                 data.CellValue(4, 1, "A");
                 data.CellValue(4, 2, 15);
                 data.CellValue(4, 3, 5d);
                 data.CellValue(4, 4, 7d);
-
                 data.AddAutoFilter("A1:D4");
                 data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
-                data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
+                data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
                 data.AddChartFromRange("A1:B4", row: 7, column: 1, widthPixels: 360, heightPixels: 220);
-                data.AddPivotTable("A1:B4", "G2", name: "DataPivot");
-
-                document.Save(filePath, new ExcelSaveOptions {
-                    SafePreflight = true,
-                    SafeRepairDefinedNames = true,
-                    ValidateOpenXml = true
-                });
+                data.AddPivotTable("A1:B4", "G2", options: new ExcelPivotTableOptions { Name = "DataPivot" });
+                document.Save(filePath, new ExcelSaveOptions { SafePreflight = true, SafeRepairDefinedNames = true, ValidateOpenXml = true });
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -185,21 +181,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ColumnSizingPinsWrappedAndAutoFitsOthers() {
+        public void ColumnSizingPinsWrappedAndAutoFitsOthers()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnSizing.WrapAutoFit.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var composer = new OfficeIMO.Excel.Fluent.SheetComposer(document, "Report");
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var composer = document.AddWorksheet("Report").Report();
                 var sheet = composer.Sheet;
-
                 sheet.CellValue(1, 1, "Wrap");
                 sheet.CellValue(1, 2, "Auto");
-                for (int r = 2; r <= 10; r++) {
+                for (int r = 2; r <= 10; r++)
+                {
                     sheet.CellValue(r, 1, "Long wrapped content that should stay constrained.");
                     sheet.CellValue(r, 2, "Extremely long value that benefits from auto-fitting to show full content without manual width tweaks.");
                 }
 
-                composer.ApplyColumnSizing("A1:B10", opts => {
+                composer.ApplyColumnSizing("A1:B10", opts =>
+                {
                     opts.WrapHeaders.Add("Wrap");
                     opts.WrapWidth = 22;
                     opts.AutoFitHeaders.Add("Auto");
@@ -207,7 +205,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 double? wrapWidth = GetColumnWidth(wsPart, 1);
                 double? autoWidth = GetColumnWidth(wsPart, 2);

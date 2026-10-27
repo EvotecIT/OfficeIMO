@@ -1,8 +1,10 @@
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static string PivotFilteredOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "Documents", "ExcelPivotCorpus", "filtered-conformance.xlsx");
         private static string PivotFilteredRefreshOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -88,30 +90,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotFilteredMaterialization_TemplateFreePublicApiMatchesExcel() {
+        public void Test_PivotFilteredMaterialization_TemplateFreePublicApiMatchesExcel()
+        {
             string output = Path.Combine(_directoryWithFiles, "Filtered.TemplateFree.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotFilteredOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:C7");
             var expected = oracle.GetSheet("Filtered").ReadRange("A4:B7");
-            using (var document = ExcelDocument.Create(output)) {
+            using (var document = ExcelDocument.Create(output))
+            {
                 var sheet = document.AddWorksheet("Source");
                 for (int row = 0; row < 7; row++)
                     for (int column = 0; column < 3; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
-                sheet.AddPivotTable("A1:C7", "E4", "PivotFiltered", rowFields: new[] { "Region" },
-                    pageFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") },
-                    fieldOptions: new[] {
-                        new ExcelPivotFieldOptions("Region", hiddenItems: new[] { "West" }),
-                        new ExcelPivotFieldOptions("Product", selectedItem: "B")
-                    }, layout: ExcelPivotLayout.Tabular);
+                sheet.AddPivotTable("A1:C7", "E4", options: new ExcelPivotTableOptions { Name = "PivotFiltered", RowFields = new[] { "Region" }, PageFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, FieldOptions = new[] { new ExcelPivotFieldOptions("Region", hiddenItems: new[] { "West" }), new ExcelPivotFieldOptions("Product", selectedItem: "B") }, Layout = ExcelPivotLayout.Tabular });
                 var result = sheet.MaterializePivotTable("PivotFiltered");
                 Assert.Equal("E4:F7", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(38d, sheet.GetPivotData("PivotFiltered", "Metric").Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange("E4:F7");
             for (int row = 0; row < 4; row++)

@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("date-quarter-row-conformance.xlsx", "A4:D20", 17, 4)]
         [InlineData("date-quarter-column-conformance.xlsx", "A4:Q8", 5, 17)]
@@ -40,50 +42,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotQuarterMaterialization_TemplateFreePublicApi() {
+        public void Test_PivotQuarterMaterialization_TemplateFreePublicApi()
+        {
             string output = Path.Combine(_directoryWithFiles, "QuarterHierarchy.Authored.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    (new DateTime(2025, 1, 15), 10d), (new DateTime(2025, 3, 20), 20d),
-                    (new DateTime(2025, 7, 1), 30d), (new DateTime(2025, 11, 5), 25d),
-                    (new DateTime(2026, 1, 10), 40d), (new DateTime(2026, 4, 5), 50d),
+                var entries = new[]
+                {
+                    (new DateTime(2025, 1, 15), 10d),
+                    (new DateTime(2025, 3, 20), 20d),
+                    (new DateTime(2025, 7, 1), 30d),
+                    (new DateTime(2025, 11, 5), 25d),
+                    (new DateTime(2026, 1, 10), 40d),
+                    (new DateTime(2026, 4, 5), 50d),
                     (new DateTime(2026, 9, 9), 60d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                source.Pivot("A1:B8").Rows("OrderDate").Sum("Sales", "Metric")
-                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters,
-                        ExcelPivotGroupBy.Months)
-                    .Layout(ExcelPivotLayout.Tabular).At("F4", "QuarterHierarchy");
+
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("OrderDate");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Groupings.Add(ExcelPivotGrouping.DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.Name = "QuarterHierarchy";
+                    source.AddPivotTable("A1:B8", "F4", pivotOptions1);
+                }
+
                 var result = source.MaterializePivotTable("QuarterHierarchy");
                 Assert.Equal("F4:I20", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(235d, source.GetPivotData("QuarterHierarchy", "Metric").Value);
-                Assert.Equal(30d, source.GetPivotData("QuarterHierarchy", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = 2025d,
-                        ["OrderDate Quarters"] = "Q1" }).Value);
-                Assert.Equal(60d, source.GetPivotData("QuarterHierarchy", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = 2026d,
-                        ["OrderDate Quarters"] = "Q3" }).Value);
+                Assert.Equal(30d, source.GetPivotData("QuarterHierarchy", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = 2025d, ["OrderDate Quarters"] = "Q1" }).Value);
+                Assert.Equal(60d, source.GetPivotData("QuarterHierarchy", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = 2026d, ["OrderDate Quarters"] = "Q3" }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(235d, reopened.GetSheet("Source").GetPivotData("QuarterHierarchy", "Metric").Value);
             var part = reopened.GetSheet("Source").WorksheetPart.PivotTableParts.Single();
-            var cacheFields = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!
-                .Elements<CacheField>().ToArray();
+            var cacheFields = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToArray();
             Assert.Equal(2U, cacheFields[0].FieldGroup!.ParentId!.Value);
             Assert.Null(cacheFields[0].FieldGroup!.GetFirstChild<RangeProperties>());
-            Assert.Equal(new[] { 4, 6, 14 }, cacheFields.Skip(2).Take(3)
-                .Select(field => field.FieldGroup!.GetFirstChild<GroupItems>()!.ChildElements.Count));
-            Assert.All(cacheFields.Skip(2).Take(3), field => {
+            Assert.Equal(new[] { 4, 6, 14 }, cacheFields.Skip(2).Take(3).Select(field => field.FieldGroup!.GetFirstChild<GroupItems>()!.ChildElements.Count));
+            Assert.All(cacheFields.Skip(2).Take(3), field =>
+            {
                 var range = field.FieldGroup!.GetFirstChild<RangeProperties>()!;
                 Assert.Equal(new DateTime(2025, 1, 15), range.StartDate!.Value);
                 Assert.Equal(new DateTime(2026, 9, 10), range.EndDate!.Value);
@@ -93,42 +104,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotQuarterMaterialization_ExplicitBoundsAndSavedRecords() {
+        public void Test_PivotQuarterMaterialization_ExplicitBoundsAndSavedRecords()
+        {
             string output = Path.Combine(_directoryWithFiles, "QuarterHierarchy.Bounded.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
-                var entries = new[] {
-                    (new DateTime(2024, 12, 15), 10d), (new DateTime(2025, 1, 15), 20d),
-                    (new DateTime(2025, 7, 1), 30d), (new DateTime(2026, 5, 5), 40d),
+                var entries = new[]
+                {
+                    (new DateTime(2024, 12, 15), 10d),
+                    (new DateTime(2025, 1, 15), 20d),
+                    (new DateTime(2025, 7, 1), 30d),
+                    (new DateTime(2026, 5, 5), 40d),
                     (new DateTime(2026, 9, 9), 50d)
                 };
-                for (int index = 0; index < entries.Length; index++) {
+                for (int index = 0; index < entries.Length; index++)
+                {
                     source.CellValue(index + 2, 1, entries[index].Item1);
                     source.CellValue(index + 2, 2, entries[index].Item2);
                 }
-                source.AddPivotTable("A1:B6", "F4", "BoundedDate", rowFields: new[] { "OrderDate" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Metric") },
-                    layout: ExcelPivotLayout.Tabular,
-                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("OrderDate",
-                        new[] { ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months },
-                        new DateTime(2025, 1, 1), new DateTime(2026, 8, 1)) },
-                    options: new ExcelPivotTableOptions { SaveSourceData = true });
+
+                source.AddPivotTable("A1:B6", "F4", options: new ExcelPivotTableOptions { SaveSourceData = true, Name = "BoundedDate", RowFields = new[] { "OrderDate" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Metric") }, Layout = ExcelPivotLayout.Tabular, Groupings = new[] { ExcelPivotGrouping.DateHierarchy("OrderDate", new[] { ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months }, new DateTime(2025, 1, 1), new DateTime(2026, 8, 1)) } });
                 Assert.True(source.MaterializePivotTable("BoundedDate").Mutation.PackageIsValid);
                 Assert.Equal(150d, source.GetPivotData("BoundedDate", "Metric").Value);
-                Assert.Equal(10d, source.GetPivotData("BoundedDate", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = "<2025-01-01" }).Value);
-                Assert.Equal(50d, source.GetPivotData("BoundedDate", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = ">2026-08-01" }).Value);
+                Assert.Equal(10d, source.GetPivotData("BoundedDate", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "<2025-01-01" }).Value);
+                Assert.Equal(50d, source.GetPivotData("BoundedDate", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = ">2026-08-01" }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(150d, reopened.GetSheet("Source").GetPivotData("BoundedDate", "Metric").Value);
             var part = reopened.GetSheet("Source").WorksheetPart.PivotTableParts.Single();
-            Assert.Equal(5U, part.PivotTableCacheDefinitionPart!.PivotTableCacheRecordsPart!
-                .PivotCacheRecords!.Count!.Value);
+            Assert.Equal(5U, part.PivotTableCacheDefinitionPart!.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
         }
     }
 }

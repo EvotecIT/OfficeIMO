@@ -11,8 +11,10 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void FeatureReport_Preflight_AllowsCleanReportWorkbookWorkflows() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.Clean.xlsx");
@@ -764,10 +766,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForPivotTablesAndSparklines() {
+        public void FeatureReport_Preflight_BlocksPdfExportForPivotTablesAndSparklines()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotSparkline.xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
@@ -775,37 +778,29 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
-                sheet.AddPivotTable(
-                    sourceRange: "A1:B3",
-                    destinationCell: "D1",
-                    name: "SalesPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") },
-                    pivotStyleName: "PivotStyleMedium9");
+                sheet.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }, PivotStyleName = "PivotStyleMedium9" });
                 sheet.AddSparklines("B2:B3", "C2:C3");
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 ExcelFeatureReport report = document.InspectFeatures();
-
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-
-                string diagnostics = string.Join(Environment.NewLine,
-                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                string diagnostics = string.Join(Environment.NewLine, report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("PDF-unrendered pivot tables", diagnostics);
                 Assert.Contains("PDF-unrendered sparklines", diagnostics);
             }
         }
 
         [Fact]
-        public void FeatureReport_Preflight_IgnoresHiddenSheetPdfOnlyBlockers() {
+        public void FeatureReport_Preflight_IgnoresHiddenSheetPdfOnlyBlockers()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenPivotSparkline.xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet visible = document.AddWorksheet("Report");
                 visible.CellValue(1, 1, "Ready");
-
                 ExcelSheet hidden = document.AddWorksheet("Analysis");
                 hidden.CellValue(1, 1, "Region");
                 hidden.CellValue(1, 2, "Sales");
@@ -813,20 +808,15 @@ namespace OfficeIMO.Tests {
                 hidden.CellValue(2, 2, 10d);
                 hidden.CellValue(3, 1, "South");
                 hidden.CellValue(3, 2, 12d);
-                hidden.AddPivotTable(
-                    sourceRange: "A1:B3",
-                    destinationCell: "D1",
-                    name: "HiddenPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
+                hidden.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "HiddenPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
                 hidden.AddSparklines("B2:B3", "C2:C3");
                 hidden.SetHidden(true);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 ExcelFeatureReport report = document.InspectFeatures();
-
                 Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Pivot tables");
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Sparklines");

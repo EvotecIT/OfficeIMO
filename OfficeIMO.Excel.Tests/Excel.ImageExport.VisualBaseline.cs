@@ -10,9 +10,11 @@ using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Tests
+{
     [Trait("Category", "ExcelImageVisualGate")]
-    public partial class ExcelImageExportVisualBaselineTests {
+    public partial class ExcelImageExportVisualBaselineTests
+    {
         private const string BaselineName = "officeimo-excel-image-premium-range";
         private const string ConditionalBaselineName = "officeimo-excel-image-conditional-formatting";
         private const string ExpandedIconSetBaselineName = "officeimo-excel-image-expanded-icon-sets";
@@ -1281,11 +1283,11 @@ namespace OfficeIMO.Tests {
             return new ExcelBaselineFixture(document, sheet);
         }
 
-        private static ExcelBaselineFixture CreateSparklineBaselineWorkbook() {
+        private static ExcelBaselineFixture CreateSparklineBaselineWorkbook()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelSparklineBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Sparklines");
-
             sheet.CellValue(1, 1, "Metric");
             sheet.CellValue(1, 2, "Jan");
             sheet.CellValue(1, 3, "Feb");
@@ -1297,7 +1299,6 @@ namespace OfficeIMO.Tests {
             sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Center);
             sheet.CellVerticalAlign(1, 4, ExcelVerticalAlignment.Center);
             sheet.CellVerticalAlign(1, 5, ExcelVerticalAlignment.Center);
-
             sheet.CellValue(2, 1, "Revenue");
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(2, 3, 18);
@@ -1310,7 +1311,6 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 1);
             sheet.CellValue(4, 3, -1);
             sheet.CellValue(4, 4, 1);
-
             sheet.SetColumnWidth(1, 14);
             sheet.SetColumnWidth(2, 9);
             sheet.SetColumnWidth(3, 9);
@@ -1320,22 +1320,25 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(2, 30);
             sheet.SetRowHeight(3, 30);
             sheet.SetRowHeight(4, 30);
-            for (int row = 1; row <= 4; row++) {
-                for (int column = 1; column <= 5; column++) {
+            for (int row = 1; row <= 4; row++)
+            {
+                for (int column = 1; column <= 5; column++)
+                {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "E2E8F0");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 
-            for (int row = 2; row <= 4; row++) {
+            for (int row = 2; row <= 4; row++)
+            {
                 sheet.CellAlign(row, 2, ExcelHorizontalAlignment.Center);
                 sheet.CellAlign(row, 3, ExcelHorizontalAlignment.Center);
                 sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Center);
             }
 
-            sheet.AddSparklines("B2:D2", "E2", displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: "#2563EB", markersColor: "#1D4ED8", highColor: "#16A34A", lowColor: "#DC2626", axisColor: "#94A3B8");
-            sheet.AddSparklines("B3:D3", "E3", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: "#16A34A", negativeColor: "#DC2626", axisColor: "#94A3B8");
-            sheet.AddSparklines("B4:D4", "E4", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#94A3B8");
+            sheet.AddSparklines("B2:D2", "E2", displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"), markersColor: OfficeIMO.OfficeColor.ParseHex("#1D4ED8"), highColor: OfficeIMO.OfficeColor.ParseHex("#16A34A"), lowColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
+            sheet.AddSparklines("B3:D3", "E3", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#16A34A"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
+            sheet.AddSparklines("B4:D4", "E4", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#0EA5E9"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
             return new ExcelBaselineFixture(document, sheet);
         }
 

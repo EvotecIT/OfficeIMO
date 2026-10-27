@@ -550,7 +550,7 @@ namespace OfficeIMO.Excel {
             return rowIndex;
         }
 
-        // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
+        // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
         internal string GetCellText(Cell cell) {

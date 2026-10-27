@@ -22,15 +22,15 @@ namespace OfficeIMO.Excel {
         /// <param name="displayFirstLast">Show first/last markers.</param>
         /// <param name="displayNegative">Show negative markers.</param>
         /// <param name="displayAxis">Show axis.</param>
-        /// <param name="seriesColor">Sparkline series color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="axisColor">Axis color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="negativeColor">Negative point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="markersColor">Markers color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="highColor">High point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="lowColor">Low point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="firstColor">First point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="lastColor">Last point color (#RRGGBB or #AARRGGBB).</param>
-        public void AddSparklines(
+        /// <param name="seriesColor">Optional literal color or theme role.</param>
+        /// <param name="axisColor">Optional literal color or theme role.</param>
+        /// <param name="negativeColor">Optional literal color or theme role.</param>
+        /// <param name="markersColor">Optional literal color or theme role.</param>
+        /// <param name="highColor">Optional literal color or theme role.</param>
+        /// <param name="lowColor">Optional literal color or theme role.</param>
+        /// <param name="firstColor">Optional literal color or theme role.</param>
+        /// <param name="lastColor">Optional literal color or theme role.</param>
+        public ExcelSparklineGroup AddSparklines(
             string dataRange,
             string locationRange,
             ExcelSparklineType type,
@@ -39,17 +39,18 @@ namespace OfficeIMO.Excel {
             bool displayFirstLast = false,
             bool displayNegative = false,
             bool displayAxis = false,
-            string? seriesColor = null,
-            string? axisColor = null,
-            string? negativeColor = null,
-            string? markersColor = null,
-            string? highColor = null,
-            string? lowColor = null,
-            string? firstColor = null,
-            string? lastColor = null) {
+            OfficeColor? seriesColor = null,
+            OfficeColor? axisColor = null,
+            OfficeColor? negativeColor = null,
+            OfficeColor? markersColor = null,
+            OfficeColor? highColor = null,
+            OfficeColor? lowColor = null,
+            OfficeColor? firstColor = null,
+            OfficeColor? lastColor = null) {
             if (string.IsNullOrWhiteSpace(dataRange)) throw new ArgumentException("DataRange is required.", nameof(dataRange));
             if (string.IsNullOrWhiteSpace(locationRange)) throw new ArgumentException("LocationRange is required.", nameof(locationRange));
 
+            ExcelSparklineGroup? created = null;
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var groups = GetOrCreateSparklineGroups(ws);
@@ -86,9 +87,11 @@ namespace OfficeIMO.Excel {
                 }
                 group.Append(sparklines);
                 groups.Append(group);
+                created = new ExcelSparklineGroup(this, group);
 
                 ws.Save();
             });
+            return created!;
         }
 
         /// <summary>
@@ -101,15 +104,15 @@ namespace OfficeIMO.Excel {
         /// <param name="displayFirstLast">Show first/last markers.</param>
         /// <param name="displayNegative">Show negative markers.</param>
         /// <param name="displayAxis">Show axis.</param>
-        /// <param name="seriesColor">Sparkline series color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="axisColor">Axis color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="negativeColor">Negative point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="markersColor">Markers color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="highColor">High point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="lowColor">Low point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="firstColor">First point color (#RRGGBB or #AARRGGBB).</param>
-        /// <param name="lastColor">Last point color (#RRGGBB or #AARRGGBB).</param>
-        public void AddSparklines(
+        /// <param name="seriesColor">Optional literal color or theme role.</param>
+        /// <param name="axisColor">Optional literal color or theme role.</param>
+        /// <param name="negativeColor">Optional literal color or theme role.</param>
+        /// <param name="markersColor">Optional literal color or theme role.</param>
+        /// <param name="highColor">Optional literal color or theme role.</param>
+        /// <param name="lowColor">Optional literal color or theme role.</param>
+        /// <param name="firstColor">Optional literal color or theme role.</param>
+        /// <param name="lastColor">Optional literal color or theme role.</param>
+        public ExcelSparklineGroup AddSparklines(
             string dataRange,
             string locationRange,
             bool displayMarkers = false,
@@ -117,15 +120,15 @@ namespace OfficeIMO.Excel {
             bool displayFirstLast = false,
             bool displayNegative = false,
             bool displayAxis = false,
-            string? seriesColor = null,
-            string? axisColor = null,
-            string? negativeColor = null,
-            string? markersColor = null,
-            string? highColor = null,
-            string? lowColor = null,
-            string? firstColor = null,
-            string? lastColor = null) {
-            AddSparklines(
+            OfficeColor? seriesColor = null,
+            OfficeColor? axisColor = null,
+            OfficeColor? negativeColor = null,
+            OfficeColor? markersColor = null,
+            OfficeColor? highColor = null,
+            OfficeColor? lowColor = null,
+            OfficeColor? firstColor = null,
+            OfficeColor? lastColor = null) {
+            return AddSparklines(
                 dataRange,
                 locationRange,
                 ExcelSparklineType.Line,
@@ -144,35 +147,8 @@ namespace OfficeIMO.Excel {
                 lastColor);
         }
 
-        private static void ApplyColor(string? color, Action<HexBinaryValue> assign) {
-            var rgb = NormalizeRgb(color);
-            if (rgb != null) assign(rgb);
-        }
-
-        private static HexBinaryValue? NormalizeRgb(string? color) {
-            if (string.IsNullOrWhiteSpace(color)) return null;
-            var value = color!.Trim();
-            if (value.StartsWith("#", StringComparison.Ordinal)) {
-                value = value.Substring(1);
-            }
-            if (value.Length == 6) {
-                value = "FF" + value;
-            }
-            if (value.Length != 8) {
-                throw new ArgumentException($"Color '{color}' must be in #RRGGBB or #AARRGGBB format.", nameof(color));
-            }
-            for (int i = 0; i < value.Length; i++) {
-                char c = value[i];
-                bool isHexDigit = (c >= '0' && c <= '9')
-                    || (c >= 'A' && c <= 'F')
-                    || (c >= 'a' && c <= 'f');
-                if (!isHexDigit) {
-                    throw new ArgumentException(
-                        $"Color '{color}' contains invalid hex character '{c}' at position {i + 1}.",
-                        nameof(color));
-                }
-            }
-            return new HexBinaryValue(value.ToUpperInvariant());
+        private static void ApplyColor(OfficeColor? color, Action<HexBinaryValue> assign) {
+            if (color.HasValue) assign(new HexBinaryValue(color.Value.Resolve(OfficeTheme.Default).ToArgbHex()));
         }
 
         private static IReadOnlyList<SparklineReference> BuildSparklineReferences(string dataRange, string locationRange) {

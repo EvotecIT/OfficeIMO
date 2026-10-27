@@ -11,8 +11,10 @@ using Xunit;
 using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_ClosedXmlGap_ObjectModel_RichText_Sort_Table_And_Clear() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ObjectModel.xlsx");
@@ -945,10 +947,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ClosedXmlGap_FeatureReport_SummarizesEditablePartialAndPreservedFeatures() {
+        public void Test_ClosedXmlGap_FeatureReport_SummarizesEditablePartialAndPreservedFeatures()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReport.xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
@@ -963,23 +966,28 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 2, "A");
                 sheet.CellValue(4, 3, 30d);
                 sheet.CellFormula(5, 3, "SUM(C2:C4)");
-
                 sheet.Range("A1:C4").CreateTable("SalesData");
                 sheet.Range("B2:B4").Validate.List("A", "B");
                 sheet.Range("C2:C4").ConditionalFormat.DataBar("#5B9BD5");
-                sheet.Sparklines("C2:C4").Column().At("D2:D4");
-                sheet.Pivot("A1:C4").Rows("Region").Columns("Product").Sum("Sales").At("F2", "SalesPivot");
-                sheet.Chart("A1:C4").ColumnClustered().Title("Sales").At(12, 1);
+                sheet.AddSparklines("C2:C4", "D2:D4", ExcelSparklineType.Column);
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Region");
+                    pivotOptions1.ColumnFields.Add("Product");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum));
+                    pivotOptions1.Name = "SalesPivot";
+                    sheet.AddPivotTable("A1:C4", "F2", pivotOptions1);
+                }
 
+                sheet.AddChartFromRange("A1:C4", row: 12, column: 1, widthPixels: 640, heightPixels: 360, title: "Sales", includeCachedData: true, type: ExcelChartType.ColumnClustered, hasHeaders: true);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 ExcelFeatureReport report = document.InspectFeatures();
-
                 ExcelFeatureFinding worksheets = Assert.Single(report.Features, feature => feature.Name == "Worksheets");
                 Assert.Equal(OfficeFeatureSupportLevel.Editable, worksheets.SupportLevel);
-
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Tables" && feature.Count == 1);
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Data validations" && feature.Count == 1);
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Sparklines" && feature.Count == 3);

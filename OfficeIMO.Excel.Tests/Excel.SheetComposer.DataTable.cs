@@ -5,40 +5,52 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelSheetComposerDataTableTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelSheetComposerDataTableTests
+    {
         [Fact]
-        public void SheetComposer_DataTablePreservesSelectedSchemaAndRichWorkbookFeatures() {
+        public void SheetComposer_DataTablePreservesSelectedSchemaAndRichWorkbookFeatures()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
+            try
+            {
                 DataTable members = CreateMembersTable();
-                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.Compose("Summary", composer => {
-                        composer.Title("Directory report");
-                        composer.Finish(autoFitColumns: false);
-                    });
-                    document.Compose("Members", composer => {
-                        string range = composer.TableFrom(
-                            members,
-                            title: "Members",
-                            configure: options => {
-                                options.Columns = new[] { "Enabled", "ADState", "Endpoint", "Missing" };
-                            },
-                            style: ExcelTableStyle.TableStyleMedium2,
-                            visuals: options => options.ShowRowStripes = false);
+                using (ExcelDocument document = ExcelDocument.Create(filePath))
+                {
+                    {
+                        var reportBuilder1 = document.AddWorksheet("Summary", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        (reportBuilder1).Title("Directory report");
+                        (reportBuilder1).Finish(autoFitColumns: false);
+                    }
+
+                    {
+                        var reportBuilder2 = document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        string range = (reportBuilder2).AddTable(members, title: "Members", configure: options =>
+                        {
+                            options.Columns = new[]
+                            {
+                                "Enabled",
+                                "ADState",
+                                "Endpoint",
+                                "Missing"
+                            };
+                        }, style: ExcelTableStyle.TableStyleMedium2, visuals: options => options.ShowRowStripes = false).Range!;
                         Assert.Equal("A2:D4", range);
-                        composer.Finish(autoFitColumns: false);
-                    });
-                    document.Compose("Notes", composer => {
-                        composer.Paragraph("Generated after the report table.");
-                        composer.Finish(autoFitColumns: false);
-                    });
+                        (reportBuilder2).Finish(autoFitColumns: false);
+                    }
+
+                    {
+                        var reportBuilder3 = document.AddWorksheet("Notes", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        (reportBuilder3).Paragraph("Generated after the report table.");
+                        (reportBuilder3).Finish(autoFitColumns: false);
+                    }
+
                     document.Save();
                 }
 
-                using (ExcelDocument document = ExcelDocument.Load(
-                    filePath,
-                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+                {
                     Assert.Equal(3, document.Sheets.Count);
                     ExcelSheet sheet = document["Members"];
                     Assert.Equal("A2:D4", sheet.GetTableRange("Members"));
@@ -60,64 +72,53 @@ namespace OfficeIMO.Tests {
                     Assert.True(sheet.ToDataTable("A2:D4").Rows[0].IsNull("Missing"));
                 }
 
-                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+                {
                     WorksheetPart membersPart = spreadsheet.WorkbookPart!.WorksheetParts.ElementAt(1);
                     TableDefinitionPart tablePart = Assert.Single(membersPart.TableDefinitionParts);
                     TableStyleInfo style = Assert.IsType<TableStyleInfo>(tablePart.Table!.TableStyleInfo);
                     Assert.Equal("TableStyleMedium2", style.Name?.Value);
                     Assert.False(style.ShowRowStripes?.Value);
                 }
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 
         [Fact]
-        public void SheetComposer_DataTableEnforcesConfiguredCellLimitBeforeWriting() {
+        public void SheetComposer_DataTableEnforcesConfiguredCellLimitBeforeWriting()
+        {
             DataTable members = CreateMembersTable();
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Members", composer => composer.TableFrom(
-                    members,
-                    title: "Members",
-                    configure: options => options.MaxCells = 1,
-                    freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(members, title: "Members", configure: options => options.MaxCells = 1, freezeHeaderRow: false)))(document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires 12 cells", exception.Message, StringComparison.Ordinal);
             Assert.Contains("MaxCells = 12", exception.Message, StringComparison.Ordinal);
             Assert.False(document["Members"].TryGetCellText(1, 1, out _));
         }
 
         [Fact]
-        public void SheetComposer_DataTableEnforcesConfiguredRowLimitBeforeWriting() {
+        public void SheetComposer_DataTableEnforcesConfiguredRowLimitBeforeWriting()
+        {
             DataTable members = CreateMembersTable();
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Members", composer => composer.TableFrom(
-                    members,
-                    title: "Members",
-                    configure: options => options.MaxRows = 1,
-                    freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(members, title: "Members", configure: options => options.MaxRows = 1, freezeHeaderRow: false)))(document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires 2 data rows", exception.Message, StringComparison.Ordinal);
             Assert.Contains("MaxRows = 2", exception.Message, StringComparison.Ordinal);
             Assert.False(document["Members"].TryGetCellText(1, 1, out _));
         }
 
         [Fact]
-        public void SheetComposer_DataTableCanonicalizesUniqueExplicitColumnCasing() {
+        public void SheetComposer_DataTableCanonicalizesUniqueExplicitColumnCasing()
+        {
             DataTable members = CreateMembersTable();
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Members", composer => {
-                string range = composer.TableFrom(
-                    members,
-                    configure: options => options.Columns = new[] { "adstate" },
-                    freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(members, configure: options => options.Columns = new[] { "adstate" }, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:A3", range);
-            });
+            }
 
             ExcelSheet sheet = document["Members"];
             Assert.True(sheet.TryGetCellText(1, 1, out string? header));
@@ -127,19 +128,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableExplicitColumnsDoNotMatchLastPathSegments() {
+        public void SheetComposer_DataTableExplicitColumnsDoNotMatchLastPathSegments()
+        {
             var table = new DataTable("Members");
             table.Columns.Add("Customer.Name", typeof(string));
             table.Rows.Add("Alice");
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Members", composer => {
-                string range = composer.TableFrom(
-                    table,
-                    configure: options => options.Columns = new[] { "Name" },
-                    freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options => options.Columns = new[] { "Name" }, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:A2", range);
-            });
+            }
 
             ExcelSheet sheet = document["Members"];
             Assert.True(sheet.TryGetCellText(1, 1, out string? header));
@@ -149,74 +147,78 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableTreatsDottedColumnNamesAsLiteralSchema() {
+        public void SheetComposer_DataTableTreatsDottedColumnNamesAsLiteralSchema()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
+            try
+            {
                 var table = new DataTable("Members");
                 table.Columns.Add("Customer.Name", typeof(string));
                 table.Rows.Add("Alice");
-                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.Compose("Members", composer =>
-                        composer.TableFrom(table, freezeHeaderRow: false));
+                using (ExcelDocument document = ExcelDocument.Create(filePath))
+                {
+                    (document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, freezeHeaderRow: false);
                     document.Save();
                 }
 
                 using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
                 Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
                 Assert.Empty(worksheet.Descendants<ConditionalFormatting>());
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 
         [Fact]
-        public void SheetComposer_EmptyObjectTableSkipsExemptProjectionLimits() {
+        public void SheetComposer_EmptyObjectTableSkipsExemptProjectionLimits()
+        {
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Data", composer => {
-                string range = composer.TableFrom(
-                    Array.Empty<object>(),
-                    configure: options => {
-                        options.Columns = new[] { "First", "Second" };
-                        options.MaxColumns = 1;
-                    },
-                    freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(Array.Empty<object>(), configure: options =>
+                {
+                    options.Columns = new[]
+                    {
+                        "First",
+                        "Second"
+                    };
+                    options.MaxColumns = 1;
+                }, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:A1", range);
-            });
+            }
 
             Assert.True(document["Data"].TryGetCellText(1, 1, out string? text));
             Assert.Equal("(no data)", text);
         }
 
         [Fact]
-        public void SheetComposer_EmptyIteratorSkipsExemptProjectionLimits() {
+        public void SheetComposer_EmptyIteratorSkipsExemptProjectionLimits()
+        {
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Data", composer => {
-                string range = composer.TableFrom(
-                    EmptyRows(),
-                    configure: options => {
-                        options.Columns = new[] { "First", "Second" };
-                        options.MaxColumns = 1;
-                    },
-                    freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(EmptyRows(), configure: options =>
+                {
+                    options.Columns = new[]
+                    {
+                        "First",
+                        "Second"
+                    };
+                    options.MaxColumns = 1;
+                }, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:A1", range);
-            });
+            }
 
             Assert.True(document["Data"].TryGetCellText(1, 1, out string? text));
             Assert.Equal("(no data)", text);
         }
 
         [Fact]
-        public void SheetComposer_ObjectTableExplainsHardExcelRowBoundary() {
+        public void SheetComposer_ObjectTableExplainsHardExcelRowBoundary()
+        {
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Data", composer => composer.TableFrom(
-                    new CountOnlyRows(ExcelA1.MaxRows),
-                    configure: options => options.MaxRows = int.MaxValue,
-                    freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(new CountOnlyRows(ExcelA1.MaxRows), configure: options => options.MaxRows = int.MaxValue, freezeHeaderRow: false)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("room for at most 1048575 data rows", exception.Message, StringComparison.Ordinal);
             Assert.Contains("split the data across multiple worksheets", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
@@ -224,44 +226,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableFallsBackWhenLaterWorksheetContentExists() {
+        public void SheetComposer_DataTableFallsBackWhenLaterWorksheetContentExists()
+        {
             DataTable members = CreateMembersTable();
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
-                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.Compose("Members", composer => {
-                        composer.Sheet.Cell(100, 1, "Footer");
-                        string range = composer.TableFrom(members, freezeHeaderRow: false);
+            try
+            {
+                using (ExcelDocument document = ExcelDocument.Create(filePath))
+                {
+                    {
+                        var reportBuilder4 = document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        (reportBuilder4).Sheet.Cell(100, 1, "Footer");
+                        string range = (reportBuilder4).AddTable(members, freezeHeaderRow: false).Range!;
                         Assert.Equal("A1:D3", range);
-                    });
+                    }
+
                     document.Save();
                 }
 
-                using ExcelDocument reloaded = ExcelDocument.Load(
-                    filePath,
-                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+                using ExcelDocument reloaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 ExcelSheet sheet = reloaded["Members"];
                 Assert.True(sheet.TryGetCellText(2, 1, out string? endpoint));
                 Assert.True(sheet.TryGetCellText(100, 1, out string? footer));
                 Assert.Equal("PC-01", endpoint);
                 Assert.Equal("Footer", footer);
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 
         [Fact]
-        public void SheetComposer_DataTablePreservesCaseDistinctSchemaColumns() {
+        public void SheetComposer_DataTablePreservesCaseDistinctSchemaColumns()
+        {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
             table.Rows.Add("Upper", "Lower");
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Data", composer => {
-                string range = composer.TableFrom(table, freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:B2", range);
-            });
+            }
 
             ExcelSheet sheet = document["Data"];
             Assert.True(sheet.TryGetCellText(1, 1, out string? firstHeader));
@@ -275,20 +283,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTablePreservesExplicitCaseDistinctColumnsAndRejectsAmbiguousFallback() {
+        public void SheetComposer_DataTablePreservesExplicitCaseDistinctColumnsAndRejectsAmbiguousFallback()
+        {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
             table.Rows.Add("Upper", "Lower");
-
-            using (var document = ExcelDocument.Create()) {
-                document.Compose("Data", composer => {
-                    string range = composer.TableFrom(
-                        table,
-                        configure: options => options.Columns = new[] { "Name", "name" },
-                        freezeHeaderRow: false);
+            using (var document = ExcelDocument.Create())
+            {
+                {
+                    string range = (document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options => options.Columns = new[] { "Name", "name" }, freezeHeaderRow: false).Range!;
                     Assert.Equal("A1:B2", range);
-                });
+                }
 
                 ExcelSheet sheet = document["Data"];
                 Assert.True(sheet.TryGetCellText(2, 1, out string? firstValue));
@@ -298,36 +304,35 @@ namespace OfficeIMO.Tests {
             }
 
             using var ambiguousDocument = ExcelDocument.Create();
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ambiguousDocument.Compose("Data", composer =>
-                    composer.TableFrom(
-                        table,
-                        configure: options => options.Columns = new[] { "NAME" },
-                        freezeHeaderRow: false)));
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(table, configure: options => options.Columns = new[] { "NAME" }, freezeHeaderRow: false)))(ambiguousDocument.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("exact column casing", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void SheetComposer_DataTableProjectionRulesPreserveAndOrderCaseDistinctColumns() {
+        public void SheetComposer_DataTableProjectionRulesPreserveAndOrderCaseDistinctColumns()
+        {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
             table.Columns.Add("Value", typeof(int));
             table.Rows.Add("Upper", "Lower", 42);
             using ExcelDocument document = ExcelDocument.Create();
-
-            document.Compose("Data", composer => {
-                string range = composer.TableFrom(
-                    table,
-                    configure: options => {
-                        options.Ignore = new[] { "Missing" };
-                        options.PinnedFirst = new[] { "name" };
-                        options.PropertyPriority["Value"] = -1;
-                    },
-                    freezeHeaderRow: false);
+            {
+                string range = (document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options =>
+                {
+                    options.Ignore = new[]
+                    {
+                        "Missing"
+                    };
+                    options.PinnedFirst = new[]
+                    {
+                        "name"
+                    };
+                    options.PropertyPriority["Value"] = -1;
+                }, freezeHeaderRow: false).Range!;
                 Assert.Equal("A1:C2", range);
-            });
+            }
 
             ExcelSheet sheet = document["Data"];
             Assert.True(sheet.TryGetCellText(1, 1, out string? firstHeader));
@@ -345,52 +350,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableProjectionRulesRejectAmbiguousCaseInsensitiveTargets() {
+        public void SheetComposer_DataTableProjectionRulesRejectAmbiguousCaseInsensitiveTargets()
+        {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
             table.Rows.Add("Upper", "Lower");
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Data", composer =>
-                    composer.TableFrom(
-                        table,
-                        configure: options => options.PinnedFirst = new[] { "NAME" },
-                        freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(table, configure: options => options.PinnedFirst = new[] { "NAME" }, freezeHeaderRow: false)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("exact full column name and casing", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void SheetComposer_DataTableRedactionFiltersRemoveAllCaseVariants() {
+        public void SheetComposer_DataTableRedactionFiltersRemoveAllCaseVariants()
+        {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
             table.Columns.Add("Value", typeof(int));
             table.Rows.Add("Upper", "Lower", 42);
-
-            using (var includeDocument = ExcelDocument.Create()) {
-                includeDocument.Compose("Data", composer => composer.TableFrom(
-                    table,
-                    configure: options => options.IncludeProperties = new[] { "Name" },
-                    freezeHeaderRow: false));
+            using (var includeDocument = ExcelDocument.Create())
+            {
+                (includeDocument.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options => options.IncludeProperties = new[] { "Name" }, freezeHeaderRow: false);
                 ExcelSheet sheet = includeDocument["Data"];
                 Assert.True(sheet.TryGetCellText(2, 1, out string? value));
                 Assert.Equal("Upper", value);
                 Assert.False(sheet.TryGetCellText(1, 2, out _));
             }
 
-            foreach (bool useIgnore in new[] { false, true }) {
+            foreach (bool useIgnore in new[]
+            {
+                false,
+                true
+            }
+
+            )
+            {
                 using var excludeDocument = ExcelDocument.Create();
-                excludeDocument.Compose("Data", composer => composer.TableFrom(
-                    table,
-                    configure: options => {
-                        if (useIgnore) options.Ignore = new[] { "Name" };
-                        else options.ExcludeProperties = new[] { "Name" };
-                    },
-                    freezeHeaderRow: false));
+                (excludeDocument.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options =>
+                {
+                    if (useIgnore)
+                        options.Ignore = new[]
+                        {
+                            "Name"
+                        };
+                    else
+                        options.ExcludeProperties = new[]
+                        {
+                            "Name"
+                        };
+                }, freezeHeaderRow: false);
                 ExcelSheet sheet = excludeDocument["Data"];
                 Assert.True(sheet.TryGetCellText(2, 1, out string? number));
                 Assert.Equal("42", number);
@@ -398,23 +408,25 @@ namespace OfficeIMO.Tests {
             }
 
             using var caseInsensitiveDocument = ExcelDocument.Create();
-            caseInsensitiveDocument.Compose("Data", composer => composer.TableFrom(
-                table,
-                configure: options => options.ExcludeProperties = new[] { "NAME" },
-                freezeHeaderRow: false));
+            (caseInsensitiveDocument.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options => options.ExcludeProperties = new[] { "NAME" }, freezeHeaderRow: false);
             ExcelSheet caseInsensitiveSheet = caseInsensitiveDocument["Data"];
             Assert.True(caseInsensitiveSheet.TryGetCellText(2, 1, out string? caseInsensitiveNumber));
             Assert.Equal("42", caseInsensitiveNumber);
             Assert.False(caseInsensitiveSheet.TryGetCellText(1, 2, out _));
-
             using var explicitDocument = ExcelDocument.Create();
-            explicitDocument.Compose("Data", composer => composer.TableFrom(
-                table,
-                configure: options => {
-                    options.Columns = new[] { "Name", "name", "Value" };
-                    options.ExcludeProperties = new[] { "Name" };
-                },
-                freezeHeaderRow: false));
+            (explicitDocument.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(table, configure: options =>
+            {
+                options.Columns = new[]
+                {
+                    "Name",
+                    "name",
+                    "Value"
+                };
+                options.ExcludeProperties = new[]
+                {
+                    "Name"
+                };
+            }, freezeHeaderRow: false);
             ExcelSheet explicitSheet = explicitDocument["Data"];
             Assert.True(explicitSheet.TryGetCellText(2, 1, out string? explicitNumber));
             Assert.Equal("42", explicitNumber);
@@ -422,53 +434,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_TitledDataTableAppliesVisualsToItsActualHeaderRow() {
+        public void SheetComposer_TitledDataTableAppliesVisualsToItsActualHeaderRow()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
+            try
+            {
                 DataTable members = CreateMembersTable();
-                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.Compose("Members", composer => {
-                        string range = composer.TableFrom(
-                            members,
-                            title: "Members",
-                            freezeHeaderRow: false,
-                            visuals: options => options.NumericColumnFormats["Enabled"] = "0.0000");
+                using (ExcelDocument document = ExcelDocument.Create(filePath))
+                {
+                    {
+                        string range = (document.AddWorksheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()).AddTable(members, title: "Members", freezeHeaderRow: false, visuals: options => options.NumericColumnFormats["Enabled"] = "0.0000").Range!;
                         Assert.Equal("A2:D4", range);
-                    });
+                    }
+
                     document.Save();
                 }
 
                 using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
                 WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
-                Cell dataCell = worksheetPart.Worksheet.Descendants<Cell>()
-                    .Single(cell => cell.CellReference?.Value == "B3");
+                Cell dataCell = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B3");
                 Assert.NotNull(dataCell.StyleIndex);
-
                 Stylesheet stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet!;
-                CellFormat cellFormat = stylesheet.CellFormats!.Elements<CellFormat>()
-                    .ElementAt((int)dataCell.StyleIndex!.Value);
+                CellFormat cellFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)dataCell.StyleIndex!.Value);
                 Assert.True(cellFormat.ApplyNumberFormat?.Value);
-                NumberingFormat numberFormat = stylesheet.NumberingFormats!.Elements<NumberingFormat>()
-                    .Single(format => format.NumberFormatId?.Value == cellFormat.NumberFormatId?.Value);
+                NumberingFormat numberFormat = stylesheet.NumberingFormats!.Elements<NumberingFormat>().Single(format => format.NumberFormatId?.Value == cellFormat.NumberFormatId?.Value);
                 Assert.Equal("0.0000", numberFormat.FormatCode?.Value);
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 
         [Fact]
-        public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
+        public void SheetComposer_DataTableExplainsHardExcelColumnBoundary()
+        {
             var table = new DataTable("Wide");
-            for (int index = 0; index <= ExcelA1.MaxColumns; index++) {
+            for (int index = 0; index <= ExcelA1.MaxColumns; index++)
+            {
                 table.Columns.Add("Column" + index, typeof(string));
             }
+
             table.Rows.Add(table.NewRow());
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Data", composer => composer.TableFrom(table, freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(table, freezeHeaderRow: false)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
             Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
@@ -476,20 +487,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTablePrefersHardExcelColumnBoundaryOverLowerConfiguredLimit() {
+        public void SheetComposer_DataTablePrefersHardExcelColumnBoundaryOverLowerConfiguredLimit()
+        {
             var table = new DataTable("Wide");
-            for (int index = 0; index <= ExcelA1.MaxColumns; index++) {
+            for (int index = 0; index <= ExcelA1.MaxColumns; index++)
+            {
                 table.Columns.Add("Column" + index, typeof(string));
             }
+
             table.Rows.Add(table.NewRow());
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Data", composer => composer.TableFrom(
-                    table,
-                    configure: options => options.MaxColumns = 10,
-                    freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(table, configure: options => options.MaxColumns = 10, freezeHeaderRow: false)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
             Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);

@@ -417,13 +417,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRows(powerShellWideRows))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Write typed rows through the fluent RowsFrom API and save.", () => OfficeImoWriteFluentRowsFrom(rows)),
-            new LibraryComparisonCase("ClosedXML", "Insert the same typed rows and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
-            new LibraryComparisonCase("EPPlus", "Import the same typed rows and save.", () => EpPlusWriteDataTable(salesDataTable)),
-            new LibraryComparisonCase("MiniExcel", "Streaming typed row export and save.", () => MiniExcelWriteSalesRows(rows)),
-            new LibraryComparisonCase("LargeXlsx", "Streaming typed row export and save.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: true))
-        ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Append the prepared coordinate cells with the CellValues parallel policy enabled.", () => OfficeImoAppendPlainRows(plainDataCells)),
@@ -1011,13 +1004,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRowsBytes(powerShellWideRows))
         ]);
 
-        AddPackageProfileGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
-            new PackageProfileCase("OfficeIMO.Excel", "Write typed rows through the fluent RowsFrom API and save.", () => OfficeImoWriteFluentRowsFromBytes(rows)),
-            new PackageProfileCase("ClosedXML", "Insert the same typed rows and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable)),
-            new PackageProfileCase("EPPlus", "Import the same typed rows and save.", () => EpPlusWriteDataTableBytes(salesDataTable)),
-            new PackageProfileCase("MiniExcel", "Streaming typed row export and save.", () => MiniExcelWriteSalesRowsBytes(rows)),
-            new PackageProfileCase("LargeXlsx", "Streaming typed row export and save.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true))
-        ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Append the prepared coordinate cells with the CellValues parallel policy enabled.", () => OfficeImoAppendPlainRowsBytes(plainDataCells)),
@@ -2019,22 +2005,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             sheet.InsertObjects(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject wide comparison");
-        }
-
-        return stream.ToArray();
-    }
-
-    private static int OfficeImoWriteFluentRowsFrom(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
-        => ByteCount(OfficeImoWriteFluentRowsFromBytes(rows));
-
-    private static byte[] OfficeImoWriteFluentRowsFromBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
-        using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream)) {
-            document.AsFluent()
-                .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                .End()
-                .Save(stream);
-            AssertOfficeImoDirectPackageWriter(document, "Fluent RowsFrom comparison");
         }
 
         return stream.ToArray();

@@ -4,8 +4,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Reader_RejectsWorkbookBufferBeyondConfiguredInputLimit() {
             using var stream = new MemoryStream(new byte[32], writable: false);
@@ -20,21 +22,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PivotTable_RejectsSharedItemDiscoveryBeyondAbsoluteScanBudget() {
+        public void PivotTable_RejectsSharedItemDiscoveryBeyondAbsoluteScanBudget()
+        {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "First");
             sheet.CellValue(1, 2, "Second");
             sheet.CellValue(1, 3, "Value");
-
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C1048576",
-                    destinationCell: "E2",
-                    rowFields: new[] { "First", "Second" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) }));
-
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => sheet.AddPivotTable("A1:C1048576", "E2", options: new ExcelPivotTableOptions { RowFields = new[] { "First", "Second" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } }));
             Assert.Contains("shared-item discovery", exception.Message, StringComparison.Ordinal);
         }
 

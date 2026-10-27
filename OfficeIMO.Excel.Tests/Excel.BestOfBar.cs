@@ -7,8 +7,10 @@ using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using ExcelTableStyle = OfficeIMO.Excel.ExcelTableStyle;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_ExcelBestOfBar_SafePreflight_DoesNotForceFullRecalculationForStructuredReferenceFormulas() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.SafePreflightFormula.xlsx");
@@ -49,10 +51,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelBestOfBar_CategoryAxisScale_WritesLineChartCategoryAxisUnits() {
+        public void Test_ExcelBestOfBar_CategoryAxisScale_WritesLineChartCategoryAxisUnits()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.CategoryAxisScale.xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Value");
@@ -62,26 +65,16 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 12);
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 18);
-
-                sheet.Chart("A1:B4")
-                    .Line()
-                    .Title("Trend")
-                    .At(1, 5)
-                    .SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
-
+                sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 640, heightPixels: 360, title: "Trend", includeCachedData: true, type: ExcelChartType.Line, hasHeaders: true).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
                 document.Save();
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
             WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
-            C.DateAxis categoryAxis = worksheetPart.DrawingsPart!.ChartParts
-                .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.DateAxis>())
-                .First(axis => axis != null)!;
-
+            C.DateAxis categoryAxis = worksheetPart.DrawingsPart!.ChartParts.Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.GetFirstChild<C.DateAxis>()).First(axis => axis != null)!;
             Assert.Equal(2D, categoryAxis.GetFirstChild<C.MajorUnit>()!.Val!.Value);
             Assert.Equal(1D, categoryAxis.GetFirstChild<C.MinorUnit>()!.Val!.Value);
             Assert.Equal(C.OrientationValues.MaxMin, categoryAxis.GetFirstChild<C.Scaling>()!.GetFirstChild<C.Orientation>()!.Val!.Value);
-
             OpenXmlValidator validator = new OpenXmlValidator();
             var errors = validator.Validate(spreadsheet).ToList();
             Assert.True(errors.Count == 0, FormatValidationErrors(errors));

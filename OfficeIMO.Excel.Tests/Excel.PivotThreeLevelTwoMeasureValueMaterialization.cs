@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("metric", "Metric", 160d, 33d, false, false, false, "A4:J11", "G4:P11")]
         [InlineData("units", "UnitsMetric", 110d, 60d, false, false, false, "A4:J11", "G4:P11")]
@@ -15,33 +17,33 @@ namespace OfficeIMO.Tests {
         [InlineData("units-row-values-first", "UnitsMetric", 265d, 60d, true, true, false, "A4:G17", "G4:M17")]
         [InlineData("metric-row-values-middle", "Metric", 160d, 66d, true, false, true, "A4:G17", "G4:M17")]
         [InlineData("units-row-values-middle", "UnitsMetric", 265d, 60d, true, false, true, "A4:G17", "G4:M17")]
-        public void Test_PivotThreeLevelMixedValue_TwoMeasuresSelectsNamedMeasure(
-            string kind, string selectedMeasure, double metricTotal, double unitsTotal,
-            bool valuesOnRows, bool valuesFirst, bool valuesMiddle, string oracleRange, string authoredRange) {
+        public void Test_PivotThreeLevelMixedValue_TwoMeasuresSelectsNamedMeasure(string kind, string selectedMeasure, double metricTotal, double unitsTotal, bool valuesOnRows, bool valuesFirst, bool valuesMiddle, string oracleRange, string authoredRange)
+        {
             string file = $"pivot-value-three-level-mixed-{kind}-top1-two-measures-conformance.xlsx";
             string path = ThreeLevelPivotOraclePath(file);
             VerifyThreeLevelPivotOracle(path, oracleRange, 1, 1d);
-            using (var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")))) {
+            using (var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json"))))
+            {
                 var root = provenance.RootElement;
                 Assert.Equal("Source!A1:E13", root.GetProperty("sourceRange").GetString());
                 Assert.Equal(selectedMeasure, root.GetProperty("selectedMeasure").GetString());
-                Assert.Equal(valuesOnRows, root.TryGetProperty("valuesOnRows", out var savedAxis)
-                    && savedAxis.GetBoolean());
-                if (valuesFirst || valuesMiddle) Assert.Equal(valuesFirst ? 1 : 2, root.GetProperty("valuesPosition").GetInt32());
+                Assert.Equal(valuesOnRows, root.TryGetProperty("valuesOnRows", out var savedAxis) && savedAxis.GetBoolean());
+                if (valuesFirst || valuesMiddle)
+                    Assert.Equal(valuesFirst ? 1 : 2, root.GetProperty("valuesPosition").GetInt32());
                 Assert.Equal(metricTotal, root.GetProperty("grandTotal").GetDouble());
                 Assert.Equal(unitsTotal, root.GetProperty("unitsGrandTotal").GetDouble());
             }
+
             using var oracle = ExcelDocumentReader.Open(path);
             var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:C13");
             AssertPivotLookupOracleValue(metricTotal, expectedLookups[0, 0]);
             AssertPivotLookupOracleValue(unitsTotal, expectedLookups[0, 1]);
-
             string importedOutput = Path.Combine(_directoryWithFiles, $"Imported.TwoMeasure.{kind}.xlsx");
-            using (var document = ExcelDocument.Load(path)) {
+            using (var document = ExcelDocument.Load(path))
+            {
                 var grouped = document.GetSheet("Grouped");
-                Assert.Equal(valuesFirst ? 0 : valuesMiddle ? 1 : valuesOnRows ? 2 : 1,
-                    Assert.Single(grouped.GetPivotTables()).ValuesAxisPosition);
+                Assert.Equal(valuesFirst ? 0 : valuesMiddle ? 1 : valuesOnRows ? 2 : 1, Assert.Single(grouped.GetPivotTables()).ValuesAxisPosition);
                 AssertPivotLookupOracleValue(metricTotal, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 AssertPivotLookupOracleValue(unitsTotal, grouped.GetPivotData("ValuePivot", "UnitsMetric").Value);
                 var result = grouped.MaterializePivotTable("ValuePivot");
@@ -52,47 +54,64 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(26, lookups.RecalculateSupportedFormulas());
                 document.Save(importedOutput);
             }
-            using (var imported = ExcelDocumentReader.Open(importedOutput)) {
+
+            using (var imported = ExcelDocumentReader.Open(importedOutput))
+            {
                 AssertTwoMeasureMixedPivotView(expectedView, imported.GetSheet("Grouped").ReadRange(oracleRange), valuesOnRows, valuesFirst, valuesMiddle);
                 AssertTwoMeasurePivotLookups(expectedLookups, imported.GetSheet("Lookups").ReadRange("B1:C13"));
             }
 
             string authoredOutput = Path.Combine(_directoryWithFiles, $"Authored.TwoMeasure.{kind}.xlsx");
-            using (var document = ExcelDocument.Create()) {
+            using (var document = ExcelDocument.Create())
+            {
                 var source = document.AddWorksheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 source.CellValue(1, 5, "Units");
                 for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
                     source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
-                var pivot = source.Pivot("A1:E13").Rows("Region", "Product").Columns("Channel")
-                    .Sum("Sales", "Metric").Sum("Units", "UnitsMetric")
-                    .Layout(ExcelPivotLayout.Tabular)
-                    .Display(dataOnRows: valuesOnRows)
-                    .Filter(ExcelPivotFilter.TopCount("Product", selectedMeasure, 1));
-                if (valuesFirst || valuesMiddle) pivot.ValuesPosition(valuesFirst ? 0 : 1);
-                pivot.At("G4", "ValuePivot");
-                Assert.Equal(valuesFirst ? 0 : valuesMiddle ? 1 : valuesOnRows ? 2 : 1,
-                    Assert.Single(source.GetPivotTables()).ValuesAxisPosition);
+                var pivot = new ExcelPivotTableOptions();
+                pivot.RowFields.Add("Region");
+                pivot.RowFields.Add("Product");
+                pivot.ColumnFields.Add("Channel");
+                pivot.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivot.DataFields.Add(new ExcelPivotDataField("Units", ExcelPivotDataFunction.Sum, displayName: "UnitsMetric"));
+                pivot.Layout = ExcelPivotLayout.Tabular;
+                pivot.DataOnRows = valuesOnRows;
+                pivot.PivotFilters.Add(ExcelPivotFilter.TopCount("Product", selectedMeasure, 1));
+                if (valuesFirst || valuesMiddle)
+                {
+                    pivot.ValuesAxisPosition = valuesFirst ? 0 : 1;
+                }
+
+                {
+                    pivot.Name = "ValuePivot";
+                    source.AddPivotTable("A1:E13", "G4", pivot);
+                }
+
+                Assert.Equal(valuesFirst ? 0 : valuesMiddle ? 1 : valuesOnRows ? 2 : 1, Assert.Single(source.GetPivotTables()).ValuesAxisPosition);
                 var result = source.MaterializePivotTable("ValuePivot");
                 Assert.Equal(authoredRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 document.Save(authoredOutput);
             }
-            using (var reopened = ExcelDocument.Load(authoredOutput)) {
+
+            using (var reopened = ExcelDocument.Load(authoredOutput))
+            {
                 Assert.Empty(reopened.ValidateOpenXml());
                 var source = reopened.GetSheet("Source");
-                for (int measure = 0; measure < 2; measure++) {
+                for (int measure = 0; measure < 2; measure++)
+                {
                     string caption = measure == 0 ? "Metric" : "UnitsMetric";
                     AssertPivotLookupOracleValue(expectedLookups[0, measure], source.GetPivotData("ValuePivot", caption).Value);
-                    for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++) {
+                    for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
+                    {
                         var row = ThreeLevelTopTwoRows[index];
-                        var actual = source.GetPivotData("ValuePivot", caption, new Dictionary<string, object?> {
-                            ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel
-                        });
+                        var actual = source.GetPivotData("ValuePivot", caption, new Dictionary<string, object?> { ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel });
                         AssertPivotLookupOracleValue(expectedLookups[index + 1, measure], actual.Value);
                     }
                 }
             }
+
             using var authored = ExcelDocumentReader.Open(authoredOutput);
             AssertTwoMeasureMixedPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange), valuesOnRows, valuesFirst, valuesMiddle);
         }
@@ -108,22 +127,43 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("average-measure")]
         [InlineData("second-filter")]
-        public void Test_PivotThreeLevelMixedValue_TwoMeasureUnqualifiedShapesFailClosed(string shape) {
+        public void Test_PivotThreeLevelMixedValue_TwoMeasureUnqualifiedShapesFailClosed(string shape)
+        {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
             source.CellValue(1, 5, "Units");
             for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
                 source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
-            var pivot = source.Pivot("A1:E13").Rows("Region", "Product").Columns("Channel")
-                .Sum("Sales", "Metric");
-            if (shape == "average-measure") pivot.Average("Units", "UnitsMetric");
-            else pivot.Sum("Units", "UnitsMetric");
-            pivot.Layout(ExcelPivotLayout.Tabular)
-                .Filter(ExcelPivotFilter.TopCount("Product", "Metric", 1));
+            var pivot = new ExcelPivotTableOptions();
+            pivot.RowFields.Add("Region");
+            pivot.RowFields.Add("Product");
+            pivot.ColumnFields.Add("Channel");
+            pivot.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+            if (shape == "average-measure")
+            {
+                pivot.DataFields.Add(new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, displayName: "UnitsMetric"));
+            }
+            else
+            {
+                pivot.DataFields.Add(new ExcelPivotDataField("Units", ExcelPivotDataFunction.Sum, displayName: "UnitsMetric"));
+            }
+
+            {
+                pivot.Layout = ExcelPivotLayout.Tabular;
+                pivot.PivotFilters.Add(ExcelPivotFilter.TopCount("Product", "Metric", 1));
+            }
+
             if (shape == "second-filter")
-                pivot.Filter(ExcelPivotFilter.TopCount("Channel", "Metric", 1));
-            pivot.At("G4", "ValuePivot");
+            {
+                pivot.PivotFilters.Add(ExcelPivotFilter.TopCount("Channel", "Metric", 1));
+            }
+
+            {
+                pivot.Name = "ValuePivot";
+                source.AddPivotTable("A1:E13", "G4", pivot);
+            }
+
             var error = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
             Assert.Contains("qualified axis rule", error.Message, StringComparison.Ordinal);
             Assert.Empty(document.ValidateOpenXml());

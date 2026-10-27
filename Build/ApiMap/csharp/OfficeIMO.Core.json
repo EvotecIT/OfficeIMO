@@ -32,6 +32,12 @@
       "change": "Shared callout intent",
       "applied": "phase-b-applied",
       "note": "OfficeCalloutKind (Info, Success, Warning, Danger) preserves the removed Word fluent callout capability through typed theme intent."
+    },
+    {
+      "subject": "Extensible shared table options",
+      "phase": "B",
+      "status": "applied",
+      "note": "OfficeTableOptions supports format-specific options through inheritance; ExcelTableOptions retains nested projection and native table presentation settings."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

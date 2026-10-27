@@ -8,8 +8,10 @@ using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_InsertRows_UpdatesWorkbookReferencesAndRowBoundMetadata() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Insert.xlsx");
@@ -148,10 +150,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_InsertRows_UpdatesPivotSourceAndLocation() {
+        public void Test_InsertRows_UpdatesPivotSourceAndLocation()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Pivot.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
                 ExcelSheet data = document.AddWorksheet("Data");
                 data.CellAt(1, 1).SetValue("Region");
                 data.CellAt(1, 2).SetValue("Sales");
@@ -161,26 +164,15 @@ namespace OfficeIMO.Tests {
                 data.CellAt(3, 2).SetValue(20);
                 data.CellAt(4, 1).SetValue("East");
                 data.CellAt(4, 2).SetValue(30);
-                data.AddPivotTable(
-                    sourceRange: "A1:B4",
-                    destinationCell: "E2",
-                    name: "SalesPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+                data.AddPivotTable("A1:B4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 data.InsertRows(2);
                 document.Save();
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                PivotTablePart pivotPart = spreadsheet.WorkbookPart!.WorksheetParts
-                    .SelectMany(part => part.PivotTableParts)
-                    .Single();
-                WorksheetSource source = pivotPart.PivotTableCacheDefinitionPart!
-                    .PivotCacheDefinition!
-                    .CacheSource!
-                    .WorksheetSource!;
-
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                PivotTablePart pivotPart = spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.PivotTableParts).Single();
+                WorksheetSource source = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
                 Assert.Equal("A1:B5", source.Reference!.Value);
                 Assert.Equal("E3:F4", pivotPart.PivotTableDefinition!.Location!.Reference!.Value);
                 Assert.True(pivotPart.PivotTableCacheDefinitionPart.PivotCacheDefinition.RefreshOnLoad!.Value);
@@ -377,7 +369,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_InsertRows_RejectsReferenceOverflowAtomically() {
+        public void Test_InsertRows_RejectsReferenceOverflowAtomically()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
@@ -389,22 +382,14 @@ namespace OfficeIMO.Tests {
             sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
             sheet.AddChartFromRange("A1:B2", row: 4, column: 4);
-            C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single()
-                .ChartSpace.Descendants<C.Formula>().First();
+            C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace.Descendants<C.Formula>().First();
             chartFormula.Text = $"'Data'!$A${ExcelA1.MaxRows}";
-            sheet.AddPivotTable(
-                "A1:B2",
-                "E5",
-                rowFields: new[] { "Keep" },
-                dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) });
+            sheet.AddPivotTable("A1:B2", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Keep" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = sheet.WorksheetPart.PivotTableParts.Single();
-            WorksheetSource pivotSource = pivotPart.PivotTableCacheDefinitionPart!
-                .PivotCacheDefinition!.CacheSource!.WorksheetSource!;
+            WorksheetSource pivotSource = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
             Location pivotLocation = pivotPart.PivotTableDefinition!.Location!;
             sheet.AddSparklines("A1:B1", "D1");
-            DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline = Assert.Single(
-                sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>());
-
+            DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>());
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             sheet.CellFormula(1, 10, "A1");
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
@@ -424,13 +409,13 @@ namespace OfficeIMO.Tests {
             sparkline.ReferenceSequence.Text = "D1";
             sheet.AddManualRowPageBreak(ExcelA1.MaxRows);
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
-
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
             Assert.Equal((uint)ExcelA1.MaxRows, Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<RowBreaks>()!.Elements<Break>()).Id!.Value);
         }
 
         [Fact]
-        public void Test_StructuralRows_RejectsEditsThroughPivotOutput() {
+        public void Test_StructuralRows_RejectsEditsThroughPivotOutput()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
@@ -439,12 +424,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddPivotTable(
-                "A1:B3",
-                "E5",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+            sheet.AddPivotTable("A1:B3", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(6));
             Assert.Throws<InvalidOperationException>(() => sheet.DeleteRows(5));
             Assert.Equal("E5:F6", sheet.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!.Location!.Reference!.Value);
