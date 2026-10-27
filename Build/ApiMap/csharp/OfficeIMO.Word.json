@@ -1782,35 +1782,33 @@
       "old": "OfficeIMO.Word.WordChart.AddChartLine<T>(string name, int[] values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddChartLine(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddChartLine(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddLine<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddLine(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddLine(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddChartAxisX(List<string> categories)",
@@ -1822,181 +1820,171 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddBar(string name, int values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddBar<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddBar(string name, int[] values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddArea(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddArea(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, int[] values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddArea(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddArea(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddScatter(string name, List<double> xValues, List<double> yValues, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddScatter(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddScatter(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddRadar<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddRadar(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddRadar(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddBar3D<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddBar3D(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddBar3D(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddLine3D<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddLine3D(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddLine3D(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddArea3D<T>(string name, List<T> values, OfficeColor color)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddArea3D(...) : the created object",
+      "new": "OfficeIMO.Word.WordChart.AddArea3D(...) : WordChartSeries",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddLegend(OfficeChartLegendPosition legendPosition)",
@@ -2008,11 +1996,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
       "old": "OfficeIMO.Word.WordSmartArt.AddNode(string text)",
@@ -6384,6 +6372,20 @@
         "Directory.Build.targets",
         "OfficeIMO.Word/PublicAPI.Shipped.txt",
         "OfficeIMO.Word/PublicAPI.Unshipped.txt"
+      ]
+    },
+    {
+      "change": "Word chart series, category settings and legends return attached models.",
+      "reason": "Reuses WordChartSeries inspection data for attached series, with editing restricted to native handles. Reading is lazy through the shared chart reader, so adding a series does not newly parse or validate the whole plot. Legend insertion replaces the singleton rather than producing duplicate native legends.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordChart.PublicMethods.cs",
+        "OfficeIMO.Word/WordChart.Attachments.cs",
+        "OfficeIMO.Word/WordChartSeries.cs",
+        "OfficeIMO.Word/WordChartLegend.cs",
+        "OfficeIMO.Word/WordChartAxis.cs",
+        "OfficeIMO.Word/WordChartSnapshot.cs",
+        "OfficeIMO.Word/PublicAPI.Shipped.txt"
       ]
     }
   ],

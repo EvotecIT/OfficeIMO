@@ -313,6 +313,7 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
 - Creates and validates cross-platform OPC XML package signatures and managed VBA legacy, agile, and V3 signatures through an explicitly supplied `IOfficeSecurityProvider`; structural inspection remains provider-free.
 - Exports document page ranges as managed PNG, JPEG, TIFF, WebP or SVG pages through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
+- Chart series Add methods return `WordChartSeries`; set its `Name` or call `Remove()` to edit that exact series. `AddLegend` returns an editable `WordChartLegend`. `AddChartAxisX` returns category settings for subsequent series.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Uses one object model for paragraphs, tables, lists, charts, images, and content blocks.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.

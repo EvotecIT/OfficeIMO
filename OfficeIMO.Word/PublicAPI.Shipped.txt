@@ -730,24 +730,24 @@ OfficeIMO.Word.WordCharacterStyles.Heading7Char = 7 -> OfficeIMO.Word.WordCharac
 OfficeIMO.Word.WordCharacterStyles.Heading8Char = 8 -> OfficeIMO.Word.WordCharacterStyles
 OfficeIMO.Word.WordCharacterStyles.Heading9Char = 9 -> OfficeIMO.Word.WordCharacterStyles
 OfficeIMO.Word.WordChart
-OfficeIMO.Word.WordChart.AddArea3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddArea<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddArea<T>(string! name, int[]! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddBar(string! name, int values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddBar(string! name, int[]! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddBar3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddBar<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddCategories(System.Collections.Generic.List<string!>! categories) -> void
-OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List<string!>! categories) -> void
-OfficeIMO.Word.WordChart.AddChartLine<T>(string! name, int[]! values, OfficeIMO.OfficeColor color) -> void
+OfficeIMO.Word.WordChart.AddArea3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddArea<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddArea<T>(string! name, int[]! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddBar(string! name, int values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddBar(string! name, int[]! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddBar3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddBar<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddCategories(System.Collections.Generic.List<string!>! categories) -> OfficeIMO.Word.WordChartAxis!
+OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List<string!>! categories) -> OfficeIMO.Word.WordChartAxis!
+OfficeIMO.Word.WordChart.AddChartLine<T>(string! name, int[]! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
 OfficeIMO.Word.WordChart.AddDoughnut<T>(string! category, T value) -> OfficeIMO.Word.WordChart!
-OfficeIMO.Word.WordChart.AddLegend(OfficeIMO.Drawing.OfficeChartLegendPosition legendPosition) -> void
-OfficeIMO.Word.WordChart.AddLine3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddLine<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
+OfficeIMO.Word.WordChart.AddLegend(OfficeIMO.Drawing.OfficeChartLegendPosition legendPosition) -> OfficeIMO.Word.WordChartLegend!
+OfficeIMO.Word.WordChart.AddLine3D<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddLine<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
 OfficeIMO.Word.WordChart.AddPie3D<T>(string! category, T value) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChart.AddPie<T>(string! category, T value) -> OfficeIMO.Word.WordChart!
-OfficeIMO.Word.WordChart.AddRadar<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordChart.AddScatter(string! name, System.Collections.Generic.List<double>! xValues, System.Collections.Generic.List<double>! yValues, OfficeIMO.OfficeColor color) -> void
+OfficeIMO.Word.WordChart.AddRadar<T>(string! name, System.Collections.Generic.List<T>! values, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
+OfficeIMO.Word.WordChart.AddScatter(string! name, System.Collections.Generic.List<double>! xValues, System.Collections.Generic.List<double>! yValues, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChartSeries!
 OfficeIMO.Word.WordChart.AltText.get -> string?
 OfficeIMO.Word.WordChart.AltText.set -> void
 OfficeIMO.Word.WordChart.ApplyPalette(OfficeIMO.Word.WordChart.WordChartPalette palette, bool semanticOutcomes = true, bool applyToPies = true, bool applyToSeries = true, System.Collections.Generic.Dictionary<string!, OfficeIMO.OfficeColor>? overrides = null) -> OfficeIMO.Word.WordChart!
@@ -788,6 +788,10 @@ OfficeIMO.Word.WordChart.WordChartPalette.ColorBlindSafe = 3 -> OfficeIMO.Word.W
 OfficeIMO.Word.WordChart.WordChartPalette.MonochromeGray = 2 -> OfficeIMO.Word.WordChart.WordChartPalette
 OfficeIMO.Word.WordChart.WordChartPalette.Professional = 0 -> OfficeIMO.Word.WordChart.WordChartPalette
 OfficeIMO.Word.WordChart.WordChartPalette.Soft = 1 -> OfficeIMO.Word.WordChart.WordChartPalette
+OfficeIMO.Word.WordChartAxis
+OfficeIMO.Word.WordChartAxis.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Word.WordChartAxis.Categories.set -> void
+OfficeIMO.Word.WordChartAxis.Chart.get -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChartBarDirection
 OfficeIMO.Word.WordChartBarDirection.Bar = 0 -> OfficeIMO.Word.WordChartBarDirection
 OfficeIMO.Word.WordChartBarDirection.Column = 1 -> OfficeIMO.Word.WordChartBarDirection
@@ -807,11 +811,21 @@ OfficeIMO.Word.WordChartInfo.Name.get -> string!
 OfficeIMO.Word.WordChartInfo.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
 OfficeIMO.Word.WordChartInfo.Title.get -> string?
 OfficeIMO.Word.WordChartInfo.WidthPoints.get -> double
+OfficeIMO.Word.WordChartLegend
+OfficeIMO.Word.WordChartLegend.Chart.get -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordChartLegend.Overlay.get -> bool
+OfficeIMO.Word.WordChartLegend.Overlay.set -> void
+OfficeIMO.Word.WordChartLegend.Position.get -> OfficeIMO.Drawing.OfficeChartLegendPosition
+OfficeIMO.Word.WordChartLegend.Position.set -> void
+OfficeIMO.Word.WordChartLegend.Remove() -> void
 OfficeIMO.Word.WordChartSeries
+OfficeIMO.Word.WordChartSeries.Chart.get -> OfficeIMO.Word.WordChart?
 OfficeIMO.Word.WordChartSeries.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordChartSeries.Name.get -> string!
+OfficeIMO.Word.WordChartSeries.Name.set -> void
 OfficeIMO.Word.WordChartSeries.PointColors.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor?>?
 OfficeIMO.Word.WordChartSeries.PointStyles.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>?
+OfficeIMO.Word.WordChartSeries.Remove() -> void
 OfficeIMO.Word.WordChartSeries.ToOfficeSeries() -> OfficeIMO.OfficeSeries!
 OfficeIMO.Word.WordChartSeries.Values.get -> System.Collections.Generic.IReadOnlyList<double>!
 OfficeIMO.Word.WordChartSeries.XValues.get -> System.Collections.Generic.IReadOnlyList<double>?

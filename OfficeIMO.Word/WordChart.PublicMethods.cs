@@ -33,9 +33,7 @@ namespace OfficeIMO.Word {
         /// Sets the category labels used by subsequent chart series.
         /// </summary>
         /// <param name="categories">List of category names.</param>
-        public void AddCategories(List<string> categories) {
-            Categories = categories;
-        }
+        public WordChartAxis AddCategories(List<string> categories) => AddChartAxisX(categories);
         /// <summary>
         /// Adds a single value to a pie chart.
         /// </summary>
@@ -82,13 +80,15 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Line color.</param>
-        public void AddChartLine<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddChartLine<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine();
             var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
                 InsertSeries(lineChart, lineChartSeries);
+                return new WordChartSeries(this, lineChartSeries);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -100,14 +100,16 @@ namespace OfficeIMO.Word {
         /// <param name="name"></param>
         /// <param name="values"></param>
         /// <param name="color"></param>
-        public void AddLine<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddLine<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine();
             var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(lineChart, lineChartSeries);
+                return new WordChartSeries(this, lineChartSeries);
             }
 
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -115,8 +117,9 @@ namespace OfficeIMO.Word {
         /// before adding bar or line series when creating a combo chart so that
         /// both chart types share the same axis.
         /// </summary>
-        public void AddChartAxisX(List<string> categories) {
-            Categories = categories;
+        public WordChartAxis AddChartAxisX(List<string> categories) {
+            Categories = categories ?? throw new ArgumentNullException(nameof(categories));
+            return new WordChartAxis(this);
         }
 
         /// <summary>
@@ -124,13 +127,15 @@ namespace OfficeIMO.Word {
         /// sure to call <see cref="AddChartAxisX"/> first so the categories are
         /// shared across both chart types.
         /// </summary>
-        public void AddBar(string name, int values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddBar(string name, int values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, new List<int>() { values });
                 InsertSeries(barChart, barChartSeries);
+                return new WordChartSeries(this, barChartSeries);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -138,26 +143,30 @@ namespace OfficeIMO.Word {
         /// with line series the categories must be set via
         /// <see cref="AddChartAxisX"/> before calling this method.
         /// </summary>
-        public void AddBar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddBar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(barChart, barChartSeries);
+                return new WordChartSeries(this, barChartSeries);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
         /// Adds a bar series from an array of values. For combo charts ensure
         /// <see cref="AddChartAxisX"/> has been called first.
         /// </summary>
-        public void AddBar(string name, int[] values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddBar(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar();
             var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
                 InsertSeries(barChart, barChartSeries);
+                return new WordChartSeries(this, barChartSeries);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -167,15 +176,17 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Fill color for the series.</param>
-        public void AddArea<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddArea<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea();
             if (_chart != null) {
                 var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values);
                     InsertSeries(barChart, areaChartSeries);
+                return new WordChartSeries(this, areaChartSeries);
                 }
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -185,15 +196,17 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Data values.</param>
         /// <param name="color">Fill color for the series.</param>
-        public void AddArea<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddArea<T>(string name, int[] values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea();
             if (_chart != null) {
                 var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
                     InsertSeries(barChart, areaChartSeries);
+                return new WordChartSeries(this, areaChartSeries);
                 }
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -203,15 +216,17 @@ namespace OfficeIMO.Word {
         /// <param name="xValues">Values plotted on the X axis.</param>
         /// <param name="yValues">Values plotted on the Y axis.</param>
         /// <param name="color">Color of the series.</param>
-        public void AddScatter(string name, List<double> xValues, List<double> yValues, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddScatter(string name, List<double> xValues, List<double> yValues, OfficeIMO.OfficeColor color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
                 var scatterChart = _chart.PlotArea?.GetFirstChild<ScatterChart>();
                 if (scatterChart != null) {
                     var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
                     InsertSeries(scatterChart, series);
+                return new WordChartSeries(this, series);
                 }
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -221,13 +236,15 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Values for the series.</param>
         /// <param name="color">Color of the series.</param>
-        public void AddRadar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddRadar<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsRadar();
             var radarChart = _chart?.PlotArea?.GetFirstChild<RadarChart>();
             if (radarChart != null) {
                 var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(radarChart, series);
+                return new WordChartSeries(this, series);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
         /// <summary>
         /// Adds a 3D bar chart series.
@@ -236,7 +253,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Series data values.</param>
         /// <param name="color">Color of the bars.</param>
-        public void AddBar3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddBar3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsBar3D();
             var chart3d = _chart?.PlotArea?.GetFirstChild<Bar3DChart>();
             if (chart3d != null) {
@@ -257,7 +274,9 @@ namespace OfficeIMO.Word {
                 } else {
                     chart3d.Append(series);
                 }
+                return new WordChartSeries(this, series);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -275,14 +294,16 @@ namespace OfficeIMO.Word {
         /// of element ordering and may indicate that Line3DChart does not actually support data
         /// series in the current OpenXML specification.
         /// </remarks>
-        public void AddLine3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddLine3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsLine3D();
             var line3d = _chart?.PlotArea?.GetFirstChild<Line3DChart>();
             if (line3d != null) {
                 var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
                 // Insert series in the correct schema position (after varyColors, before dLbls)
                 InsertSeries(line3d, series);
+                return new WordChartSeries(this, series);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
@@ -292,21 +313,24 @@ namespace OfficeIMO.Word {
         /// <param name="name">Series name.</param>
         /// <param name="values">Series data values.</param>
         /// <param name="color">Series color.</param>
-        public void AddArea3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
+        public WordChartSeries AddArea3D<T>(string name, List<T> values, OfficeIMO.OfficeColor color) {
             EnsureChartExistsArea3D();
             var area3d = _chart?.PlotArea?.GetFirstChild<Area3DChart>();
             if (area3d != null) {
                 var series = AddArea3DChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(area3d, series);
+                return new WordChartSeries(this, series);
             }
+            throw new InvalidOperationException("The chart series could not be attached.");
         }
 
         /// <summary>
         /// Adds a legend to the chart at the specified position.
         /// </summary>
         /// <param name="legendPosition">Desired legend position.</param>
-        public void AddLegend(OfficeChartLegendPosition legendPosition) {
+        public WordChartLegend AddLegend(OfficeChartLegendPosition legendPosition) {
             if (_chart != null) {
+                _chart.GetFirstChild<Legend>()?.Remove();
                 Legend legend = new Legend();
                 LegendPosition postion = new LegendPosition() { Val = legendPosition.ToOpenXml() };
                 Overlay overlay = new Overlay() { Val = false };
@@ -322,7 +346,9 @@ namespace OfficeIMO.Word {
                     // If no PlotVisibleOnly, just append at the end
                     _chart.Append(legend);
                 }
+                return new WordChartLegend(this, legend);
             }
+            throw new InvalidOperationException("The legend could not be attached.");
         }
 
         /// <summary>

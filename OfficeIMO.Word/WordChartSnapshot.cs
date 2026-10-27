@@ -42,44 +42,6 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>
-    /// Series values extracted from cached Word chart data.
-    /// </summary>
-    public sealed class WordChartSeries {
-        private readonly OfficeIMO.OfficeSeries _sharedSeries;
-
-        internal WordChartSeries(OfficeIMO.OfficeSeries series) {
-            _sharedSeries = series;
-            Name = series.Name;
-            Values = series.Values;
-            XValues = series.XValues;
-            Color = series.Color;
-            PointColors = series.PointColors;
-            PointStyles = series.PointStyles;
-        }
-
-        /// <summary>Series display name.</summary>
-        public string Name { get; }
-
-        /// <summary>Y values or category values.</summary>
-        public IReadOnlyList<double> Values { get; }
-
-        /// <summary>Optional X values for scatter charts.</summary>
-        public IReadOnlyList<double>? XValues { get; }
-
-        /// <summary>Optional explicit series color extracted from Word chart shape properties.</summary>
-        public OfficeIMO.OfficeColor? Color { get; }
-
-        /// <summary>Optional explicit point colors extracted from Word chart data point shape properties.</summary>
-        public IReadOnlyList<OfficeIMO.OfficeColor?>? PointColors { get; }
-
-        /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
-        public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
-
-        /// <summary>Returns the shared series, retaining native line, marker and point appearance.</summary>
-        public OfficeIMO.OfficeSeries ToOfficeSeries() => _sharedSeries;
-    }
-
-    /// <summary>
     /// Category and series data extracted from cached Word chart data.
     /// </summary>
     public sealed class WordChartData {
