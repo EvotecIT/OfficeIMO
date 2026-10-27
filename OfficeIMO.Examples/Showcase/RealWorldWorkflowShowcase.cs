@@ -46,7 +46,8 @@ internal static class RealWorldWorkflowShowcase {
         AddStatusTable(document, DeliveredOutcomes, 34, 30, 18, 18);
 
         AddHeading(document, "Incidents per week");
-        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 790, height: 200);
+        // 600 px (6.25 in) fits the text width of both Letter and A4 pages with 1 in margins.
+        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 600, height: 220);
 
         AddHeading(document, "Next steps");
         AddStatusTable(document, NextSteps, 40, 24, 18, 18);

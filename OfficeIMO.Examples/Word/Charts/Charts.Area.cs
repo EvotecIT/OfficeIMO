@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             areaChart.AddCategories(categories);
             areaChart.AddArea("Brazil", new List<int> { 100, 1, 18, 230 }, Color.Brown);
             areaChart.AddArea("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
-            areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.AliceBlue);
+            areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.Parse("#3F64D7"));
             areaChart.AddLegend(OfficeChartLegendPosition.Top);
             document.Save();
 

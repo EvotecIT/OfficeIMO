@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 barChart1.AddCategories(categories);
                 barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Brown);
                 barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
-                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 barChart1.BarGrouping = WordChartBarGrouping.Clustered;
                 barChart1.BarDirection = WordChartBarDirection.Column;
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var lineChart = document.AddChart();
                 lineChart.AddChartAxisX(categories);
-                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var lineChart2 = document.AddChart();
                 lineChart2.AddChartAxisX(categories);
-                lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, OfficeIMO.OfficeColor.AliceBlue);
+                lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart2.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart2.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Word {
                 barChart3.AddCategories(categories);
                 barChart3.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Brown);
                 barChart3.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
-                barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 barChart3.BarGrouping = WordChartBarGrouping.Clustered;
                 barChart3.BarDirection = WordChartBarDirection.Column;
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
                 var lineChart3 = paragraph3.AddChart();
                 lineChart3.AddChartAxisX(categories);
-                lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart3.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart3.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
 
@@ -116,7 +116,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
                 var lineChart4 = paragraph4.AddChart();
                 lineChart4.AddChartAxisX(categories);
-                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
 
@@ -125,7 +125,7 @@ namespace OfficeIMO.Examples.Word {
                 // let's add chart to first paragraph
                 var lineChart5 = paragraphToTest.AddChart();
                 lineChart5.AddChartAxisX(categories);
-                lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart5.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart5.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Examples.Word {
                 barChart4.AddCategories(categories);
                 barChart4.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Brown);
                 barChart4.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
-                barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 barChart4.BarGrouping = WordChartBarGrouping.Clustered;
                 barChart4.BarDirection = WordChartBarDirection.Column;
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Examples.Word {
                 areaChart.AddCategories(categories);
                 areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, OfficeIMO.OfficeColor.Brown);
                 areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
-                areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
+                areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 areaChart.AddLegend(OfficeChartLegendPosition.Top);
 
                 var scatterChart = document.AddChart("Scatter chart");
