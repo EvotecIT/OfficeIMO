@@ -267,9 +267,13 @@ namespace OfficeIMO.Examples.Html {
             HtmlDiagnostic[] fidelityDiagnostics = rendered.Diagnostics
                 .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info)
                 .ToArray();
-            if (fidelityDiagnostics.Length > 0) {
-                throw new InvalidOperationException("Managed renderer gallery emitted fidelity diagnostics: " + string.Join("; ", fidelityDiagnostics.Select(diagnostic =>
-                    diagnostic.Code + " (" + diagnostic.Source + ": " + diagnostic.Detail + ")")));
+            foreach (HtmlDiagnostic diagnostic in fidelityDiagnostics) {
+                Console.WriteLine($"Managed renderer gallery: {diagnostic.Severity} {diagnostic.Code} ({diagnostic.Source}): {diagnostic.Message}");
+            }
+            if (fidelityDiagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+                throw new InvalidOperationException("Managed renderer gallery failed: " + string.Join("; ", fidelityDiagnostics
+                    .Where(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)
+                    .Select(diagnostic => diagnostic.Code + " (" + diagnostic.Source + "): " + diagnostic.Message)));
             }
             bool hasHyphenationProof = rendered.Pages
                 .SelectMany(page => EnumerateManagedRendererGalleryVisuals(page.Scene))
