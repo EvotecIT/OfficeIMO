@@ -119,6 +119,7 @@ doc.Save("Copy.docx");
 await doc.SaveAsync(stream);
 ```
 
+- The document type is `{Format}Document` in every format: `WordDocument`, `ExcelDocument`, `PowerPointDocument`, `PdfDocument`, `MarkdownDocument`, `VisioDocument`, `ProjectDocument`, `RtfDocument`, `EpubDocument`. `PowerPointPresentation` is renamed to `PowerPointDocument` with no alias for the old name.
 - Options are `{Format}CreateOptions`, `{Format}LoadOptions` and `{Format}SaveOptions`. Each load options type has `UntrustedDefaults` for files from outside.
 - `PdfDocument` joins this shape: `Create`, `Load`, `Save`, `IDisposable`, `PdfCreateOptions` and `PdfLoadOptions.UntrustedDefaults`. Its immutable internal pipeline stays an implementation detail.
 - Static inspection helpers (`PdfInspector.Inspect` and similar) move onto the document as `Inspect()`, plus `OfficeDocument.Inspect(path)` for any format.
@@ -309,7 +310,7 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 
 - The same concept takes the same parameters in every format. `WordText`, `PptText`, `PdfText` and `MarkdownText` share `-Text`, `-Bold`, `-Italic`, `-Strikethrough`, `-Color`, `-Font`, `-Size` and `-Link`; `-Underline` takes the shared underline style where the format supports it. A list item takes `-Text` or a content block.
 - Styled runs are written as child commands. The `-Run @{ Text = …; Bold = $true, $true, $false }` hashtables of parallel arrays are removed.
-- Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PptNotes`). `Ppt` is the only PowerPoint prefix.
+- Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PptNotes`). `Ppt` is the only PowerPoint prefix and the one abbreviated format name: aliases are typed on nearly every line of a deck script, `Ppt` is how people already refer to the format, and PSWriteOffice 3.5 used it. Commands, C# types, enums and packages spell out `PowerPoint`.
 - Aliases exist only for commands that add content inside a content block. Commands that change the current element (`Set-OfficeWordParagraph`) and deck- or document-level settings are called by their full name inside a block; their natural alias would collide with the command that creates the element. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
 - A test rejects aliases that break these rules or collide with commands in PowerShell itself.
 
