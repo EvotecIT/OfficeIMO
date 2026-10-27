@@ -114,14 +114,14 @@ namespace OfficeIMO.Examples.Word {
                 var section2EvenHeader = RequireHeader(section2Headers.Even, "Section 2 even header");
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                paragraghInHeaderSection1.Text = "Section 1 header";
 
                 paragraghInHeaderSection1 = section2FirstHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit 2?";
+                paragraghInHeaderSection1.Text = "Section 2 header";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
                 paragraghInHeaderSection1 = section2EvenHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 3";
+                paragraghInHeaderSection1.Text = "Section 3 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;

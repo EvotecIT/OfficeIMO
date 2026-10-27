@@ -6,7 +6,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ResearchBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.BuiltinDocumentProperties.Title = "Customer research brief";
         document.AddParagraph("Customer research brief").Style = WordParagraphStyles.Heading1;

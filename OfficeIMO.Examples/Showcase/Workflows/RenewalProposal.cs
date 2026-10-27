@@ -5,7 +5,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class RenewalProposal {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-            document.Settings.FontFamily = "Carlito";
             document.Settings.FontSize = 11;
             document.BuiltinDocumentProperties.Title = "Managed service renewal";
             document.AddParagraph("Managed service renewal").Style = WordParagraphStyles.Heading1;
@@ -33,7 +32,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.Text = rows[row][column];
                     paragraph.Bold = row == 0;
                     paragraph.ColorHex = row == 0 ? "FFFFFF" : "243247";
-                    paragraph.FontFamily = "Carlito";
                     paragraph.FontSize = 10;
                     paragraph.LineSpacingAfterPoints = 2;
                 }
@@ -46,7 +44,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             actions.AddItem("Procurement: review the renewal and notice periods.");
             actions.AddItem("Sponsor: record acceptance or request a revised scope.");
             foreach (var paragraph in document.Paragraphs) {
-                paragraph.FontFamily = "Carlito";
                 bool title = paragraph.Style == WordParagraphStyles.Heading1;
                 bool heading = paragraph.Style == WordParagraphStyles.Heading2;
                 paragraph.FontSize = title ? 26 : heading ? 15 : 11;

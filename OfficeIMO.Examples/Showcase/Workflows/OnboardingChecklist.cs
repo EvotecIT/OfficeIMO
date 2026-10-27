@@ -7,7 +7,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class OnboardingChecklist {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.AddParagraph("A good first week").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Employee onboarding | Team: Customer Operations | Buddy: Morgan Chen");
@@ -28,7 +27,6 @@ internal static class OnboardingChecklist {
             ("Review questions and blockers", "Manager", "Planned")
         });
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
             paragraph.LineSpacingAfterPoints = 7;
             if (paragraph.Style == WordParagraphStyles.Heading1) {

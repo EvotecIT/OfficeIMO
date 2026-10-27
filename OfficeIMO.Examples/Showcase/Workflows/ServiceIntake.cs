@@ -7,7 +7,6 @@ internal static class ServiceIntake {
     internal static void Create(string folder) {
         string templatePath = Path.Combine(folder, "template.docx");
         using (WordDocument template = WordDocument.Create(templatePath)) {
-            template.Settings.FontFamily = "Carlito";
             template.Settings.FontSize = 11;
             template.AddParagraph("Service request").Style = WordParagraphStyles.Heading1;
             template.AddParagraph("NORTHWIND / INTAKE / EDITABLE TEMPLATE");

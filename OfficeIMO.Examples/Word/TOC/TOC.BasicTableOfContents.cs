@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
 
                 WordTableOfContent wordTableContent = document.AddTableOfContent(WordTableOfContentsStyle.Template1);
                 wordTableContent.Text = "This is Table of Contents";
-                wordTableContent.TextNoContent = "Ooopsi, no content";
+                wordTableContent.TextNoContent = "Add headings to build the table of contents.";
 
                 document.AddPageBreak();
 

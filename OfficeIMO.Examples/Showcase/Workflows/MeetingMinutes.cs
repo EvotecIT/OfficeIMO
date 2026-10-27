@@ -38,7 +38,6 @@ internal static class MeetingMinutes {
         document.AddParagraph("Next meeting").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("28 September: review pilot feedback and decide whether to expand access.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
             paragraph.LineSpacingAfterPoints = 7;
             if (paragraph.Style == WordParagraphStyles.Heading1) {
