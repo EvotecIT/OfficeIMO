@@ -137,8 +137,8 @@ namespace OfficeIMO.Excel {
                 ColorScale colorScale = new ColorScale();
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
+                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(startColor) });
+                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(endColor) });
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
                 DataBar dataBar = new DataBar { ShowValue = true };
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
+                dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(color) });
                 rule.Append(dataBar);
 
                 conditionalFormatting.Append(rule);

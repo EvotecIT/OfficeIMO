@@ -37,11 +37,30 @@ namespace OfficeIMO.Excel {
         /// <param name="tableOrRange">Table range, name, or display name.</param>
         public void ClearTableTotals(string tableOrRange) {
             if (string.IsNullOrWhiteSpace(tableOrRange)) throw new System.ArgumentNullException(nameof(tableOrRange));
+            MaterializePendingDirectCellValues();
 
             WriteLock(() => {
                 var table = FindTableByRangeNameOrDisplayName(tableOrRange);
                 if (table == null) {
                     throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
+                }
+
+                if ((table.TotalsRowCount?.Value ?? 0U) > 0U &&
+                    ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) &&
+                    lastRow > firstRow + (int)(table.HeaderRowCount?.Value ?? 1U)) {
+                    // Removing the totals row removes its cells, as in Excel.
+                    for (int column = firstColumn; column <= lastColumn; column++) {
+                        Cell? cell = TryGetExistingCell(lastRow, column);
+                        if (cell == null) continue;
+                        cell.CellFormula = null;
+                        cell.CellValue = null;
+                        cell.InlineString = null;
+                        cell.DataType = null;
+                    }
+
+                    table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow - 1, lastColumn);
+                    ClearCellTextSharedStringCache();
+                    _hasWorksheetMutations = true;
                 }
 
                 table.TotalsRowShown = false;
@@ -119,6 +138,13 @@ namespace OfficeIMO.Excel {
             foreach (var entry in byHeader) {
                 totalsByHeader[entry.Key] = entry.Value;
             }
+
+            MaterializePendingDirectCellValues();
+            int totalsRow = 0;
+            int firstColumn = 0;
+            int lastColumn = 0;
+            var labels = new List<(int Column, string Text)>();
+            var formulas = new List<(int Column, string Formula)>();
             WriteLock(() => {
                 var table = FindTableByRangeNameOrDisplayName(tableOrRange);
                 if (table == null) {
@@ -129,18 +155,118 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (!ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int firstRow, out firstColumn, out int lastRow, out lastColumn)) {
+                    throw new InvalidOperationException($"Table '{tableOrRange}' has no valid range.");
+                }
+
+                int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
+                bool hasTotalsRow = (table.TotalsRowCount?.Value ?? 0U) > 0U;
+                bool hasDataRows = lastRow > firstRow + headerRows - 1 + 1;
+                if (hasTotalsRow) {
+                    totalsRow = lastRow;
+                } else if (hasDataRows && (IsTableRowEmpty(lastRow, firstColumn, lastColumn) || IsAuthoredTotalsRow(lastRow, firstColumn, lastColumn))) {
+                    // A blank last row, or one the caller already wrote as totals, becomes the totals row.
+                    totalsRow = lastRow;
+                } else {
+                    // The totals row goes below the data so no data row turns into totals.
+                    totalsRow = lastRow + 1;
+                    if (!IsTableRowEmpty(totalsRow, firstColumn, lastColumn)) {
+                        throw new InvalidOperationException(
+                            $"Cannot add a totals row to table '{table.Name?.Value}': row {totalsRow.ToString(System.Globalization.CultureInfo.InvariantCulture)} below the table is not empty.");
+                    }
+
+                    table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(totalsRow, lastColumn);
+                }
+
+                AutoFilter? autoFilter = table.GetFirstChild<AutoFilter>();
+                if (autoFilter != null) {
+                    autoFilter.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(totalsRow - 1, lastColumn);
+                }
+
                 table.TotalsRowShown = true;
                 table.TotalsRowCount = 1U;
                 var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
+                string tableName = table.DisplayName?.Value ?? table.Name?.Value ?? string.Empty;
+                int column = firstColumn;
+                bool firstTableColumn = true;
                 foreach (var tc in tableColumns.Elements<TableColumn>()) {
                     var name = tc.Name?.Value ?? string.Empty;
                     if (totalsByHeader.TryGetValue(name, out var fn)) {
                         tc.TotalsRowFunction = fn.ToOpenXml();
+                        int? subtotal = GetSubtotalFunctionNumber(fn);
+                        // Values the caller already wrote in the totals row are kept.
+                        if (subtotal.HasValue && tableName.Length > 0 && IsTableRowEmpty(totalsRow, column, column)) {
+                            formulas.Add((column, "SUBTOTAL(" + subtotal.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                                tableName + "[" + EscapeStructuredReferenceColumnName(name) + "])"));
+                        }
+                    } else if (firstTableColumn && tc.TotalsRowFunction == null && IsTableRowEmpty(totalsRow, column, column)) {
+                        // Excel labels the first totals cell when it carries no function.
+                        tc.TotalsRowLabel ??= "Total";
+                        labels.Add((column, tc.TotalsRowLabel.Value ?? "Total"));
                     }
+
+                    firstTableColumn = false;
+                    column++;
                 }
 
                 DeferPartSave(table.OpenXmlPart!);
             });
+
+            if (totalsRow <= 0) return;
+            foreach ((int labelColumn, string text) in labels) CellValue(totalsRow, labelColumn, text);
+            foreach ((int formulaColumn, string formula) in formulas) CellFormula(totalsRow, formulaColumn, formula);
+            if (formulas.Count > 0) CacheUncachedFormulaResults(totalsRow, firstColumn, totalsRow, lastColumn);
+        }
+
+        private bool IsTableRowEmpty(int row, int firstColumn, int lastColumn) {
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                Cell? cell = TryGetExistingCell(row, column);
+                if (cell != null && (cell.CellValue != null || cell.CellFormula != null || cell.InlineString != null)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>A row whose first cell reads "Total" or that holds SUBTOTAL formulas already is the totals row.</summary>
+        private bool IsAuthoredTotalsRow(int row, int firstColumn, int lastColumn) {
+            Cell? label = TryGetExistingCell(row, firstColumn);
+            if (label != null && label.CellFormula == null) {
+                string text = GetCellAutoFitText(label).Trim();
+                if (text.Equals("Total", StringComparison.OrdinalIgnoreCase) ||
+                    text.Equals("Totals", StringComparison.OrdinalIgnoreCase) ||
+                    text.Equals("Grand Total", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                string? formula = TryGetExistingCell(row, column)?.CellFormula?.Text;
+                if (formula != null && formula.TrimStart('=', ' ').StartsWith("SUBTOTAL(", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+
+            return false;
+        }
+
+        private static int? GetSubtotalFunctionNumber(ExcelTableTotalsFunction function) => function switch {
+            ExcelTableTotalsFunction.Average => 101,
+            ExcelTableTotalsFunction.CountNumbers => 102,
+            ExcelTableTotalsFunction.Count => 103,
+            ExcelTableTotalsFunction.Maximum => 104,
+            ExcelTableTotalsFunction.Minimum => 105,
+            ExcelTableTotalsFunction.StandardDeviation => 107,
+            ExcelTableTotalsFunction.Sum => 109,
+            ExcelTableTotalsFunction.Variance => 110,
+            _ => null
+        };
+
+        private static string EscapeStructuredReferenceColumnName(string name) {
+            var builder = new System.Text.StringBuilder(name.Length);
+            foreach (char value in name) {
+                if (value is '[' or ']' or '#' or '\'') builder.Append('\'');
+                builder.Append(value);
+            }
+
+            return builder.ToString();
         }
 
         private Table? FindTableByRangeNameOrDisplayName(string tableOrRange) {
@@ -354,7 +480,10 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style) {
+            // Direct package writers bypass the cell model; their output keeps the plain table.
+            bool applyDefaults = !_excelDocument.UsesDirectPackageWriter;
             AddTableCore(range, hasHeader, name, style, includeAutoFilter: true, ensureRangeCellsExist: true);
+            if (applyDefaults) ApplyNewTableDefaults(range, hasHeader);
         }
 
         /// <summary>
@@ -397,7 +526,49 @@ namespace OfficeIMO.Excel {
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
         public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
+            bool applyDefaults = !_excelDocument.UsesDirectPackageWriter;
             AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
+            if (applyDefaults) ApplyNewTableDefaults(range, hasHeader);
+        }
+
+        private void ApplyNewTableDefaults(string range, bool hasHeader) {
+            if (hasHeader) AlignNumericTableHeaders(range);
+            ApplyTablePrintDefaults(hasHeader && ExcelA1.TryParseRange(range, out int headerRow, out _, out _, out _) ? headerRow : 0);
+        }
+
+        /// <summary>
+        /// Right-aligns the header over a column of numbers so the label sits above the
+        /// right-aligned values. Headers with an explicit alignment keep it.
+        /// </summary>
+        private void AlignNumericTableHeaders(string range) {
+            if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) || lastRow <= firstRow) return;
+            MaterializePendingDirectCellValues();
+            int lastSampledRow = Math.Min(lastRow, firstRow + 1000);
+            var numericColumns = new List<int>();
+            Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    bool sawNumber = false;
+                    bool onlyNumbers = true;
+                    for (int row = firstRow + 1; row <= lastSampledRow && onlyNumbers; row++) {
+                        Cell? cell = TryGetExistingCell(row, column);
+                        if (cell == null || (cell.CellValue == null && cell.InlineString == null)) continue;
+                        DocumentFormat.OpenXml.Spreadsheet.CellValues? type = cell.DataType?.Value;
+                        bool numeric = cell.InlineString == null && (type == null ||
+                            type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number ||
+                            type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date);
+                        sawNumber |= numeric;
+                        onlyNumbers &= numeric;
+                    }
+
+                    if (sawNumber && onlyNumbers) numericColumns.Add(column);
+                }
+            });
+
+            foreach (int column in numericColumns) {
+                if (string.IsNullOrWhiteSpace(GetCellStyle(firstRow, column).HorizontalAlignment)) {
+                    CellAlign(firstRow, column, ExcelHorizontalAlignment.Right);
+                }
+            }
         }
 
         internal string AddTableAndGetName(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {

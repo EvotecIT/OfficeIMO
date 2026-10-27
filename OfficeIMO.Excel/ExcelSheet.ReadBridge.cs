@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Threading;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
@@ -140,6 +142,33 @@ namespace OfficeIMO.Excel {
             return EnumerateRangeIterator(a1Range, options, cancellationToken);
         }
 
+        /// <summary>
+        /// Typed rows are data rows. When the read range ends on a table's totals row,
+        /// that row is left out so a SUBTOTAL label or blank date does not become an object.
+        /// </summary>
+        private string? ExcludeTableTotalsRows(string? a1Range) {
+            if (_worksheetPart.TableDefinitionParts.FirstOrDefault() == null) return a1Range;
+            string range = a1Range ?? GetUsedRangeA1();
+            if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) return a1Range;
+            int trimmedLastRow = lastRow;
+            foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+                Table? table = part.Table;
+                int totalsRows = (int)(table?.TotalsRowCount?.Value ?? 0U);
+                if (table == null || totalsRows <= 0 ||
+                    !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int tableFirstRow, out int tableFirstColumn, out int tableLastRow, out int tableLastColumn) ||
+                    tableLastRow != trimmedLastRow || tableFirstColumn > lastColumn || tableLastColumn < firstColumn) {
+                    continue;
+                }
+
+                int firstTotalsRow = tableLastRow - totalsRows + 1;
+                if (firstTotalsRow > firstRow && firstTotalsRow > tableFirstRow) trimmedLastRow = firstTotalsRow - 1;
+            }
+
+            return trimmedLastRow == lastRow
+                ? a1Range
+                : ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(trimmedLastRow, lastColumn);
+        }
+
         private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             ExcelReaderOptions? options,
             CancellationToken ct) where T : new() {
@@ -149,7 +178,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs<T>()) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -166,7 +195,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs(configure)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -183,7 +212,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs(factory)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -200,7 +229,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs<T>()) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -218,7 +247,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs(configure)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -236,7 +265,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs(factory)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
