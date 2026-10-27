@@ -1815,6 +1815,20 @@
               "pipeline": "byValue"
             },
             {
+              "name": "Property",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Columns to include, in this order."
+            },
+            {
+              "name": "ColumnFormat",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Format per column, as in Export-OfficeExcel: @{ Amount = N2; Date = d }."
+            },
+            {
               "name": "Style",
               "type": "WordTableStyle",
               "mandatory": false,
@@ -1899,6 +1913,20 @@
               "mandatory": true,
               "position": 0,
               "pipeline": "byValue"
+            },
+            {
+              "name": "Property",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Columns to include, in this order."
+            },
+            {
+              "name": "ColumnFormat",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Format per column, as in Export-OfficeExcel: @{ Amount = N2; Date = d }."
             },
             {
               "name": "Style",
@@ -2008,6 +2036,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Column",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Colours only this columns cell instead of the whole row."
+            },
+            {
               "name": "BackgroundColor",
               "type": "OfficeColor",
               "mandatory": false,
@@ -2051,6 +2086,11 @@
           "title": "Grade sales by target",
           "description": "Applies several conditions in order so each region row shows whether it beat, met or missed target.",
           "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Target = 120000; Actual = 131500 }\n    [pscustomobject]@{ Region = 'South'; Target = 95000; Actual = 94100 }\n    [pscustomobject]@{ Region = 'East'; Target = 110000; Actual = 82300 }\n    [pscustomobject]@{ Region = 'West'; Target = 105000; Actual = 106200 }\n)\n\nNew-OfficeWord -Path .\\Reports\\Q3-Sales.docx {\n    WordHeading 'Q3 sales by region'\n    WordTable -InputObject $sales {\n        WordTableCondition { $_.Actual -ge $_.Target * 1.05 } -BackgroundColor Success\n        WordTableCondition { $_.Actual -lt $_.Target * 0.9 } -BackgroundColor Danger\n        WordTableCondition { $_.Actual -lt $_.Target -and $_.Actual -ge $_.Target * 0.9 } -BackgroundColor '#FEF3C7'\n    }\n}"
+        },
+        {
+          "title": "Colour one column by value",
+          "description": "Colours the Compliance cell red, amber or green; the value stays numeric so it can be compared.",
+          "code": "New-OfficeWord -Path .\\Reports\\Patch.docx {\n    WordTable -InputObject $servers -Property Name, Compliance -ColumnFormat @{ Compliance = 'P1' } {\n        WordTableCondition { $_.Compliance -lt 0.8 } -Column Compliance -BackgroundColor Danger\n        WordTableCondition { $_.Compliance -lt 0.95 } -Column Compliance -BackgroundColor Warning\n        WordTableCondition { $_.Compliance -ge 0.95 } -Column Compliance -BackgroundColor Success\n    }\n}"
         }
       ]
     },
@@ -3379,6 +3419,19 @@
               "type": "WordDocument",
               "mandatory": false,
               "pipeline": "byValue"
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the document Title property."
+            },
+            {
+              "name": "Subtitle",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
             },
             {
               "name": "PublishDate",
@@ -8828,6 +8881,103 @@
           "title": "Insert Markdown into a branded template",
           "description": "Places the converted runbook at the Body bookmark of the company template and only reads images from the docs folder.",
           "code": "$options = New-OfficeMarkdownWordOptions -Template .\\Templates\\Runbook.dotx -BookmarkName Body -AllowLocalImages -AllowedImageDirectory .\\docs\\images -FitImagesToPageContentWidth\nConvert-OfficeDocument -Path .\\docs\\sql-failover.md -To Word -OutputPath .\\Runbooks\\SQL-Failover.docx -Options $options"
+        }
+      ]
+    },
+    {
+      "name": "Export-OfficeWord",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes pipeline objects to a Word document as a styled table, with an optional title.",
+      "outputType": "System.IO.FileInfo (with -PassThru)",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object[]",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "position": 0
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Property",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnFormat",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Style",
+              "type": "WordTableStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Orientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Landscape is chosen automatically for tables wider than the portrait text area unless set."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Matches Export-OfficeExcel and Export-OfficePowerPoint for the one-line job. Use New-OfficeWord for documents with more than one table.",
+      "examples": [
+        {
+          "title": "Put a table of processes into Word",
+          "description": "The smallest call: one table with the default style.",
+          "code": "Get-Process | Select-Object -First 10 -Property Name, Id, CPU | Export-OfficeWord -Path .\\Processes.docx"
+        },
+        {
+          "title": "Export a report table with a title",
+          "description": "Writes disk capacity with a title and formatted columns, replacing an existing file unless -NoClobber.",
+          "code": "Get-Volume |\n    Where-Object DriveLetter |\n    Select-Object -Property DriveLetter, FileSystemLabel, Size, SizeRemaining |\n    Export-OfficeWord -Path .\\Reports\\Disks.docx -Title 'Disk capacity' -ColumnFormat @{ Size = 'N0'; SizeRemaining = 'N0' }"
         }
       ]
     }

@@ -2204,6 +2204,54 @@
               "notes": "Indicator color; overrides the color derived from -Trend and -GoodDirection."
             }
           ]
+        },
+        {
+          "name": "Delta",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Value",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Label",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "Delta",
+              "type": "double",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Numeric change; sets the change text and the trend arrow from its sign."
+            },
+            {
+              "name": "DeltaUnit",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Unit after the number: '%', 'pt', 'ms'. With '%' the value is a fraction (0.12 → +12%)."
+            },
+            {
+              "name": "GoodDirection",
+              "type": "PowerPointKpiDirection",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Up (default) or Down; which trend counts as good."
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Indicator color; overrides the color derived from -Trend and -GoodDirection."
+            }
+          ]
         }
       ],
       "notes": "Replaces the -Metrics hashtables of Add-OfficePowerPointPlanCaseStudy. Two to six per slide. -Trend and -GoodDirection color the change semantically: a trend in the good direction uses Success, against it Danger, and Flat the neutral text color; -Color overrides. PowerPointKpiTrend: Up, Down, Flat. PowerPointKpiDirection: Up, Down.",
@@ -2217,6 +2265,11 @@
           "title": "Report support metrics with change indicators",
           "description": "Calculates this month's support metrics from ticket data and shows them with changes, marking the worsening one with the warning color.",
           "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PptSlide -Title 'Support review' -Subtitle 'October 2026'\n    PptSlide -Title 'October at a glance' {\n        PptKpi $tickets.Count 'Tickets opened' -Change '+6% vs September' -Trend Up -GoodDirection Down\n        PptKpi $closed.Count 'Tickets closed' -Change '+11%' -Trend Up\n        PptKpi '4.6 / 5' 'Satisfaction' -Change '+0.1' -Trend Up\n        PptKpi $breached.Count 'SLA breaches' -Change '+3' -Trend Up -GoodDirection Down\n    }\n}"
+        },
+        {
+          "title": "Show a computed change",
+          "description": "Passes the numeric change; the change text and the arrow follow from it, and -GoodDirection decides the colour.",
+          "code": "PptSlide -Title 'This week' {\n    PptKpi '99.95%' 'Availability' -Delta 0.02 -DeltaUnit pt\n    PptKpi '182 ms' 'Median response' -Delta -14 -DeltaUnit ms -GoodDirection Down\n}"
         }
       ]
     },

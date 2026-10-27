@@ -32,7 +32,7 @@ New-OfficeExcel -Path $path -Force {
         ExcelTable $budget -Name DepartmentBudget -ColumnFormat @{
             Budget = 'Currency'; Actual = 'Currency'; Forecast = 'Currency'; Variance = 'Currency'
         }
-        ExcelConditionalFormat -Table DepartmentBudget -Header Actual -Color Accent1
+        ExcelConditionalFormat -Table DepartmentBudget -Header Actual -DataBar
         ExcelConditionalFormat -Table DepartmentBudget -Header Forecast -IconSet ThreeTrafficLights1
         ExcelChart "A1:D$($budget.Count + 1)" -Address A8 -Type Column -Title 'Budget, actual and forecast'
     }

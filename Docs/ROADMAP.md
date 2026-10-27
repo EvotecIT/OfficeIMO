@@ -27,7 +27,7 @@ OfficeIMO 3.6 and PSWriteOffice 3.6 adopt one public API across C# and PowerShel
   - PowerPoint: the layout system in `Build/Visual/powerpoint-layouts.json` replacing today's designer composition, with a text-style chain, placeholders, table fitting and balanced continuations.
   - Every route reports what it drops; no supported input crashes a conversion.
 - [ ] M7 Scale: streaming export, parallel and resumable batches, measured runs. Depends on M4.
-- [ ] M8 Documentation: root and package READMEs with a quick start on the first screen, getting-started guides, help with executed examples, `about_` topics, the 3.6 migration section generated from the map, and the website. Depends on M5.
+- [ ] M8 Documentation: root and package READMEs with a quick start on the first screen, getting-started guides, help with executed examples, enum values and output properties with a sample of the output, `about_` topics, the 3.6 migration section generated from the map, and the website. Depends on M5.
 - [ ] M9 Console experience: optional ConsoleMonster integration. Depends on M5.
 
 ## VBA host integration

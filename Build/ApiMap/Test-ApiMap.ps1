@@ -220,6 +220,68 @@ $testCode = {
                 $errors.Add("$Label passes -$($element.ParameterName) to $resolved, which does not define it.")
             }
         }
+
+        # Parameter set resolution, as PowerShell does it: some set must accept every named parameter,
+        # the positional arguments and all of its mandatory parameters. Splatted calls can't be checked.
+        if (@($commandAst.CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.VariableExpressionAst] -and $_.Splatted }).Count) { continue }
+        $definition = $commands[$resolved].Definition
+        $byName = @{}
+        foreach ($set in @($definition.parameterSets)) {
+            foreach ($parameter in @($set.parameters)) {
+                $byName[$parameter.name] = $parameter
+                foreach ($alias in @($parameter.aliases | Where-Object { $_ })) { $byName[$alias] = $parameter }
+            }
+        }
+        $pipeline = $commandAst.Parent
+        $receivesPipeline = $pipeline -is [System.Management.Automation.Language.PipelineAst] -and $pipeline.PipelineElements.IndexOf($commandAst) -gt 0
+        $named = @{}
+        $positional = [System.Collections.Generic.List[object]]::new()
+        $elements = $commandAst.CommandElements
+        for ($i = 1; $i -lt $elements.Count; $i++) {
+            $element = $elements[$i]
+            if ($element -isnot [System.Management.Automation.Language.CommandParameterAst]) { $positional.Add($element); continue }
+            $candidates = @($byName.Keys | Where-Object { $_.Equals($element.ParameterName, [StringComparison]::OrdinalIgnoreCase) })
+            if (-not $candidates.Count) { $candidates = @($byName.Keys | Where-Object { $_.StartsWith($element.ParameterName, [StringComparison]::OrdinalIgnoreCase) }) }
+            $targets = @($candidates | ForEach-Object { $byName[$_].name } | Sort-Object -Unique)
+            if ($targets.Count -gt 1) { $errors.Add("$Label passes -$($element.ParameterName) to $resolved, which matches several parameters: $($targets -join ', ').") }
+            if ($targets.Count -ne 1) {
+                if (-not $element.Argument -and $i + 1 -lt $elements.Count -and $elements[$i + 1] -isnot [System.Management.Automation.Language.CommandParameterAst] -and $element.ParameterName -notin 'Verbose', 'Debug', 'WhatIf', 'Confirm') { $i++ }
+                continue
+            }
+            $parameter = $byName[$targets[0]]
+            $isSwitch = $parameter.type -in 'switch', 'SwitchParameter'
+            if (-not $element.Argument -and -not $isSwitch -and $i + 1 -lt $elements.Count -and $elements[$i + 1] -isnot [System.Management.Automation.Language.CommandParameterAst]) { $i++ }
+            $named[$parameter.name] = $true
+        }
+        $viable = @()
+        foreach ($set in @($definition.parameterSets)) {
+            $setParameters = @($set.parameters)
+            $setNames = @($setParameters | ForEach-Object { $_.name })
+            if (@($named.Keys | Where-Object { $_ -notin $setNames }).Count) { continue }
+            $free = @($setParameters | Where-Object { $null -ne $_.position -and -not $named.ContainsKey($_.name) } | Sort-Object -Property position)
+            $blocks = [System.Collections.Generic.List[object]]::new()
+            foreach ($candidate in @($setParameters | Where-Object { $_.type -eq 'scriptblock' -and $null -eq $_.position -and -not $named.ContainsKey($_.name) })) { $blocks.Add($candidate) }
+            $bound = @{}
+            $next = 0
+            $tooMany = $false
+            foreach ($argument in $positional) {
+                if ($next -lt $free.Count) { $bound[$free[$next].name] = $true; $next++ }
+                elseif ($argument -is [System.Management.Automation.Language.ScriptBlockExpressionAst] -and $blocks.Count) { $bound[$blocks[0].name] = $true; $blocks.RemoveAt(0) }
+                else { $tooMany = $true }
+            }
+            if ($tooMany) { continue }
+            $missing = @($setParameters | Where-Object {
+                $_.mandatory -and -not $named.ContainsKey($_.name) -and -not $bound.ContainsKey($_.name) -and
+                -not ($receivesPipeline -and $_.pipeline -and $_.pipeline -ne 'none')
+            })
+            if ($missing.Count) { continue }
+            $viable += $set
+        }
+        if (-not $viable.Count) {
+            $errors.Add("$Label calls $resolved with arguments no parameter set accepts (check mandatory parameters and parameters from different sets).")
+        } elseif ($viable.Count -gt 1 -and -not $receivesPipeline -and -not @($viable | Where-Object { $_.default }).Count) {
+            $errors.Add("$Label calls $resolved ambiguously: parameter sets $(@($viable | ForEach-Object { $_.name }) -join ', ') all accept it and none is the default.")
+        }
     }
 }
 

@@ -65,5 +65,14 @@
     "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
     "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
-  }
+  },
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Html.Pdf",
+      "to": "OfficeIMO.Pdf.Html",
+      "scope": "whole package (PDF to HTML conversion)",
+      "reason": "Adapter packages are named {Source}.{Target}; this package converts PDF to HTML, while HTML to PDF lives in OfficeIMO.Html. Newcomers install the wrong package for HTML to PDF.",
+      "status": "pending"
+    }
+  ]
 }

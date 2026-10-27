@@ -277,6 +277,9 @@ One name, one meaning, everywhere. The set below is fixed; a new command does no
 | `-NoClobber` | Make `Export-` and `Convert-` refuse to replace an existing output. By default they replace it, like `Export-Csv` |
 | `-Show` | Open the result in its default application |
 | `-Category` / `-Value` | The properties a chart reads from `-InputObject`. Replaces `-CategoryProperty` / `-SeriesProperty` |
+| `-Name` / `-Table` / `-TableName` | `-Name` names the object the command creates or gets (`ExcelTable -Name`, `Get-OfficeExcelTable -Name`). `-Table` refers to an existing table. `-TableName` names a table that a command creates on the way (`Export-OfficeExcel -TableName`) |
+| `-Property` | The columns a table or export takes from `-InputObject`, in this order. Without it, objects with a default display property set (`Get-Process`, `Get-Service`) use that set, other objects use all their properties |
+| `-SkipUpToDate` | Make `Convert-` skip an input whose output exists and is newer. Skipped items are reported with their reason, as `-NoClobber` skips are |
 
 Other rules:
 

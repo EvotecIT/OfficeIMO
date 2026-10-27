@@ -1192,10 +1192,11 @@
               "pipeline": "none"
             },
             {
-              "name": "Table",
+              "name": "TableName",
               "type": "string",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Name of the table the command creates (or appends to, with -Append)."
             },
             {
               "name": "Title",
@@ -1391,10 +1392,11 @@
               "pipeline": "none"
             },
             {
-              "name": "Table",
+              "name": "TableName",
               "type": "string",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Name of the table the command creates (or appends to, with -Append)."
             },
             {
               "name": "Title",
@@ -1590,10 +1592,11 @@
               "pipeline": "none"
             },
             {
-              "name": "Table",
+              "name": "TableName",
               "type": "string",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Name of the table the command creates (or appends to, with -Append)."
             },
             {
               "name": "Title",
@@ -1781,7 +1784,7 @@
         {
           "title": "Append a daily snapshot to a history table",
           "description": "Adds today's free-space readings to the DiskHistory table, so the workbook grows into a capacity history one run at a time.",
-          "code": "Get-Volume |\n    Where-Object DriveLetter |\n    Select-Object @{ Name = 'Date'; Expression = { Get-Date } }, DriveLetter, Size, SizeRemaining |\n    Export-OfficeExcel -Path .\\Reports\\Disk-Usage.xlsx -Sheet History -Table DiskHistory -Append"
+          "code": "Get-Volume |\n    Where-Object DriveLetter |\n    Select-Object @{ Name = 'Date'; Expression = { Get-Date } }, DriveLetter, Size, SizeRemaining |\n    Export-OfficeExcel -Path .\\Reports\\Disk-Usage.xlsx -Sheet History -TableName DiskHistory -Append"
         },
         {
           "title": "Refresh one sheet of a workbook",
@@ -9739,10 +9742,18 @@
               "pipeline": "none"
             },
             {
+              "name": "DataBar",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Adds data bars instead of a rule."
+            },
+            {
               "name": "Color",
               "type": "OfficeColor",
-              "mandatory": true,
-              "pipeline": "none"
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Bar colour. Default: Accent1."
             },
             {
               "name": "PassThru",
@@ -9793,10 +9804,18 @@
               "pipeline": "none"
             },
             {
+              "name": "DataBar",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Adds data bars instead of a rule."
+            },
+            {
               "name": "Color",
               "type": "OfficeColor",
-              "mandatory": true,
-              "pipeline": "none"
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Bar colour. Default: Accent1."
             },
             {
               "name": "PassThru",
@@ -9835,10 +9854,18 @@
               "pipeline": "none"
             },
             {
+              "name": "DataBar",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Adds data bars instead of a rule."
+            },
+            {
               "name": "Color",
               "type": "OfficeColor",
-              "mandatory": true,
-              "pipeline": "none"
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Bar colour. Default: Accent1."
             },
             {
               "name": "PassThru",
@@ -10059,7 +10086,7 @@
         {
           "title": "Add data bars to a column",
           "description": "Draws data bars in the Amount column of the Orders table in the first accent colour.",
-          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat -Header Amount -Table Orders -Color Accent1\n    }\n}"
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat -Header Amount -Table Orders -DataBar\n    }\n}"
         },
         {
           "title": "Colour attainment from red to green",
@@ -10070,6 +10097,11 @@
           "title": "Flag negative margins with a rule",
           "description": "Highlights negative margins with a light red fill and red text.",
           "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat E2:E500 -Rule CellIs -Operator LessThan -Value 0 -BackgroundColor '#FEE2E2' -Color Danger\n    }\n}"
+        },
+        {
+          "title": "Highlight accounts with no logon in 90 days",
+          "description": "Colours the LastLogon cell when the date is more than 90 days old; -Value takes an Excel formula when it starts with '='.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Users.xlsx {\n    ExcelSheet 'Users' {\n        ExcelConditionalFormat -Header LastLogon -Table Users -Rule CellIs -Operator LessThan -Value '=TODAY()-90' -BackgroundColor Danger\n    }\n}"
         }
       ]
     },
@@ -15648,14 +15680,14 @@
       "new": "Export-OfficeExcel",
       "parameters": {
         "WorksheetName": "Sheet",
-        "TableName": "Table",
+        "TableName": "TableName",
         "StartRow": "Address",
         "StartColumn": "Address",
         "AutoFit": "NoAutoFit",
         "AutoFitFormattedColumn": null,
         "FreezeTopRow": "NoFreeze",
         "BoldTopRow": null,
-        "AppendToTable": "Table",
+        "AppendToTable": "TableName",
         "ClearSheet": "ReplaceSheet",
         "TextColumn": "ColumnFormat",
         "NumberColumn": "ColumnFormat",

@@ -4,4 +4,4 @@ $orders = @(
 )
 
 # Styled table, frozen header, fitted columns and a date format for Due come by default.
-$orders | Export-OfficeExcel -Path .\Orders.xlsx -Sheet Orders -Table Orders -ColumnFormat @{ Total = 'Currency' }
+$orders | Export-OfficeExcel -Path .\Orders.xlsx -Sheet Orders -TableName Orders -ColumnFormat @{ Total = 'Currency' }
