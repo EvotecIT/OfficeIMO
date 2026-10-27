@@ -403,7 +403,8 @@ public partial class Excel {
             .OrderBy(shape => shape.X)
             .First();
 
-        Assert.InRange(firstMarker.Y, 90D, 110D);
+        // 10 on the 0-25 axis that 20 rounds up to sits 40 % up the plot.
+        Assert.InRange(firstMarker.Y, 105D, 125D);
     }
 
     [Fact]
@@ -708,8 +709,9 @@ public partial class Excel {
         Assert.Contains("Target", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains(DefaultAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(DefaultAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
+        // Radar series are lines, and their legend keys are strokes in the series colour.
+        Assert.Contains(DefaultAccentPdfColor(1) + " RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " RG", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

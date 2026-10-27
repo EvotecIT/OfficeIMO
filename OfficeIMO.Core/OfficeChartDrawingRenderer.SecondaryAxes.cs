@@ -6,19 +6,21 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
     private static void AddSecondaryAxisTitle(OfficeDrawing drawing, string title,
-        double plotLeft, double plotTop, double plotWidth, bool barChart,
+        double plotLeft, double plotTop, double plotWidth, double plotHeight, double verticalBandLeft, bool barChart,
         OfficeChartStyle style, OfficeChartLayout layout) {
         double fontSize = GetAxisTitleFontSize(layout);
+        OfficeColor color = style.AxisTitleColor ?? style.MutedTextColor;
+        string? fontFamily = layout.AxisTitleFontFamily ?? layout.AxisTextFontFamily;
+        OfficeFontStyle? fontStyle = layout.AxisTitleFontStyle ?? layout.AxisTextFontStyle;
+        if (!barChart) {
+            AddVerticalAxisTitle(drawing, title, verticalBandLeft, plotTop, plotHeight, fontSize, color, style, fontFamily, fontStyle);
+            return;
+        }
+
         double height = Math.Max(10D, fontSize + 2D);
-        bool hasPrimaryTopTitle = barChart
-            ? layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle)
-            : layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle);
-        double y = Math.Max(0D, plotTop - height - (barChart ? 17D : 4D) -
-            (hasPrimaryTopTitle ? GetAxisTitleBandHeight(layout) : 0D));
+        double y = Math.Max(0D, plotTop - height - 17D);
         AddChartText(drawing, title, plotLeft, y, plotWidth,
-            height, fontSize, style.AxisTitleColor ?? style.MutedTextColor,
-            OfficeTextAlignment.Right, style, layout.AxisTitleFontFamily ?? layout.AxisTextFontFamily,
-            layout.AxisTitleFontStyle ?? layout.AxisTextFontStyle);
+            height, fontSize, color, OfficeTextAlignment.Right, style, fontFamily, fontStyle);
     }
 
     private readonly struct SecondaryAxisRenderContext {

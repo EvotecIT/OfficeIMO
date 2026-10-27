@@ -505,14 +505,16 @@ public sealed class OfficeChartStyle {
 
         _palette = new ReadOnlyCollection<OfficeColor>(colors);
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Aptos" : fontFamily!;
-        BackgroundColor = backgroundColor ?? OfficeColor.FromRgb(250, 252, 255);
-        BorderColor = borderColor ?? OfficeColor.FromRgb(183, 194, 207);
+        // Unstated chart surfaces follow Office: a white chart area with a light grey frame.
+        BackgroundColor = backgroundColor ?? OfficeColor.White;
+        BorderColor = borderColor ?? OfficeColor.FromRgb(217, 217, 217);
         AxisColor = axisColor ?? OfficeColor.FromRgb(80, 90, 100);
         GridLineColor = gridLineColor ?? OfficeColor.FromRgb(226, 232, 240);
         TextColor = textColor ?? OfficeColor.FromRgb(51, 65, 85);
         MutedTextColor = mutedTextColor ?? OfficeColor.FromRgb(100, 116, 139);
         AxisTitleColor = axisTitleColor;
-        TitleColor = titleColor ?? OfficeColor.FromRgb(31, 78, 121);
+        // Chart titles use the text colour; colour belongs to the series.
+        TitleColor = titleColor ?? TextColor;
         TitleFontFamily = string.IsNullOrWhiteSpace(titleFontFamily) ? null : titleFontFamily!;
         TitleFontSize = titleFontSize;
         TitleFontStyle = titleFontStyle;

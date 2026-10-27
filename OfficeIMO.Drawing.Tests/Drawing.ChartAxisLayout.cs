@@ -129,7 +129,7 @@ public class DrawingChartAxisLayoutTests {
 
         OfficeDrawingText valueAxisLabel = drawing.Elements
             .OfType<OfficeDrawingText>()
-            .First(label => label.Text == "$1,800,000.00");
+            .First(label => label.Text == "$2,000,000.00");
 
         Assert.True(valueAxisLabel.Width > 60D, "Long formatted value-axis labels should reserve measured width instead of using the legacy fixed band.");
         Assert.True(valueAxisLabel.X >= 0D);
@@ -152,7 +152,7 @@ public class DrawingChartAxisLayoutTests {
 
         OfficeDrawingText valueAxisLabel = drawing.Elements
             .OfType<OfficeDrawingText>()
-            .First(label => label.Text == "$1,800,000.00");
+            .First(label => label.Text == "$2,000,000.00");
 
         Assert.True(valueAxisLabel.Width > 60D, "Long formatted horizontal value-axis labels should not be forced into the legacy 34-point box.");
         Assert.True(valueAxisLabel.X >= 0D);

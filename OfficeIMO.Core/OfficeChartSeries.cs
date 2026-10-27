@@ -267,8 +267,19 @@ public sealed class OfficeChartSeries {
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
             SeriesStyle = SeriesStyle,
             PointStyles = styles,
-            PointExplosions = explosions
+            PointExplosions = explosions,
+            Trendline = Trendline
         };
+    }
+
+    /// <summary>Optional trendline fitted to this series.</summary>
+    public OfficeChartTrendline? Trendline { get; private set; }
+
+    /// <summary>Returns a copy with the trendline replaced; <see langword="null"/> removes it.</summary>
+    public OfficeChartSeries WithTrendline(OfficeChartTrendline? trendline) {
+        OfficeChartSeries copy = CopyWithPresentation(PointStyles, PointExplosions, ShowInLegend);
+        copy.Trendline = trendline;
+        return copy;
     }
 
     /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
