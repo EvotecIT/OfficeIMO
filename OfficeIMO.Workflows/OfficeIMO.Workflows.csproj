@@ -30,6 +30,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odg.Pdf\OfficeIMO.OpenDocument.Odg.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing.ImageIO\OfficeIMO.Drawing.ImageIO.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing.Wic\OfficeIMO.Drawing.Wic.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />

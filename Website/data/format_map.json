@@ -119,6 +119,10 @@
       "family": "images"
     },
     {
+      "name": "HEIC",
+      "family": "images"
+    },
+    {
       "name": "OneNote",
       "family": "books"
     },
@@ -1323,6 +1327,23 @@
       "surfaces": [
         "dotnet"
       ]
+    },
+    {
+      "id": "heic-pdf",
+      "source": "HEIC",
+      "target": "PDF",
+      "package": "OfficeIMO.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.CreateFromImages(sources, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "ConvertTo-OfficeDocument",
+      "example": "ConvertTo-OfficeDocument -InputPath ./in.heic -OutputPath ./out.pdf"
     },
     {
       "id": "html-adf",

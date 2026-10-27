@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
 
             byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
+            OfficeImageInfo info = RequireImageContent(ref bytes, path, nameof(path));
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
 
             ExcelImage image = AddImage(row, column, bytes, info.MimeType, resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
-            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
+            OfficeImageInfo info = RequireImageContent(ref bytes, remote.FileName, nameof(url), cancellationToken);
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
             ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(remote.ContentType, info),
                 resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
@@ -181,6 +181,7 @@ namespace OfficeIMO.Excel {
             ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             var (startRow, startColumn, endRow, endColumn) = ParseImageRange(range);
+            NormalizeHeicImageForEmbedding(ref imageBytes, ref contentType);
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
@@ -251,6 +252,7 @@ namespace OfficeIMO.Excel {
             if (yPixels < 0) throw new ArgumentOutOfRangeException(nameof(yPixels));
             if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+            NormalizeHeicImageForEmbedding(ref imageBytes, ref contentType);
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
@@ -304,7 +306,7 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
 
             byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
+            OfficeImageInfo info = RequireImageContent(ref bytes, path, nameof(path));
             return AddImageToRange(range, bytes, info.MimeType, offsetXPixels, offsetYPixels, endOffsetXPixels, endOffsetYPixels,
                 name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
@@ -365,7 +367,7 @@ namespace OfficeIMO.Excel {
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
-            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
+            OfficeImageInfo info = RequireImageContent(ref bytes, remote.FileName, nameof(url), cancellationToken);
             return AddImageToRange(range, bytes, ResolveImageContentType(remote.ContentType, info), offsetXPixels,
                 offsetYPixels, endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
@@ -561,7 +563,11 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(declaredContentType) ? "application/octet-stream" : declaredContentType!;
         }
 
-        private static OfficeImageInfo RequireImageContent(byte[] bytes, string? fileName, string parameterName) {
+        private static OfficeImageInfo RequireImageContent(ref byte[] bytes, string? fileName, string parameterName,
+            CancellationToken cancellationToken = default) {
+            string contentType = string.Empty;
+            OfficeImageInfo? normalizedInfo = NormalizeHeicImageForEmbedding(ref bytes, ref contentType, cancellationToken);
+            if (normalizedInfo != null) return normalizedInfo;
             if (!OfficeImageReader.TryValidateContent(bytes, fileName, out OfficeImageInfo info)) {
                 throw new ArgumentException("Image bytes do not contain a complete supported image.", parameterName);
             }

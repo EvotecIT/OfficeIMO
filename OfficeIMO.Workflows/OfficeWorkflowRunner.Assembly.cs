@@ -11,7 +11,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class OfficeWorkflowRunner {
     private const int AssemblyInputBufferSize = 81920;
     private static readonly HashSet<string> AssemblyImageExtensions = new(StringComparer.OrdinalIgnoreCase) {
-        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx"
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx", ".heic", ".heif", ".hif"
     };
     private static readonly IReadOnlyDictionary<string, string> AssemblyOfficeRoutes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
@@ -204,6 +204,7 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            AddImageCodecDiagnostic(failure, diagnostics, failureStage);
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);

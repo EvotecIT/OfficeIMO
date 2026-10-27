@@ -851,7 +851,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 5 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 72 | 14 | 0 | 26 | 0 | 0 |
+| Convert | 72 | 15 | 0 | 26 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.PowerPoint` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

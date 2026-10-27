@@ -21,7 +21,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal static OfficeImageFormat FromImagePath(string imagePath) {
             OfficeImageFormat format = OfficeImageReader.FromExtension(imagePath);
-            return format == OfficeImageFormat.Unknown ? OfficeImageFormat.Png : format.EnsurePowerPointImagePartSupport();
+            return format == OfficeImageFormat.Unknown ? OfficeImageFormat.Png
+                : format == OfficeImageFormat.Heic ? format : format.EnsurePowerPointImagePartSupport();
         }
 
         internal static OfficeImageFormat EnsurePowerPointImagePartSupport(this OfficeImageFormat format) {

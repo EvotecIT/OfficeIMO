@@ -362,6 +362,8 @@ For incremental authoring, use `var document = PdfDocument.Create(options)` and
 add blocks through `document.Content`. The same builder supports both ordinary
 statements and fluent chains; callbacks remain useful for grouping and page setup.
 
+HEIC/HEIF still images also work through `PdfDocument.CreateFromImages` and image insertion after registering the optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider on macOS/iOS or [WIC](../OfficeIMO.Drawing.Wic/README.md) provider on Windows. Windows requires Microsoft's HEIF Image Extensions and HEVC Video Extensions. The shared image owner composes tiles, applies source orientation and color once, and stores PNG samples in the PDF. Missing system support raises `OfficeRasterDecodeException` with `image-codec-unavailable` and a platform reason; no HEVC implementation is bundled.
+
 Image-file pages and image stamps accept at most 128 MiB of encoded data per
 image by default. Increase the limit for a trusted source when needed:
 
@@ -3241,7 +3243,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

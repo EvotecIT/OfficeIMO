@@ -18,6 +18,15 @@ namespace OfficeIMO.Workflows;
 /// Runs bounded local conversion and PDF health workflows and publishes validated artifacts atomically.
 /// </summary>
 public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
+    static OfficeWorkflowRunner() {
+        if (OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform == null) {
+            if (OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.IsSupported)
+                OfficeIMO.Drawing.ImageIO.OfficeImageIOCodec.Register();
+            if (OfficeIMO.Drawing.Wic.OfficeWicCodec.IsSupported)
+                OfficeIMO.Drawing.Wic.OfficeWicCodec.Register();
+        }
+    }
+
     /// <summary>Maximum number of requests accepted by one sequential batch.</summary>
     public const int MaximumBatchRequestCount = 250;
 
@@ -187,6 +196,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            AddImageCodecDiagnostic(failure, diagnostics, failureStage);
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence

@@ -342,7 +342,14 @@ namespace OfficeIMO.Word {
 
         private static MemoryStream? ConvertRasterForWord(Stream stream) {
             if (!OfficeImageReader.TryIdentifyByContent(stream, null, out OfficeImageInfo info)
-                || info.Format is not (OfficeImageFormat.Webp or OfficeImageFormat.Avif)) return null;
+                || info.Format is not (OfficeImageFormat.Webp or OfficeImageFormat.Avif or OfficeImageFormat.Heic)) return null;
+
+            if (info.Format == OfficeImageFormat.Heic) {
+                byte[] encoded = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(
+                    stream, new OfficeRasterDecodeOptions().MaximumEncodedBytes);
+                byte[] normalized = OfficeImageReader.NormalizeForEmbedding(encoded, null, out _);
+                return new MemoryStream(normalized, writable: false);
+            }
 
             string format = info.Format == OfficeImageFormat.Webp ? "WebP" : "AVIF";
             var options = new OfficeRasterDecodeOptions {

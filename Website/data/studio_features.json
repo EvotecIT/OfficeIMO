@@ -173,9 +173,11 @@
           "detail": "PDFs, Office files and images into one PDF",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Through the Combine into PDF shortcut and Insert Pages from File.",
-            "ipad": "Through the Combine into PDF shortcut and Insert Pages from File.",
-            "iphone": "Through the Combine into PDF shortcut and Insert Pages from File."
+            "windows": "HEIC/HEIF images require Microsoft's HEIF Image Extensions and HEVC Video Extensions.",
+            "linux": "HEIC/HEIF input reports an unavailable platform codec; other supported images remain available.",
+            "mac": "Through the Combine into PDF shortcut and Insert Pages from File. HEIC/HEIF still images use Apple ImageIO.",
+            "ipad": "Through the Combine into PDF shortcut and Insert Pages from File. HEIC/HEIF still images use Apple ImageIO.",
+            "iphone": "Through the Combine into PDF shortcut and Insert Pages from File. HEIC/HEIF still images use Apple ImageIO."
           }
         },
         {

@@ -350,6 +350,18 @@ public static class OfficeConversionCapabilityCatalog {
 
     private static OfficeConversionCapability[] CreateRoutes() {
         var routes = new List<OfficeConversionCapability> {
+        new OfficeConversionCapability(
+            "heic-pdf", "HEIC", "PDF", OfficeConversionInputKind.File,
+            new[] { ".heic", ".heif", ".hif" }, ".pdf", "OfficeIMO.Pdf",
+            "PdfDocument.CreateFromImages(sources, options)",
+            "Compose a HEIC/HEIF primary image as a PDF page through the registered operating-system codec.",
+            OfficeConversionFidelityKind.FixedLayout, "PdfDocument",
+            browserAvailable: false, agentDiscoverable: true,
+            supportLevel: OfficeConversionSupportLevel.Targeted,
+            supportEvidence: "CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
+            knownLimitations: "Requires Apple ImageIO or Windows WIC with HEIF and HEVC extensions. No bundled decoder or Linux platform codec. The SDR primary image is retained; HDR gain maps and depth are not projected.",
+            textFormatting: OfficeConversionTextFormattingKind.FlattenedRaster,
+            textFormattingContract: "The source is a raster image; PDF output preserves its supported pixels without adding searchable or editable text."),
         Route("doc-pdf", "DOC", "PDF", OfficeConversionInputKind.File, new[] { ".doc" }, ".pdf", "OfficeIMO.Word.Pdf", "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)", "Convert supported binary Word documents to PDF with import and rendering evidence.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
         Route("txt-pdf", "Plain text", "PDF", OfficeConversionInputKind.Text, new[] { ".txt" }, ".pdf", "OfficeIMO.Pdf", "PdfPlainTextConverter.ToPdfDocumentResult(bytes, options)", "Render literal text with explicit decoding, tab columns and page limits.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
         Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "PdfSaveResult"),

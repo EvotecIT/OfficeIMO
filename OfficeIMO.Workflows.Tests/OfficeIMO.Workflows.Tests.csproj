@@ -16,6 +16,7 @@
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
     <Compile Include="../OfficeIMO.Chm.Tests/ChmFixture.cs" Link="Fixtures/ChmFixture.cs" />
     <Compile Include="../OfficeIMO.TestAssets/ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <None Include="../OfficeIMO.TestAssets/Images/Heic/basic-8bit-srgb.heic" Link="Fixtures/Heic/basic-8bit-srgb.heic" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf" Link="Fixtures/SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Drawing.Tests/TestAssets/RobotoFlex.ttf" Link="Fixtures/RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Publisher.Tests/Fixtures/*.pub" Link="Fixtures/Publisher/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

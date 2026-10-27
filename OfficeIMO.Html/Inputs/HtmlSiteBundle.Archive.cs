@@ -106,6 +106,8 @@ public sealed partial class HtmlSiteBundle {
         ".gif" => "image/gif",
         ".webp" => "image/webp",
         ".avif" => "image/avif",
+        ".heic" => "image/heic",
+        ".heif" or ".hif" => "image/heif",
         ".svg" => "image/svg+xml",
         ".bmp" => "image/bmp",
         ".tif" or ".tiff" => "image/tiff",

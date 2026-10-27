@@ -48,6 +48,7 @@ public static partial class OfficeOperationCapabilityCatalog {
         AddLegacyCatalog(rows, "OfficeIMO.PowerPoint", "PowerPoint", "PowerPointCompatibilityCatalog.Current",
             PowerPointCompatibilityCatalog.Current, PowerPointFormatCatalog.All);
         AddConversionRoutes(rows);
+        AddHeicInsertionRows(rows);
         AddProtectionRows(rows);
         AddProvenanceRows(rows);
 
