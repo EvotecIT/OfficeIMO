@@ -57,6 +57,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 table.Append(row);
             }
+            SyncFrameHeightToGrid();
         }
 
         /// <summary>
@@ -84,6 +85,7 @@ namespace OfficeIMO.PowerPoint {
                 table.Append(newRow);
             }
 
+            SyncFrameHeightToGrid();
             return new PowerPointTableRow(this, newRow);
         }
 
@@ -104,6 +106,7 @@ namespace OfficeIMO.PowerPoint {
             row.Remove();
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
+            SyncFrameHeightToGrid();
         }
 
         /// <summary>
@@ -137,6 +140,7 @@ namespace OfficeIMO.PowerPoint {
                     row.Append(cell);
                 }
             }
+            SyncFrameWidthToGrid();
         }
 
         /// <summary>
@@ -176,6 +180,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            SyncFrameWidthToGrid();
             return new PowerPointTableColumn(this, newColumn);
         }
 
@@ -199,6 +204,7 @@ namespace OfficeIMO.PowerPoint {
             }
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
+            SyncFrameWidthToGrid();
         }
     }
 }

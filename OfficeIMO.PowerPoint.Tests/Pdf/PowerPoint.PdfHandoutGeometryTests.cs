@@ -14,11 +14,13 @@ public sealed class PowerPointPdfHandoutGeometryTests {
     [InlineData(1600, 400)]
     public void ThreeSlideHandoutsPreserveAspectRatioAndTheNotesColumn(double slideWidth, double slideHeight) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.ClearThemeTextDefaults();
         presentation.SlideSize.SetSizePoints(slideWidth, slideHeight);
         for (int index = 0; index < 3; index++) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddPicturePoints(new MemoryStream(PdfPngTestImages.CreateRgbPng(210, 230, 245)),
-                OfficeImageFormat.Png, 0, 0, slideWidth, slideHeight);
+                OfficeImageFormat.Png, 0, 0, slideWidth, slideHeight)
+                .WithFrame(0, 0, PowerPointUnits.FromPoints(slideWidth), PowerPointUnits.FromPoints(slideHeight));
             slide.AddTextBoxPoints("SLIDE " + (index + 1), 20, 20, 200, 40);
             PowerPointAutoShape circle = slide.AddShapePoints(OfficePresetShapeType.Ellipse, 20, 100, 100, 100);
             circle.FillColor = "E68A2E"; circle.OutlineColor = "000000";

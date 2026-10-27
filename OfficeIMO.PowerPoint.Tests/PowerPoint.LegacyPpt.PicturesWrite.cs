@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
                         PowerPointUnits.FromPoints(20D),
                         PowerPointUnits.FromPoints(30D),
                         PowerPointUnits.FromPoints(120D),
-                        PowerPointUnits.FromPoints(90D));
+                        PowerPointUnits.FromPoints(90D)).WithFrame(PowerPointUnits.FromPoints(20D), PowerPointUnits.FromPoints(30D), PowerPointUnits.FromPoints(120D), PowerPointUnits.FromPoints(90D));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

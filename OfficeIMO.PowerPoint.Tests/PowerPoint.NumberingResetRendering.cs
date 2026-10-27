@@ -84,6 +84,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(false, true, 14)]
     public void PDF_table_marker_percent_uses_effective_row_font_default(bool header, bool footer, int expectedSize) {
         using var presentation = PowerPointPresentation.Create();
+        presentation.ClearThemeTextDefaults();
         var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150);
         table.FirstRow = header;
         table.LastRow = footer;

@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddExecutiveSummarySlide(Title, Subtitle, Content, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointExecutiveSummarySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveExecutiveVariant(options, Content).ToString();
+            return (Content.Metrics.Count > 0 && Content.Points.Count > 0 ? "CaseStudy" : Content.Metrics.Count > 0 ? "Kpi" : Content.Points.Count > 0 ? "Cards" : "TitleAndContent");
         }
     }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddChartStorySlide(Title, Subtitle, Content, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointChartStorySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveChartStoryVariant(options, Content).ToString();
+            return (Content.Insights.Count > 0 ? "TwoContent" : "TitleAndContent");
         }
     }
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddComparisonSlide(Title, Subtitle, Items, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointComparisonSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveComparisonVariant(options, Items.Count).ToString();
+            return (Items.Count == 2 ? "Comparison" : "Cards");
         }
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
             if (Items.Count < 2 || Items.Count > 4) {
@@ -110,7 +110,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddScreenshotStorySlide(Title, Subtitle, Image, Narrative, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointScreenshotStorySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveScreenshotVariant(options, Image, Narrative).ToString();
+            return (Narrative.Count > 0 ? "TwoContent" : Image.Placement == PowerPointImagePlacement.Fill ? "ImageFull" : "TitleAndContent");
         }
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
             if (!File.Exists(Image.Path)) {
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckContinuationOptions options) {
             IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>> pages =
                 PowerPointDeckContinuationOptions.Chunk(Data.Rows, options.AppendixRowsPerSlide);
-            if (pages.Count <= 1) {
+            if (pages.Count <= 1 || !options.AppendixRowsPerSlideSet) {
                 yield return this;
                 yield break;
             }
@@ -160,14 +160,9 @@ namespace OfficeIMO.PowerPoint {
         }
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointAppendixTableSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveAppendixVariant(options, Data).ToString();
+            return (Data.Notes.Count > 0 ? "TwoContent" : "TitleAndContent");
         }
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Data.Rows.Count > PowerPointDeckPlanLimits.MaxAppendixTableRows) {
-                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "AppendixTable.TooManyRows", "Appendix tables support up to " +
-                    PowerPointDeckPlanLimits.MaxAppendixTableRows + " rows per slide; use continuations.");
-            }
         }
     }
 
@@ -192,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddArchitectureSlide(Title, Subtitle, Content, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointArchitectureSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveArchitectureVariant(options, Content).ToString();
+            return "TitleAndContent";
         }
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
             if (Content.Nodes.Count > 12) {
@@ -222,7 +217,7 @@ namespace OfficeIMO.PowerPoint {
             deck.AddClosingSlide(Title, Content, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointClosingSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveClosingVariant(options, Content).ToString();
+            return "Closing";
         }
     }
 }

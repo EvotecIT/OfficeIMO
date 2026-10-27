@@ -250,7 +250,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private C.Chart GetChart() {
+        internal C.Chart GetChart() {
             ChartPart chartPart = GetChartPart();
             C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
             if (chart == null) {
@@ -270,7 +270,7 @@ namespace OfficeIMO.PowerPoint {
             return (ChartPart)_ownerPart.GetPartById(relId);
         }
 
-        private void Save() {
+        internal void Save() {
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
         }

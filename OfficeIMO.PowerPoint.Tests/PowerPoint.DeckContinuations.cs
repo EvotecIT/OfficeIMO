@@ -21,18 +21,20 @@ namespace OfficeIMO.Tests {
             PowerPointDeckPlan expanded = plan.WithContinuations();
             PowerPointDeckPlanSlideSummary[] summaries = expanded.DescribeSlides().ToArray();
 
-            Assert.Equal(9, summaries.Length);
-            Assert.Equal(new[] { 5, 5, 2 }, summaries
+            Assert.Equal(8, summaries.Length);
+            // Continuations balance the items (never 5 + 5 + 2) and a process slide holds up to eight steps.
+            Assert.Equal(new[] { 6, 6 }, summaries
                 .Where(summary => summary.Kind == PowerPointDeckPlanSlideKind.Process)
                 .Select(summary => summary.ContentItemCount));
-            Assert.Equal(new[] { 6, 6, 1 }, summaries
+            Assert.Equal(new[] { 5, 4, 4 }, summaries
                 .Where(summary => summary.Kind == PowerPointDeckPlanSlideKind.CardGrid)
                 .Select(summary => summary.ContentItemCount));
-            Assert.Equal(new[] { 4, 4, 1 }, summaries
+            Assert.Equal(new[] { 3, 3, 3 }, summaries
                 .Where(summary => summary.Kind == PowerPointDeckPlanSlideKind.Capability)
                 .Select(summary => summary.ContentItemCount));
             Assert.Equal("Delivery", summaries[0].Title);
-            Assert.Equal("Delivery (continued 2/3)", summaries[1].Title);
+            Assert.Equal("Delivery (continued)", summaries[1].Title);
+            Assert.Equal("Portfolio (continued 2/3)", summaries[3].Title);
             Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
                 diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
         }
@@ -49,7 +51,7 @@ namespace OfficeIMO.Tests {
                 PowerPointCompositionOptions.FromDesign(
                     PowerPointDeckDesign.FromBrand("#2463EB", "continuation-test")));
 
-            Assert.Equal(3, result.Slides.Count);
+            Assert.Equal(2, result.Slides.Count);
             string allText = string.Join("\n", result.Slides.SelectMany(slide => slide.TextBoxes).Select(box => box.Text));
             for (int index = 1; index <= 12; index++) {
                 Assert.Contains("Step " + index, allText);

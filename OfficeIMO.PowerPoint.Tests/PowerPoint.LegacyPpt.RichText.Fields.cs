@@ -18,6 +18,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
+                source.ClearThemeTextDefaults();
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox(string.Empty);

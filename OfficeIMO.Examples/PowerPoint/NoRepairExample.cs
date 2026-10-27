@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example() {
             Console.WriteLine("[*] Creating PowerPoint presentation without repair issues");
             string filePath = Path.Combine(Path.GetTempPath(), "NoRepair_" + Guid.NewGuid() + ".pptx");
-            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             const double marginCm = 1.5;

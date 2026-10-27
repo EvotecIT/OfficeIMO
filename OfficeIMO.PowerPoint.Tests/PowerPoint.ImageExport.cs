@@ -636,6 +636,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_SuppressesInheritedLayoutPlaceholderWhenSlidePlaceholderOverridesIt() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.ClearThemeTextDefaults();
             presentation.SlideSize.SetSizePoints(240, 160);
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);

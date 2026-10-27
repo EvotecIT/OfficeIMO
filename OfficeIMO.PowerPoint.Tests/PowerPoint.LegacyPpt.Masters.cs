@@ -274,6 +274,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_WritesMainMasterShapesAndPlaceholderKinds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.ClearThemeTextDefaults();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!.ShapeTree!;
@@ -371,6 +372,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
+                source.ClearThemeTextDefaults();
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 P.ShapeTree tree = masterPart.SlideMaster!

@@ -536,6 +536,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateBinaryWithEditableMasterText() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
+            presentation.ClearThemeTextDefaults();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!
@@ -567,10 +568,12 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateBinaryWithEditableTitleMaster() {
             using PowerPointPresentation target = PowerPointPresentation.Create();
+            target.ClearThemeTextDefaults();
             target.SetThemeColor(PowerPointThemeColor.Accent1, "102030");
             target.AddSlide();
 
             using PowerPointPresentation source = PowerPointPresentation.Create();
+            source.ClearThemeTextDefaults();
             source.SetThemeColor(PowerPointThemeColor.Accent1, "A0B0C0");
             SlideMasterPart sourceMaster = source.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();

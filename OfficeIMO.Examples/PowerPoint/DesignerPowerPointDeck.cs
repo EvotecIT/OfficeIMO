@@ -139,7 +139,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             plan.AddCustom("Raw composition", composer => {
                 composer.AddTitle("Raw composition", "Use primitives when the slide needs its own structure.");
-                PowerPointLayoutBox[] rows = composer.ContentRows(2, gutterCm: 0.55, topCm: 3.75);
+                PowerPointLayoutBox[] rows = composer.ContentRows(2, gutterCm: 0.55);
                 composer.AddCardGrid(new[] {
                     new PowerPointCardContent("Story", new[] { "Title block", "Narrative area" }),
                     new PowerPointCardContent("Evidence", new[] { "Metrics", "Visual support" }),

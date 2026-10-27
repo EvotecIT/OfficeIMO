@@ -201,7 +201,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointPicture picture = first.AddPicturePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
-            OfficeImageFormat.Png, 20, 20, 60, 40);
+            OfficeImageFormat.Png, 20, 20, 60, 40).WithFrame(PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(40));
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTablePoints(1, 1, 20, 100, 220, 90).GetCell(0, 0);
         cell.Text = "Cell target"; cell.Paragraphs[0].Runs[0].SetHyperlink(second);

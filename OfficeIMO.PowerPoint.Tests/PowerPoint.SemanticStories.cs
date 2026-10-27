@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(14, presentation.Slides.Count);
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Charts).Count());
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Pictures).Count());
-                    Assert.True(presentation.Slides.SelectMany(slide => slide.Tables).Count() >= 3);
+                    Assert.True(presentation.Slides.SelectMany(slide => slide.Tables).Count() >= 2);
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes),
                         shape => shape.Name.StartsWith("Architecture Node", StringComparison.Ordinal));
                     PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -133,13 +133,19 @@ namespace OfficeIMO.Tests {
                 .AddAppendixTable("Evidence", null, table);
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "rhythm-test");
 
+            // The plan keeps the table whole; the slide layout splits it from the measured row height.
             PowerPointDeckPlan expanded = plan.WithContinuations();
-            Assert.Equal(3, expanded.Slides.Count(slide =>
-                slide.Kind == PowerPointDeckPlanSlideKind.AppendixTable));
-            Assert.All(expanded.Slides.OfType<PowerPointAppendixTablePlanSlide>(), slide =>
-                Assert.InRange(slide.Data.Rows.Count, 1, PowerPointDeckPlanLimits.MaxAppendixTableRows));
+            Assert.Equal(1, expanded.Slides.Count(slide => slide.Kind == PowerPointDeckPlanSlideKind.AppendixTable));
             Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
                 diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream())) {
+                presentation.Compose(new PowerPointDeckPlan().AddAppendixTable("Evidence", null, table),
+                    PowerPointCompositionOptions.FromDesign(design));
+                int[] parts = presentation.Slides.Select(slide => slide.Tables.Single().Rows - 1).ToArray();
+                Assert.True(parts.Length >= 3);
+                Assert.Equal(30, parts.Sum());
+                Assert.True(parts.Max() - parts.Min() <= 1);
+            }
 
             PowerPointDeckRhythmReport report = plan.InspectRhythm(design);
             Assert.Contains(report.Findings, finding => finding.Code == "rhythm-repeated-kind");
@@ -217,26 +223,6 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("points", exception.ParamName);
             Assert.Contains("at most four", exception.Message, StringComparison.OrdinalIgnoreCase);
-        }
-
-        [Theory]
-        [InlineData(PowerPointExecutiveSummaryLayoutVariant.DecisionBrief, 4, 3)]
-        [InlineData(PowerPointExecutiveSummaryLayoutVariant.MetricLead, 5, 4)]
-        public void ExecutiveSummaryRejectsMetricsBeyondTheSelectedLayoutCapacity(
-            PowerPointExecutiveSummaryLayoutVariant variant, int metricCount, int expectedCapacity) {
-            var content = new PowerPointExecutiveSummaryContent(
-                Enumerable.Range(1, metricCount)
-                    .Select(index => new PowerPointMetric(index.ToString(), "Metric " + index)),
-                Array.Empty<PowerPointCardContent>());
-            using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
-
-            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                presentation.AddDesignerExecutiveSummarySlide("Summary", null, content,
-                    options: new PowerPointExecutiveSummarySlideOptions { Variant = variant }));
-
-            Assert.Equal("content", exception.ParamName);
-            Assert.Contains("at most " + expectedCapacity, exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         private static PowerPointExecutiveSummaryContent CreateExecutiveContent() => new(

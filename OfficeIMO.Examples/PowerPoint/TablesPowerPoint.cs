@@ -246,7 +246,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 8: picture with caption
             PowerPointSlide imageSlide = presentation.AddSlide();
             imageSlide.AddTitleCm("Brand Assets", marginCm, marginCm, content.WidthCm, titleHeightCm);
-            string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
+            string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
             if (File.Exists(imagePath)) {
                 imageSlide.AddPictureCm(imagePath, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
             } else {

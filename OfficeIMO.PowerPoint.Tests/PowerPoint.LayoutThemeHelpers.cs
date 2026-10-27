@@ -129,11 +129,13 @@ namespace OfficeIMO.Tests {
 
                 IReadOnlyDictionary<PowerPointThemeColor, string> colors = presentation.GetThemeColors();
 
-                Assert.Equal("000000", presentation.GetThemeColor(PowerPointThemeColor.Dark1));
+                // New presentations take their palette from the default theme; light 1 keeps the system window colour.
+                string text = OfficeIMO.OfficeTheme.Default.Palette.Text.ToRgbHex();
+                Assert.Equal(text, presentation.GetThemeColor(PowerPointThemeColor.Dark1));
                 Assert.Equal("FFFFFF", presentation.GetThemeColor(PowerPointThemeColor.Light1));
-                Assert.Equal("000000", colors[PowerPointThemeColor.Dark1]);
+                Assert.Equal(text, colors[PowerPointThemeColor.Dark1]);
                 Assert.Equal("FFFFFF", colors[PowerPointThemeColor.Light1]);
-                Assert.Equal("156082", colors[PowerPointThemeColor.Accent1]);
+                Assert.Equal(OfficeIMO.OfficeTheme.Default.Palette.Accent1.ToRgbHex(), colors[PowerPointThemeColor.Accent1]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

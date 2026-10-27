@@ -16,6 +16,9 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
+        // PowerPoint draws a table at its grid size (column widths, row heights growing with content), not at
+        // its graphic-frame size. Map the grid through the frame's scale so group transforms still apply.
+        (width, height) = ResolveTableGridSize(table, width, height);
         string? fallbackFontFamily = string.IsNullOrWhiteSpace(options.FontFamily)
             ? ResolveTableDefaultFontFamily(table)
             : null;
@@ -360,5 +363,15 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void ForEachTableAnchorCell(PptCore.PowerPointTable table, Action<int, int, PptCore.PowerPointTableCell> action) {
         foreach (var anchor in table.EnumerateAnchorCells()) action(anchor.Row, anchor.Column, anchor.Cell);
+    }
+
+    private static (double Width, double Height) ResolveTableGridSize(PptCore.PowerPointTable table, double width, double height) {
+        long frameWidth = table.Width, frameHeight = table.Height;
+        long gridWidth = 0, gridHeight = 0;
+        for (int c = 0; c < table.Columns; c++) gridWidth += table.GetColumnWidth(c);
+        for (int r = 0; r < table.Rows; r++) gridHeight += table.GetRowHeight(r);
+        double resolvedWidth = gridWidth > 0 && frameWidth > 0 ? width * gridWidth / frameWidth : width;
+        double resolvedHeight = gridHeight > 0 && frameHeight > 0 ? height * gridHeight / frameHeight : height;
+        return (resolvedWidth, resolvedHeight);
     }
 }

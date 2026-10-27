@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointSlide imported = presentation.ImportSlide(sourcePresentation, 0, insertAt: 1);
                 PowerPointTextBox importBadge = imported.AddTextBoxCm(
                     "Imported from Slides Management - Source.pptx",
-                    content.LeftCm, content.TopCm + 3.2, content.WidthCm, 0.8);
+                    content.LeftCm, content.TopCm + 4.2, content.WidthCm, 0.8);
                 importBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
                 importBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
             }

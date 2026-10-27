@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Modern themed deck");
             string filePath = AppendPathSegment(folderPath, "Modern PowerPoint Deck.pptx");
             string imagesDirectory = AppendPathSegment(AppContext.BaseDirectory, "Images");
-            string backgroundImagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
+            string backgroundImagePath = AppendPathSegment(imagesDirectory, "Kulek.jpg");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -293,7 +293,6 @@ namespace OfficeIMO.Examples.PowerPoint {
             takeawayCard.FillColor = Linen;
             takeawayCard.OutlineColor = Orange;
             takeawayCard.OutlineWidthPoints = 1.4;
-            takeawayCard.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 15, endOpacityPercent: 0);
             AddLabel(slide, "Takeaway", 19.1, 3.55, 5.0, 0.55, Orange, 12, bold: true);
             AddBody(slide, "Sales nearly triple from January to June while profit expands at a steadier pace.", 19.1, 4.45, 9.8, 1.5, 18);
 
@@ -390,7 +389,6 @@ namespace OfficeIMO.Examples.PowerPoint {
             callout.FillColor = Linen;
             callout.OutlineColor = Indigo;
             callout.OutlineWidthPoints = 1.2;
-            callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 18, endOpacityPercent: 0);
             AddLabel(slide, "Observation", 25.0, 5.45, 5.5, 0.55, Indigo, 13, bold: true);
             AddBody(slide, "The slope stays healthy through Q2, which makes the line view easier to read than a scatter plot here.", 25.0, 6.6, 5.6, 3.0, 16);
 

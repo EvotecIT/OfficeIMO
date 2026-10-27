@@ -353,7 +353,16 @@ namespace OfficeIMO.PowerPoint {
             }
 
             TFont font = existing ?? new TFont();
-            font.Typeface = typeface;
+            if (font is A.LatinFont) {
+                if (!string.Equals(font.Typeface?.Value, typeface, StringComparison.Ordinal) || font.Panose == null) {
+                    PowerPointFontClassification.Apply(font, typeface);
+                }
+            } else {
+                font.Typeface = typeface;
+                if (existing != null && !string.Equals(existing.Typeface?.Value, typeface, StringComparison.Ordinal)) {
+                    font.Panose = null;
+                }
+            }
             return font;
         }
 

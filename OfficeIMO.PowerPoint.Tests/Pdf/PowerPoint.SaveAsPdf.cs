@@ -1065,7 +1065,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(50),
             PowerPointUnits.FromPoints(60),
-            PowerPointUnits.FromPoints(30));
+            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
         picture.HorizontalFlip = true;
         var options = new PowerPointPdfExportOptions {
             PictureFit = OfficeImageFit.Stretch,
@@ -1112,7 +1112,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(80),
-            PowerPointUnits.FromPoints(80));
+            PowerPointUnits.FromPoints(80)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1133,7 +1133,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(80),
-            PowerPointUnits.FromPoints(80));
+            PowerPointUnits.FromPoints(80)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfExportOptions {
             PictureFit = OfficeImageFit.Stretch,
             WarnOnPictureAspectRatioDistortion = true
@@ -1163,7 +1163,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(30),
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(30));
+            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(30), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
         HyperlinkRelationship rel = slide.SlidePart.AddHyperlinkRelationship(new Uri("https://officeimo.net/picture"), true);
         DocumentFormat.OpenXml.Presentation.Picture picture = slide.SlidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Single();
         picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Append(new HyperlinkOnClick { Id = rel.Id });
@@ -1215,7 +1215,7 @@ public partial class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(40),
             PowerPointUnits.FromPoints(50),
             PowerPointUnits.FromPoints(60),
-            PowerPointUnits.FromPoints(30));
+            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
         picture.Crop(leftPercent: 50D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1449,6 +1449,7 @@ public partial class PowerPointSaveAsPdfTests {
     public void ToPdfDocument_PowerPointPresentation_Uses_Configured_Default_Table_Style() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.ClearThemeTextDefaults();
         presentation.SlideSize.SetSizePoints(260, 180);
         PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
         table.FirstRow = true;
@@ -1599,6 +1600,7 @@ public partial class PowerPointSaveAsPdfTests {
     public void SaveAsPdf_PowerPointPresentation_PreservesConfiguredDefaultFontSlot() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.ClearThemeTextDefaults();
         presentation.SlideSize.SetSizePoints(260, 180);
         PowerPointSlide slide = presentation.AddSlide();
 
@@ -1633,6 +1635,7 @@ public partial class PowerPointSaveAsPdfTests {
     public void SaveAsPdf_PowerPointPresentation_PreservesExplicitMappedDefaultFontFamily() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.ClearThemeTextDefaults();
         presentation.SlideSize.SetSizePoints(260, 180);
         presentation.AddSlide().AddTextBoxPoints("ExplicitSerif", 30, 40, 150, 36);
 
