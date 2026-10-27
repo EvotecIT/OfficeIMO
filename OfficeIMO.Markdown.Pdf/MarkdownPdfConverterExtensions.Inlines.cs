@@ -81,9 +81,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 AppendInlines(builder, subscriptSequence.Inlines, style.With(baseline: PdfCore.PdfTextBaseline.Subscript));
                 break;
             case ImageInline image:
+                style.Anchors?.ReportInlineImageAsText(image.Src);
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
                 break;
             case ImageLinkInline imageLink:
+                style.Anchors?.ReportInlineImageAsText(imageLink.ImageUrl);
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (imageLink.PlainAlt.Length == 0 ? imageLink.ImageUrl : imageLink.PlainAlt) + "]");
                 break;
             case HardBreakInline:
