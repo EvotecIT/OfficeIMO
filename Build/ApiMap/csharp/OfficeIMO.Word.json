@@ -1780,17 +1780,17 @@
       "old": "OfficeIMO.Word.WordSmartArt.AddNode(string text)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordSmartArt.AddNode(...) : WordSmartArtNode",
+      "new": "OfficeIMO.Word.WordSmartArt.AddNode(string text) : WordSmartArtNode",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordSmartArt.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns an attached WordSmartArtNode with stable native identity, parent SmartArt and editable Text. Nodes exposes these handles after loading and reordering."
     },
     {
       "old": "OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel)",
@@ -5695,6 +5695,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Native consumers, adapters, examples, tests and the Word README use the created models. Mechanical PowerShell changes explicitly select Paragraph where existing cmdlet output requires it; command parameters and output contracts are preserved."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "WordSmartArtNode.Id addresses a native node independently of its index. WordSmartArt.Nodes exposes attached handles in diagram order; edits reuse the existing node text and package-part writers. Removed nodes reject subsequent reads and writes instead of editing a different node at the former index."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

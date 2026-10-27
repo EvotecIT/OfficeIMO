@@ -903,10 +903,11 @@ Create diagrams through a paragraph in the containing story:
 WordSmartArt diagram = document.HeaderDefaultOrCreate.AddParagraph()
     .AddSmartArt(WordSmartArtType.BasicProcess);
 diagram.SetNodeText(0, "Review");
-diagram.AddNode("Approve");
+WordSmartArtNode approval = diagram.AddNode("Approve");
+approval.Text = "Approve and publish";
 ```
 
-Use `FooterDefaultOrCreate` for a footer. DOCX diagram data, layout, colours,
+Use `FooterDefaultOrCreate` for a footer. `Nodes` exposes attached nodes in diagram order; a node retains its identity when moved and its text remains editable after reloading. DOCX diagram data, layout, colours,
 quick style and any cached drawing use relationships owned by that header or
 footer. Reopening and editing resolve those local relationships independently
 of diagrams in the body, even when relationship IDs are reused.

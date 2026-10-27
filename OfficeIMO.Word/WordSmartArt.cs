@@ -201,7 +201,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a new node (algorithmic layouts only: BasicProcess or Cycle) and sets its text.
         /// </summary>
-        public void AddNode(string text) {
+        /// <returns>The attached node, addressed independently of its position.</returns>
+        public WordSmartArtNode AddNode(string text) {
             if (!CanModifyNodes) throw new NotSupportedException("Adding nodes is supported only for algorithmic layouts (BasicProcess, Cycle). Use formatted templates for exact visual parity with fixed nodes.");
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             var dgm = ns.dgm; var a = ns.a;
@@ -253,6 +254,7 @@ namespace OfficeIMO.Word {
             // Set text with formatting preserved default
             ReplaceParagraphText(p, a, text);
             SaveDiagramData(dataPart, xdoc);
+            return new WordSmartArtNode(this, newId);
         }
 
         /// <summary>
