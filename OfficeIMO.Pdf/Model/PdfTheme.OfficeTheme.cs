@@ -3,11 +3,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfTheme {
-    // Values the visual design needs that OfficeTheme does not expose yet.
-    // They are derived from theme values rather than copied from themes.json.
-    private const double HeadingSpacingBeforeRatio = 0.9D;
-    private const double HeadingSpacingAfterRatio = 0.3D;
-    private const double HeaderRuleWidth = 1D;
     private const double HeadingLineHeight = 1.15D;
     private const double ListItemSpacingRatio = 0.5D;
 
@@ -19,15 +14,15 @@ public sealed partial class PdfTheme {
     /// <param name="theme">Theme that supplies colours, sizes and spacing.</param>
     public static PdfTheme FromOfficeTheme(OfficeTheme theme) {
         Guard.NotNull(theme, nameof(theme));
-        PdfColor text = Resolve(theme.Palette.Text, theme);
+        PdfColor heading = Resolve(theme.TextStyle.HeadingColor, theme);
         PdfColor accent = Resolve(theme.Palette.Accent1, theme);
         double paragraphAfter = theme.Spacing.ParagraphAfter.ToPoints();
 
         return new PdfTheme {
             HeadingStyles = new PdfHeadingStyles {
-                Level1 = CreateHeading(theme.TypeScale.Heading1.ToPoints(), text),
-                Level2 = CreateHeading(theme.TypeScale.Heading2.ToPoints(), text),
-                Level3 = CreateHeading(theme.TypeScale.Heading3.ToPoints(), text)
+                Level1 = CreateHeading(theme, 1, theme.TypeScale.Heading1.ToPoints(), heading),
+                Level2 = CreateHeading(theme, 2, theme.TypeScale.Heading2.ToPoints(), heading),
+                Level3 = CreateHeading(theme, 3, theme.TypeScale.Heading3.ToPoints(), heading)
             },
             ListStyle = new PdfListStyle {
                 LeftIndent = theme.Spacing.ListIndent.ToPoints(),
@@ -37,8 +32,8 @@ public sealed partial class PdfTheme {
             },
             TableStyle = CreateTableStyle(theme, paragraphAfter),
             PdfPanelStyle = new PdfPanelStyle {
-                Background = Resolve(theme.TableStyle.BandFill, theme),
-                BorderColor = Resolve(theme.TableStyle.BorderColor, theme),
+                Background = Resolve(theme.Surfaces.Surface, theme),
+                BorderColor = Resolve(theme.Surfaces.Rule, theme),
                 BorderWidth = theme.TableStyle.BorderWidth.ToPoints(),
                 PaddingX = theme.TableStyle.CellPadding.ToPoints() * 2D,
                 PaddingY = theme.TableStyle.CellPadding.ToPoints() * 1.4D,
@@ -47,7 +42,7 @@ public sealed partial class PdfTheme {
                 KeepTogether = true
             },
             HorizontalRuleStyle = new PdfHorizontalRuleStyle {
-                Color = Resolve(theme.TableStyle.BorderColor, theme),
+                Color = Resolve(theme.Surfaces.Rule, theme),
                 Thickness = theme.TableStyle.BorderWidth.ToPoints(),
                 SpacingBefore = paragraphAfter * 0.5D,
                 SpacingAfter = paragraphAfter
@@ -59,21 +54,22 @@ public sealed partial class PdfTheme {
         double padding = theme.TableStyle.CellPadding.ToPoints();
         PdfColor border = Resolve(theme.TableStyle.BorderColor, theme);
         PdfColor text = Resolve(theme.Palette.Text, theme);
+        OfficeThemeRule headerRule = theme.TableStyle.HeaderRule;
         return new PdfTableStyle {
             HeaderFill = Resolve(theme.TableStyle.HeaderFill, theme),
             HeaderTextColor = Resolve(theme.TableStyle.HeaderText, theme),
-            HeaderBold = true,
+            HeaderBold = theme.TableStyle.HeaderBold,
             TextColor = text,
             RowStripeFill = theme.TableStyle.Banding ? Resolve(theme.TableStyle.BandFill, theme) : null,
-            // Horizontal hairlines only, with the accent rule under the header row.
+            // Horizontal hairlines only, with the theme's rule under the header row.
             BorderColor = null,
             BorderWidth = 0D,
             RowSeparatorColor = border,
             RowSeparatorWidth = theme.TableStyle.BorderWidth.ToPoints(),
-            HeaderSeparatorColor = Resolve(theme.Palette.Accent1, theme),
-            HeaderSeparatorWidth = HeaderRuleWidth,
+            HeaderSeparatorColor = headerRule.IsVisible ? Resolve(headerRule.Color, theme) : null,
+            HeaderSeparatorWidth = headerRule.IsVisible ? headerRule.Width.ToPoints() : 0D,
             FooterSeparatorColor = text,
-            FooterSeparatorWidth = HeaderRuleWidth,
+            FooterSeparatorWidth = headerRule.IsVisible ? headerRule.Width.ToPoints() : theme.TableStyle.BorderWidth.ToPoints(),
             CellPaddingTop = padding,
             CellPaddingBottom = padding,
             CellPaddingX = padding * 1.4D,
@@ -88,14 +84,18 @@ public sealed partial class PdfTheme {
         };
     }
 
-    private static PdfHeadingStyle CreateHeading(double size, PdfColor color) => new PdfHeadingStyle {
-        FontSize = size,
-        LineHeight = HeadingLineHeight,
-        SpacingBefore = System.Math.Round(size * HeadingSpacingBeforeRatio, 1),
-        SpacingAfter = System.Math.Round(size * HeadingSpacingAfterRatio, 1),
-        Color = color,
-        KeepWithNext = true
-    };
+    private static PdfHeadingStyle CreateHeading(OfficeTheme theme, int level, double size, PdfColor color) {
+        OfficeThemeParagraphSpacing spacing = theme.TextStyle.GetHeadingSpacing(level);
+        return new PdfHeadingStyle {
+            FontSize = size,
+            LineHeight = HeadingLineHeight,
+            SpacingBefore = spacing.Before.ToPoints(),
+            SpacingAfter = spacing.After.ToPoints(),
+            Bold = theme.TextStyle.HeadingBold,
+            Color = color,
+            KeepWithNext = true
+        };
+    }
 
     private static PdfColor Resolve(OfficeColor color, OfficeTheme theme) =>
         PdfColor.FromOfficeColor(color.IsThemeRole ? color.Resolve(theme) : color);

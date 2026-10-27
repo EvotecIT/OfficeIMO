@@ -47,7 +47,7 @@ public sealed partial class PdfCreateOptions {
                 (slot != PdfStandardFontMapper.GetFontFamily(DefaultFont) ||
                  _embeddedFontFallbacks.FontSlots.Any(fallback => PdfStandardFontMapper.GetFontFamily(fallback) == slot))) continue;
             if (!(_defaultFontEmbeddingAttempts ??= new HashSet<PdfStandardFont>()).Add(slot)) continue;
-            if (!TryResolveDefaultFontFamily(slot, standardMetrics, out PdfEmbeddedFontFamily? family) || family == null) continue;
+            if (!TryResolveDefaultFontFamily(slot, standardMetrics, EffectiveTheme, out PdfEmbeddedFontFamily? family) || family == null) continue;
             RegisterFontFamily(slot, family);
             (_defaultEmbeddedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(slot);
         }
@@ -76,7 +76,7 @@ public sealed partial class PdfCreateOptions {
                 details: new Dictionary<string, string> {
                     ["standardFont"] = family.ToBaseFontName(),
                     ["reason"] = reason,
-                    ["fallbackList"] = string.Join(", ", EnumerateDefaultFontFamilyCandidates(family, usage.Options._defaultFontsUseStandardMetrics))
+                    ["fallbackList"] = string.Join(", ", EnumerateDefaultFontFamilyCandidates(family, usage.Options._defaultFontsUseStandardMetrics, usage.Options.EffectiveTheme))
                 }));
         }
     }
@@ -109,10 +109,10 @@ public sealed partial class PdfCreateOptions {
         return false;
     }
 
-    private static bool TryResolveDefaultFontFamily(PdfStandardFont slot, bool standardMetrics, out PdfEmbeddedFontFamily? family) {
+    private static bool TryResolveDefaultFontFamily(PdfStandardFont slot, bool standardMetrics, OfficeTheme theme, out PdfEmbeddedFontFamily? family) {
         family = null;
         PdfEmbeddedFontFamily? first = null;
-        foreach (string candidate in EnumerateDefaultFontFamilyCandidates(slot, standardMetrics)) {
+        foreach (string candidate in EnumerateDefaultFontFamilyCandidates(slot, standardMetrics, theme)) {
             if (!PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfEmbeddedFontFamily? loaded) || loaded == null) continue;
             // Prefer a family with real bold and italic faces so emphasis survives the fallback.
             if (loaded.BoldSnapshot != null && loaded.ItalicSnapshot != null) {
@@ -125,10 +125,10 @@ public sealed partial class PdfCreateOptions {
         return family != null;
     }
 
-    internal static IEnumerable<string> EnumerateDefaultFontFamilyCandidates(PdfStandardFont slot, bool standardMetrics = false) {
+    internal static IEnumerable<string> EnumerateDefaultFontFamilyCandidates(PdfStandardFont slot, bool standardMetrics = false, OfficeTheme? theme = null) {
         PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(slot);
         if (family == PdfStandardFont.Helvetica && !standardMetrics) {
-            OfficeThemeFont body = OfficeTheme.Default.Fonts.Body;
+            OfficeThemeFont body = (theme ?? OfficeTheme.Default).Fonts.Body;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (seen.Add(body.Family)) yield return body.Family;
             foreach (string fallback in body.Fallbacks) {
