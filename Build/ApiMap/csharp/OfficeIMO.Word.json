@@ -1203,18 +1203,18 @@
       "old": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters()",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters() : (WordHeader Header, WordFooter Footer)",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "authoring",
       "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached default header and footer as a named pair; repeated calls retain the existing parts. Existing calls that ignore the pair remain ordinary authoring calls."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(WordNumberFormat? numberingFormat = null, WordFootnotePosition? position = null, WordNoteNumberRestart? restartNumbering = null, int? startNumber = null)",
@@ -1511,18 +1511,18 @@
       "old": "OfficeIMO.Word.WordSection.AddHeadersAndFooters()",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordSection.AddHeadersAndFooters(...) : the created object",
+      "new": "OfficeIMO.Word.WordSection.AddHeadersAndFooters() : (WordHeader Header, WordFooter Footer)",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
       "category": "authoring",
       "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached default header and footer as a named pair; repeated calls retain the existing parts. Existing calls that ignore the pair remain ordinary authoring calls."
     },
     {
       "old": "OfficeIMO.Word.WordTable.AddComment(string author, string initials, string comment)",
@@ -5710,6 +5710,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The WordHeadersAndFooters extension helpers return the same named header/footer pair as the document and section methods. The pair identifies attached default parts without adding another public builder or model type."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

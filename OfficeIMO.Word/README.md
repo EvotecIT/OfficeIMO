@@ -62,6 +62,14 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+`AddHeadersAndFooters()` returns the attached default parts for the document or a section:
+
+```csharp
+var (header, footer) = document.AddHeadersAndFooters();
+header.AddParagraph("Quarterly report");
+footer.AddParagraph("Internal use");
+```
+
 ## Printed reports
 
 `WordPaperStyle` applies shared typography, page chrome, covers, metric strips and quiet tables. Configure its colors, fonts and table density once, then use the same style across reports:

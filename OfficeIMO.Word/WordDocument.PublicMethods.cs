@@ -66,8 +66,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds default headers and footers to the document.
         /// </summary>
-        public void AddHeadersAndFooters() {
-            WordHeadersAndFooters.AddHeadersAndFooters(this);
+        /// <returns>The attached default header and footer.</returns>
+        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
+            return WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>
