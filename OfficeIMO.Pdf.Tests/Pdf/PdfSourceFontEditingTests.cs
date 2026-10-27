@@ -68,17 +68,55 @@ public class PdfSourceFontEditingTests {
         Assert.Single(moved.Document.Resources.Fonts().Fonts);
     }
 
-    [Fact]
-    public void MissingSubsetGlyphRequiresExplicitSubstitutionAndLeavesSourceUntouched() {
-        PdfDocument source = CreateSource(false);
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingSubsetGlyphFallsBackWithAWarningAndLeavesSourceUntouched(bool encrypted) {
+        PdfDocument source = CreateSource(encrypted);
         byte[] original = source.ToBytes();
-        NotSupportedException failure = Assert.Throws<NotSupportedException>(() => source.Text.ReplaceAll("alpha", "zebra"));
-        Assert.Contains("existing subset", failure.Message);
+        PdfTextEditResult automatic = source.Text.ReplaceAll("alpha", "zebra");
+        Assert.Contains("zebra beta gamma", automatic.Document.Reader.Text());
+        Assert.Contains(automatic.Warnings, warning => warning.Contains("substituted", StringComparison.Ordinal));
+        Assert.Contains(automatic.Document.Resources.Fonts().Fonts, font => font.BaseFontName == "Helvetica");
+        Assert.Equal(encrypted, PdfReadDocument.Open(automatic.Document.ToBytes(),
+            new PdfLoadOptions { Password = encrypted ? "owner" : null }).Security.HasEncryption);
         Assert.Equal(original, source.ToBytes());
         PdfTextEditResult substituted = source.Text.ReplaceAll("alpha", "zebra", editOptions: new PdfTextEditOptions { Font = PdfStandardFont.Courier });
         Assert.Contains("zebra", substituted.Document.Reader.Text());
         Assert.Contains(substituted.Warnings, warning => warning.Contains("substituted", StringComparison.Ordinal));
         Assert.Contains(substituted.Document.Resources.Fonts().Fonts, font => font.BaseFontName == "Courier");
+    }
+
+    [Fact]
+    public void MissingSubsetGlyphOutsideStandardEncodingIsRejectedWithoutChangingSource() {
+        PdfDocument source = CreateSource(false);
+        byte[] original = source.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => source.Text.ReplaceAll("alpha", "\u03a9mega"));
+
+        Assert.Equal(original, source.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(false, PdfTextRegionWidthPolicy.PreserveFontSize)]
+    [InlineData(true, PdfTextRegionWidthPolicy.PreserveFontSize)]
+    [InlineData(false, PdfTextRegionWidthPolicy.ShrinkToFit)]
+    [InlineData(true, PdfTextRegionWidthPolicy.ShrinkToFit)]
+    [InlineData(false, PdfTextRegionWidthPolicy.RejectOverflow)]
+    [InlineData(true, PdfTextRegionWidthPolicy.RejectOverflow)]
+    public void LocatedAndRegionReplacementFitTheFallbackFontBeforeWriting(bool region, PdfTextRegionWidthPolicy policy) {
+        PdfDocument source = CreateSource(false);
+        byte[] original = source.ToBytes();
+        PdfTextMatch match = Assert.Single(source.Text.Find(region ? "alpha beta gamma" : "alpha"));
+        var options = new PdfTextEditOptions { RegionWidthPolicy = policy, MinimumFontSize = 1D };
+
+        PdfTextEditResult edit = region
+            ? source.Text.Replace(new PdfPageRegion(match.PageNumber, match.X, match.Y, match.Width, match.Height), "z", options)
+            : source.Text.Replace(match, "z", options);
+
+        Assert.Equal(region ? "z" : "z beta gamma", edit.Document.Reader.Text().Trim());
+        Assert.Contains(edit.Warnings, warning => warning.Contains("substituted", StringComparison.Ordinal));
+        Assert.Equal(original, source.ToBytes());
     }
 
     [Theory]

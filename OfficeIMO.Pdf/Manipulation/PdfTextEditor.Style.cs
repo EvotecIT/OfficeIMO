@@ -17,6 +17,15 @@ internal static partial class PdfTextEditor {
             sourceFont);
     }
 
+    /// <summary>Reuses source glyphs when possible and reports standard-font substitution through the existing edit warnings.</summary>
+    private static PdfResolvedTextStyle ResolveReplacementFont(PdfResolvedTextStyle style, string text) {
+        if (style.SourceFont == null || style.SourceFont.CanEncode(text)) return style;
+        if (!PdfWinAnsiEncoding.CanEncode(text, out _)) {
+            throw new NotSupportedException("The replacement text is not covered by the source font subset or the standard PDF font fallback.");
+        }
+        return new PdfResolvedTextStyle(style.Font, style.FontSize, style.Color, style.RotationDegrees, style.TextRenderingMode);
+    }
+
     private static PdfResolvedTextStyle FitStyleToRegion(
         PdfResolvedTextStyle style,
         string text,

@@ -495,7 +495,8 @@ internal static partial class PdfTextEditor {
                 int authoredEnd = authoredBoundaries[edit.Start];
                 AddPositionedFragment(fragments, authored.Substring(authoredStart, authoredEnd - authoredStart), sourceStyle);
             }
-            if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement, edit.Style ?? replacementStyle);
+            if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement,
+                ResolveReplacementFont(edit.Style ?? replacementStyle, edit.Replacement));
             cursor = edit.Start + edit.Length;
         }
         if (cursor < source.Length) {

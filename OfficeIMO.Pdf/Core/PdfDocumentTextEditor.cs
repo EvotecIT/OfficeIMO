@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Searches and edits text on existing PDF pages.</summary>
+/// <remarks>Replacement retains an embedded source font when its subset covers the text. Otherwise,
+/// text supported by the standard PDF encoding uses a standard font and the result reports substitution.
+/// Text outside both encodings is rejected.</remarks>
 public sealed class PdfDocumentTextEditor {
     private readonly PdfDocument _document;
 
