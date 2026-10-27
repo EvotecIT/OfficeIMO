@@ -5,6 +5,25 @@ An optional HEIC decoder for OfficeIMO using Microsoft's Windows Imaging Compone
 The package contains no third-party image decoder or HEVC implementation and does
 not download, install, or license Windows extensions.
 
+## Where it works
+
+Microsoft ships HEIF and HEVC decoding as Microsoft Store extensions, not as part of
+Windows itself, so this package works only where those extensions can be installed:
+
+- **Windows 10 and Windows 11 desktop editions.** HEIF Image Extensions is free. HEVC
+  Video Extensions is often preinstalled by the device maker; otherwise it is a small
+  Store purchase, which is how Microsoft licenses HEVC.
+- **Windows Server and Windows LTSC editions** don't include Microsoft Store, and Server
+  Core also lacks Media Foundation. I treat them like Linux: no licensed HEIC route, and
+  conversions report `image-codec-unavailable`. Sideloading the Store packages onto these
+  editions is not a route I support.
+- **Services, scheduled tasks and IIS application pools** run under their own accounts
+  and may not see extensions installed for an interactive user. Call
+  `GetAvailability()` under the account that performs the conversion.
+
+For hosts without a licensed system codec, see
+[using your own codec](../Docs/officeimo.image-export-capability-matrix.md#using-your-own-heic-codec).
+
 ## Decode and register
 
 Reference `OfficeIMO.Drawing.Wic` alongside the OfficeIMO package used by your

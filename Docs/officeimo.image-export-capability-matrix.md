@@ -50,6 +50,21 @@ Core selects the primary `hvc1` item or grid/identity derivation, stitches tiles
 
 HEIC → PDF uses the shared raster normalization path. Word, PowerPoint and Excel insertion stores PNG, since these document formats cannot embed HEIC portably. Missing system support returns `image-codec-unavailable` and `NoPlatformCodec`, `WindowsHeifExtensionMissing` or `WindowsHevcExtensionMissing`, with installation guidance. Other hosts have no default HEIC pixel route.
 
+| Host | HEIC decoding |
+| --- | --- |
+| macOS 10.13+, iOS 11+, Mac Catalyst 13.1+ | Supported through ImageIO. |
+| Windows 10 and Windows 11 desktop | Supported through WIC when HEIF Image Extensions and HEVC Video Extensions are installed for the account that runs the conversion. |
+| Windows Server, Windows LTSC | No Microsoft Store, so no licensed system route. Reports `image-codec-unavailable`. |
+| Linux, containers, browser WebAssembly | No licensed system route. Reports `image-codec-unavailable`. |
+
+### Using your own HEIC codec
+
+HEVC, the codec inside HEIC, is covered by several patent pools and by patent holders outside them. I don't implement or bundle an HEVC decoder, and I only register codecs that the operating system vendor licenses. On hosts without one, you can supply your own `IOfficeRasterImageCodec`, either per call through `ImageCodec` or process-wide through `OfficeRasterImageCodecs.Platform`. OfficeIMO then performs the same grid, transform, alpha and colour composition with your decoder.
+
+Core sends your codec one single-item HEIC at a time, without container transforms or colour properties. Return top-to-bottom straight-alpha RGBA at the item's stored dimensions, in the decoded source RGB encoding, with no rotation and no display colour matching. Core applies those once afterwards.
+
+Choosing a decoder also means choosing its licensing. Open-source HEVC decoders carry a copyright licence, which does not cover HEVC patents. Check the patent position for your product and distribution before deploying one.
+
 Managed composition tests use fake tile samples; platform tests compare the composed output with a separate OS full-file decode. Public fixtures, hashes and origins are recorded in [the HEIC fixture directory](../OfficeIMO.TestAssets/Images/Heic/README.md). Camera-photo and Windows runtime qualification are separate from the checked-in fixtures and compiled provider.
 
 ## Bounded AVIF source decoding

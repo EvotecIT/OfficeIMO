@@ -82,7 +82,8 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 - [ ] Decide the AVIF encoding boundary. The current AVIF owner decodes bounded still images; encoding requires a managed AV1 writer and container qualification rather than a small extension. Compare an owned implementation with the MIT-licensed [PeachImage still-image AVIF encoder](https://peachpdf.net/peachimage.html), including exact lossless round trips, color/profile handling, throughput, memory, .NET Standard/browser support, maintenance, and package boundaries. Any production dependency needs explicit approval; keep comparison tools outside runtime projects.
 - [ ] Extend the [OS-codec HEIC still-image path](officeimo.image-export-capability-matrix.md#heicheif-still-images-through-system-codecs) with HDR gain-map application and additional HDR presentation profiles. Keep pixel decoding in licensed system codecs.
-- [ ] Establish a licensed HEIC codec route for Linux before enabling pixel decoding there. No HEVC decoder is bundled or implemented in Core.
+- [ ] Qualify HEIC decoding under Windows service accounts and IIS application pools, then record the result in the [WIC package](../OfficeIMO.Drawing.Wic/README.md#where-it-works).
+- [ ] Watch for a licensed system HEIC route on Linux, Windows Server and LTSC hosts. Until one exists, these hosts use a caller-supplied codec. No HEVC decoder is bundled or implemented in Core.
 - [ ] Map `image-codec-unavailable` and its platform reasons into the unified OfficeConverter front door and M1 diagnostic catalog.
 
 - [ ] Export high-resolution nearest-neighbour raster pictures to SVG without exceeding the shared rectangle-vectorization budget. Preserve pixel sampling, clipping, image metadata and bounded output; choose and report any raster-image fallback explicitly instead of silently changing interpolation.
