@@ -5435,6 +5435,32 @@
       "reason": "Add methods return the object or metadata collection they create.",
       "file": "OfficeIMO.Excel/ExcelDocument.Toc.cs",
       "note": "Adds the previously unmapped return-contract change; statement callers retain their behavior."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(string key, ExcelCustomProperty value) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(string key, ExcelCustomProperty value) : ExcelCustomProperty",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Excel/ExcelCustomDocumentPropertyCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "IDictionary and ICollection Add remain available as explicit interface implementations. The public methods return the attached property; failed duplicate-key additions do not attach a change callback."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(KeyValuePair<string, ExcelCustomProperty> item) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(KeyValuePair<string, ExcelCustomProperty> item) : ExcelCustomProperty",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Excel/ExcelCustomDocumentPropertyCollection.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "IDictionary and ICollection Add remain available as explicit interface implementations. The public methods return the attached property; failed duplicate-key additions do not attach a change callback."
     }
   ],
   "packageMoves": [
@@ -5905,8 +5931,8 @@
     },
     {
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The custom document-property collection still exposes the required void IDictionary/ICollection Add methods. Review the public created-object return shape while preserving those interface contracts.",
+      "applied": "phase-b-applied",
+      "note": "Custom document-property Add methods return the attached ExcelCustomProperty. The required void IDictionary/ICollection methods are explicit interface implementations, with saved-file coverage for both interfaces.",
       "files": [
         "OfficeIMO.Excel/ExcelCustomDocumentPropertyCollection.cs"
       ]

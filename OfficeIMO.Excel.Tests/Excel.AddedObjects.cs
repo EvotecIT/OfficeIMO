@@ -74,4 +74,30 @@ public partial class Excel {
         using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(2, loaded.Sheets.Where(sheet => sheet.Name != toc.Name).Sum(sheet => sheet.GetHyperlinks().Count));
     }
+    [Fact]
+    public void CustomProperties_ReturnAttachedValuesAndKeepDictionaryContracts() {
+        using var document = ExcelDocument.Create();
+        document.AddWorksheet("Data");
+        var properties = document.CustomDocumentProperties;
+        var supplied = new ExcelCustomProperty { Value = "Draft", PropertyType = ExcelCustomPropertyType.Text };
+        var added = properties.Add(" Workflow ", supplied);
+        Assert.Same(supplied, added);
+        Assert.Same(added, properties["Workflow"]);
+        var pair = new KeyValuePair<string, ExcelCustomProperty>("Reviewer",
+            new ExcelCustomProperty { Value = "First", PropertyType = ExcelCustomPropertyType.Text });
+        Assert.Same(pair.Value, properties.Add(pair));
+        ((IDictionary<string, ExcelCustomProperty>)properties).Add("Dictionary",
+            new ExcelCustomProperty { Value = "Present", PropertyType = ExcelCustomPropertyType.Text });
+        ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)properties).Add(
+            new KeyValuePair<string, ExcelCustomProperty>("Collection",
+                new ExcelCustomProperty { Value = "Present", PropertyType = ExcelCustomPropertyType.Text }));
+        added.Value = "Reviewed";
+        pair.Value.Value = "Second";
+        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Equal("Reviewed", loaded.CustomDocumentProperties["Workflow"].Text);
+        Assert.Equal("Second", loaded.CustomDocumentProperties["Reviewer"].Text);
+        Assert.Equal("Present", loaded.CustomDocumentProperties["Dictionary"].Text);
+        Assert.Equal("Present", loaded.CustomDocumentProperties["Collection"].Text);
+    }
+
 }

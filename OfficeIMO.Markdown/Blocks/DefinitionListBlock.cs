@@ -92,23 +92,24 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         SyntaxItems.Add(syntaxItem);
     }
 
-    /// <summary>Adds a typed definition list entry.</summary>
-    public void AddEntry(DefinitionListEntry entry) {
+    /// <summary>Adds a definition and returns the entry bound to this list.</summary>
+    public DefinitionListEntry AddEntry(DefinitionListEntry entry) {
         var safeEntry = entry ?? new DefinitionListEntry();
         AddGroup(new DefinitionListGroup(
             new[] { safeEntry.Term },
             new[] { safeEntry.Definition }));
+        return _entries[_entries.Count - 1];
     }
 
-    /// <summary>Adds a definition-list entry parsed from Markdown term and definition text.</summary>
-    public void AddEntry(string? term, string? definition) {
-        AddEntry(CreateEntry(term, definition));
-    }
+    /// <summary>Adds parsed term and definition text and returns the entry bound to this list.</summary>
+    public DefinitionListEntry AddEntry(string? term, string? definition) => AddEntry(CreateEntry(term, definition));
 
-    /// <summary>Adds a semantic definition-list group.</summary>
-    public void AddGroup(DefinitionListGroup group) {
+    /// <summary>Adds a semantic group and returns the group stored in this list.</summary>
+    public DefinitionListGroup AddGroup(DefinitionListGroup group) {
         SyntaxItems.Clear();
-        AddGroupCore(group ?? new DefinitionListGroup());
+        var added = group ?? new DefinitionListGroup();
+        AddGroupCore(added);
+        return added;
     }
 
     /// <inheritdoc />

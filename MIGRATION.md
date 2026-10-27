@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## Added collection objects
+
+`ExcelCustomDocumentPropertyCollection.Add` returns the attached `ExcelCustomProperty`.
+The required void `IDictionary` and `ICollection` methods remain explicit interface
+implementations. `DefinitionListBlock.AddEntry` returns the stored entry bound to
+the list; `AddGroup` returns its stored group. `MarkdownTable.AddRow` returns the
+stored cell array, so edits are reflected when rendering. Recompile method-group
+consumers that depended on the old void signatures.
+
 ## Returned Excel authoring objects
 
 `AddMacro` returns an attached `ExcelMacroProject`; manual row and column page-break

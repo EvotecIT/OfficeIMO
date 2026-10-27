@@ -33,6 +33,10 @@ string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Mar
 string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
+`DefinitionListBlock.AddEntry` returns the entry bound to the list. Editing its
+`Term` or `DefinitionBlocks` changes the rendered output. `AddGroup` returns the
+stored group, and `MarkdownTable.AddRow` returns the stored, editable cell array.
+
 ## Typed tables
 
 `AddTable` returns the added `TableBlock`, which remains editable. The shared `OfficeTableOptions` controls column selection, order, headers, formatting and alignment. `MarkdownTableOptions` also enables numeric and date alignment; explicit column alignments take precedence.

@@ -58,9 +58,9 @@ OfficeIMO.Markdown.CustomContainerBlock.NameSourceSpan.get -> OfficeIMO.Markdown
 OfficeIMO.Markdown.CustomContainerBlock.OpeningFenceLength.get -> int
 OfficeIMO.Markdown.CustomContainerBlock.OpeningFenceSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
 OfficeIMO.Markdown.DefinitionListBlock
-OfficeIMO.Markdown.DefinitionListBlock.AddEntry(OfficeIMO.Markdown.DefinitionListEntry! entry) -> void
-OfficeIMO.Markdown.DefinitionListBlock.AddEntry(string? term, string? definition) -> void
-OfficeIMO.Markdown.DefinitionListBlock.AddGroup(OfficeIMO.Markdown.DefinitionListGroup! group) -> void
+OfficeIMO.Markdown.DefinitionListBlock.AddEntry(OfficeIMO.Markdown.DefinitionListEntry! entry) -> OfficeIMO.Markdown.DefinitionListEntry!
+OfficeIMO.Markdown.DefinitionListBlock.AddEntry(string? term, string? definition) -> OfficeIMO.Markdown.DefinitionListEntry!
+OfficeIMO.Markdown.DefinitionListBlock.AddGroup(OfficeIMO.Markdown.DefinitionListGroup! group) -> OfficeIMO.Markdown.DefinitionListGroup!
 OfficeIMO.Markdown.DefinitionListBlock.ChildBlocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.IMarkdownBlock!>!
 OfficeIMO.Markdown.DefinitionListBlock.DefinitionListBlock() -> void
 OfficeIMO.Markdown.DefinitionListBlock.Entries.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.DefinitionListEntry!>!
@@ -2423,7 +2423,7 @@ OfficeIMO.Markdown.MarkdownSyntaxNode.PreviousSibling.get -> OfficeIMO.Markdown.
 OfficeIMO.Markdown.MarkdownSyntaxNode.Root.get -> OfficeIMO.Markdown.MarkdownSyntaxNode!
 OfficeIMO.Markdown.MarkdownSyntaxNode.SourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
 OfficeIMO.Markdown.MarkdownTable
-OfficeIMO.Markdown.MarkdownTable.AddRow(params string![]! cells) -> void
+OfficeIMO.Markdown.MarkdownTable.AddRow(params string![]! cells) -> string![]!
 OfficeIMO.Markdown.MarkdownTable.MarkdownTable(System.Collections.Generic.IEnumerable<string!>! headers) -> void
 OfficeIMO.Markdown.MarkdownTableBuilder
 OfficeIMO.Markdown.MarkdownTableBuilder.Align(params OfficeIMO.Markdown.MarkdownColumnAlignment[]! alignments) -> OfficeIMO.Markdown.MarkdownTableBuilder!

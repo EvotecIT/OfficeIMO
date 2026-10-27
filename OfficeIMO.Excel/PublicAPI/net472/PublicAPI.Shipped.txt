@@ -921,8 +921,8 @@ OfficeIMO.Excel.ExcelCreateOptions.Template.set -> void
 OfficeIMO.Excel.ExcelCreateOptions.TemplateStream.get -> System.IO.Stream?
 OfficeIMO.Excel.ExcelCreateOptions.TemplateStream.set -> void
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection
-OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Excel.ExcelCustomProperty!> item) -> void
-OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(string! key, OfficeIMO.Excel.ExcelCustomProperty! value) -> void
+OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Excel.ExcelCustomProperty!> item) -> OfficeIMO.Excel.ExcelCustomProperty!
+OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(string! key, OfficeIMO.Excel.ExcelCustomProperty! value) -> OfficeIMO.Excel.ExcelCustomProperty!
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Clear() -> void
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Contains(System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Excel.ExcelCustomProperty!> item) -> bool
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.ContainsKey(string! key) -> bool
