@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.ClearHeight) {
-                SetRowHeight(rowIndex, 0);
+                SetRowHeight(rowIndex, default);
             }
 
             if (options.Height.HasValue) {

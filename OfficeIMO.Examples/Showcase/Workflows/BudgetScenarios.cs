@@ -23,7 +23,7 @@ internal static class BudgetScenarios {
             sheet.CellBackground(4, column + 1, "17365D");
             sheet.CellFontColor(4, column + 1, "FFFFFF");
             sheet.CellBold(4, column + 1, true);
-            sheet.SetColumnWidth(column + 1, column == 0 ? 25 : 20);
+            sheet.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 25 : 20));
         }
         string[] labels = { "Conservative", "Expected", "Growth" };
         for (int index = 0; index < labels.Length; index++) {

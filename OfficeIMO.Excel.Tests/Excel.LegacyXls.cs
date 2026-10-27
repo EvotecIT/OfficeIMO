@@ -1322,9 +1322,9 @@ namespace OfficeIMO.Tests {
             Assert.True(projected.RightToLeft);
             Assert.False(projected.RowColumnHeadingsVisible);
             Assert.False(projected.ZeroValuesVisible);
-            Assert.Equal(18.5d, projected.DefaultRowHeight);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), projected.DefaultRowHeight);
             Assert.False(projected.DefaultRowsHidden);
-            Assert.Equal(11d, projected.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Characters(11d), projected.DefaultColumnWidth);
             ExcelWorksheetViewInfo projectedView = projected.GetViewInfo();
             Assert.Equal(120U, projectedView.ZoomScale);
             Assert.Equal(90U, projectedView.ZoomScaleNormal);

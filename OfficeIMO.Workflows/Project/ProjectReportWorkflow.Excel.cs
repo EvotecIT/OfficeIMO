@@ -60,9 +60,9 @@ public static partial class ProjectReportWorkflow {
         for (int c = 1; c <= columns; c++) {
             token.ThrowIfCancellationRequested();
             sheet.TryGetCellText(1, c, out string? header);
-            if (header == "Name" || header == "Group") sheet.WrapCells(1, rows, c, header == "Name" ? 40 : 24);
-            else if (header == "Cost" || header == "Critical") sheet.SetColumnWidth(c, 12);
-            else if (repeatedColumns > 0 && c > repeatedColumns) sheet.SetColumnWidth(c, 14);
+            if (header == "Name" || header == "Group") sheet.WrapCells(1,rows,c, ExcelColumnWidth.Characters(header == "Name" ? 40 : 24));
+            else if (header == "Cost" || header == "Critical") sheet.SetColumnWidth(c, ExcelColumnWidth.Characters(12));
+            else if (repeatedColumns > 0 && c > repeatedColumns) sheet.SetColumnWidth(c, ExcelColumnWidth.Characters(14));
         }
         sheet.SetRowLayout(1, new ExcelRowLayoutOptions { WrapText = true, FirstColumn = 1, LastColumn = columns });
         if (rows > 1) sheet.SetRowsLayout(Enumerable.Range(2, rows - 1).Where(row => row % 2 == 0),

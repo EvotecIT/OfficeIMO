@@ -123,11 +123,12 @@ sheet.Cells["C1"].Value = "=COUNTIF(A1:A3,\">150\")";
 
 ```csharp
 // Set column width
-sheet.SetColumnWidth("A", 25);
-sheet.SetColumnWidth("B", 15);
+sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
+sheet.SetColumnWidth(2, ExcelColumnWidth.Length(OfficeLength.Centimeters(3)));
+sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
 
 // Auto-fit columns (requires data to be populated first)
-sheet.AutoFitColumn("A");
+sheet.AutoFitColumn(1);
 ```
 
 ## Named Ranges

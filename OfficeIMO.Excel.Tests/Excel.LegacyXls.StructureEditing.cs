@@ -19,8 +19,8 @@ public sealed class ExcelLegacyStructureEditingTests {
         uint style = explicitStyle
             ? document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single().StyleIndex!.Value : 0U;
         var added = document.AddWorksheet("Layout only");
-        added.SetColumnWidth(2, 12.5);
-        added.SetRowHeight(3, 21);
+        added.SetColumnWidth(2, ExcelColumnWidth.Characters(12.5));
+        added.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21)));
         if (explicitStyle) {
             added.WorksheetPart.Worksheet!.GetFirstChild<Columns>()!.Elements<Column>().Single().Style = style;
             var row = added.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single();

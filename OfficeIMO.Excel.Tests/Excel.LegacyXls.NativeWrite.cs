@@ -276,12 +276,12 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(2, 2, 12.5d);
                     sheet.CellValue(3, 1, "Hidden row marker");
                     sheet.MergeRange("A1:C1");
-                    sheet.SetDefaultColumnWidth(11d);
-                    sheet.SetDefaultRowHeight(18.5d, hidden: true);
-                    sheet.SetColumnWidth(2, 12.5d);
+                    sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(11d));
+                    sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)),hidden: true);
+                    sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12.5d));
                     sheet.SetColumnOutline(2, 2, collapsed: true);
                     sheet.SetColumnHidden(3, true);
-                    sheet.SetRowHeight(2, 21d);
+                    sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
                     sheet.SetRowOutline(2, 1, collapsed: true);
                     sheet.SetRowHidden(3, true);
                     sheet.Freeze(2, 1);
@@ -309,8 +309,8 @@ namespace OfficeIMO.Tests {
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
                 Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
-                Assert.Equal(11d, loadedSheet.DefaultColumnWidth);
-                Assert.Equal(18.5d, loadedSheet.DefaultRowHeight);
+                Assert.Equal(ExcelColumnWidth.Characters(11d), loadedSheet.DefaultColumnWidth);
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), loadedSheet.DefaultRowHeight);
                 Assert.True(loadedSheet.DefaultRowsHidden);
 
                 ExcelMergedRangeInfo merge = Assert.Single(loadedSheet.GetMergedRanges());

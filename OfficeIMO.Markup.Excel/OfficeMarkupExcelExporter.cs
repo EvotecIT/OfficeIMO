@@ -170,7 +170,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
             var wrap = GetAttribute(formatting.Attributes, "wrap", "wrap-text", "wrapText");
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap)) {
-                sheet.WrapCells(row, row, column);
+                sheet.WrapCells(row,row,column);
             }
 
             var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");

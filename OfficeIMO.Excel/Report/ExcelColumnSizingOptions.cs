@@ -7,22 +7,22 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Width in characters used for headers registered in <see cref="ShortHeaders"/>.
         /// </summary>
-        public double ShortWidth { get; set; } = 16;     // Status/Alg/Hash
+        public ExcelColumnWidth ShortWidth { get; set; } = ExcelColumnWidth.Characters(16);     // Status/Alg/Hash
 
         /// <summary>
         /// Width in characters used for headers registered in <see cref="NumericHeaders"/>.
         /// </summary>
-        public double NumericWidth { get; set; } = 10;   // Depth/Count/Days
+        public ExcelColumnWidth NumericWidth { get; set; } = ExcelColumnWidth.Characters(10);   // Depth/Count/Days
 
         /// <summary>
         /// Width in characters used for headers registered in <see cref="MediumHeaders"/>.
         /// </summary>
-        public double MediumWidth { get; set; } = 28;    // Provider/Target/Reason
+        public ExcelColumnWidth MediumWidth { get; set; } = ExcelColumnWidth.Characters(28);    // Provider/Target/Reason
 
         /// <summary>
         /// Width in characters used for headers registered in <see cref="LongHeaders"/>.
         /// </summary>
-        public double LongWidth { get; set; } = 56;      // Evidence/Record/URL/Summary
+        public ExcelColumnWidth LongWidth { get; set; } = ExcelColumnWidth.Characters(56);      // Evidence/Record/URL/Summary
 
         /// <summary>
         /// Case-insensitive set of header names that should use <see cref="ShortWidth"/>.
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Default width (in characters) used for headers registered in <see cref="WrapHeaders"/>.
         /// </summary>
-        public double WrapWidth { get; set; } = 32;
+        public ExcelColumnWidth WrapWidth { get; set; } = ExcelColumnWidth.Characters(32);
 
         /// <summary>
         /// Headers that should be auto-fit instead of using the preset widths.
@@ -67,6 +67,6 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Explicit column width overrides keyed by header name. Values are Excel character widths.
         /// </summary>
-        public Dictionary<string, double> WidthByHeader { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, ExcelColumnWidth> WidthByHeader { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

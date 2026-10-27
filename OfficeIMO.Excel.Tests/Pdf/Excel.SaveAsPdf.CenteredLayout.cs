@@ -17,10 +17,10 @@ public partial class Excel {
         ExcelSheet sheet = workbook.Sheets[0];
         sheet.CellValue(1, 1, "Marker");
         sheet.CellValue(2, 2, "Tail");
-        sheet.SetColumnWidth(1, 12);
-        sheet.SetColumnWidth(2, 12);
-        sheet.SetRowHeight(1, 30);
-        sheet.SetRowHeight(2, 30);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+        sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetMargins(0.5, 1, 0.75, 1.25);
         sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
         sheet.Range("A1:B2").SetFillColor("FFCC33");

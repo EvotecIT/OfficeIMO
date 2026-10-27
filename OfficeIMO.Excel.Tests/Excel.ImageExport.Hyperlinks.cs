@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Links");
-            sheet.SetColumnWidth(1, 20);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
             sheet.SetHyperlink(1, 1, "https://example.org/spec", display: "Spec", style: false);
 
             string hintedSvg = sheet.Range("A1:A1").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });

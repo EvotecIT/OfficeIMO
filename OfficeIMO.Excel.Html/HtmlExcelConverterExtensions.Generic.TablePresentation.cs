@@ -82,12 +82,12 @@ public static partial class HtmlExcelConverterExtensions {
             // columns below the readable minimum. Only surplus width is shared.
             double extraBudget = Math.Max(75D, minimumTotal) - minimumTotal;
             double scale = extraTotal > 0D ? Math.Min(1D, extraBudget / extraTotal) : 1D;
-            var fittedWidths = new Dictionary<int, double>();
+            var fittedWidths = new Dictionary<int, ExcelColumnWidth>();
             foreach (ExcelColumnInfo column in columns) {
                 double width = minimumWidth
                     + (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth) * scale;
                 for (int index = column.StartIndex; index <= column.EndIndex; index++) {
-                    fittedWidths.Add(index, width);
+                    fittedWidths.Add(index, ExcelColumnWidth.Characters(width));
                 }
             }
             sheet.SetColumnWidths(fittedWidths);
@@ -114,7 +114,7 @@ public static partial class HtmlExcelConverterExtensions {
             secondWidth = printableWidth - firstWidth;
         }
 
-        sheet.SetColumnWidth(1, firstWidth);
-        sheet.SetColumnWidth(2, secondWidth);
+        sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(firstWidth));
+        sheet.SetColumnWidth(2, OfficeIMO.Excel.ExcelColumnWidth.Characters(secondWidth));
     }
 }

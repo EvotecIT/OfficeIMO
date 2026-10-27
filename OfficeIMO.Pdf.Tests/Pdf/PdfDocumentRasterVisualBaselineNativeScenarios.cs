@@ -291,11 +291,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(13, 2, 24);
                 summary.Cell(13, 3, 20);
                 summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
-                summary.SetColumnWidth(1, 16);
-                summary.SetColumnWidth(2, 18);
-                summary.SetColumnWidth(3, 28);
-                summary.SetRowHeight(1, 28);
-                summary.SetRowHeight(6, 32);
+                summary.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+                summary.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+                summary.SetColumnWidth(3, ExcelColumnWidth.Characters(28));
+                summary.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+                summary.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 summary.SetColumnHidden(4, true);
                 summary.Cell(2, 4, "HiddenColumnValue");
                 summary.SetRowHidden(8, true);
@@ -320,8 +320,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 details.Cell(2, 2, "OfficeIMO");
                 details.Cell(3, 1, "Status");
                 details.Cell(3, 2, "Linked sheet destination");
-                details.SetColumnWidth(1, 16);
-                details.SetColumnWidth(2, 30);
+                details.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+                details.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
 
                 document.SetPrintArea(summary, "A1:C7");
                 document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);

@@ -34,9 +34,9 @@ internal static partial class FixtureCorpus {
                 sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
                 // Author the existing 304px canvas using stored widths, which already
                 // include padding: 196px in column A and 108px in column B at 7px/digit.
-                sheet.SetColumnWidth(1, 28); sheet.SetColumnWidth(2, 108D / 7D);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(28)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 7D));
                 for (int row = 1; row <= 3; row++) {
-                    sheet.SetRowHeight(row, 24);
+                    sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                     for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
                 }
             }

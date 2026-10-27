@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             for (int column = 1; column <= 4; column++) {
-                sheet.SetColumnWidth(column, 40D);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
             sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             sheet.CellBackground(3, 4, "#00FF00");
             for (int column = 1; column <= 4; column++) {
-                sheet.SetColumnWidth(column, 40D);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
             sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
@@ -521,8 +521,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetRowHeight(3, 800D);
-            sheet.SetRowHeight(4, 800D);
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
             sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
             sheet.SetPageSetup(fitToWidth: 0, fitToHeight: 1, paperSize: ExcelPaperSize.Letter);
             sheet.AddManualRowPageBreak(2, save: false);

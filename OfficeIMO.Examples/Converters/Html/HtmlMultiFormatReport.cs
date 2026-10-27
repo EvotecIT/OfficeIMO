@@ -48,7 +48,7 @@ internal static partial class Html {
             sheet.AutoFitColumns();
             var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRangeA1);
             if (firstColumn == lastColumn) {
-                sheet.WrapCells(firstRow, lastRow, firstColumn, 80D);
+                sheet.WrapCells(firstRow,lastRow,firstColumn, ExcelColumnWidth.Characters(80D));
                 for (int row = firstRow; row <= lastRow; row++) sheet.CellVerticalAlign(row, firstColumn, ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();

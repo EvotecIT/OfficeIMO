@@ -489,8 +489,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
             ExcelSheet sheet = Assert.Single(converted.Sheets);
             Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
-            Assert.Equal(9D, sheet.DefaultColumnWidth);
-            Assert.Equal(18D, sheet.DefaultRowHeight);
+            Assert.Equal(ExcelColumnWidth.Characters(9D), sheet.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), sheet.DefaultRowHeight);
             Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
             Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
             Assert.True(sheet.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
@@ -1338,12 +1338,12 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Geometry");
             sheet.CellValue(1, 1, "Merged heading");
             sheet.CellValue(5, 4, "Extent");
-            sheet.SetDefaultColumnWidth(9D);
-            sheet.SetDefaultRowHeight(18D);
-            sheet.SetColumnWidth(1, 20D);
+            sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(9D));
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
             sheet.SetColumnHidden(4, true);
             sheet.SetColumnOutline(3, 2, collapsed: true);
-            sheet.SetRowHeight(1, 30D);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
             sheet.SetRowHidden(3, true);
             sheet.SetRowOutline(4, 2, collapsed: true);
             sheet.Freeze(topRows: 1, leftCols: 1);
@@ -1353,8 +1353,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             ExcelSheet result = Assert.Single(reloaded.Sheets);
             Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
-            Assert.Equal(9D, result.DefaultColumnWidth);
-            Assert.Equal(18D, result.DefaultRowHeight);
+            Assert.Equal(ExcelColumnWidth.Characters(9D), result.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), result.DefaultRowHeight);
             Assert.Equal(30D, result.GetRowDefinitions().Single(row => row.Index == 1).Height);
             Assert.True(result.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
             Assert.Equal((byte)2, result.GetRowDefinitions().Single(row => row.Index == 4).OutlineLevel);

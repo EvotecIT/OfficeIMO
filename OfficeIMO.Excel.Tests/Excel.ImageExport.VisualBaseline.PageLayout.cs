@@ -110,13 +110,13 @@ namespace OfficeIMO.Tests {
             AddPageLayoutRow(sheet, 7, "Global", "Devon", "Ready", 0.91D, "E7F6E7", "226B22");
             AddPageLayoutRow(sheet, 8, "Partner", "Emery", "Risk", 0.64D, "FCE4E4", "9C0006");
 
-            sheet.SetColumnWidth(1, 42D);
-            sheet.SetColumnWidth(2, 38D);
-            sheet.SetColumnWidth(3, 30D);
-            sheet.SetColumnWidth(4, 26D);
-            sheet.SetRowHeight(1, 32D);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(42D));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(38D));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(30D));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(26D));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32D)));
             for (int row = 2; row <= 8; row++) {
-                sheet.SetRowHeight(row, 50D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50D)));
             }
 
             for (int row = 1; row <= 8; row++) {

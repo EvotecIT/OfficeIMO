@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.NativeWrapped." + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Data");
-                sheet.SetColumnWidth(1, width);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(width));
                 sheet.CellValue(1, 1, text);
                 sheet.CellAt(1, 1).SetBold(bold);
                 sheet.CellValue(1, 2, "Neighbor");

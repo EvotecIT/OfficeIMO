@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Value");
-                sheet.SetRowHeight(2000, 24);
-                sheet.SetColumnWidth(28, 16);
+                sheet.SetRowHeight(2000, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.SetColumnWidth(28, ExcelColumnWidth.Characters(16));
                 sheet.Protect();
                 var options = new GoogleSheetsSaveOptions();
                 options.Protection.UnprotectedRangesBySheet["Data"] = new List<string> { "A1:A2100" };
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 0.1D);
-                sheet.SetRowHeight(1, 1.23D);
-                sheet.SetColumnWidth(1, 16.25D);
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(1.23D)));
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16.25D));
                 ExcelCellInfo cell = Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells);
                 Assert.Equal("0.10000000000000001", Assert.IsType<double>(cell.Value).ToString("G17", CultureInfo.InvariantCulture));
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, 18)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, ExcelBorderStyle.Medium, "#FF0000")));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1, 1, 1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1,1,1)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
         }
 
@@ -271,8 +271,8 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.SetRowHeight(2, 20);
-                sheet.SetColumnWidth(3, 12);
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
                 sheet.ValidationDate(
                     "A1:A2",
                     ExcelDataValidationOperator.Between,
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests
                 string columnPath = "sheet/Data/column/3:3";
                 string validationPath = "sheet/Data/validation/0";
 
-                sheet.SetRowHeight(2, 24);
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 GoogleSheetsSyncCheckpoint resizedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[rowPath], resizedRow.ContentHashes[rowPath]);
 
@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests
                 GoogleSheetsSyncCheckpoint outlinedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(hiddenRow.ContentHashes[rowPath], outlinedRow.ContentHashes[rowPath]);
 
-                sheet.SetColumnWidth(3, 18);
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(18));
                 GoogleSheetsSyncCheckpoint resizedColumn = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[columnPath], resizedColumn.ContentHashes[columnPath]);
 
@@ -312,8 +312,8 @@ namespace OfficeIMO.Tests
                 try {
                     using var alternate = ExcelDocument.Create(alternatePath);
                     ExcelSheet alternateSheet = alternate.AddWorksheet("Data");
-                    alternateSheet.SetRowHeight(2, 20);
-                    alternateSheet.SetColumnWidth(3, 12);
+                    alternateSheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
+                    alternateSheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
                     alternateSheet.ValidationDate(
                         "A1:A2",
                         ExcelDataValidationOperator.Between,

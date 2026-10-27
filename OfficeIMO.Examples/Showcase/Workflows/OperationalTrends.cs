@@ -8,7 +8,7 @@ internal static class OperationalTrends {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
         var sheet = document.AddWorksheet("Weekly trend");
-        sheet.SetColumnWidth(1, 26); sheet.SetColumnWidth(2, 24); sheet.SetColumnWidth(3, 24); sheet.SetColumnWidth(4, 22);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(22));
         sheet.MergeRange("A1:D1"); sheet.Cell(1, 1, "Support workload over six weeks");
         sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
         string[] headers = { "Week", "Received", "Resolved", "Net change" };

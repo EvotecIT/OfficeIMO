@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(3, 1, "Keep");
             sheet.CellValue(1002, 1, "Tail");
-            sheet.SetRowHeight(3, 25);
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(25)));
             sheet.SetRowHidden(1002, true);
             var heights = Enumerable.Range(1, 1000).Reverse().ToDictionary(index => index, _ => 20.123456789d);
             heights[3] = 0;
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
         public void WrappedRowsIgnoreZeroWidthPrefixWithoutLosingGraphemes(string visible) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Data");
-            sheet.SetColumnWidth(1, 5);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
             sheet.CellValue(1, 1, visible);
             sheet.CellValue(2, 1, new string('\u200B', 30000) + visible);
             sheet.CellWrapText(1, 1);

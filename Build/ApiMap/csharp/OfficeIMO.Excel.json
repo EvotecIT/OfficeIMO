@@ -2,9 +2,9 @@
   "package": "OfficeIMO.Excel",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 282,
+    "changes": 297,
     "byAction": {
-      "change": 145,
+      "change": 160,
       "internalize": 4,
       "merge": 94,
       "remove": 19,
@@ -16,7 +16,7 @@
       "lifecycle": 52,
       "naming": 1,
       "options": 11,
-      "units": 106,
+      "units": 121,
       "visibility": 1
     },
     "packageMoves": 1
@@ -337,7 +337,8 @@
     "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
     "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",
     "ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null) / CreateWriter(path, theme: OfficeTheme) : ExcelWorkbookWriter",
-    "ExcelColumnWidth (characters, or a length through the default font) for column widths and row heights"
+    "ExcelColumnWidth (characters, or a length through the default font) for column widths and row heights",
+    "ExcelColumnWidth.Characters(double) / ExcelColumnWidth.Length(OfficeLength), explicit worksheet-aware conversions for column widths and row heights"
   ],
   "internalizeCandidates": [
     {
@@ -4877,6 +4878,186 @@
       "phase": "B",
       "applied": "phase-b-pending",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetColumnWidth(int columnIndex, double width)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetColumnWidth(int columnIndex, ExcelColumnWidth width)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Columns.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetColumnWidths(IReadOnlyDictionary<int, double> columnWidths)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetColumnWidths(IReadOnlyDictionary<int, ExcelColumnWidth> columnWidths)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ColumnWidths.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetRowHeight(int rowIndex, double height)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetRowHeight(int rowIndex, ExcelColumnWidth height)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RowAutoFit.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetDefaultColumnWidth(double width, bool save = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetDefaultColumnWidth(ExcelColumnWidth width, bool save = true)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RowDefaults.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetDefaultRowHeight(double height, bool hidden = false, bool save = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetDefaultRowHeight(ExcelColumnWidth height, bool hidden = false, bool save = true)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RowDefaults.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.DefaultColumnWidth : double?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.DefaultColumnWidth : ExcelColumnWidth?",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RowDefaults.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.DefaultRowHeight : double?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.DefaultRowHeight : ExcelColumnWidth?",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RowDefaults.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth)",
+      "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
+      "file": "OfficeIMO.Excel/ExcelSheet.CellValue.Styles.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRowLayoutOptions.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRowLayoutOptions.Height : ExcelColumnWidth?",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/ExcelRowLayoutOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.ShortWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.ShortWidth : ExcelColumnWidth",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.NumericWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.NumericWidth : ExcelColumnWidth",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.MediumWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.MediumWidth : ExcelColumnWidth",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.LongWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.LongWidth : ExcelColumnWidth",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.WrapWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.WrapWidth : ExcelColumnWidth",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnSizingOptions.WidthByHeader",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions.WidthByHeader : Dictionary<string, ExcelColumnWidth>",
+      "reason": "Row layout and report sizing options use the same typed dimensions as worksheet authoring.",
+      "file": "OfficeIMO.Excel/Report/ExcelColumnSizingOptions.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
     }
   ],
   "packageMoves": [
@@ -5089,6 +5270,25 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Typed and DataTable AddTable honor shared projection and alignment options alongside ExcelTableOptions.Projection; table-local selection/order and formatting take precedence over their advanced counterparts. Native DataTable row and selected-column bounds are checked before formatting or copying values."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "ExcelColumnWidth is a dependency-free value type in OfficeIMO.Excel with Characters/Length factories, explicit worksheet-aware conversions and unit-preserving equality. The existing default-font column geometry resolver remains the only font measurement path. Native legacy projections/writers, adapters, reports, examples, tests and mechanical PowerShell setters preserve their previous numeric units. Inspection ExcelColumnInfo.Width and ExcelRowInfo.Height remain pending the broader geometry pass.",
+      "files": [
+        "OfficeIMO.Excel/ExcelColumnWidth.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.TablePresentation.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.cs",
+        "OfficeIMO.Excel.IWork/ExcelIWorkConverter.cs",
+        "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentConversionExtensions.cs",
+        "OfficeIMO.Markup.Excel/OfficeMarkupExcelExporter.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Excel AotSmoke targets net8.0 and net10.0, exercises typed dimensions and uses CreateWriter(...).WriteTable(...) for asynchronous rows and IDataReader data. Superseded static writer entry points in the library and other consumers remain scheduled for the writer removal batch.",
+      "validation": "Native osx-arm64 smoke passes on net8.0 and net10.0 without IL warnings, covering streaming rows, readers, typed tables and worksheet dimensions."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

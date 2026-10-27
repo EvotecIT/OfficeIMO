@@ -88,11 +88,11 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet first = workbook.AddWorksheet("One");
         first.CellValue(1, 1, "Shared label");
-        first.SetColumnWidth(1, 14);
+        first.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
         ExcelSheet second = workbook.AddWorksheet("Two");
         second.CellValue(1, 1, "Shared label");
-        second.SetColumnWidth(1, 14);
+        second.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview

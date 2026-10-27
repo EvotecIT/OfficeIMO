@@ -77,7 +77,7 @@ public static partial class HtmlExcelConverterExtensions {
                     HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: textContainerLimit);
             } else {
                 narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
-                narrativeSheet.SetColumnWidth(1, 75D);
+                narrativeSheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(75D));
                 result.Sheets++;
                 int maxTableCells = budget.Limits.MaxTableCells;
                 int narrativeCells = 0;

@@ -822,7 +822,7 @@ namespace OfficeIMO.Tests
             sheet.Range("A1:H1").SetFillColor("1F4E79").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             sheet.CellValue(2, 1, "Region");
             sheet.CellValue(2, 2, "Score");
@@ -836,7 +836,7 @@ namespace OfficeIMO.Tests
             sheet.CellValue(3, 3, "Ready");
             sheet.CellAt(3, 3).Success();
             sheet.CellValue(3, 4, "Wrapped cell text stays centered and readable");
-            sheet.WrapCells(3, 3, 4);
+            sheet.WrapCells(3,3,4);
             sheet.CellVerticalAlign(3, 4, ExcelVerticalAlignment.Center);
             sheet.CellAlign(3, 4, ExcelHorizontalAlignment.Center);
 
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests
             sheet.CellAt(4, 3).Warning();
             sheet.CellValue(4, 4, "Narrative stays bounded beside the chart");
             sheet.CellAt(4, 4).MutedText();
-            sheet.WrapCells(4, 4, 4);
+            sheet.WrapCells(4,4,4);
             sheet.CellVerticalAlign(4, 4, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(5, 1, "South");
@@ -871,19 +871,19 @@ namespace OfficeIMO.Tests
             sheet.CellVerticalAlign(7, 4, ExcelVerticalAlignment.Center);
             sheet.SetComment("D7", "Ready for leadership review", "Reviewer");
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 10);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetColumnWidth(4, 18);
-            sheet.SetColumnWidth(5, 4);
-            sheet.SetColumnWidth(6, 16);
-            sheet.SetColumnWidth(7, 16);
-            sheet.SetColumnWidth(8, 16);
-            sheet.SetRowHeight(3, 54);
-            sheet.SetRowHeight(4, 36);
-            sheet.SetRowHeight(5, 40);
-            sheet.SetRowHeight(6, 32);
-            sheet.SetRowHeight(7, 32);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(4));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(8, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
 
             for (int row = 2; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
@@ -930,16 +930,16 @@ namespace OfficeIMO.Tests
             sheet.CellAt(5, 2).Error();
             sheet.CellValue(5, 3, "Owner");
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 13);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 10);
-            sheet.SetColumnWidth(5, 18);
-            sheet.SetColumnWidth(6, 18);
-            sheet.SetColumnWidth(7, 18);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, row == 3 ? 32 : 28);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 3 ? 32 : 28)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -985,7 +985,7 @@ namespace OfficeIMO.Tests
                 new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = 12D },
                 new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = 12D },
                 new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = 12D });
-            sheet.WrapCells(4, 4, 2);
+            sheet.WrapCells(4,4,2);
 
             sheet.CellAt(5, 2)
                 .SetShrinkToFit()
@@ -1007,16 +1007,16 @@ namespace OfficeIMO.Tests
                 new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = 18D },
                 new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = 8D });
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 18);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 28);
-            sheet.SetRowHeight(3, 46);
-            sheet.SetRowHeight(4, 58);
-            sheet.SetRowHeight(5, 28);
-            sheet.SetRowHeight(6, 24);
-            sheet.SetRowHeight(7, 48);
-            sheet.SetRowHeight(8, 36);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(46)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(58)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(48)));
+            sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 2; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1080,17 +1080,17 @@ namespace OfficeIMO.Tests
             sheet.CellValue(5, 3, "No old unsupported diagnostic");
             sheet.CellValue(5, 4, "PNG/SVG baseline gate");
             sheet.Range("B5:D5").SetFontColor("475569");
-            sheet.WrapCells(5, 5, 3);
+            sheet.WrapCells(5,5,3);
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 10);
-            sheet.SetColumnWidth(4, 20);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 26);
-            sheet.SetRowHeight(3, 96);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(20));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
@@ -1143,13 +1143,13 @@ namespace OfficeIMO.Tests
             ApplyPatternFill(sheet, 4, 4, PatternValues.DarkTrellis, "FF70AD47", "FFE2F0D9");
             ApplyPatternFill(sheet, 5, 2, PatternValues.Gray125, "FF70AD47", "FFF8FAFC");
 
-            sheet.SetColumnWidth(1, 13);
-            sheet.SetColumnWidth(2, 15);
-            sheet.SetColumnWidth(3, 15);
-            sheet.SetColumnWidth(4, 15);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(15));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(15));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 5; row++) {
-                sheet.SetRowHeight(row, 32);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1170,7 +1170,7 @@ namespace OfficeIMO.Tests
             sheet.Range("A1:G1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             string[] headers = { "Service", "Heat", "Load", "Delta", "State", "Icons", "Rule" };
             for (int column = 1; column <= headers.Length; column++) {
@@ -1196,15 +1196,15 @@ namespace OfficeIMO.Tests
                 sheet.CellAt(row, 5).SetFillColor(i >= 3 ? "FEE2E2" : "F8FAFC");
             }
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 11);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 16);
-            sheet.SetColumnWidth(5, 13);
-            sheet.SetColumnWidth(6, 10);
-            sheet.SetColumnWidth(7, 11);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(11));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(11));
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1242,7 +1242,7 @@ namespace OfficeIMO.Tests
             sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value", "Five rating", "Five quarters" };
             for (int column = 1; column <= headers.Length; column++) {
@@ -1264,11 +1264,11 @@ namespace OfficeIMO.Tests
             }
 
             for (int column = 1; column <= 7; column++) {
-                sheet.SetColumnWidth(column, column == 1 ? 13 : 12);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 ? 13 : 12));
             }
 
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1311,15 +1311,15 @@ namespace OfficeIMO.Tests
             sheet.CellValue(4, 2, 1);
             sheet.CellValue(4, 3, -1);
             sheet.CellValue(4, 4, 1);
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 9);
-            sheet.SetColumnWidth(3, 9);
-            sheet.SetColumnWidth(4, 9);
-            sheet.SetColumnWidth(5, 16);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
-            sheet.SetRowHeight(4, 30);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int row = 1; row <= 4; row++)
             {
                 for (int column = 1; column <= 5; column++)
@@ -1356,12 +1356,12 @@ namespace OfficeIMO.Tests
             sheet.CellValue(2, 2, "Only the overlapping slice is exported");
             sheet.CellValue(3, 2, "The image anchor remains in column A");
             sheet.Range("B2:C3").SetFillColor("F8FAFC");
-            sheet.SetColumnWidth(1, 10);
-            sheet.SetColumnWidth(2, 16);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 42);
-            sheet.SetRowHeight(3, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             for (int row = 1; row <= 3; row++) {
                 for (int column = 1; column <= 3; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1389,15 +1389,15 @@ namespace OfficeIMO.Tests
             sheet.CellAlign(5, 2, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
-                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 || column == 6 ? 9 : 14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 26);
-            sheet.SetRowHeight(6, 22);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1425,14 +1425,14 @@ namespace OfficeIMO.Tests
             sheet.CellAlign(5, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 34);
-            sheet.SetRowHeight(3, 34);
-            sheet.SetRowHeight(4, 34);
-            sheet.SetRowHeight(5, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1460,18 +1460,18 @@ namespace OfficeIMO.Tests
             sheet.CellAlign(9, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 34);
-            sheet.SetRowHeight(3, 34);
-            sheet.SetRowHeight(4, 34);
-            sheet.SetRowHeight(5, 34);
-            sheet.SetRowHeight(6, 34);
-            sheet.SetRowHeight(7, 34);
-            sheet.SetRowHeight(8, 34);
-            sheet.SetRowHeight(9, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1499,15 +1499,15 @@ namespace OfficeIMO.Tests
             sheet.CellAlign(9, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
             for (int row = 2; row <= 8; row++) {
-                sheet.SetRowHeight(row, 34);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             }
 
-            sheet.SetRowHeight(9, 28);
+            sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1535,15 +1535,15 @@ namespace OfficeIMO.Tests
             sheet.CellAlign(5, 2, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
-                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 || column == 6 ? 9 : 14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 38);
-            sheet.SetRowHeight(3, 38);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 28);
-            sheet.SetRowHeight(6, 22);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(38)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(38)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");

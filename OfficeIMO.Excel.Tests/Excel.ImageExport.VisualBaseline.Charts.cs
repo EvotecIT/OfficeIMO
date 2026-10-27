@@ -122,12 +122,12 @@ namespace OfficeIMO.Tests {
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
-                sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column <= 2 ? 13 : 11));
             }
 
-            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 10; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
             for (int row = 1; row <= 10; row++) {
@@ -176,12 +176,12 @@ namespace OfficeIMO.Tests {
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
-                sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column <= 2 ? 13 : 11));
             }
 
-            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 10; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 8; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);

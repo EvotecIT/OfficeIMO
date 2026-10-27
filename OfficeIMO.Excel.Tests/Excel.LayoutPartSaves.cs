@@ -22,11 +22,11 @@ namespace OfficeIMO.Tests {
                 }
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
 
-                for (int row = 2; row <= 40; row++) sheet.SetRowHeight(row, 30);
+                for (int row = 2; row <= 40; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 sheet.SetRowHidden(40, true);
-                sheet.SetColumnWidth(1, 32);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
                 sheet.SetColumnHidden(3, true);
-                sheet.SetColumnWidths(new Dictionary<int, double> { [2] = 14 });
+                sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [2] = ExcelColumnWidth.Characters(14) });
                 sheet.SetOrientation(OfficePageOrientation.Landscape);
                 sheet.SetPaperSize(ExcelPaperSize.A4);
                 sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
@@ -69,9 +69,9 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddWorksheet("Rows");
                 foreach (int row in new[] { 2, 5, 9 }) sheet.CellValue(row, 1, "Row " + row);
-                foreach (int row in new[] { 10, 3, 7, 1, 9, 4, 12, 6 }) sheet.SetRowHeight(row, 20 + row);
+                foreach (int row in new[] { 10, 3, 7, 1, 9, 4, 12, 6 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20 + row)));
                 sheet.InsertRows(4, 2);
-                foreach (int row in new[] { 4, 15, 8 }) sheet.SetRowHeight(row, 50 + row);
+                foreach (int row in new[] { 4, 15, 8 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50 + row)));
                 document.Save(stream);
             }
 
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
                     } else {
                         for (int row = 2; row <= 60; row++) WriteRow(sheet, row);
                     }
-                    for (int column = 1; column <= 3; column++) sheet.WrapCells(1, 60, column);
+                    for (int column = 1; column <= 3; column++) sheet.WrapCells(1,60,column);
                     styleSaves = saves();
                     document.Save(stream);
                 }

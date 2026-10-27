@@ -77,22 +77,22 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 4, "Stop");
             sheet.CellValue(3, 5, "rich text path");
             sheet.CellValue(4, 1, "Wrapped\ncell text");
-            sheet.WrapCells(4, 1, 1);
+            sheet.WrapCells(4,1,1);
             sheet.CellValue(4, 4, "No spill");
             sheet.CellValue(5, 1, "Centered");
             sheet.CellAlign(5, 1, ExcelHorizontalAlignment.Center);
             sheet.CellValue(5, 4, "Policy");
 
-            sheet.SetColumnWidth(1, 9);
-            sheet.SetColumnWidth(2, 16);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 10);
-            sheet.SetColumnWidth(5, 18);
-            sheet.SetRowHeight(1, 30);
-            sheet.SetRowHeight(2, 28);
-            sheet.SetRowHeight(3, 28);
-            sheet.SetRowHeight(4, 42);
-            sheet.SetRowHeight(5, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
 
             for (int row = 2; row <= 5; row++) {
                 sheet.CellAt(row, 1).SetFillColor("F8FAFC");

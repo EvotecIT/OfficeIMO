@@ -148,9 +148,9 @@ namespace OfficeIMO.Tests
                     sheet11.Cell(nextRow12, 1, "Name");
                     sheet11.Cell(nextRow12, 2, "Score");
                     nextRow12++;
-                    sheet11.SetColumnWidth(1, 25);
+                    sheet11.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
                     sheet11.SetColumnHidden(1, true);
-                    sheet11.SetColumnWidth(2, 30);
+                    sheet11.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
                     document.Save();
                 }
             }

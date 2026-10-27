@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Fonts");
             sheet.CellValue(1, 1, "Font fallback");
             sheet.CellAt(1, 1).SetFontName("OfficeIMO Missing Cell Font");
-            sheet.SetColumnWidth(1, 18);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("ScopedFont");
             sheet.CellValue(1, 1, "Scoped font");
             sheet.CellAt(1, 1).SetFontName("OfficeIMO Scoped Cell Font");
-            sheet.SetColumnWidth(1, 18);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             var options = new ExcelImageExportOptions { ShowGridlines = false };
             options.Fonts.Add("OfficeIMO Scoped Cell Font", File.ReadAllBytes(fontPath));
 
@@ -270,10 +270,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("BuiltIns");
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 14);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 14);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
             sheet.CellValue(1, 1, 0.1234);
             sheet.CellValue(1, 2, -1234);
             sheet.CellValue(1, 3, new DateTime(2026, 6, 24).ToOADate());
@@ -360,9 +360,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("GeneralAlign");
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 14);
-            sheet.SetColumnWidth(3, 16);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
             sheet.CellValue(1, 1, "Label");
             sheet.CellValue(1, 2, 42);
             sheet.Cell(1, 3, new DateTime(2026, 6, 24).ToOADate(), numberFormat: "m/d/yyyy");
@@ -385,10 +385,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Wrap");
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetRowHeight(1, 54);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
             sheet.CellValue(1, 1, "Alpha\nBeta\nGamma");
-            sheet.WrapCells(1, 1, 1);
+            sheet.WrapCells(1,1,1);
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
@@ -411,8 +411,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Clip");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetRowHeight(1, 22);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             sheet.CellValue(1, 1, "Visible prefix SECRET-SUFFIX-MUST-NOT-LEAK");
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -433,10 +433,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Spill");
-            sheet.SetColumnWidth(1, 6);
-            sheet.SetColumnWidth(2, 24);
-            sheet.SetColumnWidth(3, 8);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Plain text spills");
             sheet.CellValue(1, 3, "Stop");
 
@@ -463,10 +463,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("RightSpill");
-            sheet.SetColumnWidth(1, 24);
-            sheet.SetColumnWidth(2, 6);
-            sheet.SetColumnWidth(3, 8);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 2, "Right aligned text spills left");
             sheet.CellValue(1, 3, "Stop");
             sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
@@ -493,10 +493,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("OverlaySpill");
-            sheet.SetColumnWidth(1, 6);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 1, "Plain text stops before image overlay");
             sheet.AddImage(1, 2, CreateSolidOpaquePng(24, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 24, heightPixels: 18, name: "Overlay");
 
@@ -520,11 +520,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("ChartSpill");
-            sheet.SetColumnWidth(1, 6);
-            sheet.SetColumnWidth(2, 14);
-            sheet.SetColumnWidth(3, 14);
-            sheet.SetRowHeight(1, 30);
-            sheet.SetRowHeight(2, 30);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellValue(1, 1, "Plain text stops before chart overlay");
             sheet.CellValue(3, 1, "Label");
             sheet.CellValue(3, 2, "Value");
@@ -554,9 +554,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("SourceOverlay");
-            sheet.SetColumnWidth(1, 10);
-            sheet.SetColumnWidth(2, 16);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 1, "Text hidden by image should not spill");
             sheet.AddImage(1, 1, CreateSolidOpaquePng(48, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 48, heightPixels: 18, name: "SourceOverlay");
 
@@ -579,8 +579,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("AnchorOverlay");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
             sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 32, name: "AnchorOverlay");
 
@@ -602,8 +602,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("TransparentOverlay");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Visible through transparency");
             sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.Transparent), "image/png", widthPixels: 120, heightPixels: 32, name: "TransparentOverlay");
 
@@ -623,9 +623,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("NoNumberSpill");
-            sheet.SetColumnWidth(1, 6);
-            sheet.SetColumnWidth(2, 24);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, 123456789);
 
             ExcelRange range = sheet.Range("A1:B1");
@@ -648,8 +648,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Indent");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 1, "Indented");
             ApplyCellTextIndentStyle(document, sheet, "A1", 3U);
 
@@ -678,8 +678,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Theme");
             sheet.CellValue(1, 1, "Theme");
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetRowHeight(1, 34);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             ApplyThemeBackedCellStyle(document, sheet);
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -735,9 +735,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 3, row);
             }
 
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
             sheet.AddConditionalDataBar("B1:B3", OfficeColor.Blue);
             sheet.AddConditionalIconSet("C1:C3");
@@ -789,7 +789,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 0);
                 sheet.CellValue(2, 1, 50);
                 sheet.CellValue(3, 1, 100);
-                sheet.SetColumnWidth(1, 14);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
                 sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
                 document.Save();
             }
@@ -1156,7 +1156,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 0);
                 sheet.CellValue(2, 1, 50);
                 sheet.CellValue(3, 1, 100);
-                sheet.SetColumnWidth(1, 14);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
                 sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Green);
                 document.Save();
             }
@@ -1263,10 +1263,10 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(2, 1, 2);
             sheet.CellValue(3, 1, 3);
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetRowHeight(1, 24);
-            sheet.SetRowHeight(2, 24);
-            sheet.SetRowHeight(3, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
@@ -1399,8 +1399,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("DataBarOnly");
                 sheet.CellValue(1, 1, 42);
-                sheet.SetColumnWidth(1, 12);
-                sheet.SetRowHeight(1, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.AddConditionalDataBar("A1:A1", OfficeColor.Blue);
                 document.Save();
             }
@@ -1432,7 +1432,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("DataBarPriority");
             sheet.CellValue(1, 1, 20);
             sheet.CellValue(2, 1, 10);
-            sheet.SetColumnWidth(1, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalDataBar("A1:A2", OfficeColor.Blue);
             sheet.AddConditionalDataBar("A1:A1", OfficeColor.Red);
 
@@ -1530,10 +1530,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("FiveIcons");
             for (int row = 1; row <= 5; row++) {
                 sheet.CellValue(row, 1, row);
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
-            sheet.SetColumnWidth(1, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalIconSet("A1:A5", ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A5");
@@ -1564,10 +1564,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("FlagIcons");
             for (int row = 1; row <= 3; row++) {
                 sheet.CellValue(row, 1, row);
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
-            sheet.SetColumnWidth(1, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeFlags, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
@@ -1600,11 +1600,11 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, -5);
             sheet.CellValue(2, 2, 0);
             sheet.CellValue(3, 2, 5);
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetRowHeight(1, 24);
-            sheet.SetRowHeight(2, 24);
-            sheet.SetRowHeight(3, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
             sheet.AddConditionalFormulaRule("B1:B3", "B1<0", stopIfTrue: true, fillColor: "FEE2E2");
             sheet.AddConditionalColorScale("B1:B3", OfficeColor.Red, OfficeColor.Lime);
@@ -1654,10 +1654,10 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 5);
             sheet.CellValue(2, 1, 20);
             sheet.CellValue(3, 1, 30);
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetRowHeight(1, 24);
-            sheet.SetRowHeight(2, 24);
-            sheet.SetRowHeight(3, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Font(
@@ -1707,9 +1707,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("BorderRules");
             sheet.CellValue(1, 1, 5);
             sheet.CellValue(2, 1, 20);
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Border(
@@ -1808,8 +1808,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "Warm");
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(2, 2, 4);
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Equal, "\"Hot\"", fillColor: "FEE2E2");
             sheet.AddConditionalFormulaRule("B1:B2", "MOD(B1,2)=0", fillColor: "C6EFCE");
             AddMalformedTimePeriodRuleWithFill(sheet, "B1:B2");
@@ -1848,7 +1848,7 @@ namespace OfficeIMO.Tests {
             }
 
             for (int column = 1; column <= 4; column++) {
-                sheet.SetColumnWidth(column, 15);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
             }
 
             sheet.Range("A1:A4").ConditionalFormatting.ContainsText("hot", "FCE4D6");
@@ -1927,9 +1927,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 3, values[row - 1]);
             }
 
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.Range("A1:A5").ConditionalFormatting.AboveAverage("C6EFCE");
             sheet.Range("B1:B5").ConditionalFormatting.BelowAverage("DBEAFE", equalAverage: true);
             sheet.AddConditionalAboveAverageRule("C1:C5", aboveAverage: true, equalAverage: false, fillColor: "FCE4D6");
@@ -2000,8 +2000,8 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 2, values[row - 1]);
             }
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 14);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
             sheet.Range("A1:A6").ConditionalFormatting.DuplicateValues("FCE4D6");
             sheet.Range("B1:B6").ConditionalFormatting.UniqueValues("DBEAFE");
 
@@ -2103,10 +2103,10 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 4, bottomPercentValues[row - 1]);
             }
 
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetColumnWidth(4, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(12));
             sheet.Range("A1:A5").ConditionalFormatting.Top(2, "C6EFCE");
             sheet.Range("B1:B5").ConditionalFormatting.Bottom(1, "FEE2E2");
             sheet.AddConditionalTopBottomRule("C1:C5", 20, bottom: false, percent: true, fillColor: "FCE4D6");
@@ -2292,9 +2292,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("ImageClip");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetColumnWidth(2, 8);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 2, "Visible");
             byte[] banner = CreateSolidPng(96, 24, OfficeColor.FromRgb(220, 38, 38));
             sheet.AddImage(1, 1, banner, "image/png", widthPixels: 96, heightPixels: 24, name: "WideBanner");
@@ -2338,9 +2338,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("MergedClip");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetColumnWidth(2, 8);
-            sheet.SetColumnWidth(3, 8);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
             sheet.CellValue(1, 1, "Merged title");
             sheet.Range("A1:C1").Merge();
 
@@ -2393,13 +2393,13 @@ namespace OfficeIMO.Tests {
             byte[] banner = CreateSolidPng(32, 32, OfficeColor.FromRgb(37, 99, 235));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("TwoCell");
-                sheet.SetColumnWidth(1, 10);
-                sheet.SetColumnWidth(2, 10);
-                sheet.SetColumnWidth(3, 10);
-                sheet.SetColumnWidth(4, 10);
-                sheet.SetRowHeight(1, 24);
-                sheet.SetRowHeight(2, 24);
-                sheet.SetRowHeight(3, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(10));
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(10));
+                sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(10));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.CellValue(1, 1, "Two-cell");
                 document.Save();
             }
@@ -2454,9 +2454,9 @@ namespace OfficeIMO.Tests {
             byte[] banner = CreateSolidPng(80, 20, OfficeColor.FromRgb(22, 163, 74));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("AbsoluteImage");
-                sheet.SetColumnWidth(1, 8);
-                sheet.SetColumnWidth(2, 8);
-                sheet.SetRowHeight(1, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 document.Save();
             }
 
@@ -2479,10 +2479,10 @@ namespace OfficeIMO.Tests {
             byte[] croppedSource = CreateHorizontalCropPng();
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Crop");
-                sheet.SetColumnWidth(1, 14);
-                sheet.SetColumnWidth(2, 14);
-                sheet.SetRowHeight(1, 30);
-                sheet.SetRowHeight(2, 30);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 document.Save();
             }
 
@@ -2518,11 +2518,11 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("RotateImage");
                 for (int column = 1; column <= 4; column++) {
-                    sheet.SetColumnWidth(column, 14);
+                    sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
                 }
 
                 for (int row = 1; row <= 5; row++) {
-                    sheet.SetRowHeight(row, 30);
+                    sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 }
 
                 document.Save();
@@ -2566,11 +2566,11 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("TransformImage");
                 for (int column = 1; column <= 5; column++) {
-                    sheet.SetColumnWidth(column, 14);
+                    sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
                 }
 
                 for (int row = 1; row <= 6; row++) {
-                    sheet.SetRowHeight(row, 30);
+                    sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 }
 
                 document.Save();
@@ -4374,10 +4374,10 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Top");
             sheet.CellValue(1, 2, "Mid");
             sheet.CellValue(1, 3, "Bot");
-            sheet.SetRowHeight(1, 60);
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 14);
-            sheet.SetColumnWidth(3, 14);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
             sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Center);
             sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
@@ -4403,10 +4403,10 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Top");
             sheet.CellValue(1, 2, "Default");
             sheet.CellValue(1, 3, "Bottom");
-            sheet.SetRowHeight(1, 60);
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 14);
-            sheet.SetColumnWidth(3, 14);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
             sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
 
@@ -4429,9 +4429,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Wrap");
             sheet.CellValue(1, 1, "Alpha Beta Gamma Delta");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetRowHeight(1, 54);
-            sheet.WrapCells(1, 1, 1);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
+            sheet.WrapCells(1,1,1);
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4453,7 +4453,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Clip");
             sheet.CellValue(1, 1, "This text is intentionally much too long for the rendered cell");
-            sheet.SetColumnWidth(1, 6);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -4471,9 +4471,9 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 1, "Large");
             sheet.CellAt(1, 1).SetFontSize(8);
             sheet.CellAt(2, 1).SetFontSize(18);
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 32);
-            sheet.SetRowHeight(2, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
 
             ExcelRange range = sheet.Range("A1:A2");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4499,7 +4499,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Shrink");
             sheet.CellValue(1, 1, "Shrink To Fit");
-            sheet.SetColumnWidth(1, 7);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(7));
             sheet.CellAt(1, 1).SetFontSize(14).SetShrinkToFit();
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -4525,8 +4525,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rotate");
             sheet.CellValue(1, 1, "Rotated Header");
-            sheet.SetColumnWidth(1, 9);
-            sheet.SetRowHeight(1, 86);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(9));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(86)));
             sheet.CellAt(1, 1)
                 .SetTextRotation(90)
                 .SetFontColor("010203")
@@ -4563,9 +4563,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("ClipRotate");
             sheet.CellValue(1, 1, "Rotated Header");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetRowHeight(1, 52);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(52)));
             sheet.CellAt(1, 1).SetTextRotation(45);
 
             ExcelRange range = sheet.Range("A1:B1");
@@ -4584,8 +4584,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Stacked");
             sheet.CellValue(1, 1, "Stacked");
-            sheet.SetColumnWidth(1, 5);
-            sheet.SetRowHeight(1, 96);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
             sheet.CellAt(1, 1)
                 .SetTextRotation(255)
                 .SetFontColor("010203")

@@ -39,9 +39,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("InvisibleShape");
-                sheet.SetColumnWidth(1, 8);
-                sheet.SetColumnWidth(2, 30);
-                sheet.SetRowHeight(1, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.CellValue(1, 1, "Visible through shape");
                 document.Save();
             }
@@ -219,11 +219,11 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("CommentChart");
             for (int column = 1; column <= 10; column++) {
-                sheet.SetColumnWidth(column, 10);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10));
             }
 
             for (int row = 1; row <= 8; row++) {
-                sheet.SetRowHeight(row, 28);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             }
 
             sheet.CellValue(4, 1, "Month");
@@ -491,9 +491,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("OffsetShape");
-                sheet.SetColumnWidth(1, 8D);
-                sheet.SetColumnWidth(2, 8D);
-                sheet.SetColumnWidth(3, 8D);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8D));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8D));
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8D));
                 sheet.CellValue(1, 1, "Only cell");
                 document.Save();
             }
@@ -515,9 +515,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("AbsoluteShape");
-                sheet.SetColumnWidth(1, 8);
-                sheet.SetColumnWidth(2, 8);
-                sheet.SetRowHeight(1, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.CellValue(1, 2, "Shape area");
                 document.Save();
             }

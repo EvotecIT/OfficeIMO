@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.Batch(target => {
-                if (route == "range") target.WrapCells(1, 2, 1);
+                if (route == "range") target.WrapCells(1,2,1);
                 else for (int row = 1; row <= 2; row++) {
                     if (route == "newline") target.CellValue(row, 1, "First\nSecond");
                     else if (route == "richtext") target.CellAt(row, 1).SetRichText(new ExcelRichTextRun("First"), new ExcelRichTextRun("\nSecond"));
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 target.CellValue(1, 1, "Changed");
                 second.Batch(other => {
                     other.CellBold(1, 1);
-                    other.WrapCells(1, 1, 1);
+                    other.WrapCells(1,1,1);
                 });
                 throw new InvalidOperationException("Callback failed after editing");
             }));

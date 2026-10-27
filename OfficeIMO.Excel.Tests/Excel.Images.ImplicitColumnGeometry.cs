@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("ImplicitWidth");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             X.SheetFormatProperties format = sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!;
             format.BaseColumnWidth = baseWidth;
             format.DefaultColumnWidth = storedWidth.HasValue ? new DocumentFormat.OpenXml.DoubleValue(storedWidth.Value) : null;
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("ImplicitChart");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("StoredWidth");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!.BaseColumnWidth = 8U;
             sheet.WorksheetPart.Worksheet.AddChild(new X.Columns(new X.Column {
                 Min = 1U, Max = 1U, Width = 20D,

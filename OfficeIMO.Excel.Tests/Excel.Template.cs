@@ -767,7 +767,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(4, 2, "'Region Template'!B3*2");
                 sheet.CellFormula(5, 2, "SUM(TemplateWorkbookArea)");
                 sheet.MergeRange("A1:B1");
-                sheet.SetColumnWidth(1, 18);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
                 document.SetNamedRange("TemplateWorkbookArea", "'Region Template'!A1:B3", save: false);
                 sheet.SetNamedRange("TemplateArea", "A1:B3", save: false);

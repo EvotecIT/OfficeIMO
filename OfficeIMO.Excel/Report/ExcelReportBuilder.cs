@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
                 int col = kv.Key; string h = kv.Value;
                 bool hasHeader = !string.IsNullOrEmpty(h);
 
-                double? width = null;
+                ExcelColumnWidth? width = null;
                 if (hasHeader && opts.WidthByHeader.TryGetValue(h, out var explicitWidth)) {
                     width = explicitWidth;
                 } else if (hasHeader && IsMatch(opts.ShortHeaders, h)) width = opts.ShortWidth;

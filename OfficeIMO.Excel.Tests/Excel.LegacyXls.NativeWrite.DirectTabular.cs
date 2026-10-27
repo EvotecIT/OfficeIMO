@@ -399,7 +399,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Sparse");
             sheet.CellValue(10, 1, "First");
-            sheet.SetRowHeight(65, 21d);
+            sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
             sheet.CellValue(100, 1, "Last");
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
@@ -426,8 +426,8 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_GeneralWriter_LeavesIndexDataBoundsEmptyForFormattingOnlySheet() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("FormattingOnly");
-            sheet.SetColumnWidth(1, 18d);
-            sheet.SetRowHeight(65, 21d);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18d));
+            sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
 

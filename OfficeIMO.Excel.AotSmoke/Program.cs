@@ -10,10 +10,17 @@ try
     XmlTableSmoke.Run();
     using (var asyncRows = new MemoryStream())
     {
-        ExcelDataSetImportResult result = await ExcelDocument.WriteRowsAsync(asyncRows, CreateRowsAsync(), ["Region", "Revenue"], static (writer, row) => writer.Write(row.Region).Write(row.Revenue));
-        if (result.Range != "A1:B3" || result.RowCount != 2)
+        using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(asyncRows, leaveOpen: true))
         {
-            throw new InvalidOperationException("The asynchronous row writer returned an unexpected range.");
+            await writer.WriteTable("Revenue", CreateRowsAsync(), ["Region", "Revenue"],
+                static (rowWriter, row) => rowWriter.Write(row.Region).Write(row.Revenue));
+        }
+        asyncRows.Position = 0;
+        using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
+        if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
+            || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
+        {
+            throw new InvalidOperationException("The asynchronous table writer lost rows or their order.");
         }
     }
 
@@ -29,10 +36,10 @@ try
         using (var dataReaderPackage = new MemoryStream())
         {
             using var dataReader = sales.CreateDataReader();
-            ExcelDataSetImportResult dataReaderResult = ExcelDocument.WriteDataReader(dataReaderPackage, dataReader, new ExcelWriterOptions { CreateTable = true, TableName = "AotDataReader", IncludeCellReferences = false, UseSharedStrings = false });
-            if (dataReaderResult.Range != "A1:D3" || dataReaderResult.RowCount != 2 || dataReaderResult.TableName != "AotDataReader")
+            using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(dataReaderPackage,
+                new ExcelWriterOptions { CreateTable = true, IncludeCellReferences = false, UseSharedStrings = false }, leaveOpen: true))
             {
-                throw new InvalidOperationException("The AOT-safe DataReader writer returned an unexpected range.");
+                writer.WriteTable("AotDataReader", dataReader);
             }
 
             dataReaderPackage.Position = 0;
@@ -67,6 +74,9 @@ try
             composer.AddTable(dictionaryRows, title: "Scores");
         }
 
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Centimeters(3)));
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         document.Save();
     }
 
@@ -79,6 +89,12 @@ try
     if (!reopened.Sheets[0].TryGetCellText(2, 1, out string region) || region != "North")
     {
         throw new InvalidOperationException("The Excel round trip lost its typed table data.");
+    }
+
+    if (reopened.Sheets[0].GetColumnDefinitions().First().Width != 20
+        || reopened.Sheets[0].GetRowDefinitions().First().Height != 24)
+    {
+        throw new InvalidOperationException("Typed worksheet dimensions did not survive NativeAOT saving.");
     }
 
     AotSalesRow mappedRow = reopened.Sheets[0].RowsAs<AotSalesRow>(map => map.FromColumn<string>("Region", static (row, value) =>
@@ -105,12 +121,12 @@ try
 
     if (!reopened["Dictionary builder"].TryGetCellText(1, 1, out string builderHeader) || builderHeader != "Score" || !reopened["Dictionary builder"].TryGetCellText(2, 1, out string builderValue) || builderValue != "10")
     {
-        throw new InvalidOperationException("RowsFrom did not preserve generic-only dictionary columns under NativeAOT.");
+        throw new InvalidOperationException("Typed tables did not preserve generic-only dictionary columns under NativeAOT.");
     }
 
     if (!reopened["Dictionary composer"].TryGetCellText(2, 1, out string composerRankHeader) || composerRankHeader != "Rank" || !reopened["Dictionary composer"].TryGetCellText(2, 2, out string composerScoreHeader) || composerScoreHeader != "Score" || !reopened["Dictionary composer"].TryGetCellText(3, 1, out string composerRankValue) || composerRankValue != "1" || !reopened["Dictionary composer"].TryGetCellText(3, 2, out string composerScoreValue) || composerScoreValue != "10")
     {
-        throw new InvalidOperationException("TableFrom did not preserve generic-only dictionary columns under NativeAOT.");
+        throw new InvalidOperationException("Report tables did not preserve generic-only dictionary columns under NativeAOT.");
     }
 
     Console.WriteLine("PASS | Excel DataReader, typed, and generic-only dictionary tables create, save, and reload");

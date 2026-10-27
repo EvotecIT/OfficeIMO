@@ -67,9 +67,9 @@ namespace OfficeIMO.Tests {
                     summary.CellBold(2, 1, true);
                     summary.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 3, "#112233");
-                    summary.SetColumnWidth(1, 20);
+                    summary.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
                     summary.CellValue(3, 1, "First line\nSecond line");
-                    summary.WrapCells(3, 3, 1, 20);
+                    summary.WrapCells(3,3,1, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 4, "Status");
                     summary.CellValue(1, 5, "Region");
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
                     sheet.FormatCell(2, 1, "0.00%");
 
                     sheet.CellValue(3, 1, "First line\nSecond line");
-                    sheet.WrapCells(3, 3, 1, 20);
+                    sheet.WrapCells(3,3,1, ExcelColumnWidth.Characters(20));
                     sheet.CellFontColor(3, 1, "#445566");
                     sheet.CellBold(3, 1, true);
                     sheet.CellAlign(3, 1, ExcelHorizontalAlignment.Left);
@@ -293,9 +293,9 @@ namespace OfficeIMO.Tests {
                     summary.CellBold(2, 2, true);
                     summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 6, "#112233");
-                    summary.SetColumnWidth(2, 20);
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.WrapCells(3,3,2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
@@ -1255,9 +1255,9 @@ namespace OfficeIMO.Tests {
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
                     summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
-                    summary.SetColumnWidth(2, 20);
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.WrapCells(3,3,2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
@@ -1844,7 +1844,7 @@ namespace OfficeIMO.Tests {
                 var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
-                summary.SetColumnWidth(1, 18);
+                summary.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
                 int driveMetadataReads = 0;

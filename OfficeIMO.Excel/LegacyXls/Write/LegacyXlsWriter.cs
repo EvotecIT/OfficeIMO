@@ -691,8 +691,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsWorksheetProtection protection = ExtractWorksheetProtection(sheet);
 
             return new LegacyXlsWorksheetLayout(
-                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth),
-                sheet.DefaultRowHeight,
+                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth?.ToCharacters(sheet)),
+                sheet.DefaultRowHeight?.ToLength(sheet).ToPoints(),
                 sheet.DefaultRowsHidden,
                 columns,
                 rows,

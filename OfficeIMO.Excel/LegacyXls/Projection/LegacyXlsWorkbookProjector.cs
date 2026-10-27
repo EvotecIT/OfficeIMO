@@ -710,7 +710,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 if (legacySheet.DefaultColumnWidth.HasValue) {
-                    currentSheet.SetDefaultColumnWidth(legacySheet.DefaultColumnWidth.Value, save: false);
+                    currentSheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(legacySheet.DefaultColumnWidth.Value), save: false);
                 }
 
                 foreach (LegacyXlsColumnLayout column in legacySheet.Columns) {
@@ -723,7 +723,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     for (int columnIndex = column.StartColumn; columnIndex <= column.EndColumn; columnIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (column.Width > 0) {
-                            currentSheet.SetColumnWidth(columnIndex, column.Width);
+                            currentSheet.SetColumnWidth(columnIndex, ExcelColumnWidth.Characters(column.Width));
                         }
 
                         if (column.Hidden) {
@@ -741,13 +741,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 if (legacySheet.DefaultRowHeight.HasValue) {
-                    currentSheet.SetDefaultRowHeight(legacySheet.DefaultRowHeight.Value, legacySheet.DefaultRowsHidden, save: false);
+                    currentSheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeLength.Points(legacySheet.DefaultRowHeight.Value)), legacySheet.DefaultRowsHidden, save: false);
                 }
 
                 foreach (LegacyXlsRowLayout row in legacySheet.Rows) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (row.CustomHeight && row.Height > 0) {
-                        currentSheet.SetRowHeight(row.Row, row.Height);
+                        currentSheet.SetRowHeight(row.Row, ExcelColumnWidth.Length(OfficeLength.Points(row.Height)));
                     }
 
                     if (row.Hidden) {

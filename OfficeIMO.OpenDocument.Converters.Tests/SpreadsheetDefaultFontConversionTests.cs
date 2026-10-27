@@ -36,7 +36,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         var sheet = workbook.AddWorksheet("Metrics");
         sheet.CellValue(1, 1, "Visible cell");
         sheet.CellFontName(1, 1, "Cell Face");
-        sheet.SetColumnWidth(1, 24);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
         Font font = workbook.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         font.FontName = new FontName { Val = "Column Face" };
         font.FontSize = new FontSize { Val = 14D };

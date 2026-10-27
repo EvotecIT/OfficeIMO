@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                     Min = 1, Max = 3, Width = 30D, CustomWidth = true, BestFit = true,
                     Hidden = true, OutlineLevel = 2
                 }), 0);
-                sheet.SetColumnWidth(2, width);
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(width));
                 var columns = worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
                 Assert.Equal(new uint[] { 1, 2, 3 }, columns.Select(column => column.Min!.Value));
                 Assert.Equal(new double?[] { 30D, width > 0D ? width : null, 30D }, columns.Select(column => column.Width?.Value));
@@ -54,8 +54,8 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, label);
                 if (previouslyFitted) sheet.AutoFitColumns();
-                if (batch) sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 12D });
-                else sheet.SetColumnWidth(1, 12D);
+                if (batch) sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [1] = ExcelColumnWidth.Characters(12D) });
+                else sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12D));
                 document.Save();
             }
             using (var document = ExcelDocument.Load(filePath)) {
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
                 package.Features.Get<IPartRootEventsFeature>()!.Change += args => {
                     if (args.Type == EventType.Saved && ReferenceEquals(args.Argument, worksheetPart)) saves++;
                 };
-                var widths = Enumerable.Range(1, 64).ToDictionary(column => column, column => 12D + column / 10D);
-                if (withRange) widths.Add(66, 25D);
+                var widths = Enumerable.Range(1, 64).ToDictionary(column => column, column => ExcelColumnWidth.Characters(12D + column / 10D));
+                if (withRange) widths.Add(66, ExcelColumnWidth.Characters(25D));
                 sheet.SetColumnWidths(widths);
                 Assert.Equal(0, saves);
                 if (withRange) {
@@ -120,9 +120,9 @@ namespace OfficeIMO.Tests {
         public void Test_SetColumnWidths_ValidatesTheWholeBatchBeforeChangingWidths(int invalidIndex, double invalidWidth) {
             using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ColumnWidths.Invalid.xlsx"));
             var sheet = document.AddWorksheet("Data");
-            sheet.SetColumnWidth(1, 20D);
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, double> {
-                [1] = 30D, [invalidIndex] = invalidWidth
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
+                [1] = ExcelColumnWidth.Characters(30D), [invalidIndex] = ExcelColumnWidth.Characters(invalidWidth)
             }));
             Assert.Equal(20D, Assert.Single(sheet.GetColumnDefinitions()).Width);
         }

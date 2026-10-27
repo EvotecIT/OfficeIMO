@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Data");
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(ExcelA1.MaxRows + 1, new ExcelRowLayoutOptions { Height = 20 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(ExcelA1.MaxRows + 1, new ExcelRowLayoutOptions { Height = ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)) }));
         }
 
         [Fact]

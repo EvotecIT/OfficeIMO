@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet alias = document.Sheets[0];
             sheet.CellWrapText(2, 1);
             alias.CellValue(3, 1, "Added after save");
-            alias.SetColumnWidth(1, 32);
+            alias.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
             document.Save(stream, options);
             Assert.True(sheet.CellAt(2, 1).GetStyle().WrapText);
             Assert.Equal("Added after save", sheet.CellAt(3, 1).GetValue<string>());

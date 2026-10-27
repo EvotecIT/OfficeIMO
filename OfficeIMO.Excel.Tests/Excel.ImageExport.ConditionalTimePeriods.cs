@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, new DateTime(2026, 6, 18));
             sheet.CellValue(3, 2, new DateTime(2026, 6, 17));
             sheet.Range("A1:B3").DateTime("yyyy-mm-dd");
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetRowHeight(1, 30);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
             sheet.AddConditionalTimePeriodRule("B1:B3", ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
 

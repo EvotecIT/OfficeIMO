@@ -90,11 +90,11 @@ namespace OfficeIMO.Examples.Excel
                     sheet1.AddConditionalDataBar("B2:B11", Color.Blue);
                     sheet1.AutoFitColumns();
                     sheet1.AutoFitRows();
-                    sheet1.SetColumnWidth(1, 15);
-                    sheet1.SetColumnWidth(2, 10);
-                    sheet1.SetColumnWidth(3, 15);
-                    sheet1.SetColumnWidth(4, 12);
-                    sheet1.SetColumnWidth(5, 10);
+                    sheet1.SetColumnWidth(1, ExcelColumnWidth.Characters(15));
+                    sheet1.SetColumnWidth(2, ExcelColumnWidth.Characters(10));
+                    sheet1.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
+                    sheet1.SetColumnWidth(4, ExcelColumnWidth.Characters(12));
+                    sheet1.SetColumnWidth(5, ExcelColumnWidth.Characters(10));
                     document.Save();
                 } // Don't open Excel yet
 

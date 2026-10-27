@@ -10,11 +10,11 @@ public partial class Excel {
     public void SaveAsPdf_WrappedAndShrunkCellsPreserveNeighborFontSizes() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Layout");
-        sheet.SetColumnWidth(1, 12);
-        sheet.SetColumnWidth(2, 25);
-        sheet.SetColumnWidth(3, 15);
-        sheet.SetRowHeight(1, 45);
-        sheet.SetRowHeight(2, 24);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(25));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+        sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         sheet.Cell(1, 1, "Neighbor1");
         sheet.Cell(1, 2, "The quick brown fox jumps over the lazy dog with enough words to wrap.");
         sheet.Cell(1, 3, "Amount");

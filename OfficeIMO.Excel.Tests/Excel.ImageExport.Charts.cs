@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests {
                 new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1"), new Xdr.RowOffset("0")));
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
-            sheet.SetColumnWidth(1, 30D);
-            sheet.SetRowHeight(1, 45D);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30D));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45D)));
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo after));
 
             Assert.True(after.WidthPixels > before.WidthPixels);

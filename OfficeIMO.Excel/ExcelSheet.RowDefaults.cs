@@ -5,10 +5,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the worksheet default row height in points, or null when the sheet uses the application default.
         /// </summary>
-        public double? DefaultRowHeight {
+        public ExcelColumnWidth? DefaultRowHeight {
             get {
                 SheetFormatProperties? sheetFormat = WorksheetRoot.GetFirstChild<SheetFormatProperties>();
-                return sheetFormat?.DefaultRowHeight?.Value;
+                return sheetFormat?.DefaultRowHeight?.Value is double height ? ExcelColumnWidth.Length(OfficeLength.Points(height)) : (ExcelColumnWidth?)null;
             }
         }
 
@@ -23,10 +23,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the worksheet default column width in character units, or null when the sheet uses the application default.
         /// </summary>
-        public double? DefaultColumnWidth {
+        public ExcelColumnWidth? DefaultColumnWidth {
             get {
                 SheetFormatProperties? sheetFormat = WorksheetRoot.GetFirstChild<SheetFormatProperties>();
-                return sheetFormat?.DefaultColumnWidth?.Value;
+                return sheetFormat?.DefaultColumnWidth?.Value is double width ? ExcelColumnWidth.Characters(width) : (ExcelColumnWidth?)null;
             }
         }
 
@@ -40,8 +40,8 @@ namespace OfficeIMO.Excel {
         /// <param name="height">Default row height in points. Excel supports values up to 409 points.</param>
         /// <param name="hidden">Whether empty rows should be hidden by default.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultRowHeight(double height, bool hidden = false, bool save = true) =>
-            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: true);
+        public void SetDefaultRowHeight(ExcelColumnWidth height, bool hidden = false, bool save = true) =>
+            SetDefaultRowHeightCore(height.ToRowPoints(this), hidden, save, roundToHundredths: true);
 
         internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) =>
             SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
@@ -68,8 +68,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="width">Default column width in character units. Excel supports values up to 255.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultColumnWidth(double width, bool save = true) =>
-            SetDefaultColumnWidthCore(width, save, roundToHundredths: true);
+        public void SetDefaultColumnWidth(ExcelColumnWidth width, bool save = true) =>
+            SetDefaultColumnWidthCore(width.ToCharacters(this), save, roundToHundredths: true);
 
         internal void SetDefaultColumnWidthExact(double width, bool save = true) =>
             SetDefaultColumnWidthCore(width, save, roundToHundredths: false);

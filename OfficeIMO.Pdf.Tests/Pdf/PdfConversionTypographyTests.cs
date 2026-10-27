@@ -247,14 +247,14 @@ public sealed class PdfConversionTypographyTests {
             string workbookPath = Path.Combine(directory, "multilingual.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             ExcelSheet sheet = document.Sheets[0];
-            sheet.SetColumnWidth(1, 32);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
             sheet.Cell(1, 1, "Converter typography report");
             sheet.Cell(2, 1, "Zażółć gęślą jaźń");
             sheet.Cell(3, 1, "Ελλάδα");
             sheet.Cell(4, 1, "Київ");
             // This fixture tests font embedding and mapping, independently of default-row clipping.
             for (int row = 1; row <= 4; row++) {
-                sheet.SetRowHeight(row, 30);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
             }
             document.Save();

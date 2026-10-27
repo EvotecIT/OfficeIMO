@@ -125,7 +125,7 @@ namespace OfficeIMO.Examples.Excel
             sheet.CellBold(1, 1, true);
             sheet.CellFontColor(1, 1, "FFFFFF");
             for (int column = 1; column <= 6; column++) sheet.CellBackground(1, column, "17365D");
-            sheet.SetRowHeight(1, 34);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             sheet.MergeRange("A2:F2");
             sheet.Cell(2, 1, "Revenue, cost and margin by region and product line. Margin columns are formulas.");
             sheet.CellFontColor(2, 1, "5B6B7F");
@@ -143,7 +143,7 @@ namespace OfficeIMO.Examples.Excel
                 sheet.FormatCell(row, 10, "#,##0");
             }
             foreach ((int column, double width) in new[] { (1, 12d), (2, 14d), (3, 14d), (4, 14d), (5, 14d), (6, 12d), (7, 3d), (8, 12d), (9, 14d), (10, 14d) }) {
-                sheet.SetColumnWidth(column, width);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));
             }
         }
     }

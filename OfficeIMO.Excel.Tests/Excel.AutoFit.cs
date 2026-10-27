@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 sheet.SetRowLayout(2, new ExcelRowLayoutOptions {
-                    Height = 32,
+                    Height = ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)),
                     Hidden = true,
                     Bold = true,
                     WrapText = true,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Line 1\nLine 2");
                 sheet.SetRowLayout(1, new ExcelRowLayoutOptions {
-                    Height = 28,
+                    Height = ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)),
                     WrapText = true,
                     FirstColumn = 1,
                     LastColumn = 1

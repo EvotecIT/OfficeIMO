@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Patterns");
             sheet.CellValue(1, 1, "Pattern");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyPatternFill(sheet, 1, 1, PatternValues.DarkGrid, "FFC00000", "FFFFE5E5");
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Patterns");
             sheet.CellValue(1, 1, "Gray");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyPatternFill(sheet, 1, 1, PatternValues.Gray125, "FF00A000", "FFFFFFFF");
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Gradient");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", 0D);
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Multi");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", "FFFF0000", 0D);
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Near");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, 0.0000005D, 0.5D, 0.9999995D);
 
             ExcelRange range = sheet.Range("A1:A1");
@@ -146,8 +146,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Gradient");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1);
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });

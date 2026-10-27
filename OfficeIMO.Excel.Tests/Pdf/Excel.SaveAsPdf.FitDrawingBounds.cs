@@ -13,11 +13,11 @@ public partial class Excel {
         using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Banner" });
         var sheet = workbook.Sheets[0];
         sheet.CellValue(1, 1, "Banner");
-        sheet.SetColumnWidth(1, 12);
-        sheet.SetColumnWidth(2, 12);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
         for (int row = 1; row <= 10; row++) {
             sheet.CellValue(row, 2, "Row" + row);
-            sheet.SetRowHeight(row, 30);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
         sheet.AddImage(1, 1, CreateMinimalRgbPng(), "image/png", widthPixels: 800, heightPixels: 16);
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);

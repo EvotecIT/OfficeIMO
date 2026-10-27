@@ -823,8 +823,8 @@ public sealed class StudioNativeEngineTests : IDisposable {
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Quarterly figures");
-            sheet.SetColumnWidth(1, 40); // Search validates visible text, not clipped cell overflow.
-            sheet.SetRowHeight(1, 30);
+            sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(40)); // Search validates visible text, not clipped cell overflow.
+            sheet.SetRowHeight(1, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellVerticalAlign(1, 1, OfficeIMO.Excel.ExcelVerticalAlignment.Center);
             document.Save();
         }

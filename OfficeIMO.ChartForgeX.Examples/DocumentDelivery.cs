@@ -46,8 +46,8 @@ internal static class DocumentDelivery {
         using var document = ExcelDocument.Create(path);
         foreach (var specimen in specimens) {
             var sheet = document.AddWorksheet(specimen.Name);
-            for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, 12D);
-            for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, 18D);
+            for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(12D));
+            for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.MergeRange("B1:I2");
             sheet.CellValue(1, 2, Heading(specimen));
             sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, Style.HeadingSizePoints);

@@ -59,7 +59,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
         sheet.Cell(1, 1, "DefaultBottom"); sheet.Cell(1, 2, "ExplicitTop");
-        sheet.SetRowHeight(1, 40D);
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40D)));
         sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions { HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -77,7 +77,7 @@ public partial class Excel {
         for (int row = 1; row <= 80; row++) {
             sheet.Cell(row, 1, "Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
             sheet.CellFontSize(row, 1, fontSize);
-            sheet.SetRowHeight(row, 20D);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20D)));
         }
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -100,7 +100,7 @@ public partial class Excel {
         sheet.Range("A1:B1").Merge();
         sheet.CellAt(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
         sheet.Cell(1, 3, "First page"); sheet.Cell(1, 5, "Second page");
-        sheet.SetColumnWidth(1, 10); sheet.SetColumnWidth(2, 20);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 2);
         document.SetPrintArea(sheet, "A1:F2");
         sheet.AddManualColumnPageBreak(3);
@@ -130,8 +130,8 @@ public partial class Excel {
         ExcelSheet sheet = document.Sheets[0];
         sheet.Cell(1, 1, "TopLeft"); sheet.Cell(1, 3, "TopRight");
         sheet.Cell(3, 1, "BottomLeft"); sheet.Cell(3, 3, "BottomRight");
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 20);
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 30);
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(20));
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetPageSetup(pageOrder: order, fitToWidth: fit ? 2U : null, fitToHeight: fit ? 2U : null);
         document.SetPrintArea(sheet, "A1:D4");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {

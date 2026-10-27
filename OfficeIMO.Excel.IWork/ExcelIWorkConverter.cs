@@ -260,7 +260,7 @@ public static partial class ExcelIWorkConverter {
                         sheet.SetImportedRowLayout(table.RowHeights, table.HiddenRows, cancellationToken);
                         foreach (var column in table.ColumnWidths) {
                             cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
+                            sheet.SetColumnWidth(column.Key, OfficeIMO.Excel.ExcelColumnWidth.Characters(PointsToExcelColumnWidth(column.Value)));
                         }
                         foreach (int column in table.HiddenColumns) {
                             cancellationToken.ThrowIfCancellationRequested();

@@ -28,8 +28,8 @@ public sealed class SpreadsheetChartConversionTests {
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects");
         ExcelChart chart = Assert.Single(converted["Data"].Charts);
-        Assert.Equal(14.5, converted["Data"].DefaultRowHeight);
-        Assert.Equal(8.43, converted["Data"].DefaultColumnWidth);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(14.5)), converted["Data"].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(8.43), converted["Data"].DefaultColumnWidth);
         Assert.Equal(expectedType, chart.ChartType);
         Assert.Equal("Sales", chart.Title);
         Assert.True(chart.TryGetData(out ExcelChartData data));

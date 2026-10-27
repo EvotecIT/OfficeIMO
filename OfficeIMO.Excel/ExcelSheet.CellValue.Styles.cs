@@ -464,9 +464,9 @@ namespace OfficeIMO.Excel {
         /// <param name="toRow">The last 1-based row index in the range.</param>
         /// <param name="column">The 1-based column index whose cells should wrap.</param>
         /// <param name="targetColumnWidth">The column width, in Excel character units, to enforce when wrapping.</param>
-        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth) {
+        public void WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth) {
             WrapCells(fromRow, toRow, column);
-            if (targetColumnWidth > 0) {
+            if (targetColumnWidth.ToCharacters(this) > 0) {
                 try { SetColumnWidth(column, targetColumnWidth); } catch { }
             }
         }

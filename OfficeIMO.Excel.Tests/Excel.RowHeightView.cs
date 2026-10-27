@@ -33,7 +33,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create()) {
             ExcelSheet sheet = document.AddWorksheet("Report");
             sheet.Cell(1, 1, "Explicit height");
-            sheet.SetRowHeight(1, 24D);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24D)));
             if (unfreeze) { sheet.Freeze(1, 1); sheet.Freeze(); }
             document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = validate });
         }

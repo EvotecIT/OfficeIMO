@@ -15,7 +15,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddWorksheet("Report");
         for (int column = 1; column <= 6; column++) {
             sheet.Cell(1, column, "Column" + column);
-            sheet.SetColumnWidth(column, 10D);
+            sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         }
         sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
         sheet.AddChart(new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }),
@@ -44,7 +44,7 @@ public partial class Excel {
     public void SaveAsPdf_TerminalMediaUsesDisplayedColumnsAndRealTrailingGap() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, 10D);
+        for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         sheet.Cell(1, 1, "Title"); sheet.Cell(1, 12, "FinalBody");
         // M lies directly after the body; O additionally includes the real empty N column.
         sheet.AddImage(2, 13, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);

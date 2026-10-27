@@ -19,7 +19,7 @@ public sealed class ExcelConditionalIconFidelityTests {
         ExcelSheet sheet = document.AddWorksheet("Directions");
         for (int row = 1; row <= count; row++) {
             sheet.CellValue(row, 1, row - 1);
-            sheet.SetRowHeight(row, 30);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
         sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
             percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
@@ -60,14 +60,14 @@ public sealed class ExcelConditionalIconFidelityTests {
     public void Symbols_RenderActualArtworkAndReserveTextInPdfAndPng(int percent, bool showValue) {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Icons");
-        sheet.SetColumnWidth(1, 20);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
         sheet.SetMargins(0, 0, 0, 0);
         sheet.SetPageSetup(scale: (uint)percent);
         int[] values = { 123, 456, 789 };
         for (int row = 1; row <= 3; row++) {
             sheet.CellValue(row, 1, values[row - 1]);
             sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Left);
-            sheet.SetRowHeight(row, 24);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         }
         sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeSymbols2, showValue, false,
             percentThresholds: null, numberThresholds: new[] { 0D, 300D, 600D });

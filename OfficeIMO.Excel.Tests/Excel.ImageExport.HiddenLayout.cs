@@ -18,12 +18,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 1, "Visible Row");
             sheet.CellValue(3, 2, 30);
             sheet.CellValue(3, 3, 40);
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetRowHeight(1, 24);
-            sheet.SetRowHeight(2, 24);
-            sheet.SetRowHeight(3, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetColumnHidden(2, true);
             sheet.SetRowHidden(2, true);
             sheet.AddImage(1, 2, CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 12, heightPixels: 10, name: "HiddenLogo");
@@ -72,8 +72,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Hidden by default");
             sheet.CellValue(2, 1, "Visible override");
             sheet.CellValue(3, 1, "Hidden by default too");
-            sheet.SetDefaultRowHeight(18D, hidden: true);
-            sheet.SetRowHeight(2, 18D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)),hidden: true);
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
 
             ExcelRange range = sheet.Range("A1:A3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -110,8 +110,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("DefaultHiddenAnchor");
             sheet.CellValue(1, 1, "Visible");
-            sheet.SetDefaultRowHeight(18D, hidden: true);
-            sheet.SetRowHeight(1, 18D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)),hidden: true);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.AddImage(10, 1, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "DefaultHiddenLogo");
 
             OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
@@ -170,8 +170,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("OffsetImage");
             sheet.CellValue(1, 1, "Visible");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetColumnWidth(2, 8);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
             sheet.AddImage(1, 1, CreateSolidPng(70, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 70, heightPixels: 18, offsetXPixels: 58, name: "OffsetLogo");
 
             OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });

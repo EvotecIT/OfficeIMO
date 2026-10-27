@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests
                     sheet.CellValue(r, 2, "Wrapped column should stay narrow even when auto-fit runs on neighbours.");
                 }
 
-                sheet.WrapCells(2, 6, 2, 24);
+                sheet.WrapCells(2,6,2, ExcelColumnWidth.Characters(24));
                 sheet.AutoFitColumnsFor(new[] { 1 });
                 document.Save();
             }
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests
                 composer.ApplyColumnSizing("A1:B10", opts =>
                 {
                     opts.WrapHeaders.Add("Wrap");
-                    opts.WrapWidth = 22;
+                    opts.WrapWidth = ExcelColumnWidth.Characters(22);
                     opts.AutoFitHeaders.Add("Auto");
                 });
                 document.Save();

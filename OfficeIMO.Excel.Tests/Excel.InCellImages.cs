@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 1, "Alpha");
             sheet.SetInCellImage(2, 2, TinyPng, altText: "Sorted badge");
             sheet.AddAutoFilter("A1:B3");
-            sheet.SetColumnWidth(2, 24D);
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24D));
 
             sheet.Range("A1:B3").SortByColumn(1, ascending: true, hasHeader: true);
 

@@ -24,9 +24,9 @@ public partial class Excel {
             sheet.Cell(1, 1, "ARef");
             sheet.Cell(1, 2, "WideColumn");
             sheet.Cell(1, 3, "Tail");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetColumnWidth(2, 32);
-            sheet.SetColumnWidth(3, 8);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(32));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
             sheet.SetPageSetup(scale: 50);
 
             IReadOnlyList<ExcelColumnInfo> columns = sheet.GetColumnDefinitions();
@@ -71,7 +71,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "TopRow");
             sheet.Cell(2, 1, "TallRow");
             sheet.Cell(3, 1, "AfterTall");
-            sheet.SetRowHeight(2, 60);
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
 
             ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
             Assert.Equal(2, row.Index);
@@ -116,8 +116,8 @@ public partial class Excel {
             sheet.Cell(1, 3, "C1");
             sheet.Cell(2, 1, "A2");
             sheet.Cell(3, 1, "A3");
-            sheet.SetColumnWidth(2, 32);
-            sheet.SetRowHeight(2, 60);
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(32));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             document.Save();
 
             var commonOptions = new ExcelPdfExportOptions {

@@ -339,7 +339,7 @@ public partial class Excel {
             }
 
             for (int row = 1; row <= 10; row++) {
-                sheet.SetRowHeight(row, 36D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36D)));
             }
 
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
@@ -506,8 +506,8 @@ public partial class Excel {
             sheet.Cell(2, 2, "LeftValueB");
             sheet.Cell(2, 3, "RightValueC");
             sheet.Cell(2, 4, "RightValueD");
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetColumnWidth(3, 22);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(22));
             sheet.AddManualColumnPageBreak(2);
 
             Assert.Equal(new[] { 2 }, sheet.GetManualColumnPageBreaks());

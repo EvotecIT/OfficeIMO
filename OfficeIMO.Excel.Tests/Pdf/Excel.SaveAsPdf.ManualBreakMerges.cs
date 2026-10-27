@@ -15,8 +15,8 @@ public partial class Excel {
     public void SaveAsPdf_ConditionalMergeDecorationsRetainTheirFullGeometryAcrossBreaks(ExcelPdfWorksheetLayoutMode layout, bool bar) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 36);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, 0); sheet.Cell(2, 2, 50); sheet.Cell(4, 4, 100);
         sheet.MergeRange("B2:C3");
         if (bar) sheet.AddConditionalDataBar("A1:D4", "FF5B9BD5");
@@ -41,8 +41,8 @@ public partial class Excel {
     public void SaveAsPdf_MergedDiagonalBordersRemainOnTheFragmentContainingTheSourceAnchor(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 36);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 2, "End");
         sheet.MergeRange("B2:C3");
         sheet.CellDiagonalBorder(2, 2, ExcelBorderStyle.Thin, "B91C1C", diagonalUp: true, diagonalDown: true);
@@ -63,8 +63,8 @@ public partial class Excel {
     public void SaveAsPdf_MergedCenteredWrappedTextPreservesFullyVisibleLinesOnBothSidesOfTheBreak(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 50);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(4, 4, "End");
         sheet.MergeRange("A2:B3");
         sheet.Cell(2, 1, "WrapOne\nWrapTwo\nWrapThree\nWrapFour");
@@ -90,8 +90,8 @@ public partial class Excel {
     public void SaveAsPdf_MergeCrossingBothBreakAxesKeepsRightBottomTextOnTheLastPage(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 36);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start");
         sheet.Cell(2, 2, "End");
         sheet.CellAlign(2, 2, ExcelHorizontalAlignment.Right);
@@ -120,8 +120,8 @@ public partial class Excel {
     public void SaveAsPdf_ManualBreakAcrossMergeRetainsTheFullCellTextGeometry(ExcelPdfWorksheetLayoutMode layout, bool rowBreak, bool explicitAlignment) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 36);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "FirstPage");
         sheet.Cell(4, 4, "LastPage");
         sheet.Cell(rowBreak ? 2 : 1, rowBreak ? 1 : 2, "Merged");

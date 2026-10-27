@@ -1701,13 +1701,21 @@ than silently discarding them.
 Use `SetColumnWidths` to apply positive widths in one worksheet update:
 
 ```csharp
-sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 24, [2] = 14, [3] = 18 });
+sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
+    [1] = ExcelColumnWidth.Characters(24),
+    [2] = ExcelColumnWidth.Length(OfficeLength.Centimeters(3)),
+    [3] = ExcelColumnWidth.Characters(18)
+});
+sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
 ```
 
 Indexes are 1-based. The method preserves column styles, visibility and outline
 metadata. It validates the complete map before changing widths and clamps widths
 above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
-custom width with a non-positive value.
+custom width with `default` or a non-positive dimension. Physical widths resolve
+through the workbook default font and round to the nearest 96-DPI pixel. Row
+heights accept the same type: lengths retain their physical height, while
+characters use the default font digit advance without column padding.
 Manually assigned widths do not mark a column as already auto-fitted. A later
 `AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
 the workbook.

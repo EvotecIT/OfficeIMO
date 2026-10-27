@@ -22,8 +22,8 @@ internal static class ProjectWorkbook {
             summary.Cell(4, column + 1, headers[column]);
             summary.CellBackground(4, column + 1, "17365D");
             summary.CellFontColor(4, column + 1, "FFFFFF");
-            summary.SetColumnWidth(column + 1, column == 0 ? 30 : 22);
-            delivery.SetColumnWidth(column + 1, column == 0 ? 30 : 22);
+            summary.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
+            delivery.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
         }
         for (int index = 0; index < labels.Length; index++) {
             int row = index + 2;

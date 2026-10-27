@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 SetCellStyle(spreadsheet, "C" + row.ToString(CultureInfo.InvariantCulture), wrapStyle);
             }
 
-            sheet.SetColumnWidth(3, 18);
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(18));
             if (applyOfficeImoAutoFit) {
                 sheet.AutoFitColumnsFor(new[] { 1, 2 });
                 sheet.AutoFitRows();

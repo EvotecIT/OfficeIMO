@@ -12,7 +12,7 @@ public class ExcelTemporalNumberFormatTests {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddWorksheet("ISO date");
         sheet.CellAt(1, 1).SetValue(0d).SetNumberFormat(format);
-        sheet.SetColumnWidth(1, 35);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(35));
         using var saved = new MemoryStream();
         workbook.Save(saved);
         saved.Position = 0;
@@ -45,7 +45,7 @@ public class ExcelTemporalNumberFormatTests {
         workbook.DateSystem = system;
         var sheet = workbook.AddWorksheet("Precision");
         sheet.CellAt(1, 1).SetValue(serial).SetNumberFormat(format);
-        sheet.SetColumnWidth(1, 35);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(35));
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Contains(expected, string.Concat(pdf.GetPages().Select(page => page.Text)));
@@ -134,7 +134,7 @@ public class ExcelTemporalNumberFormatTests {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddWorksheet("Elapsed boundary");
         sheet.CellAt(1, 1).SetValue(11d / 86400d).SetNumberFormat("[s]\"s\"");
-        sheet.SetColumnWidth(1, 20);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
@@ -167,7 +167,7 @@ public class ExcelTemporalNumberFormatTests {
         sheet.CellAt(2, 1).SetValue(0.1).SetNumberFormat("[h]\\h m\\m");
         sheet.CellAt(3, 1).SetValue(-1.5).SetNumberFormat("[h]:mm;[Red]([h]:mm)");
         sheet.CellAt(4, 1).SetValue(-0.1).SetNumberFormat("[h]\"h\" m\"m\"");
-        sheet.SetColumnWidth(1, 35);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(35));
         byte[] pdf = workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
         string text = string.Concat(parsed.GetPages().Select(page => page.Text));
@@ -186,7 +186,7 @@ public class ExcelTemporalNumberFormatTests {
         var sheet = workbook.AddWorksheet("Formats");
         sheet.CellAt(1, 1).SetValue(new DateTime(2026, 1, 5, 13, 4, 59, 960)).SetNumberFormat("d.mm.yyyy hh:mm:ss.0");
         sheet.CellAt(2, 1).SetValue(0.1).SetNumberFormat("[h]\"h\" m\"m\"");
-        sheet.SetColumnWidth(1, 40);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(40));
         using var saved = new MemoryStream();
         workbook.Save(saved);
         saved.Position = 0;
@@ -211,7 +211,7 @@ public class ExcelTemporalNumberFormatTests {
         var sheet = workbook.AddWorksheet("Epoch");
         // The same calendar date is serial 1463 in the 1900 system and 1 in 1904.
         sheet.CellAt(1, 1).SetValue(new DateTime(1904, 1, 2)).SetNumberFormat("[>=1000]yyyy-mm-dd\" large\";yyyy-mm-dd\" small\"");
-        sheet.SetColumnWidth(1, 40);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(40));
         string expected = system == ExcelDateSystem.NineteenHundred ? "1904-01-02 large" : "1904-01-02 small";
         Assert.Equal(expected, Assert.Single(sheet.Range("A1:A1").CreateVisualSnapshot().Cells).Text);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, WorksheetLayout = layout }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

@@ -35,7 +35,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Geometry");
         sheet.CellValue(1, 1, "Retained");
-        sheet.SetDefaultRowHeight(15D);
+        sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.BaseColumnWidth = baseWidth;
 
         byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -56,7 +56,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Geometry");
         sheet.CellValue(1, 1, "Retained");
-        sheet.SetDefaultRowHeight(15D);
+        sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth = width;
 
         byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -66,7 +66,7 @@ public partial class Excel {
 
         Assert.Equal(expected, ReadXlsbTestUInt32(format.Data, 0));
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-        Assert.Equal(expected / 256D, reloaded.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(ExcelColumnWidth.Characters(expected / 256D), reloaded.Sheets[0].DefaultColumnWidth);
     }
 
     [Fact]

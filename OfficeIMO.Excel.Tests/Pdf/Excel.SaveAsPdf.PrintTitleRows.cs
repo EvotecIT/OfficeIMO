@@ -66,7 +66,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
         for (int row = 1; row <= 26; row++) {
-            sheet.Cell(row, 1, "Row" + row.ToString("D3")); sheet.SetRowHeight(row, 30D);
+            sheet.Cell(row, 1, "Row" + row.ToString("D3")); sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
         }
         document.SetPrintArea(sheet, "A1:A26");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);

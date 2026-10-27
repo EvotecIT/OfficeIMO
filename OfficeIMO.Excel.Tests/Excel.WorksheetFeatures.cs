@@ -570,11 +570,11 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Rows");
                 sheet.CellValue(1, 1, "Default height");
-                sheet.SetDefaultRowHeight(18.5d);
-                sheet.SetDefaultColumnWidth(12.25d);
-                Assert.Equal(18.5d, sheet.DefaultRowHeight);
+                sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)));
+                sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(12.25d));
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), sheet.DefaultRowHeight);
                 Assert.False(sheet.DefaultRowsHidden);
-                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
+                Assert.Equal(ExcelColumnWidth.Characters(12.25d), sheet.DefaultColumnWidth);
                 document.Save();
             }
 
@@ -593,13 +593,13 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                Assert.Equal(18.5d, sheet.DefaultRowHeight);
-                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
-                sheet.SetDefaultRowHeight(21d, hidden: true);
-                sheet.SetDefaultColumnWidth(14d);
-                Assert.Equal(21d, sheet.DefaultRowHeight);
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), sheet.DefaultRowHeight);
+                Assert.Equal(ExcelColumnWidth.Characters(12.25d), sheet.DefaultColumnWidth);
+                sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)),hidden: true);
+                sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(14d));
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)), sheet.DefaultRowHeight);
                 Assert.True(sheet.DefaultRowsHidden);
-                Assert.Equal(14d, sheet.DefaultColumnWidth);
+                Assert.Equal(ExcelColumnWidth.Characters(14d), sheet.DefaultColumnWidth);
                 document.Save();
             }
 

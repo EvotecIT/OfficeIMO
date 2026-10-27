@@ -122,7 +122,7 @@ internal static class ObjectExport
         ExcelSheet sheet = document.Sheets[0];
         sheet.Freeze(topRows: 1);
         for (int column = 1; column <= 6; column++)
-            sheet.SetColumnWidth(column, 18);
+            sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(18));
         for (int row = 2; row <= assets.Length + 1; row++)
         {
             sheet.FormatCell(row, 4, "d mmm yyyy");

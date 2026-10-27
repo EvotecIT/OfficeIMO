@@ -14,7 +14,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");
-        sheet.MergeRange("A2:A3"); sheet.SetRowHeight(2, 15.1); sheet.SetRowHeight(3, 15.2);
+        sheet.MergeRange("A2:A3"); sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.1))); sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.2)));
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
@@ -33,8 +33,8 @@ public partial class Excel {
     public void SaveAsPdf_ImageBearingMergeRetainsItsImageAcrossPageBreaks(ExcelPdfWorksheetLayoutMode layout, bool horizontal) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 36);
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 15);
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");
         sheet.MergeRange(horizontal ? "A2:B2" : "A2:A3");
         sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);

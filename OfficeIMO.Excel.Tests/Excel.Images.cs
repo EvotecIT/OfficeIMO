@@ -87,10 +87,10 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.SetColumnWidth(1, 20);
-                sheet.SetColumnWidth(2, 18);
-                sheet.SetRowHeight(1, 30);
-                sheet.SetRowHeight(2, 24);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
 
                 ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "CustomSizedRange");
 
@@ -147,10 +147,10 @@ namespace OfficeIMO.Tests {
             int originalWidth = image.WidthPixels;
             int originalHeight = image.HeightPixels;
 
-            sheet.SetColumnWidth(1, 30);
-            sheet.SetColumnWidth(2, 30);
-            sheet.SetRowHeight(1, 45);
-            sheet.SetRowHeight(2, 45);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
 
             Assert.True(image.WidthPixels > originalWidth);
             Assert.True(image.HeightPixels > originalHeight);
@@ -163,9 +163,9 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.SetColumnWidth(1, 20);
-            sheet.SetColumnWidth(2, 20);
-            sheet.SetColumnWidth(3, 20);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(20));
             ExcelImage image = sheet.AddImageFromFileToRange("A1:C1", imagePath, name: "HiddenColumnRange");
             int visibleWidth = image.WidthPixels;
 
@@ -181,9 +181,9 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.SetRowHeight(1, 15);
-            sheet.SetRowHeight(2, 15);
-            sheet.SetRowHeight(3, 15);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
             ExcelImage image = sheet.AddImageFromFileToRange("A1:A3", imagePath, name: "HiddenRowRange");
 
             sheet.SetRowHidden(2, true);
@@ -202,10 +202,10 @@ namespace OfficeIMO.Tests {
             int originalWidth = image.WidthPixels;
             int originalHeight = image.HeightPixels;
 
-            sheet.SetColumnWidth(1, 30);
-            sheet.SetColumnWidth(2, 30);
-            sheet.SetRowHeight(1, 45);
-            sheet.SetRowHeight(2, 45);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
 
             Assert.Equal(originalWidth, image.WidthPixels);
             Assert.Equal(originalHeight, image.HeightPixels);

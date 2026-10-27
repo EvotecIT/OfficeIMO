@@ -17,32 +17,32 @@ namespace OfficeIMO.Examples.Excel
             var wrapOnly = document.AddWorksheet("WrapOnly");
             wrapOnly.CellValue(1, 1, "Wrap Text (no auto-fit)");
             wrapOnly.CellValue(3, 1, "Line1\nLine2\nLine3");
-            wrapOnly.WrapCells(3, 3, 1, 28);
+            wrapOnly.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
             wrapOnly.CellValue(5, 1, "Very long sentence that will wrap once the row height is increased manually or via API.");
-            wrapOnly.WrapCells(5, 5, 1, 28);
+            wrapOnly.WrapCells(5,5,1, ExcelColumnWidth.Characters(28));
             // Sheet 2: wrap text plus AutoFitRows so the height adjusts
             var wrapAutoRows = document.AddWorksheet("Wrap+AutoFitRows");
             wrapAutoRows.CellValue(1, 1, "Wrap Text + AutoFitRows");
             wrapAutoRows.CellValue(3, 1, "Line1\nLine2\nLine3");
-            wrapAutoRows.WrapCells(3, 3, 1, 28);
+            wrapAutoRows.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
             wrapAutoRows.CellValue(5, 1, "Very long sentence that will wrap onto multiple lines once row heights are adjusted.");
-            wrapAutoRows.WrapCells(5, 5, 1, 28);
+            wrapAutoRows.WrapCells(5,5,1, ExcelColumnWidth.Characters(28));
             wrapAutoRows.CellValue(7, 1, "Table note");
             wrapAutoRows.CellValue(8, 1, "Long description that benefits from wrapping to keep the table narrow and readable.");
             wrapAutoRows.CellValue(8, 2, "Short note");
-            wrapAutoRows.WrapCells(8, 8, 1, 28);
+            wrapAutoRows.WrapCells(8,8,1, ExcelColumnWidth.Characters(28));
             wrapAutoRows.AutoFitRows();
             // Sheet 3: wrap text combined with both AutoFitRows and AutoFitColumns to illustrate Excel's native behaviour
             var wrapAll = document.AddWorksheet("Wrap+AutoFitAll");
             wrapAll.CellValue(1, 1, "Wrap Text + AutoFitRows + AutoFitColumns");
             wrapAll.CellValue(3, 1, "Line1\nLine2\nLine3");
-            wrapAll.WrapCells(3, 3, 1, 28);
+            wrapAll.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
             wrapAll.CellValue(5, 1, "Very long sentence that demonstrates how Excel widens columns when auto-fit runs with wrap enabled.");
-            wrapAll.WrapCells(5, 5, 1, 28);
+            wrapAll.WrapCells(5,5,1, ExcelColumnWidth.Characters(28));
             wrapAll.CellValue(7, 1, "Auto-fit note");
             wrapAll.CellValue(8, 1, "Auto-fitting columns widens them to the longest line even when wrap is enabled, matching Excel's UI.");
             wrapAll.CellValue(8, 2, "Short note");
-            wrapAll.WrapCells(8, 8, 1, 28);
+            wrapAll.WrapCells(8,8,1, ExcelColumnWidth.Characters(28));
             wrapAll.AutoFitColumns();
             wrapAll.AutoFitRows();
             // Sheet 4: wrap column stays pinned while neighbours auto-fit
@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.Excel
                 selective.CellValue(r, 3, "This column uses auto-fit so the text decides its width.");
             }
 
-            selective.WrapCells(2, 8, 2, 26);
+            selective.WrapCells(2,8,2, ExcelColumnWidth.Characters(26));
             selective.AutoFitColumnsExcept(new[] { 2 });
             // Sheet 5: ExcelReportBuilder example with column sizing helper
             var composer = document.AddWorksheet("ComposerSizing", ExcelSheetNameValidationMode.Sanitize).Report();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.Excel
             composer.ApplyColumnSizing("A1:C6", opts =>
             {
                 opts.WrapHeaders.Add("Wrap");
-                opts.WrapWidth = 24;
+                opts.WrapWidth = ExcelColumnWidth.Characters(24);
                 opts.AutoFitHeaders.Add("AutoFit");
                 opts.NumericHeaders.Add("Number");
             });

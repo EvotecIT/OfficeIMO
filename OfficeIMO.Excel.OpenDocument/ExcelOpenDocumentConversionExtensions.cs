@@ -497,7 +497,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ? TryGetUniformColumnWidth(columnRuns) : null;
             double? defaultColumnWidth = uniformDefaultColumnWidth ??
                 (effective.MaximumColumns == 16_384 ? TryGetDominantColumnWidth(columnRuns) : null);
-            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(defaultColumnWidth.Value));
             if (uniformDefaultColumnWidth.HasValue)
                 columnLayouts = (int)Math.Min(int.MaxValue, (long)columnLayouts + effective.MaximumColumns);
             foreach (OdsColumnRun columnRun in uniformDefaultColumnWidth.HasValue
@@ -517,7 +517,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     int excelColumn = checked((int)column + 1);
                     if (columnRun.Hidden) sheet.SetColumnHidden(excelColumn, true);
                     if (columnRun.Width.HasValue) {
-                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(points));
+                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, ExcelColumnWidth.Characters(PointsToExcelWidth(points)));
                         else unsupportedMeasurements++;
                     }
                     columnLayouts++;
@@ -529,7 +529,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             int materializedRowLayouts = 0;
             double? uniformDefaultRowHeight = effective.MaximumRows == 1_048_576
                 ? TryGetUniformRowHeight(rowRuns) : null;
-            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
+            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(uniformDefaultRowHeight.Value)));
             foreach (OdsRowRun rowRun in rowRuns) {
                 IReadOnlyList<OdsCellRun> cellRuns = rowRun.CellRuns;
                 bool hiddenRowRun = rowRun.Hidden;
@@ -587,7 +587,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     else if (needsIndividualLayout) truncated = true;
                     if (hiddenRowRun && canMaterializeLayout) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
                     if (rowHeight.HasValue && !uniformDefaultRowHeight.HasValue && canMaterializeLayout) {
-                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, points);
+                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(points)));
                         else unsupportedMeasurements++;
                         rowLayouts++;
                     } else if (rowHeight.HasValue && uniformDefaultRowHeight.HasValue) {

@@ -205,7 +205,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (rowIndex > 1048576) break;
                 GoogleSheetsNativeDimensionProperties metadata = block.RowMetadata[offset];
                 if (metadata.PixelSize is int pixels && pixels > 0) {
-                    sheet.SetRowHeight(rowIndex, pixels * 72d / 96d);
+                    sheet.SetRowHeight(rowIndex, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(pixels * 72d / 96d)));
                 }
                 if (metadata.HiddenByUser == true) {
                     sheet.SetRowHidden(rowIndex, true);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (columnIndex > 16384) break;
                 GoogleSheetsNativeDimensionProperties metadata = block.ColumnMetadata[offset];
                 if (metadata.PixelSize is int pixels && pixels > 0) {
-                    sheet.SetColumnWidth(columnIndex, ConvertPixelsToExcelColumnWidth(pixels));
+                    sheet.SetColumnWidth(columnIndex, OfficeIMO.Excel.ExcelColumnWidth.Characters(ConvertPixelsToExcelColumnWidth(pixels)));
                 }
                 if (metadata.HiddenByUser == true) {
                     sheet.SetColumnHidden(columnIndex, true);

@@ -23,7 +23,7 @@ internal static partial class DocumentFeatureShowcase {
         sheet.Cell(2, 1, subtitle);
         sheet.CellFontColor(2, 1, "526179");
         for (int column = 1; column <= 6; column++) {
-            sheet.SetColumnWidth(column, column == 1 ? 24 : 17);
+            sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 ? 24 : 17));
         }
         return sheet;
     }

@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("AnchorOverlay");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
             sheet.AddImage(
                 1,

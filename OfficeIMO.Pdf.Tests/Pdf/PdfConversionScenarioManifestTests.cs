@@ -2437,11 +2437,11 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.Cell(7, 4, "High");
             sheet.Cell(9, 1, "Dashboard note");
             sheet.Cell(9, 2, "Charts, image anchors, print area, and conditional formats stay reviewable.");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetColumnWidth(4, 14);
-            sheet.SetColumnWidth(5, 16);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
             sheet.AddConditionalColorScale("B4:B7", "FFFFF2CC", "FF70AD47");
             sheet.AddConditionalDataBar("C4:C7", "FF5B9BD5");
             sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), "image/png", widthPixels: 36, heightPixels: 24, name: "Dashboard badge", altText: "Dashboard badge");

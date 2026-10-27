@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddWorksheet("Rows");
                 sheet.CellValue(3, 1, "Tall");
                 sheet.CellValue(4, 1, "Normal");
-                sheet.SetRowHeight(3, 42D);
+                sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42D)));
                 document.Save();
             }
 

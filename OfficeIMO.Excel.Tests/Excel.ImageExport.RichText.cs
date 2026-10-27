@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("PlainStyle");
-            sheet.SetColumnWidth(1, 24);
-            sheet.SetRowHeight(1, 34);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             sheet.CellAt(1, 1)
                 .SetValue("Styled plain cell")
                 .SetUnderline(ExcelUnderlineStyle.Double)
@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rich");
-            sheet.SetColumnWidth(1, 26);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Strong") { Bold = true, FontColor = "FF0000" },
                 new ExcelRichTextRun(" note") { Italic = true, Underline = true, FontColor = "0563C1", FontSize = 13D },
@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddWorksheet("Overrides");
-                    sheet.SetColumnWidth(1, 44);
-                    sheet.SetRowHeight(1, 28);
+                    sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(44));
+                    sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
                     ExcelCell cell = sheet.CellAt(1, 1);
                     cell.SetBold().SetItalic().SetUnderline().SetStrikethrough();
                     cell.SetRichText(
@@ -157,8 +157,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("RichFont");
-            sheet.SetColumnWidth(1, 22);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(22));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Missing run font") {
                     FontName = "OfficeIMO Missing Rich Font",
@@ -179,8 +179,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rich");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 44);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(44)));
             sheet.CellAt(1, 1)
                 .SetRichText(
                     new ExcelRichTextRun("Wrapped") { Bold = true, FontColor = "FF0000" },
@@ -206,8 +206,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rich");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetRowHeight(1, 30);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellAt(1, 1)
                 .SetShrinkToFit()
                 .SetRichText(
@@ -234,8 +234,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("RichClip");
-            sheet.SetColumnWidth(1, 8);
-            sheet.SetRowHeight(1, 24);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Overflowing") { Bold = true, FontColor = "DC2626", FontSize = 12D },
                 new ExcelRichTextRun(" rich text SECRET-RICH-SUFFIX-MUST-NOT-LEAK") { Italic = true, FontColor = "2563EB", FontSize = 12D });
@@ -260,10 +260,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("RichSpill");
-            sheet.SetColumnWidth(1, 6);
-            sheet.SetColumnWidth(2, 24);
-            sheet.SetColumnWidth(3, 8);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = 12D },
                 new ExcelRichTextRun(" text spills") { Italic = true, FontColor = "7C3AED", FontSize = 12D });
@@ -296,8 +296,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rich");
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetRowHeight(1, 60);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             sheet.CellAt(1, 1)
                 .SetTextRotation(45)
                 .SetRichText(
@@ -331,8 +331,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Rich");
-            sheet.SetColumnWidth(1, 5);
-            sheet.SetRowHeight(1, 96);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
             sheet.CellAt(1, 1)
                 .SetTextRotation(255)
                 .SetRichText(

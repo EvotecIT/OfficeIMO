@@ -89,13 +89,13 @@ namespace OfficeIMO.Tests {
             AddHeaderFooterImageRow(sheet, 3, "South", "Blake", "Review", 0.81D, "FEF3C7", "92400E");
             AddHeaderFooterImageRow(sheet, 4, "West", "Casey", "Risk", 0.68D, "FEE2E2", "991B1B");
 
-            sheet.SetColumnWidth(1, 42D);
-            sheet.SetColumnWidth(2, 38D);
-            sheet.SetColumnWidth(3, 30D);
-            sheet.SetColumnWidth(4, 26D);
-            sheet.SetRowHeight(1, 32D);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(42D));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(38D));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(30D));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(26D));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32D)));
             for (int row = 2; row <= 4; row++) {
-                sheet.SetRowHeight(row, 58D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(58D)));
             }
 
             for (int row = 1; row <= 4; row++) {

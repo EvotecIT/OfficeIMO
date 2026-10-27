@@ -160,15 +160,15 @@ internal sealed record PdfFormatConversionScenario(
             sheet.Cell(row, 3, PdfFormatConversionRecordManifest.AmountMarker(index));
             sheet.Cell(row, 4, PdfFormatConversionRecordManifest.StatusMarker(index));
         }
-        sheet.SetColumnWidth(1, 18);
-        sheet.SetColumnWidth(2, 42);
-        sheet.SetColumnWidth(3, 14);
-        sheet.SetColumnWidth(4, 14);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(42));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
+        sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
         if (profile == PdfFormatConversionProfile.Structured) {
             ExcelSheet details = document.AddWorksheet("Structured");
             details.Cell(1, 1, StructureMarker);
             details.Cell(2, 1, "This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
-            details.SetColumnWidth(1, 28);
+            details.SetColumnWidth(1, ExcelColumnWidth.Characters(28));
         }
         return document.ToBytes();
     }
