@@ -51,9 +51,10 @@ namespace OfficeIMO.Pdf.Excel {
             PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);
             ExcelDocument workbook = ExcelDocument.Create();
             try {
-                IReadOnlyList<PdfExcelTableImportEntry> entries = ImportTables(document, workbook, operation);
+                var conversionDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+                IReadOnlyList<PdfExcelTableImportEntry> entries = ImportTables(document, workbook, operation, conversionDiagnostics);
                 PdfCore.PdfTableExtractionScopeReport sourceScope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(document);
-                return new PdfExcelTableImportResult(workbook, new PdfExcelTableImportReport(entries, sourceScope));
+                return new PdfExcelTableImportResult(workbook, new PdfExcelTableImportReport(entries, sourceScope, conversionDiagnostics));
             } catch {
                 workbook.Dispose();
                 throw;
@@ -69,7 +70,8 @@ namespace OfficeIMO.Pdf.Excel {
         private static IReadOnlyList<PdfExcelTableImportEntry> ImportTables(
             PdfCore.PdfDocumentReadResult document,
             ExcelDocument workbook,
-            ExcelPdfImportOptions options) {
+            ExcelPdfImportOptions options,
+            List<OfficeConversionFidelityDiagnostic> diagnostics) {
             options.CancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
                 document,
@@ -85,6 +87,7 @@ namespace OfficeIMO.Pdf.Excel {
                 return Array.Empty<PdfExcelTableImportEntry>();
             }
 
+            options.NumericCulture = ResolveNumericCulture(tables, options.NumericCulture, diagnostics, options.CancellationToken);
             var results = new List<PdfExcelTableImportEntry>(tables.Count);
             for (int i = 0; i < tables.Count; i++) {
                 options.CancellationToken.ThrowIfCancellationRequested();

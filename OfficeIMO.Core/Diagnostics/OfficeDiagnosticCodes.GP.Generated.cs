@@ -421,6 +421,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfAnnotationsNotReconstructed = "pdf-annotations-not-reconstructed";
     /// <summary>Stable code: <c>pdf-annotations-omitted</c>.</summary>
     public const string PdfAnnotationsOmitted = "pdf-annotations-omitted";
+    /// <summary>Stable code: <c>pdf-artifact-text-omitted</c>.</summary>
+    public const string PdfArtifactTextOmitted = "pdf-artifact-text-omitted";
     /// <summary>Stable code: <c>pdf-attachments-not-reconstructed</c>.</summary>
     public const string PdfAttachmentsNotReconstructed = "pdf-attachments-not-reconstructed";
     /// <summary>Stable code: <c>pdf-attachments-omitted</c>.</summary>
@@ -439,6 +441,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfEditableLayoutReconstructed = "pdf-editable-layout-reconstructed";
     /// <summary>Stable code: <c>pdf-editable-object-limit-reached</c>.</summary>
     public const string PdfEditableObjectLimitReached = "pdf-editable-object-limit-reached";
+    /// <summary>Stable code: <c>pdf-excel-numeric-convention-mismatch</c>.</summary>
+    public const string PdfExcelNumericConventionMismatch = "pdf-excel-numeric-convention-mismatch";
+    /// <summary>Stable code: <c>pdf-excel-numeric-convention-mixed</c>.</summary>
+    public const string PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed";
+    /// <summary>Stable code: <c>pdf-excel-numeric-value-ambiguous</c>.</summary>
+    public const string PdfExcelNumericValueAmbiguous = "pdf-excel-numeric-value-ambiguous";
     /// <summary>Stable code: <c>pdf-excel-page-content-omitted</c>.</summary>
     public const string PdfExcelPageContentOmitted = "pdf-excel-page-content-omitted";
     /// <summary>Stable code: <c>pdf-excel-tables-truncated</c>.</summary>
