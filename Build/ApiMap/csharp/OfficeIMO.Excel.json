@@ -5346,6 +5346,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Encrypted-package routing errors point to Load with ExcelLoadOptions.Password and OpenReader with ExcelReaderOptions.Password, replacing guidance for the removed encrypted factories."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
