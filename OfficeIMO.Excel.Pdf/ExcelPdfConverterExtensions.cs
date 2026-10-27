@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel.Pdf {
             ReportAccountingUnderlineApproximations(exportPlans, options);
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots, document.GetWorkbookDefaultFontInfo());
             ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, exportPlans);
+            // Standard slots still without a font file take the theme fallback font, embedded, before column widths are measured.
+            if (options.ResourcePolicy.AllowSystemFontEmbedding) pdfOptions.ApplyDefaultFontEmbedding(standardMetrics: true);
+            else pdfOptions.EmbedDefaultFonts = false;
             ApplyWorksheetColumnFontMetrics(document, pdfOptions, options, exportPlans);
             ApplyWorksheetTextLayout(document, pdfOptions, options, exportPlans);
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);

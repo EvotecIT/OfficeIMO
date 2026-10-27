@@ -107,6 +107,7 @@ internal static partial class PdfWriter {
         cancellationToken.ThrowIfCancellationRequested();
         opts.Validate();
         PdfComplianceValidator.ValidateGenerationOptions(opts);
+        ApplyDefaultFontEmbedding(blocks, opts);
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
@@ -124,6 +125,7 @@ internal static partial class PdfWriter {
             layout.Pages.SelectMany(page => page.FormFields));
         ValidateEmittedAssociatedFiles(layout, opts, cancellationToken);
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
+        opts.ReportNonEmbeddedStandardFonts(complianceEvidence.FontUsages);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
         PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
         ValidateAssociatedFileMetadata(opts, serializationFileVersion);
@@ -164,7 +166,9 @@ internal static partial class PdfWriter {
         var formFieldIds = new List<int>();
 
         // Collect fonts used across pages
-        var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
+        // Embedded faces are keyed by their font bytes, not by mapping instance, so sections that register the same
+        // installed family share one subset instead of writing one per section.
+        var fontObjectIds = new Dictionary<(PdfStandardFont Font, byte[]? EmbeddedFontData, string? EmbeddedFontName, bool SyntheticOblique, bool IncludeToUnicode, int ShapingContextId), int>();
         var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
         var namedFontObjectIds = new Dictionary<PdfCreateOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfCreateOptions, int>();
@@ -172,6 +176,26 @@ internal static partial class PdfWriter {
         var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfCreateOptions Options)>();
         var pendingFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
         var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfCreateOptions Options)>();
+        var pendingNamedFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
+        // A standard slot and a named family can resolve to the same installed face; both then share one subset.
+        var trueTypeFontObjectsByData = new Dictionary<(byte[] Data, int ShapingContextId), int>();
+        var sharedFontUsageSources = new Dictionary<int, List<Func<PdfTrueTypeFontProgram?>>>();
+        static bool IsTrueTypeData(byte[]? data) => data != null && !(data.Length >= 4 && data[0] == 0x4F && data[1] == 0x54 && data[2] == 0x54 && data[3] == 0x4F);
+        void AddSharedUsageSource(int objectId, Func<PdfTrueTypeFontProgram?> source) {
+            if (!sharedFontUsageSources.TryGetValue(objectId, out List<Func<PdfTrueTypeFontProgram?>>? sources))
+                sharedFontUsageSources[objectId] = sources = new List<Func<PdfTrueTypeFontProgram?>>();
+            sources.Add(source);
+        }
+        void MergeSharedFontUsage(int objectId, PdfTrueTypeFontProgram target) {
+            if (!sharedFontUsageSources.TryGetValue(objectId, out List<Func<PdfTrueTypeFontProgram?>>? sources)) return;
+            foreach (Func<PdfTrueTypeFontProgram?> source in sources) {
+                PdfTrueTypeFontProgram? program = source();
+                if (program == null || ReferenceEquals(program, target)) continue;
+                foreach ((int glyphId, string unicodeText) in program.GetUsedGlyphToUnicodeMappings()) target.RecordGlyphUsage(glyphId, unicodeText);
+                target.MergeTextPinsFrom(program);
+            }
+        }
+        var sharedNamedFontObjectIds = new Dictionary<(string FaceKey, byte[]? Data, string? FontName, int ShapingContextId), int>();
         bool requiresPdf16FileVersion = false;
 
         int GetShapingContextId(PdfCreateOptions fontOptions) {
@@ -206,16 +230,33 @@ internal static partial class PdfWriter {
             fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont);
             var key = (
                 font,
-                embeddedFont,
+                embeddedFont?.DataSnapshot,
+                embeddedFont?.FontName,
+                embeddedFont?.SyntheticOblique == true,
                 IncludeToUnicode: embeddedFont == null && fontOptions.IncludeStandardFontToUnicodeMaps,
                 ShapingContextId: embeddedFont == null ? 0 : GetShapingContextId(fontOptions));
             if (!fontObjectIds.TryGetValue(key, out int id)) {
+                bool shareable = embeddedFont != null && !embeddedFont.SyntheticOblique && IsTrueTypeData(embeddedFont.DataSnapshot);
+                if (shareable && trueTypeFontObjectsByData.TryGetValue((embeddedFont!.DataSnapshot, key.ShapingContextId), out id) &&
+                    !pendingFontOptions.ContainsKey(id)) {
+                    // A named face already owns this font object; record this slot's usage for its subset.
+                    fontObjectIds[key] = id;
+                    PdfStandardFont sharedFont = font;
+                    PdfCreateOptions sharedOptions = fontOptions;
+                    AddSharedUsageSource(id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
+                    return id;
+                }
                 id = ReserveObject(objects);
                 fontObjectIds[key] = id;
                 pendingFontObjects.Add((id, font, fontOptions));
                 pendingFontOptions[id] = new List<PdfCreateOptions> { fontOptions };
-            } else if (!pendingFontOptions[id].Contains(fontOptions)) {
-                pendingFontOptions[id].Add(fontOptions);
+                if (shareable) trueTypeFontObjectsByData[(embeddedFont!.DataSnapshot, key.ShapingContextId)] = id;
+            } else if (pendingFontOptions.TryGetValue(id, out List<PdfCreateOptions>? fontOptionsForId)) {
+                if (!fontOptionsForId.Contains(fontOptions)) fontOptionsForId.Add(fontOptions);
+            } else {
+                PdfStandardFont sharedFont = font;
+                PdfCreateOptions sharedOptions = fontOptions;
+                AddSharedUsageSource(id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
             }
             return id;
         }
@@ -227,9 +268,25 @@ internal static partial class PdfWriter {
             }
 
             if (!optionFontObjectIds.TryGetValue(font, out int id)) {
-                id = ReserveObject(objects);
+                // Sections that resolve the same face to the same font bytes share one subset.
+                fontOptions.TryGetNamedFontData(font, out byte[]? namedData, out string? namedFontName);
+                int shapingContextId = GetShapingContextId(fontOptions);
+                var sharedKey = (font.FaceKey, namedData, namedFontName, shapingContextId);
+                if (namedData != null && sharedNamedFontObjectIds.TryGetValue(sharedKey, out id)) {
+                    pendingNamedFontOptions[id].Add(fontOptions);
+                } else if (IsTrueTypeData(namedData) && trueTypeFontObjectsByData.TryGetValue((namedData!, shapingContextId), out id)) {
+                    // A standard slot or another named family already owns these font bytes.
+                    PdfNamedFontFace sharedFace = font;
+                    PdfCreateOptions sharedOptions = fontOptions;
+                    AddSharedUsageSource(id, () => sharedOptions.TryGetNamedFontProgramForGeneration(sharedFace, out PdfTrueTypeFontProgram? program) ? program : null);
+                } else {
+                    id = ReserveObject(objects);
+                    pendingNamedFontObjects.Add((id, font, fontOptions));
+                    pendingNamedFontOptions[id] = new List<PdfCreateOptions> { fontOptions };
+                    if (namedData != null) sharedNamedFontObjectIds[sharedKey] = id;
+                    if (IsTrueTypeData(namedData)) trueTypeFontObjectsByData[(namedData!, shapingContextId)] = id;
+                }
                 optionFontObjectIds[font] = id;
-                pendingNamedFontObjects.Add((id, font, fontOptions));
             }
 
             return id;
@@ -249,12 +306,13 @@ internal static partial class PdfWriter {
                             continue;
                         }
 
-                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings()) {
                             fontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
                         fontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
+                    MergeSharedFontUsage(pendingFont.ObjectId, fontProgram);
                     int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
                         pendingFont.Options, "embedded-font:" + pendingFont.Font, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
@@ -276,7 +334,7 @@ internal static partial class PdfWriter {
                             continue;
                         }
 
-                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings()) {
                             cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
                         cffFontProgram.MergeTextPinsFrom(otherProgram);
@@ -308,6 +366,15 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingNamedFontObjects) {
                 if (pendingFont.Options.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
+                    foreach (PdfCreateOptions otherOptions in pendingNamedFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? otherProgram) ||
+                            otherProgram == null || ReferenceEquals(otherProgram, fontProgram)) continue;
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings())
+                            fontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        fontProgram.MergeTextPinsFrom(otherProgram);
+                    }
+                    MergeSharedFontUsage(pendingFont.ObjectId, fontProgram);
                     int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
                         pendingFont.Options, "named-font:" + pendingFont.Font.FaceKey, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
@@ -321,6 +388,14 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                            cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
+                    foreach (PdfCreateOptions otherOptions in pendingNamedFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? otherProgram) ||
+                            otherProgram == null || ReferenceEquals(otherProgram, cffFontProgram)) continue;
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings())
+                            cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        cffFontProgram.MergeTextPinsFrom(otherProgram);
+                    }
                     PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         PdfStandardFont.Helvetica,
@@ -2084,4 +2159,15 @@ internal static partial class PdfWriter {
         && (node.OutlineState == PdfOutlineState.Open
             || node.OutlineState == PdfOutlineState.Default && node.Level <= outlineExpansionLevel);
 
+}
+
+internal static partial class PdfWriter {
+    // Native documents and section presentations resolve their default fonts before layout measures text.
+    private static void ApplyDefaultFontEmbedding(IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts) {
+        opts.ApplyDefaultFontEmbedding();
+        foreach (IPdfBlock block in blocks) {
+            if (block is PageBlock page) page.Options.ApplyDefaultFontEmbedding();
+            else if (block is RunningContentSectionBlock section) section.ContinuationOptions?.ApplyDefaultFontEmbedding();
+        }
+    }
 }

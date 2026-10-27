@@ -38,7 +38,8 @@ public sealed class WordPdfIdentifierTests {
 
     [Fact]
     public void CanvasLogicalText_AfterSharedAnchorExtraction_PreservesBoundedSelection() {
-        byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.ActualText("OriginalIdentifier", 20, 20, 120, 12,
+        // The 12 pt box is sized for standard Helvetica metrics.
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }).Canvas(canvas => canvas.ActualText("OriginalIdentifier", 20, 20, 120, 12,
             paint => paint.Text("Painted glyphs", 20, 20, 120, 12))).ToBytes();
         Assert.Equal("OriginalIdentifier", PdfReadDocument.Open(pdf).ExtractText().Trim());
     }

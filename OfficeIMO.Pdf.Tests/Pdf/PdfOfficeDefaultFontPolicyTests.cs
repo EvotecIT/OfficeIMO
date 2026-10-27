@@ -33,7 +33,10 @@ public class PdfOfficeDefaultFontPolicyTests {
     [InlineData("Arial", "Liberation Sans", true)]
     [InlineData("Times New Roman", "Liberation Serif", true)]
     [InlineData("Courier New", "Liberation Mono", true)]
-    [InlineData("Aptos", "Inter", false)]
+    [InlineData("Aptos", "Calibri", false)]
+    [InlineData("Carlito", "Calibri", true)]
+    [InlineData("Caladea", "Cambria", true)]
+    [InlineData("Poppins", "Aptos", false)]
     public void MissingOfficeFamilies_UseInstalledSubstitutesWithoutHidingTheirIdentity(string source, string firstSubstitute, bool compatible) {
         string[] substitutes = OfficeDocumentFontSubstitutions.Enumerate(source).ToArray();
         Assert.Equal(firstSubstitute, substitutes[0]);

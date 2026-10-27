@@ -487,6 +487,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string FontEmbeddingReview = "font-embedding-review";
     /// <summary>Stable code: <c>font-family-substitution</c>.</summary>
     public const string FontFamilySubstitution = "font-family-substitution";
+    /// <summary>Stable code: <c>font-not-embedded</c>.</summary>
+    public const string FontNotEmbedded = "font-not-embedded";
     /// <summary>Stable code: <c>font-to-unicode-review</c>.</summary>
     public const string FontToUnicodeReview = "font-to-unicode-review";
     /// <summary>Stable code: <c>footnotes-omitted</c>.</summary>

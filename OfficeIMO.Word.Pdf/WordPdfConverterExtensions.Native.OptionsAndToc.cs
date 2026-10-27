@@ -89,6 +89,9 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
+            // Standard slots still without a font file take the theme fallback font, embedded, before any text is measured.
+            if (allowSystemFontEmbedding) pdfOptions.ApplyDefaultFontEmbedding(standardMetrics: true);
+            else pdfOptions.EmbedDefaultFonts = false;
             nativeFontMap.AttachResolvedOptions(pdfOptions);
             return pdfOptions;
         }

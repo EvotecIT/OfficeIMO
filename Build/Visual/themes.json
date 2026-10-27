@@ -1,5 +1,5 @@
 {
-  "$comment": "OfficeIMO built-in themes. Maps 1:1 onto OfficeIMO.Core/Themes (M1). Lengths are points (OfficeLength.Points). Colours are RRGGBB literals or OfficeColor role names (Accent1-6, Text, TextMuted, Background, Success, Warning, Danger); palette entries are always literal. 'extensions' holds values the designs use that M1 has no field for yet; 'derived' holds values writers compute from the palette; 'checks' is generated and must not be edited by hand.",
+  "$comment": "OfficeIMO built-in themes. Maps 1:1 onto OfficeIMO.Core/Themes (M1). Lengths are points (OfficeLength.Points). Colours are RRGGBB literals or OfficeColor role names (Accent1-6, Text, TextMuted, Background, Success, Warning, Danger); palette entries are always literal. 'extensions' and 'derived' map onto the remaining theme components (text style, surfaces, page, footer, table and chart details); OfficeIMO.Core/Themes/generate_theme_builtins.py generates the built-in themes from this file; 'checks' is generated and must not be edited by hand.",
   "version": "3.6-design-1",
   "generatedBy": "build_themes.py (design source and colour checks; mockups are generated from this file)",
   "derivationRules": {
