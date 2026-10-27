@@ -409,18 +409,19 @@
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",
       "kind": "type",
       "action": "merge",
-      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(...) : WordMarkdownImportOptions",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : WordMarkdownImportOptions",
       "reason": "Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages).",
       "file": "OfficeIMO.Word.Markdown/Presets/MarkdownToWordPresets.cs",
       "category": "visibility",
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The documented factory is merged into WordMarkdownImportOptions. Its visual width takes OfficeLength; the existing 96-DPI rounding, 320–2,000 pixel clamp, transcript defaults and local-image policy are preserved. No preset facade remains.",
+      "currentFile": "OfficeIMO.Word.Markdown/Options/WordMarkdownImportOptions.Transcript.cs"
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownImageLayoutOptions",
@@ -565,6 +566,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "Omitted running content, explicit page breaks and unsupported content emit typed omission diagnostics. Image and SVG sidecars are staged until loss acceptance, preventing analysis or rejected saves from changing destination assets."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The merged transcript factory replaces its raw visualMaxWidthPx argument with OfficeLength? visualMaxWidth. Maintained README and transcript/cross-pipeline consumers use the options factory directly."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

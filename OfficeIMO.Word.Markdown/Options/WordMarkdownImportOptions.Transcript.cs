@@ -3,20 +3,19 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown;
 
-/// <summary>
-/// Convenience factory methods for common markdown-to-Word host contracts.
-/// </summary>
-public static class MarkdownToWordPresets {
+public partial class WordMarkdownImportOptions {
     private const int MinIntelligenceXVisualMaxWidthPx = 320;
     private const int MaxIntelligenceXVisualMaxWidthPx = 2000;
     private const int DefaultIntelligenceXVisualMaxWidthPx = 760;
 
     /// <summary>
-    /// Creates the explicit IntelligenceX transcript markdown-to-Word conversion preset.
+    /// Creates the explicit IntelligenceX transcript Markdown-to-Word conversion options.
     /// </summary>
+    /// <param name="allowedImageDirectories">Local image roots permitted by the transcript import policy.</param>
+    /// <param name="visualMaxWidth">Maximum visual width at 96 DPI, rounded to pixels and clamped to 320–2,000 pixels. Defaults to 760 pixels.</param>
     public static WordMarkdownImportOptions CreateIntelligenceXTranscript(
         IReadOnlyList<string>? allowedImageDirectories = null,
-        int? visualMaxWidthPx = null) {
+        OfficeLength? visualMaxWidth = null) {
         var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             preservesGroupedDefinitionLikeParagraphs: false,
             visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
@@ -28,7 +27,7 @@ public static class MarkdownToWordPresets {
             ReaderOptions = readerOptions,
             MaxImageWidthPercentOfContent = 100d,
             FitImagesToPageContentWidth = true,
-            MaxImageWidthPixels = NormalizeIntelligenceXVisualMaxWidthPx(visualMaxWidthPx)
+            MaxImageWidthPixels = NormalizeIntelligenceXVisualMaxWidth(visualMaxWidth)
         };
 
         if (allowedImageDirectories is { Count: > 0 }) {
@@ -47,20 +46,9 @@ public static class MarkdownToWordPresets {
         return options;
     }
 
-    private static int NormalizeIntelligenceXVisualMaxWidthPx(int? value) {
-        if (!value.HasValue) {
-            return DefaultIntelligenceXVisualMaxWidthPx;
-        }
-
-        var normalized = value.Value;
-        if (normalized < MinIntelligenceXVisualMaxWidthPx) {
-            return MinIntelligenceXVisualMaxWidthPx;
-        }
-
-        if (normalized > MaxIntelligenceXVisualMaxWidthPx) {
-            return MaxIntelligenceXVisualMaxWidthPx;
-        }
-
-        return normalized;
+    private static int NormalizeIntelligenceXVisualMaxWidth(OfficeLength? value) {
+        double pixels = value?.ToPixels() ?? DefaultIntelligenceXVisualMaxWidthPx;
+        return (int)System.Math.Round(System.Math.Max(MinIntelligenceXVisualMaxWidthPx,
+            System.Math.Min(MaxIntelligenceXVisualMaxWidthPx, pixels)), System.MidpointRounding.AwayFromZero);
     }
 }

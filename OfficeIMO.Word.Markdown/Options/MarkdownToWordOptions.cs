@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public class WordMarkdownImportOptions {
+    public partial class WordMarkdownImportOptions {
         private bool? _renderFrontMatter;
         internal WordMarkdownImportOptions CloneForConversion() {
             var copy = (WordMarkdownImportOptions)MemberwiseClone();

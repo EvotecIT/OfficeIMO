@@ -120,15 +120,18 @@ doc.SaveAsMarkdown("report.md", options);
 ## Explicit IntelligenceX transcript contract
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Markdown;
-var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+using OfficeIMO.Word.Markdown;
+
+var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript(
     allowedImageDirectories: new[] { @"C:\Exports\Images" },
-    visualMaxWidthPx: 760);
+    visualMaxWidth: OfficeLength.Pixels(760));
 
 using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
-- `MarkdownToWordPresets.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
+- `WordMarkdownImportOptions.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
 - That preset now reuses the shared `MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(...)` contract, including legacy IX visual JSON upgrades through document transforms.
 - `MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs()` exposes the grouped `Label: value` capability probe as a reusable OfficeIMO contract instead of host-local reflection logic.
 
