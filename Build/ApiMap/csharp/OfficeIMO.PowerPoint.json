@@ -9564,6 +9564,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "PowerPointSlideSize replaces raw EMU dimensions and centimeter/inch/point twins with OfficeLength Width/Height, SetSize and typed content/grid methods. GetContentBox guards large margins before multiplication; row/column splitting delegates to PowerPointLayoutBox. AddRow and AddColumn return attached native models whose indices follow later insertions. All C# consumers and direct PowerShell geometry reads are migrated; PowerShell command parameter names and aliases are unchanged."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerShell shape-info snapshots retain numeric LeftPoints/TopPoints summary fields. Direct native shape and layout reads extract units from OfficeLength; the existing Get-OfficePowerPointShape snapshot contract is unchanged."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

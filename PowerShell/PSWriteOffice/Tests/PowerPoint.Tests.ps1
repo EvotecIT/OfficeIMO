@@ -816,8 +816,8 @@ Describe 'PowerPoint cmdlets' {
 
             $arranged = @(Get-OfficePowerPointShape -Slide $slide -Kind AutoShape | Sort-Object LeftPoints)
             $arranged | Should -HaveCount 3
-            $arranged[0].Left.ToPoints() | Should -BeLessThan $arranged[1].Left.ToPoints()
-            $arranged[1].Left.ToPoints() | Should -BeLessThan $arranged[2].Left.ToPoints()
+            $arranged[0].LeftPoints | Should -BeLessThan $arranged[1].LeftPoints
+            $arranged[1].LeftPoints | Should -BeLessThan $arranged[2].LeftPoints
         } finally {
             Close-OfficePowerPoint -Presentation $presentation
         }
