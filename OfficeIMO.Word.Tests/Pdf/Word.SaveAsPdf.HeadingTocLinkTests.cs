@@ -349,8 +349,9 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(docPath);
             document.AddParagraph("Native heading theme font").SetStyle(WordParagraphStyles.Heading3);
+            // The default theme uses one family for headings and body, so headings follow the minor font.
             document._wordprocessingDocument.MainDocumentPart!.ThemePart!.Theme!.ThemeElements!.FontScheme!
-                .MajorFont!.LatinFont!.Typeface = "Times New Roman";
+                .MinorFont!.LatinFont!.Typeface = "Times New Roman";
             using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
                 IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

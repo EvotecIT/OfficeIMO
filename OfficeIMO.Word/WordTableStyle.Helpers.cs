@@ -14,6 +14,7 @@ public static partial class WordTableStyles {
             // Grid Tables - Line 1
             case "TableNormal": return WordTableStyle.TableNormal;
             case "TableGrid": return WordTableStyle.TableGrid;
+            case WordThemeDefaults.TableStyleId: return WordTableStyle.OfficeIMOModern;
             case "PlainTable1": return WordTableStyle.PlainTable1;
             case "PlainTable2": return WordTableStyle.PlainTable2;
             case "PlainTable3": return WordTableStyle.PlainTable3;
@@ -151,6 +152,7 @@ public static partial class WordTableStyles {
             // Grid Tables - Line 1
             case WordTableStyle.TableNormal: return new TableStyle() { Val = "TableNormal" };
             case WordTableStyle.TableGrid: return new TableStyle() { Val = "TableGrid" };
+            case WordTableStyle.OfficeIMOModern: return new TableStyle() { Val = WordThemeDefaults.TableStyleId };
             case WordTableStyle.PlainTable1: return new TableStyle() { Val = "PlainTable1" };
             case WordTableStyle.PlainTable2: return new TableStyle() { Val = "PlainTable2" };
             case WordTableStyle.PlainTable3: return new TableStyle() { Val = "PlainTable3" };
@@ -305,6 +307,7 @@ public static partial class WordTableStyles {
             // Grid Tables - Line 1
             case WordTableStyle.TableNormal: return StyleTableNormal;
             case WordTableStyle.TableGrid: return StyleTableGrid;
+            case WordTableStyle.OfficeIMOModern: return WordThemeDefaults.CreateTableStyle();
             case WordTableStyle.PlainTable1: return StylePlainTable1;
             case WordTableStyle.PlainTable2: return StylePlainTable2;
             case WordTableStyle.PlainTable3: return StylePlainTable3;

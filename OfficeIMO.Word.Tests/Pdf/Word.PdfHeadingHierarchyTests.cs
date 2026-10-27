@@ -27,7 +27,12 @@ public partial class Word {
         for (int index = 0; index < styles.Length; index++) {
             WordParagraph heading = document.AddParagraph("SparseHeading" + levels[index]).SetStyle(styles[index]);
             heading.FontSize = 12;
-            heading.AddText(" InlineItalic" + levels[index]).Italic = true;
+            // Keep every level at one size and weight so only the outline distinguishes them.
+            heading.Bold = false;
+            WordParagraph inline = heading.AddText(" InlineItalic" + levels[index]);
+            inline.Italic = true;
+            inline.Bold = false;
+            inline.FontSize = 12;
             heading.AddFootNote("SparseNote" + levels[index]);
         }
         document.Save();

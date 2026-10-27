@@ -269,6 +269,9 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeTableBandingStyles(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
             if (table.ConditionalFormattingNoHorizontalBand != true && tableStyleDefaults.Band1HorizontalStyle.CellFill.HasValue) {
                 style.RowStripeFill = tableStyleDefaults.Band1HorizontalStyle.CellFill.Value;
+            } else if (table.ConditionalFormattingNoHorizontalBand != true && tableStyleDefaults.Band2HorizontalFill.HasValue) {
+                // The PDF stripe paints alternate body rows starting with the second, which is Word's band 2.
+                style.RowStripeFill = tableStyleDefaults.Band2HorizontalFill.Value;
             }
 
             if (table.ConditionalFormattingNoVerticalBand != true && tableStyleDefaults.Band1VerticalStyle.CellFill.HasValue) {
