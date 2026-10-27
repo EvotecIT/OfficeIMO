@@ -72,6 +72,41 @@ test("explicit pivot column formats win over captured per-cell formats and retai
   assert.equal(formats.get(xfs[Number(cell[1])][1]), "0.0000%");
 });
 
+test("empty pivot intersections need no numeric display mode or format", async () => {
+  const snapshot = structuredClone(fixture.snapshot), empty = snapshot.rows[0].cells.v0_0;
+  empty.value = null; empty.text = ""; delete empty.mode; delete empty.numberFormat;
+  for (const format of ["xlsx", "pdf", "csv"]) {
+    const blob = await exportCanopy(capture(snapshot), format);
+    assert.ok(blob.size > 0, format);
+  }
+});
+
+test("an empty explicit format clears a pivot percent format to General without changing values", async () => {
+  const snapshot = structuredClone(fixture.percent); snapshot.rows[0].tone = "neutral";
+  const zip = await readZip(await exportCanopy(capture(snapshot), "xlsx", {
+    columnOptions: { v0_0: { format: "" } }, tones: { neutral: { bold: true } }
+  }));
+  const xml = zip.get("xl/worksheets/sheet1.xml").content, styles = zip.get("xl/styles.xml").content;
+  const cell = /<c r="B2" s="(\d+)"[^>]*><v>([^<]+)<\/v>/.exec(xml);
+  assert.ok(cell); assert.equal(Number(cell[2]), snapshot.rows[0].cells.v0_0.value);
+  const xfs = [.../<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)[1].matchAll(/<xf\b[^>]*numFmtId="(\d+)"/g)];
+  assert.equal(xfs[Number(cell[1])][1], "0");
+});
+
+test("pivot XLSX rejects value writers before enumerating captured rows", async () => {
+  const input = capture(), rows = input.rows; let read = false, calls = 0;
+  input.rows = async function* () { read = true; yield* rows(); };
+  await assert.rejects(exportCanopy(input, "xlsx", { xlsx: { cellValueWriters: { number: () => { calls++; return 999; } } } }), /captured pivot.*cellValueWriters/i);
+  assert.equal(read, false); assert.equal(calls, 0);
+});
+
+test("pivot PDF rejects recomputed footer totals before enumerating captured rows", async () => {
+  const input = capture(), rows = input.rows; let read = false;
+  input.rows = async function* () { read = true; yield* rows(); };
+  await assert.rejects(exportCanopy(input, "pdf", { pdf: { footer: { totals: { v0_0: "sum" } } } }), /captured pivot.*totals/i);
+  assert.equal(read, false);
+});
+
 test("pivot PDF includes hidden descendants and frozen display text while reporting Excel-only outline controls", async () => {
   const diagnostics = [], blob = await exportCanopy(capture(), "pdf", { onDiagnostic: d => diagnostics.push(d.code), pdf: { wideTable: { mode: "bands", repeatColumns: ["axis"] } } });
   const pdf = await inspectPdf(blob);

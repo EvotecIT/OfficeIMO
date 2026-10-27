@@ -11839,7 +11839,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("e4c39ee1ced754ee4edf18a9b8ee8b510edf902590a376c289607cc5b5ced0c6") ?? (() => {
+const _m96 = _modules.get("9416fea98700cc1e6cdb33d1e5e5ca9d919c84b9f36751c6a3cf77b31d82283a") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11960,8 +11960,8 @@ function prepareCanopyExport(capture, format, options = {}) {
                     let value = values === "display" ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
-                    const capturedFormat = pivot && spec.kind === "number" ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride ?? capturedFormat;
+                    const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
+                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
                         ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
@@ -11980,7 +11980,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("e4c39ee1ced754ee4edf18a9b8ee8b510edf902590a376c289607cc5b5ced0c6", _exports);
+_modules.set("9416fea98700cc1e6cdb33d1e5e5ca9d919c84b9f36751c6a3cf77b31d82283a", _exports);
 return _exports;
 })();
 
@@ -12607,7 +12607,7 @@ _modules.set("8b7d3691def49cffcdaa55a0e3bd181bae4e69f2bce767724190882eec6dc645",
 return _exports;
 })();
 
-const _m0 = _modules.get("a03e4e070a20a127e1ba1f9e284b88a2a59aa6fd98a8d0695339b122f93575bf") ?? (() => {
+const _m0 = _modules.get("5ebd2273baa749968aa72c2a8dc519c66a7618d261d09cdc44c165249f23ee28") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12685,6 +12685,8 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
             xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
             throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
+        if (pivot && xlsx.cellValueWriters !== undefined)
+            throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
         const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
             freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
             freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
@@ -12697,6 +12699,8 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     if (pivot)
         canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" })({ code: "PIVOT_OUTLINES_XLSX_ONLY" });
     if (format === "pdf") {
+        if (pivot && pdf.footer?.totals !== undefined)
+            throw new TypeError("Captured pivot metadata owns totals; PDF footer totals cannot recalculate it.");
         const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, selected, formatLimits, report, format);
         canopyRules(request, format, grouped !== undefined, tones, report, selected);
         // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
@@ -12734,7 +12738,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("a03e4e070a20a127e1ba1f9e284b88a2a59aa6fd98a8d0695339b122f93575bf", _exports);
+_modules.set("5ebd2273baa749968aa72c2a8dc519c66a7618d261d09cdc44c165249f23ee28", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

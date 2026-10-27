@@ -60,6 +60,8 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
     if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
       xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
       throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
+    if (pivot && xlsx.cellValueWriters !== undefined)
+      throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
     const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
       freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
       freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
@@ -70,6 +72,8 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
   }
   if (pivot) canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" })({ code: "PIVOT_OUTLINES_XLSX_ONLY" });
   if (format === "pdf") {
+    if (pivot && pdf.footer?.totals !== undefined)
+      throw new TypeError("Captured pivot metadata owns totals; PDF footer totals cannot recalculate it.");
     const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, selected, formatLimits, report, format);
     canopyRules(request, format, grouped !== undefined, tones, report, selected);
     // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.

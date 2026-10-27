@@ -11856,8 +11856,8 @@ function prepareCanopyExport(capture, format, options = {}) {
                     let value = values === "display" ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
-                    const capturedFormat = pivot && spec.kind === "number" ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride ?? capturedFormat;
+                    const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
+                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
                         ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
@@ -12575,6 +12575,8 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
             xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
             throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
+        if (pivot && xlsx.cellValueWriters !== undefined)
+            throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
         const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
             freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
             freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
@@ -12587,6 +12589,8 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     if (pivot)
         canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" })({ code: "PIVOT_OUTLINES_XLSX_ONLY" });
     if (format === "pdf") {
+        if (pivot && pdf.footer?.totals !== undefined)
+            throw new TypeError("Captured pivot metadata owns totals; PDF footer totals cannot recalculate it.");
         const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, selected, formatLimits, report, format);
         canopyRules(request, format, grouped !== undefined, tones, report, selected);
         // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.

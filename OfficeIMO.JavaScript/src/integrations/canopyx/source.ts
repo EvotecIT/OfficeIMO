@@ -103,8 +103,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         diagnostics(cell.diagnostics, row.id, spec.id);
         let value: import("../../core/index.js").CellValue = values === "display" ? cell.text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
-        const capturedFormat = pivot && spec.kind === "number" ? pivotNumberFormat(cell) : undefined;
-        const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride ?? capturedFormat;
+        const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
+        const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
         const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
           ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
