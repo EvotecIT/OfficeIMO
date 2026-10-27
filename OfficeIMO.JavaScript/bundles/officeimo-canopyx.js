@@ -11839,7 +11839,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("9416fea98700cc1e6cdb33d1e5e5ca9d919c84b9f36751c6a3cf77b31d82283a") ?? (() => {
+const _m96 = _modules.get("03a99631b5788e268146f9623a4bffa8d56381854d9917227c4c168e4c548ac4") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11875,6 +11875,9 @@ function prepareCanopyExport(capture, format, options = {}) {
         (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
         throw new TypeError("Invalid portable CanopyX capture metadata.");
     const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
+    // These captured presentations have a complete scalar/text projection. Report
+    // their visual loss without treating an ordinary report export as unsupported.
+    const fallback = canopyDiagnostics(format, { ...options, unsupportedPresentation: "text" });
     const clock = options.xlsx?.dateMode ?? request.timeZone;
     if (clock !== "utc" && clock !== "local")
         throw new TypeError("XLSX dateMode must be utc or local.");
@@ -11885,8 +11888,10 @@ function prepareCanopyExport(capture, format, options = {}) {
             return;
         if (!Array.isArray(items) || items.some(item => typeof item !== "string"))
             throw new TypeError("Canopy presentation diagnostics must be strings.");
-        for (const code of items)
-            report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+        for (const code of items) {
+            const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
+            (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+        }
     };
     if (request.presentation !== "text" && request.presentation !== "semantic")
         throw new TypeError("Canopy captures must declare text or semantic presentation.");
@@ -11902,7 +11907,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             throw new TypeError("Canopy tones must be strings.");
         const style = tones.get(name);
         if (!style && name !== "neutral")
-            report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+            fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
     const ids = new Set();
@@ -11957,7 +11962,10 @@ function prepareCanopyExport(capture, format, options = {}) {
                         (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
                         throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
                     diagnostics(cell.diagnostics, row.id, spec.id);
-                    let value = values === "display" ? cell.text : cell.value;
+                    // A relative destination is navigation metadata, not the visible label.
+                    // History captures already carry their frozen latest scalar (or null).
+                    const relativeLabel = spec.kind === "text" && typeof cell.value === "string" && cell.diagnostics?.includes("relative-link");
+                    let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
@@ -11980,7 +11988,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("9416fea98700cc1e6cdb33d1e5e5ca9d919c84b9f36751c6a3cf77b31d82283a", _exports);
+_modules.set("03a99631b5788e268146f9623a4bffa8d56381854d9917227c4c168e4c548ac4", _exports);
 return _exports;
 })();
 
@@ -12607,7 +12615,7 @@ _modules.set("8b7d3691def49cffcdaa55a0e3bd181bae4e69f2bce767724190882eec6dc645",
 return _exports;
 })();
 
-const _m0 = _modules.get("5ebd2273baa749968aa72c2a8dc519c66a7618d261d09cdc44c165249f23ee28") ?? (() => {
+const _m0 = _modules.get("2dcfaa68cfae95065944e4639a9f647285307df8de4f869d38db02e511ef81c2") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12738,7 +12746,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("5ebd2273baa749968aa72c2a8dc519c66a7618d261d09cdc44c165249f23ee28", _exports);
+_modules.set("2dcfaa68cfae95065944e4639a9f647285307df8de4f869d38db02e511ef81c2", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

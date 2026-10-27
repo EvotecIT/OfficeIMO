@@ -11771,6 +11771,9 @@ function prepareCanopyExport(capture, format, options = {}) {
         (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
         throw new TypeError("Invalid portable CanopyX capture metadata.");
     const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
+    // These captured presentations have a complete scalar/text projection. Report
+    // their visual loss without treating an ordinary report export as unsupported.
+    const fallback = canopyDiagnostics(format, { ...options, unsupportedPresentation: "text" });
     const clock = options.xlsx?.dateMode ?? request.timeZone;
     if (clock !== "utc" && clock !== "local")
         throw new TypeError("XLSX dateMode must be utc or local.");
@@ -11781,8 +11784,10 @@ function prepareCanopyExport(capture, format, options = {}) {
             return;
         if (!Array.isArray(items) || items.some(item => typeof item !== "string"))
             throw new TypeError("Canopy presentation diagnostics must be strings.");
-        for (const code of items)
-            report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+        for (const code of items) {
+            const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
+            (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+        }
     };
     if (request.presentation !== "text" && request.presentation !== "semantic")
         throw new TypeError("Canopy captures must declare text or semantic presentation.");
@@ -11798,7 +11803,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             throw new TypeError("Canopy tones must be strings.");
         const style = tones.get(name);
         if (!style && name !== "neutral")
-            report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+            fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
     const ids = new Set();
@@ -11853,7 +11858,10 @@ function prepareCanopyExport(capture, format, options = {}) {
                         (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
                         throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
                     diagnostics(cell.diagnostics, row.id, spec.id);
-                    let value = values === "display" ? cell.text : cell.value;
+                    // A relative destination is navigation metadata, not the visible label.
+                    // History captures already carry their frozen latest scalar (or null).
+                    const relativeLabel = spec.kind === "text" && typeof cell.value === "string" && cell.diagnostics?.includes("relative-link");
+                    let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;

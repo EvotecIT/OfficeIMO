@@ -17,6 +17,50 @@ async function fixture(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }
 
+test("Canopy report links and histories export visible labels and frozen latest values", async () => {
+  const input = capture([{ id: "record-1", cells: {
+    Name: cell("#record/42", "Record 42", { diagnostics: ["relative-link"] }),
+    History: cell(12.5, "12.50 ms", { diagnostics: ["history-series"] }),
+    EmptyHistory: cell(null, "No samples", { diagnostics: ["history-series"] })
+  } }], [column("Name"), column("History", "number"), column("EmptyHistory", "number")]);
+  const diagnostics = [];
+  const blob = await exportCanopy(input, "xlsx", { onDiagnostic: item => diagnostics.push(item), xlsx: { compression: "store" } });
+  const zip = await readZip(blob), xml = zip.get("xl/worksheets/sheet1.xml").content;
+  assert.match(xml, /Record 42/); assert.doesNotMatch(xml, /#record\/42/);
+  assert.match(xml, /<c r="B2"[^>]*><v>12\.5<\/v><\/c>/);
+  assert.doesNotMatch(xml, /<c r="C2"[^>]*><v>/);
+  assert.doesNotMatch(xml, /<hyperlink\b/);
+  assert.deepEqual(diagnostics.map(item => item.code), ["relative-link", "history-series", "history-series"]);
+  assert.ok(diagnostics.every(Object.isFrozen));
+  assert.equal(await (await exportCanopy(input, "csv")).text(), "Name,History,EmptyHistory\r\nRecord 42,12.5,\r\n");
+  await fixture("canopy-report-presentations.xlsx", blob);
+});
+
+test("Canopy unmapped tones retain status words and typed values without inventing styles", async () => {
+  const input = capture([{ id: "status-1", tone: "unmapped-row", cells: {
+    Status: cell("Not evaluated", "Not evaluated", { tone: "could-not-evaluate" }),
+    Amount: cell(4, "4 items", { tone: "custom-count", diagnostics: ["relative-link"] })
+  } }], [column("Status"), column("Amount", "number")]);
+  const diagnostics = [];
+  const rows = await collect(createCanopyExport(input, "xlsx", { onDiagnostic: item => diagnostics.push(item) }));
+  assert.equal(rows[0][0].value, "Not evaluated"); assert.equal(rows[0][1].value, 4);
+  assert.equal(rows[0][0].presentation, undefined); assert.equal(rows[0][1].presentation, undefined);
+  assert.deepEqual(diagnostics.map(item => item.code), ["UNMAPPED_TONE:unmapped-row", "UNMAPPED_TONE:could-not-evaluate", "relative-link", "UNMAPPED_TONE:custom-count"]);
+  const zip = await readZip(await exportCanopy(input, "xlsx"));
+  const xml = zip.get("xl/worksheets/sheet1.xml").content;
+  assert.match(xml, /Not evaluated/); assert.match(xml, /<c r="B2"[^>]*><v>4<\/v><\/c>/);
+});
+
+test("Canopy report fallbacks keep unsafe links and genuine unsupported presentation rejected", async () => {
+  const input = diagnostics => capture([{ id: "r", cells: { Name: cell("#r", "=visible", { diagnostics }) } }]);
+  assert.equal(await (await exportCanopy(input(["relative-link"]), "csv")).text(), "Name\r\n'=visible\r\n");
+  await assert.rejects(exportCanopy(input(["relative-link", "unsafe-link"]), "xlsx"), /unsafe-link/);
+  await assert.rejects(exportCanopy(input(["history-series", "custom-renderer"]), "xlsx"), /custom-renderer/);
+  const unsafe = capture([{ id: "r", cells: { Name: cell("#r", "Visible", { diagnostics: ["relative-link"], link: { target: "javascript:alert(1)" } }) } }]);
+  await assert.rejects(exportCanopy(unsafe, "xlsx"), /absolute HTTP/);
+  await assert.rejects(exportCanopy(input(["relative-link"]), "xlsx", { onDiagnostic: async () => {} }), /synchronous/);
+});
+
 test("Canopy capture preserves column order, own keys, nulls and reusable enumeration without query evaluation", async () => {
   const columns = [column("Amount", "number"), column("__proto__"), column("Name")];
   const rows = [{ id: "r1", cells: { Name: cell(null, "Missing"), ["__proto__"]: cell("Literal"), Amount: cell(12.5, "12.50 USD") } }];
