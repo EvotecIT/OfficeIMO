@@ -441,11 +441,11 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         ReadChartDimensions(item, out int seriesCount, out int categoryCount);
-        ExcelChartType type = ReadExcelChartType(item);
-        bool isRadial = type == ExcelChartType.Pie || type == ExcelChartType.Doughnut;
+        OfficeChartType type = ReadExcelChartType(item);
+        bool isRadial = type == OfficeChartType.Pie || type == OfficeChartType.Doughnut;
         if (hasSemanticData && chartData!.Series.Any(series => {
-                ExcelChartType effectiveType = series.ChartType ?? type;
-                bool seriesIsRadial = effectiveType == ExcelChartType.Pie || effectiveType == ExcelChartType.Doughnut;
+                OfficeChartType effectiveType = series.ChartType ?? type;
+                bool seriesIsRadial = effectiveType == OfficeChartType.Pie || effectiveType == OfficeChartType.Doughnut;
                 return seriesIsRadial != isRadial;
             })) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
@@ -562,10 +562,10 @@ public static partial class HtmlExcelConverterExtensions {
                 }
             }
 
-            ExcelChartType? chartType = null;
+            OfficeChartType? chartType = null;
             string? rawChartType = row.GetAttribute("data-officeimo-chart-type");
             if (!string.IsNullOrWhiteSpace(rawChartType) &&
-                Enum.TryParse(rawChartType, ignoreCase: true, out ExcelChartType parsedChartType)) {
+                Enum.TryParse(rawChartType, ignoreCase: true, out OfficeChartType parsedChartType)) {
                 chartType = parsedChartType;
             }
 
@@ -582,10 +582,10 @@ public static partial class HtmlExcelConverterExtensions {
         return true;
     }
 
-    private static ExcelChartType ReadExcelChartType(IElement item) {
+    private static OfficeChartType ReadExcelChartType(IElement item) {
         string? chartTypeAttribute = item.GetAttribute("data-officeimo-chart-type");
         if (!string.IsNullOrWhiteSpace(chartTypeAttribute) &&
-            Enum.TryParse(chartTypeAttribute, ignoreCase: true, out ExcelChartType attributeType)) {
+            Enum.TryParse(chartTypeAttribute, ignoreCase: true, out OfficeChartType attributeType)) {
             return attributeType;
         }
 
@@ -594,12 +594,12 @@ public static partial class HtmlExcelConverterExtensions {
         int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
         if (index >= 0) {
             string value = meta.Substring(index + marker.Length).Split(new[] { ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
-            if (Enum.TryParse(value, ignoreCase: true, out ExcelChartType type)) {
+            if (Enum.TryParse(value, ignoreCase: true, out OfficeChartType type)) {
                 return type;
             }
         }
 
-        return ExcelChartType.ColumnClustered;
+        return OfficeChartType.ColumnClustered;
     }
 
     private static void ReadChartPlacement(IElement item, int chartIndex, HtmlImportBudget budget, HtmlToExcelResult result, out int row, out int column, out int width, out int height) {

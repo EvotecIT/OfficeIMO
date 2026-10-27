@@ -29,7 +29,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         ExcelChart chart = reopened.Sheets.Single().Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-        Assert.Equal(ExcelChartType.Bubble, snapshot.ChartType);
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartType);
         Assert.Equal("Bubble snapshot", snapshot.Title);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.Equal(new[] { 2d, 8d }, snapshot.Data.Series[0].XValues);

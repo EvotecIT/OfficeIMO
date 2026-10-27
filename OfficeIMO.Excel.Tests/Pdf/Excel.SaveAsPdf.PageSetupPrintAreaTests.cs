@@ -158,8 +158,8 @@ public partial class Excel {
             sheet.Cell(10, 1, "OutsideData");
             sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Inside image");
             sheet.AddImage(10, 1, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Outside image");
-            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Inside Chart");
-            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Outside Chart");
+            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: OfficeChartType.ColumnClustered, title: "Inside Chart");
+            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: OfficeChartType.ColumnClustered, title: "Outside Chart");
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 

@@ -70,12 +70,12 @@ public partial class Excel {
             sheet.Cell(4, 1, "Mar");
             sheet.Cell(4, 2, 24);
             sheet.Cell(4, 3, 20);
-            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Revenue Chart");
+            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal("Revenue Chart", snapshot.Title);
-            Assert.Equal(ExcelChartType.ColumnClustered, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartType);
             Assert.Equal(3, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -135,7 +135,7 @@ public partial class Excel {
             sheet.Cell(4, 1, "Mar");
             sheet.Cell(4, 2, 24);
             sheet.Cell(4, 3, 20);
-            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Styled Excel Chart");
+            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.ColumnClustered, title: "Styled Excel Chart");
 
             document.Save();
 
@@ -189,7 +189,7 @@ public partial class Excel {
                 sheet.Cell(row, 2, row * 3);
             }
 
-            sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
+            sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: OfficeChartType.Line, title: "Dense Month Chart");
             document.Save();
 
             result = document.ConvertToPdfWithEvidence(options);
@@ -213,7 +213,7 @@ public partial class Excel {
         var snapshot = new ExcelChartInfo(
             "EmptyChart",
             "Empty Chart",
-            ExcelChartType.Line,
+            OfficeChartType.Line,
             data,
             rowIndex: 1,
             columnIndex: 1,
@@ -245,14 +245,14 @@ public partial class Excel {
             sheet.Cell(4, 2, 11);
             sheet.Cell(5, 1, "Not assessed");
             sheet.Cell(5, 2, 6);
-            sheet.AddChartFromRange("A1:B5", row: 1, column: 4, widthPixels: 280, heightPixels: 180, type: ExcelChartType.Pie, title: "Control Status Pie");
-            sheet.AddChartFromRange("A1:B5", row: 12, column: 4, widthPixels: 280, heightPixels: 180, type: ExcelChartType.Doughnut, title: "Control Status Doughnut");
+            sheet.AddChartFromRange("A1:B5", row: 1, column: 4, widthPixels: 280, heightPixels: 180, type: OfficeChartType.Pie, title: "Control Status Pie");
+            sheet.AddChartFromRange("A1:B5", row: 12, column: 4, widthPixels: 280, heightPixels: 180, type: OfficeChartType.Doughnut, title: "Control Status Doughnut");
 
             List<ExcelChart> charts = sheet.Charts.ToList();
             Assert.Equal(2, charts.Count);
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
-            Assert.Equal(ExcelChartType.Pie, charts[0].ChartType);
-            Assert.Equal(ExcelChartType.Doughnut, charts[1].ChartType);
+            Assert.Equal(OfficeChartType.Pie, charts[0].ChartType);
+            Assert.Equal(OfficeChartType.Doughnut, charts[1].ChartType);
             Assert.True(charts[0].TryGetSnapshot(out ExcelChartInfo pieSnapshot));
             sliceColors = pieSnapshot.Style!.Palette.Take(3).ToArray();
 
@@ -303,14 +303,14 @@ public partial class Excel {
             sheet.Cell(5, 1, "Q4");
             sheet.Cell(5, 2, 54);
             sheet.Cell(5, 3, 34);
-            sheet.AddChartFromRange("A1:C5", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Area, title: "Revenue Area");
-            sheet.AddChartFromRange("A1:C5", row: 14, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.AreaStacked100, title: "Revenue Mix Area");
+            sheet.AddChartFromRange("A1:C5", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.Area, title: "Revenue Area");
+            sheet.AddChartFromRange("A1:C5", row: 14, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.AreaStacked100, title: "Revenue Mix Area");
 
             List<ExcelChart> charts = sheet.Charts.ToList();
             Assert.Equal(2, charts.Count);
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
-            Assert.Equal(ExcelChartType.Area, charts[0].ChartType);
-            Assert.Equal(ExcelChartType.AreaStacked100, charts[1].ChartType);
+            Assert.Equal(OfficeChartType.Area, charts[0].ChartType);
+            Assert.Equal(OfficeChartType.AreaStacked100, charts[1].ChartType);
 
             document.Save();
 
@@ -344,14 +344,14 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "Low", "Zero", "High" },
                 new[] {
-                    new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line)
+                    new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, OfficeChartType.Line)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Line, title: "Profit Trend");
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.Line, title: "Profit Trend");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.Equal(ExcelChartType.Line, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.Line, snapshot.ChartType);
 
             document.Save();
 
@@ -461,11 +461,11 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -494,12 +494,12 @@ public partial class Excel {
         var snapshot = new ExcelChartInfo(
             "UnsupportedCombo",
             "Unsupported Pie Line Combo",
-            ExcelChartType.Pie,
+            OfficeChartType.Pie,
             new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Share", new[] { 12D, 18D, 24D }, ExcelChartType.Pie),
-                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line)
+                    new ExcelChartSeries("Share", new[] { 12D, 18D, 24D }, OfficeChartType.Pie),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, OfficeChartType.Line)
                 }),
             rowIndex: 1,
             columnIndex: 5,
@@ -521,12 +521,12 @@ public partial class Excel {
         var snapshot = new ExcelChartInfo(
             "IncompatibleCombo",
             "Column Bar Combo",
-            ExcelChartType.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
-                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, ExcelChartType.BarClustered)
+                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, OfficeChartType.ColumnClustered),
+                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, OfficeChartType.BarClustered)
                 }),
             rowIndex: 1,
             columnIndex: 5,
@@ -544,12 +544,12 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
-    [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
-    [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
+    [InlineData(OfficeChartType.ColumnClustered, OfficeChartType.Scatter)]
+    [InlineData(OfficeChartType.Scatter, OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.Scatter, OfficeChartType.Line)]
     public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(
-        ExcelChartType baseType,
-        ExcelChartType seriesType) {
+        OfficeChartType baseType,
+        OfficeChartType seriesType) {
         var snapshot = new ExcelChartInfo(
             "IncompatibleAxisModelCombo",
             "Category Scatter Combo",
@@ -579,8 +579,8 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Maps_Stacked_Line_Charts_To_Shared_Stacked_Line_Renderer() {
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("TryMapChartKind", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        object?[] stackedArgs = { ExcelChartType.LineStacked, null };
-        object?[] percentArgs = { ExcelChartType.LineStacked100, null };
+        object?[] stackedArgs = { OfficeChartType.LineStacked, null };
+        object?[] percentArgs = { OfficeChartType.LineStacked100, null };
 
         Assert.True((bool)method.Invoke(null, stackedArgs)!);
         Assert.True((bool)method.Invoke(null, percentArgs)!);
@@ -598,13 +598,13 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area)
+                    new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, OfficeChartType.Area)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Area, title: "Delta Area");
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.Area, title: "Delta Area");
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.Area, snapshot.ChartType);
 
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -636,15 +636,15 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "1", "2", "4", "8", "16" },
                 new[] {
-                    new ExcelChartSeries("Latency", new[] { 9D, 7D, 5.5D, 4.2D, 3.8D }, ExcelChartType.Scatter),
-                    new ExcelChartSeries("Throughput", new[] { 2D, 3.5D, 6D, 7.5D, 9D }, ExcelChartType.Scatter)
+                    new ExcelChartSeries("Latency", new[] { 9D, 7D, 5.5D, 4.2D, 3.8D }, OfficeChartType.Scatter),
+                    new ExcelChartSeries("Throughput", new[] { 2D, 3.5D, 6D, 7.5D, 9D }, OfficeChartType.Scatter)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Scatter, title: "Scale Scatter");
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.Scatter, title: "Scale Scatter");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.Equal(ExcelChartType.Scatter, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.Scatter, snapshot.ChartType);
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
@@ -679,15 +679,15 @@ public partial class Excel {
             var data = new ExcelChartData(
                 new[] { "Quality", "Speed", "Cost", "Coverage", "Risk" },
                 new[] {
-                    new ExcelChartSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }, ExcelChartType.Radar),
-                    new ExcelChartSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D }, ExcelChartType.Radar)
+                    new ExcelChartSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }, OfficeChartType.Radar),
+                    new ExcelChartSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D }, OfficeChartType.Radar)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Radar, title: "Capability Radar");
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: OfficeChartType.Radar, title: "Capability Radar");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.Equal(ExcelChartType.Radar, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.Radar, snapshot.ChartType);
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
@@ -715,7 +715,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Preserves_Negative_Radar_Chart_Values() {
         var series = new List<ExcelChartSeries> {
-            new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, ExcelChartType.Radar)
+            new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, OfficeChartType.Radar)
         };
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;

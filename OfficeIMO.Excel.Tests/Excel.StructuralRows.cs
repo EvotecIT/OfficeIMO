@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests
                     "A1:B3",
                     row: 1,
                     column: 4,
-                    type: ExcelChartType.ColumnClustered,
+                    type: OfficeChartType.ColumnClustered,
                     title: "Values");
 
                 ChartPart chartPart = data.WorksheetPart.DrawingsPart!.ChartParts.Single();

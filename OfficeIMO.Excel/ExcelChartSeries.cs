@@ -11,18 +11,18 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a chart series with the specified name and values.
         /// </summary>
-        public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
+        public ExcelChartSeries(string name, IEnumerable<double> values, OfficeChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
             : this(name, (values ?? Array.Empty<double>()).ToList(), xValues: null, chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
         /// <summary>
         /// Creates a chart series with explicit per-point X values for scatter-style charts.
         /// </summary>
-        public ExcelChartSeries(string name, IEnumerable<double> values, IEnumerable<double> xValues, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
+        public ExcelChartSeries(string name, IEnumerable<double> values, IEnumerable<double> xValues, OfficeChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, string? seriesColorArgb = null)
             : this(name, (values ?? Array.Empty<double>()).ToList(), (xValues ?? Array.Empty<double>()).ToList(), chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
-        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, ExcelChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues, IReadOnlyList<double>? bubbleSizes = null) {
+        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, OfficeChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues, IReadOnlyList<double>? bubbleSizes = null) {
             OfficeChartStyleBounds.ValidateLineWidth(seriesLineWidth, nameof(seriesLineWidth), allowZero: true);
             OfficeChartStyleBounds.ValidateLineWidth(markerOutlineWidth, nameof(markerOutlineWidth), allowZero: true);
             Name = name ?? string.Empty;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
             MarkerOutlineWidth = markerOutlineWidth;
         }
 
-        internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
+        internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, OfficeChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
             => new(name, values, xValues: null, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
 
         internal ExcelChartSeries WithXValues(IReadOnlyList<double>? xValues) =>
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the optional chart type override for this series.
         /// </summary>
-        public ExcelChartType? ChartType { get; }
+        public OfficeChartType? ChartType { get; }
 
         /// <summary>
         /// Gets the axis group for this series.

@@ -49,7 +49,7 @@ public sealed class ExcelChartSeriesPaintTests
         sheet.CellValue(2, 2, 2);
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 4);
-        var chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 640, heightPixels: 360, title: null, includeCachedData: true, type: ExcelChartType.Line3D, hasHeaders: true);
+        var chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 640, heightPixels: 360, title: null, includeCachedData: true, type: OfficeChartType.Line3D, hasHeaders: true);
         chart.SetSeriesFillColor(0, "0000FF").SetSeriesLineColor(0, "FF0000", 3);
         if (!fill)
             chart.SetSeriesNoFill(0, noLine: !outline);

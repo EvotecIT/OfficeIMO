@@ -225,42 +225,42 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsPdfSupportedChartType(ExcelChartType chartType) {
+        private static bool IsPdfSupportedChartType(OfficeChartType chartType) {
             switch (chartType) {
-                case ExcelChartType.ColumnClustered:
-                case ExcelChartType.Column3DClustered:
-                case ExcelChartType.ColumnStacked:
-                case ExcelChartType.Column3DStacked:
-                case ExcelChartType.ColumnStacked100:
-                case ExcelChartType.Column3DStacked100:
-                case ExcelChartType.BarClustered:
-                case ExcelChartType.Bar3DClustered:
-                case ExcelChartType.BarStacked:
-                case ExcelChartType.Bar3DStacked:
-                case ExcelChartType.BarStacked100:
-                case ExcelChartType.Bar3DStacked100:
-                case ExcelChartType.Line:
-                case ExcelChartType.Line3D:
-                case ExcelChartType.LineStacked:
-                case ExcelChartType.LineStacked100:
-                case ExcelChartType.Area:
-                case ExcelChartType.Area3D:
-                case ExcelChartType.AreaStacked:
-                case ExcelChartType.Area3DStacked:
-                case ExcelChartType.AreaStacked100:
-                case ExcelChartType.Area3DStacked100:
-                case ExcelChartType.Scatter:
-                case ExcelChartType.Radar:
-                case ExcelChartType.Pie:
-                case ExcelChartType.Pie3D:
-                case ExcelChartType.PieOfPie:
-                case ExcelChartType.BarOfPie:
-                case ExcelChartType.Doughnut:
-                case ExcelChartType.Stock:
-                case ExcelChartType.Surface:
-                case ExcelChartType.SurfaceWireframe:
-                case ExcelChartType.SurfaceContour:
-                case ExcelChartType.SurfaceContourWireframe:
+                case OfficeChartType.ColumnClustered:
+                case OfficeChartType.Column3DClustered:
+                case OfficeChartType.ColumnStacked:
+                case OfficeChartType.Column3DStacked:
+                case OfficeChartType.ColumnStacked100:
+                case OfficeChartType.Column3DStacked100:
+                case OfficeChartType.BarClustered:
+                case OfficeChartType.Bar3DClustered:
+                case OfficeChartType.BarStacked:
+                case OfficeChartType.Bar3DStacked:
+                case OfficeChartType.BarStacked100:
+                case OfficeChartType.Bar3DStacked100:
+                case OfficeChartType.Line:
+                case OfficeChartType.Line3D:
+                case OfficeChartType.LineStacked:
+                case OfficeChartType.LineStacked100:
+                case OfficeChartType.Area:
+                case OfficeChartType.Area3D:
+                case OfficeChartType.AreaStacked:
+                case OfficeChartType.Area3DStacked:
+                case OfficeChartType.AreaStacked100:
+                case OfficeChartType.Area3DStacked100:
+                case OfficeChartType.Scatter:
+                case OfficeChartType.Radar:
+                case OfficeChartType.Pie:
+                case OfficeChartType.Pie3D:
+                case OfficeChartType.PieOfPie:
+                case OfficeChartType.BarOfPie:
+                case OfficeChartType.Doughnut:
+                case OfficeChartType.Stock:
+                case OfficeChartType.Surface:
+                case OfficeChartType.SurfaceWireframe:
+                case OfficeChartType.SurfaceContour:
+                case OfficeChartType.SurfaceContourWireframe:
                     return true;
                 default:
                     return false;
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                OfficeChartType effectiveType = series.ChartType ?? snapshot.ChartType;
                 if (effectiveType == snapshot.ChartType) {
                     continue;
                 }

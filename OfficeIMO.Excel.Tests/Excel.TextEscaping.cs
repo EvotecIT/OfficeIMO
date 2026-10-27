@@ -127,7 +127,7 @@ public class ExcelTextEscapingTests {
             sheet.CellValue(1, 1, value);
             sheet.AddChart(
                 new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+                row: 2, column: 3, type: OfficeChartType.ColumnClustered, title: "Values");
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
         }
@@ -158,7 +158,7 @@ public class ExcelTextEscapingTests {
             cells["D1"].DataType = CellValues.Error;
             sheet.AddChart(
                 new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+                row: 2, column: 3, type: OfficeChartType.ColumnClustered, title: "Values");
             sheet.MarkRequiresSavePreparation();
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);

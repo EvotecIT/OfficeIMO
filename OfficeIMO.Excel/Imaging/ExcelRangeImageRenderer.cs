@@ -503,7 +503,7 @@ namespace OfficeIMO.Excel {
 
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
-                snapshot.Data.Series.Select(series => snapshot.ChartType == ExcelChartType.Bubble
+                snapshot.Data.Series.Select(series => snapshot.ChartType == OfficeChartType.Bubble
                     ? CreateBubbleChartSeries(series)
                     : new OfficeSeries(
                     series.Name,
@@ -537,7 +537,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        internal static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartType kind, out string? approximation) {
+        internal static bool TryMapSeriesRenderKind(OfficeChartType type, out OfficeChartType kind, out string? approximation) {
             if (!TryMapChartKind(type, out kind, out approximation)) {
                 return false;
             }
@@ -558,8 +558,8 @@ namespace OfficeIMO.Excel {
         }
 
         internal static bool TryMapCompatibleComboSeriesRenderKind(
-            ExcelChartType baseType,
-            ExcelChartType seriesType,
+            OfficeChartType baseType,
+            OfficeChartType seriesType,
             out OfficeChartType seriesKind,
             out string? approximation,
             out string? unsupportedReason) {
@@ -599,107 +599,107 @@ namespace OfficeIMO.Excel {
             kind == OfficeChartType.BarStacked100;
 
         /// <summary>Whether the supported projection discards native three-dimensional geometry.</summary>
-        internal static bool IsFlatChartProjection(ExcelChartType type) => type is
-            ExcelChartType.Column3DClustered or
-            ExcelChartType.Column3DStacked or
-            ExcelChartType.Column3DStacked100 or
-            ExcelChartType.Bar3DClustered or
-            ExcelChartType.Bar3DStacked or
-            ExcelChartType.Bar3DStacked100 or
-            ExcelChartType.Line3D or
-            ExcelChartType.Area3D or
-            ExcelChartType.Area3DStacked or
-            ExcelChartType.Area3DStacked100 or
-            ExcelChartType.Pie3D;
+        internal static bool IsFlatChartProjection(OfficeChartType type) => type is
+            OfficeChartType.Column3DClustered or
+            OfficeChartType.Column3DStacked or
+            OfficeChartType.Column3DStacked100 or
+            OfficeChartType.Bar3DClustered or
+            OfficeChartType.Bar3DStacked or
+            OfficeChartType.Bar3DStacked100 or
+            OfficeChartType.Line3D or
+            OfficeChartType.Area3D or
+            OfficeChartType.Area3DStacked or
+            OfficeChartType.Area3DStacked100 or
+            OfficeChartType.Pie3D;
 
-        internal static bool TryMapChartKind(ExcelChartType type, out OfficeChartType kind, out string? approximation) {
+        internal static bool TryMapChartKind(OfficeChartType type, out OfficeChartType kind, out string? approximation) {
             approximation = null;
             switch (type) {
-                case ExcelChartType.ColumnClustered:
+                case OfficeChartType.ColumnClustered:
                     kind = OfficeChartType.ColumnClustered;
                     return true;
-                case ExcelChartType.ColumnStacked:
+                case OfficeChartType.ColumnStacked:
                     kind = OfficeChartType.ColumnStacked;
                     return true;
-                case ExcelChartType.ColumnStacked100:
+                case OfficeChartType.ColumnStacked100:
                     kind = OfficeChartType.ColumnStacked100;
                     return true;
-                case ExcelChartType.BarClustered:
+                case OfficeChartType.BarClustered:
                     kind = OfficeChartType.BarClustered;
                     return true;
-                case ExcelChartType.BarStacked:
+                case OfficeChartType.BarStacked:
                     kind = OfficeChartType.BarStacked;
                     return true;
-                case ExcelChartType.BarStacked100:
+                case OfficeChartType.BarStacked100:
                     kind = OfficeChartType.BarStacked100;
                     return true;
-                case ExcelChartType.Line:
+                case OfficeChartType.Line:
                     kind = OfficeChartType.Line;
                     return true;
-                case ExcelChartType.LineStacked:
+                case OfficeChartType.LineStacked:
                     kind = OfficeChartType.LineStacked;
                     return true;
-                case ExcelChartType.LineStacked100:
+                case OfficeChartType.LineStacked100:
                     kind = OfficeChartType.LineStacked100;
                     return true;
-                case ExcelChartType.Area:
+                case OfficeChartType.Area:
                     kind = OfficeChartType.Area;
                     return true;
-                case ExcelChartType.AreaStacked:
+                case OfficeChartType.AreaStacked:
                     kind = OfficeChartType.AreaStacked;
                     return true;
-                case ExcelChartType.AreaStacked100:
+                case OfficeChartType.AreaStacked100:
                     kind = OfficeChartType.AreaStacked100;
                     return true;
-                case ExcelChartType.Pie:
-                case ExcelChartType.Pie3D:
-                case ExcelChartType.PieOfPie:
-                case ExcelChartType.BarOfPie:
+                case OfficeChartType.Pie:
+                case OfficeChartType.Pie3D:
+                case OfficeChartType.PieOfPie:
+                case OfficeChartType.BarOfPie:
                     kind = OfficeChartType.Pie;
-                    approximation = type == ExcelChartType.Pie ? null : "Excel pie variant is rendered as a standard 2D pie chart.";
+                    approximation = type == OfficeChartType.Pie ? null : "Excel pie variant is rendered as a standard 2D pie chart.";
                     return true;
-                case ExcelChartType.Doughnut:
+                case OfficeChartType.Doughnut:
                     kind = OfficeChartType.Doughnut;
                     return true;
-                case ExcelChartType.Bubble:
+                case OfficeChartType.Bubble:
                     kind = OfficeChartType.Bubble;
                     return true;
-                case ExcelChartType.Scatter:
+                case OfficeChartType.Scatter:
                     kind = OfficeChartType.Scatter;
                     return true;
-                case ExcelChartType.Radar:
+                case OfficeChartType.Radar:
                     kind = OfficeChartType.Radar;
                     return true;
-                case ExcelChartType.Column3DClustered:
-                case ExcelChartType.Column3DStacked:
-                case ExcelChartType.Column3DStacked100:
-                    kind = type == ExcelChartType.Column3DStacked ? OfficeChartType.ColumnStacked : type == ExcelChartType.Column3DStacked100 ? OfficeChartType.ColumnStacked100 : OfficeChartType.ColumnClustered;
+                case OfficeChartType.Column3DClustered:
+                case OfficeChartType.Column3DStacked:
+                case OfficeChartType.Column3DStacked100:
+                    kind = type == OfficeChartType.Column3DStacked ? OfficeChartType.ColumnStacked : type == OfficeChartType.Column3DStacked100 ? OfficeChartType.ColumnStacked100 : OfficeChartType.ColumnClustered;
                     approximation = "Excel 3D column chart is rendered as a 2D column chart.";
                     return true;
-                case ExcelChartType.Bar3DClustered:
-                case ExcelChartType.Bar3DStacked:
-                case ExcelChartType.Bar3DStacked100:
-                    kind = type == ExcelChartType.Bar3DStacked ? OfficeChartType.BarStacked : type == ExcelChartType.Bar3DStacked100 ? OfficeChartType.BarStacked100 : OfficeChartType.BarClustered;
+                case OfficeChartType.Bar3DClustered:
+                case OfficeChartType.Bar3DStacked:
+                case OfficeChartType.Bar3DStacked100:
+                    kind = type == OfficeChartType.Bar3DStacked ? OfficeChartType.BarStacked : type == OfficeChartType.Bar3DStacked100 ? OfficeChartType.BarStacked100 : OfficeChartType.BarClustered;
                     approximation = "Excel 3D bar chart is rendered as a 2D bar chart.";
                     return true;
-                case ExcelChartType.Line3D:
+                case OfficeChartType.Line3D:
                     kind = OfficeChartType.Line;
                     approximation = "Excel 3D line chart is rendered as a 2D line chart.";
                     return true;
-                case ExcelChartType.Area3D:
-                case ExcelChartType.Area3DStacked:
-                case ExcelChartType.Area3DStacked100:
-                    kind = type == ExcelChartType.Area3DStacked ? OfficeChartType.AreaStacked : type == ExcelChartType.Area3DStacked100 ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
+                case OfficeChartType.Area3D:
+                case OfficeChartType.Area3DStacked:
+                case OfficeChartType.Area3DStacked100:
+                    kind = type == OfficeChartType.Area3DStacked ? OfficeChartType.AreaStacked : type == OfficeChartType.Area3DStacked100 ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
                     approximation = "Excel 3D area chart is rendered as a 2D area chart.";
                     return true;
-                case ExcelChartType.Stock:
+                case OfficeChartType.Stock:
                     kind = OfficeChartType.Line;
                     approximation = "Excel stock chart is rendered as a line chart with high-low lines; up and down bars are not drawn.";
                     return true;
-                case ExcelChartType.Surface:
-                case ExcelChartType.SurfaceWireframe:
-                case ExcelChartType.SurfaceContour:
-                case ExcelChartType.SurfaceContourWireframe:
+                case OfficeChartType.Surface:
+                case OfficeChartType.SurfaceWireframe:
+                case OfficeChartType.SurfaceContour:
+                case OfficeChartType.SurfaceContourWireframe:
                     kind = OfficeChartType.Line;
                     approximation = "Excel surface chart is rendered as a line chart without surface bands or their colour scale.";
                     return true;

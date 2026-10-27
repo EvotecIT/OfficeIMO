@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
                     row: 2003,
                     column: 29,
-                    type: ExcelChartType.ColumnClustered);
+                    type: OfficeChartType.ColumnClustered);
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 

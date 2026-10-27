@@ -499,9 +499,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static void AppendChartDataTable(StringBuilder body, ExcelChartInfo snapshot) {
         ExcelChartData data = snapshot.Data;
-        ExcelChartType defaultChartType = snapshot.ChartType;
+        OfficeChartType defaultChartType = snapshot.ChartType;
         body.Append("<table class=\"officeimo-chart-data\"");
-        if (defaultChartType == ExcelChartType.Pie || defaultChartType == ExcelChartType.Doughnut)
+        if (defaultChartType == OfficeChartType.Pie || defaultChartType == OfficeChartType.Doughnut)
             OfficeHtmlChartRadialLayout.AppendAttributes(body, snapshot.RadialLayout);
         body.Append("><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
@@ -512,7 +512,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
         body.Append("</tr></thead><tbody>");
         foreach (ExcelChartSeries series in data.Series) {
-            ExcelChartType chartType = series.ChartType ?? defaultChartType;
+            OfficeChartType chartType = series.ChartType ?? defaultChartType;
             body.Append("<tr");
             body.Append(" data-officeimo-chart-type=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(chartType.ToString()))

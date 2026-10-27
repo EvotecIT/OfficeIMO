@@ -211,7 +211,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                OfficeChartType effectiveType = series.ChartType ?? snapshot.ChartType;
                 if (effectiveType == snapshot.ChartType) {
                     continue;
                 }

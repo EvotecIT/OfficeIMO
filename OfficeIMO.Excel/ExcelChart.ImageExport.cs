@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            C.PieChartSeries? radialSeries = ChartType is ExcelChartType.Pie or ExcelChartType.Doughnut
+            C.PieChartSeries? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
                 ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,

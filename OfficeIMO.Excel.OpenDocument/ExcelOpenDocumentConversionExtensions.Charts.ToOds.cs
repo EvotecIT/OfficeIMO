@@ -129,13 +129,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return referenced.Count;
     }
 
-    private static bool TryGetOdsChartType(ExcelChartType source, out OdsChartType type) {
+    private static bool TryGetOdsChartType(OfficeChartType source, out OdsChartType type) {
         switch (source) {
-            case ExcelChartType.ColumnClustered: type = OdsChartType.Column; return true;
-            case ExcelChartType.BarClustered: type = OdsChartType.Bar; return true;
-            case ExcelChartType.Line: type = OdsChartType.Line; return true;
-            case ExcelChartType.Pie: type = OdsChartType.Pie; return true;
-            case ExcelChartType.Doughnut: type = OdsChartType.Doughnut; return true;
+            case OfficeChartType.ColumnClustered: type = OdsChartType.Column; return true;
+            case OfficeChartType.BarClustered: type = OdsChartType.Bar; return true;
+            case OfficeChartType.Line: type = OdsChartType.Line; return true;
+            case OfficeChartType.Pie: type = OdsChartType.Pie; return true;
+            case OfficeChartType.Doughnut: type = OdsChartType.Doughnut; return true;
             default: type = default; return false;
         }
     }

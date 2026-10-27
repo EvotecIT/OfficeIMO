@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
             }
             var trailing = legend.ChildElements.Where(child => child is not C.LegendPosition).ToArray();
             foreach (OpenXmlElement child in trailing) child.Remove();
-            bool radial = ChartType == ExcelChartType.Pie || ChartType == ExcelChartType.Doughnut;
+            bool radial = ChartType == OfficeChartType.Pie || ChartType == OfficeChartType.Doughnut;
             int entryCount = radial ? (seriesStyles.Count == 0 ? 0 : seriesStyles[0].Values.Count) : seriesLegendVisibility.Count;
             for (int index = 0; index < entryCount; index++) {
                 if (radial ? !hasHiddenSeries : seriesLegendVisibility[index]) continue;

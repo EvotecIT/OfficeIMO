@@ -41,8 +41,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
             sheet.CellValue(1, column, "Field-" + column);
             sheet.CellValue(2, column, column == columns ? (object)10d : "North");
         }
-        sheet.AddPivotTable("A1:DX2", "DZ1", name: "WidePivot", rowFields: new[] { "Field-1" },
-            dataFields: new[] { new ExcelPivotDataField("Field-128", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:DX2", "DZ1", options: new ExcelPivotTableOptions {
+            Name = "WidePivot",
+            RowFields = new[] { "Field-1" },
+            DataFields = new[] { new ExcelPivotDataField("Field-128", ExcelPivotDataFunction.Sum) }
+        });
         byte[] bytes = source.ToBytes();
         using var stream = new MemoryStream();
         stream.Write(bytes, 0, bytes.Length);
@@ -77,8 +80,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
         sheet.MergeRange("D1:E1");
-        sheet.AddPivotTable("A1:B2", "D1", name: "Pivot", rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "Pivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Empty(conversion.Value.DataPilotTables);
         Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
@@ -94,8 +100,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "North");
             sheet.CellValue(2, 2, 10d);
-            sheet.AddPivotTable("A1:B2", "D1", name: name, rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+            sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+                Name = name,
+                RowFields = new[] { "Region" },
+                DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+            });
         }
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Equal("Sales", Assert.Single(conversion.Value.DataPilotTables).Name);
@@ -136,8 +145,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, "Unused");
         sheet.CellValue(2, 3, 10d);
-        sheet.AddPivotTable("A1:C2", "E1", name: "SalesPivot", rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Empty(conversion.Value.DataPilotTables);
         Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
@@ -154,8 +166,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot", rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         byte[] bytes = source.ToBytes();
         using var stream = new MemoryStream();
         stream.Write(bytes, 0, bytes.Length);
@@ -204,9 +219,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
@@ -228,9 +245,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
         Assert.True(sheet.TryGetCellText(1, 1, out string header));
-        sheet.AddPivotTable("A1:B2", "D1", name: "NumericHeader",
-            rowFields: new[] { header },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "NumericHeader",
+            RowFields = new[] { header },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Equal("NumericHeader", Assert.Single(conversion.Value.DataPilotTables).Name);
@@ -247,9 +266,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(2, 1, false);
         sheet.CellValue(2, 2, 10d);
         Assert.True(sheet.TryGetCellText(1, 1, out string header));
-        sheet.AddPivotTable("A1:B2", "D1", name: "BooleanHeader",
-            rowFields: new[] { header },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "BooleanHeader",
+            RowFields = new[] { header },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Empty(conversion.Value.DataPilotTables);
@@ -443,9 +464,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         byte[] bytes = source.ToBytes();
         using (var stream = new MemoryStream(bytes)) {
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
@@ -518,9 +541,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
         sheet.CellValue(2, 3, "Note");
-        sheet.AddPivotTable("A1:C2", "E1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         sheet.CellValue(1, 3, "Region");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
@@ -538,9 +563,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, name);
             sheet.CellValue(2, 2, 10d);
-            sheet.AddPivotTable("A1:B2", "D1", name: "SharedName",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+            sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+                Name = "SharedName",
+                RowFields = new[] { "Region" },
+                DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+            });
         }
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
@@ -601,9 +628,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         sheet.CellValue(1, 1, "region");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
@@ -622,9 +651,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         source.SetNamedRange("SalesValues", "'Data'!$B$2:$B$2", save: false);
 
         OdsDocument converted = source.ToOpenDocumentResult().Value;
@@ -790,9 +821,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         byte[] bytes = source.ToBytes();
         using (var stream = new MemoryStream(bytes)) {
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
@@ -821,9 +854,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 10d);
-        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
-            rowFields: new[] { "Field-1" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Field-1" },
+            DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
+        });
         Assert.False(sheet.GetPivotTables().Single().HasValuesAxisField);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();

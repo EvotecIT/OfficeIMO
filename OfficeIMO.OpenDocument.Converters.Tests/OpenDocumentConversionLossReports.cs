@@ -75,11 +75,10 @@ public sealed class OpenDocumentConversionLossReportTests {
         data.CellValue(2, 1, "East");
         data.CellValue(2, 2, new DateTime(2026, 1, 2));
         data.CellValue(2, 3, 10d);
-        data.AddPivotTable(
-            sourceRange: "A1:C2",
-            destinationCell: "E2",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" });
+        data.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" }
+        });
         data.AddChart(
             new ExcelChartData(
                 new[] { "East" },
@@ -88,7 +87,7 @@ public sealed class OpenDocumentConversionLossReportTests {
             column: 1,
             widthPixels: 500,
             heightPixels: 300,
-            type: ExcelChartType.ColumnClustered,
+            type: OfficeChartType.ColumnClustered,
             title: "Sales");
         source.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
             Name = "RegionSlicer",

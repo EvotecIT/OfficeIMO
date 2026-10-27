@@ -154,8 +154,9 @@ namespace OfficeIMO.Excel {
         /// Adds a chart to the worksheet using the provided data. Data is stored on a hidden chart data sheet.
         /// </summary>
         public ExcelChart AddChart(ExcelChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360,
-            ExcelChartType type = ExcelChartType.ColumnClustered, string? title = null) {
+            OfficeChartType type = OfficeChartType.ColumnClustered, string? title = null) {
             if (data == null) throw new ArgumentNullException(nameof(data));
+            ValidateChartTypes(type, data);
             ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
@@ -176,10 +177,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool RequiresNumericScatterCategories(IReadOnlyList<ExcelChartSeries> series,
-            ExcelChartType defaultType) {
+            OfficeChartType defaultType) {
             for (int i = 0; i < series.Count; i++) {
                 ExcelChartSeries item = series[i];
-                if ((item.ChartType ?? defaultType) == ExcelChartType.Scatter && item.XValues == null) {
+                if ((item.ChartType ?? defaultType) == OfficeChartType.Scatter && item.XValues == null) {
                     return true;
                 }
             }
@@ -191,7 +192,7 @@ namespace OfficeIMO.Excel {
         /// Adds a chart to the worksheet using an existing data range.
         /// </summary>
         public ExcelChart AddChart(ExcelChartDataRange dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360,
-            ExcelChartType type = ExcelChartType.ColumnClustered, ExcelChartData? cachedData = null, string? title = null) {
+            OfficeChartType type = OfficeChartType.ColumnClustered, ExcelChartData? cachedData = null, string? title = null) {
             if (dataRange == null) throw new ArgumentNullException(nameof(dataRange));
             ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
@@ -202,7 +203,7 @@ namespace OfficeIMO.Excel {
         /// Adds a chart using an A1 range on this sheet.
         /// </summary>
         public ExcelChart AddChartFromRange(string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360,
-            ExcelChartType type = ExcelChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true) {
+            OfficeChartType type = OfficeChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true) {
             if (string.IsNullOrWhiteSpace(dataRangeA1)) throw new ArgumentNullException(nameof(dataRangeA1));
             if (!ExcelA1.TryParseRange(dataRangeA1, out int r1, out int c1, out int r2, out int c2)) {
                 throw new ArgumentException($"Invalid A1 range '{dataRangeA1}'.", nameof(dataRangeA1));
@@ -223,7 +224,7 @@ namespace OfficeIMO.Excel {
         /// Adds a chart from a table name on this sheet.
         /// </summary>
         public ExcelChart AddChartFromTable(string tableName, int row, int column, int widthPixels = 640, int heightPixels = 360,
-            ExcelChartType type = ExcelChartType.ColumnClustered, string? title = null, bool includeCachedData = true) {
+            OfficeChartType type = OfficeChartType.ColumnClustered, string? title = null, bool includeCachedData = true) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
 
             var table = _worksheetPart.TableDefinitionParts
@@ -240,7 +241,7 @@ namespace OfficeIMO.Excel {
         /// Adds a chart using an A1 range and marks it as sourced from an existing pivot table.
         /// </summary>
         public ExcelChart AddPivotChartFromRange(string pivotTableName, string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360,
-            ExcelChartType type = ExcelChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0U) {
+            OfficeChartType type = OfficeChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0U) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentNullException(nameof(pivotTableName));
 
             string? resolvedName = GetPivotTables()
@@ -260,7 +261,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddScatterChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640,
             int heightPixels = 360, string? title = null) {
-            return AddChartFromSeriesRanges(seriesRanges, row, column, widthPixels, heightPixels, ExcelChartType.Scatter, title);
+            return AddChartFromSeriesRanges(seriesRanges, row, column, widthPixels, heightPixels, OfficeChartType.Scatter, title);
         }
 
         /// <summary>
@@ -268,11 +269,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddBubbleChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640,
             int heightPixels = 360, string? title = null) {
-            return AddChartFromSeriesRanges(seriesRanges, row, column, widthPixels, heightPixels, ExcelChartType.Bubble, title);
+            return AddChartFromSeriesRanges(seriesRanges, row, column, widthPixels, heightPixels, OfficeChartType.Bubble, title);
         }
 
         private ExcelChart AddChartFromSeriesRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels,
-            int heightPixels, ExcelChartType type, string? title) {
+            int heightPixels, OfficeChartType type, string? title) {
             if (seriesRanges == null) throw new ArgumentNullException(nameof(seriesRanges));
             ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
@@ -280,7 +281,7 @@ namespace OfficeIMO.Excel {
             if (ranges.Count == 0) {
                 throw new ArgumentException("At least one series range is required.", nameof(seriesRanges));
             }
-            if (type == ExcelChartType.Bubble && HasMissingBubbleSizeRange(ranges)) {
+            if (type == OfficeChartType.Bubble && HasMissingBubbleSizeRange(ranges)) {
                 throw new ArgumentException("Bubble charts require bubble size ranges for each series.", nameof(seriesRanges));
             }
 
@@ -359,7 +360,8 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, int widthPixels, int heightPixels,
-            ExcelChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false) {
+            OfficeChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false) {
+            ValidateChartTypes(type, data);
             ValidateChartPlacement(row, column, widthPixels, heightPixels);
             if (data != null && !preserveDeferredDataSetCandidate) {
                 MaterializeDeferredDataSetImportIfNeeded();

@@ -2448,10 +2448,10 @@ public sealed class PdfConversionScenarioManifestTests {
             var chartData = new ExcelChartData(
                 new[] { "Renewals", "New business", "Services", "Expansion" },
                 new[] {
-                    new ExcelChartSeries("Actual", new[] { 128D, 92D, 76D, 54D }, ExcelChartType.ColumnClustered, DrawingCore.OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, ExcelChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Actual", new[] { 128D, 92D, 76D, 54D }, OfficeChartType.ColumnClustered, DrawingCore.OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, OfficeChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
                 });
-            sheet.AddChart(chartData, row: 1, column: 5, widthPixels: 320, heightPixels: 190, type: ExcelChartType.ColumnClustered, title: "KPI Trend");
+            sheet.AddChart(chartData, row: 1, column: 5, widthPixels: 320, heightPixels: 190, type: OfficeChartType.ColumnClustered, title: "KPI Trend");
             sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
             document.SetPrintArea(sheet, "A1:H14", save: false);

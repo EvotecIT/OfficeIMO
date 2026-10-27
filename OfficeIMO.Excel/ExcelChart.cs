@@ -107,10 +107,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the detected chart type.
         /// </summary>
-        public ExcelChartType ChartType {
+        public OfficeChartType ChartType {
             get {
                 C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
-                return plotArea == null ? ExcelChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
+                return plotArea == null ? OfficeChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
             }
         }
 

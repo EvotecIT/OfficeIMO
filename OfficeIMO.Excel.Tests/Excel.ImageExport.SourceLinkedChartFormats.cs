@@ -150,10 +150,10 @@ public class ExcelSourceLinkedChartFormatTests {
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
     [Theory]
-    [InlineData(ExcelChartType.ColumnClustered, true)]
-    [InlineData(ExcelChartType.BarClustered, true)]
-    [InlineData(ExcelChartType.ColumnClustered, false)]
-    public void ChartAxis_UsesSourcePercentageOnlyWhenLinked(ExcelChartType kind, bool sourceLinked) {
+    [InlineData(OfficeChartType.ColumnClustered, true)]
+    [InlineData(OfficeChartType.BarClustered, true)]
+    [InlineData(OfficeChartType.ColumnClustered, false)]
+    public void ChartAxis_UsesSourcePercentageOnlyWhenLinked(OfficeChartType kind, bool sourceLinked) {
         using var document = ExcelDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"));
         var sheet = document.AddWorksheet("Source");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
@@ -162,7 +162,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4, type: kind);
         chart.SetValueAxisNumberFormat("General", sourceLinked);
         var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts).Snapshot;
-        string? format = kind == ExcelChartType.BarClustered ? visual.Layout!.HorizontalAxisNumberFormat : visual.Layout!.VerticalAxisNumberFormat;
+        string? format = kind == OfficeChartType.BarClustered ? visual.Layout!.HorizontalAxisNumberFormat : visual.Layout!.VerticalAxisNumberFormat;
         Assert.Equal(sourceLinked ? "0%" : "General", format);
     }
 }

@@ -22,7 +22,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (chartFramesTruncated) truncated = true;
             foreach (OdsChart chart in charts) {
                 if (!TryCreateExcelChartData(source, odsSheet.Name, chart, options, readers,
-                    out ExcelChartData? data, out ExcelChartType chartType, out int row, out int column,
+                    out ExcelChartData? data, out OfficeChartType chartType, out int row, out int column,
                     out int width, out int height, out bool sourceLimitExceeded)) {
                     if (sourceLimitExceeded) truncated = true;
                     continue;
@@ -59,10 +59,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateExcelChartData(OdsDocument document, string hostSheetName, OdsChart chart,
         ExcelOpenDocumentConversionOptions options, Dictionary<string, ChartCellReader> readers,
         out ExcelChartData? data,
-        out ExcelChartType type, out int row, out int column, out int width, out int height,
+        out OfficeChartType type, out int row, out int column, out int width, out int height,
         out bool sourceLimitExceeded) {
         data = null;
-        type = ExcelChartType.ColumnClustered;
+        type = OfficeChartType.ColumnClustered;
         row = column = width = height = 0;
         sourceLimitExceeded = false;
         if (chart.AnchorRow.HasValue && chart.AnchorColumn.HasValue &&
@@ -80,17 +80,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || widthPoints > 1500 || heightPoints > 1500) return false;
         switch (chart.ChartClass) {
             case "chart:bar":
-                type = chart.VerticalBars == true ? ExcelChartType.BarClustered : ExcelChartType.ColumnClustered;
+                type = chart.VerticalBars == true ? OfficeChartType.BarClustered : OfficeChartType.ColumnClustered;
                 break;
-            case "chart:line": type = ExcelChartType.Line; break;
+            case "chart:line": type = OfficeChartType.Line; break;
             case "chart:circle":
                 if (chart.Series.Count != 1) return false;
-                type = ExcelChartType.Pie;
+                type = OfficeChartType.Pie;
                 break;
-            case "chart:ring": type = ExcelChartType.Doughnut; break;
+            case "chart:ring": type = OfficeChartType.Doughnut; break;
             default: return false;
         }
-        if (type == ExcelChartType.Line && chart.Series.Any(series =>
+        if (type == OfficeChartType.Line && chart.Series.Any(series =>
                 series.PointStyles?.Any(style => style != null) == true)) return false;
         if (!TryReadChartCells(document, hostSheetName, chart.CategoriesAddress, options, readers,
             out OdsCellValue[] categories, out bool categoryLimitExceeded)) {

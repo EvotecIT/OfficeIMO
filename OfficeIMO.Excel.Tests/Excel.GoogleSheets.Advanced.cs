@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
                     row: 2,
                     column: 4,
-                    type: ExcelChartType.ColumnClustered,
+                    type: OfficeChartType.ColumnClustered,
                     title: "Sales");
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartData(categories, series),
                     row: 2,
                     column: 4,
-                    type: ExcelChartType.ColumnClustered,
+                    type: OfficeChartType.ColumnClustered,
                     title: "Large chart");
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -223,10 +223,10 @@ namespace OfficeIMO.Tests
                 sheet.AddChart(
                     new ExcelChartData(
                         Array.Empty<string>(),
-                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter) }),
+                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter) }),
                     row: 2,
                     column: 4,
-                    type: ExcelChartType.Scatter,
+                    type: OfficeChartType.Scatter,
                     title: "Scatter");
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -257,12 +257,12 @@ namespace OfficeIMO.Tests
                     new ExcelChartData(
                         Array.Empty<string>(),
                         new[] {
-                            new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter),
-                            new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, ExcelChartType.Scatter),
+                            new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter),
+                            new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, OfficeChartType.Scatter),
                         }),
                     row: 2,
                     column: 4,
-                    type: ExcelChartType.Scatter,
+                    type: OfficeChartType.Scatter,
                     title: "Different domains");
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
                         row: 2,
                         column: 4,
-                        type: ExcelChartType.ColumnClustered,
+                        type: OfficeChartType.ColumnClustered,
                         title: "Sales");
                     document.Save();
                 }

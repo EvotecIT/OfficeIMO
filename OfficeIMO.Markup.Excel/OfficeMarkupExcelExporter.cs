@@ -749,19 +749,19 @@ internal sealed partial class OfficeMarkupExcelExporter {
         return Enum.TryParse<ExcelTableStyle>(normalized, true, out var parsed) ? parsed : ExcelTableStyle.TableStyleMedium2;
     }
 
-    private static ExcelChartType ParseChartType(string value) {
+    private static OfficeChartType ParseChartType(string value) {
         var normalized = (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         return normalized switch {
-            "bar" or "barclustered" => ExcelChartType.BarClustered,
-            "barstacked" or "stackedbar" => ExcelChartType.BarStacked,
-            "columnstacked" or "stackedcolumn" => ExcelChartType.ColumnStacked,
-            "line" => ExcelChartType.Line,
-            "area" => ExcelChartType.Area,
-            "pie" => ExcelChartType.Pie,
-            "doughnut" or "donut" => ExcelChartType.Doughnut,
-            "scatter" or "xy" => ExcelChartType.Scatter,
-            "bubble" => ExcelChartType.Bubble,
-            _ => ExcelChartType.ColumnClustered
+            "bar" or "barclustered" => OfficeChartType.BarClustered,
+            "barstacked" or "stackedbar" => OfficeChartType.BarStacked,
+            "columnstacked" or "stackedcolumn" => OfficeChartType.ColumnStacked,
+            "line" => OfficeChartType.Line,
+            "area" => OfficeChartType.Area,
+            "pie" => OfficeChartType.Pie,
+            "doughnut" or "donut" => OfficeChartType.Doughnut,
+            "scatter" or "xy" => OfficeChartType.Scatter,
+            "bubble" => OfficeChartType.Bubble,
+            _ => OfficeChartType.ColumnClustered
         };
     }
 

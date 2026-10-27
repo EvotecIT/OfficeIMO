@@ -5067,6 +5067,18 @@
       "phase": "B",
       "status": "applied",
       "note": "The write-fluent-rowsfrom-direct benchmark and package-profile lane are removed with RowsFrom. Existing native typed-object row lanes cover the same plain-row workload; AddTable writes additional native table parts and is a different workload. Historical evidence is retained."
+    },
+    {
+      "subject": "Shared Excel chart type",
+      "phase": "B",
+      "status": "applied",
+      "note": "ExcelChartType is removed. Native chart creation, series definitions, inspection, render projections, adapters and consumers use OfficeChartType. The accepted shared enum already contains the native 3-D, stacking, stock and surface variants, so those capabilities retain their existing enum names. Bubble charts retain their explicit X/Y/size-range authoring method."
+    },
+    {
+      "subject": "Validate native chart families before editing the workbook",
+      "phase": "B",
+      "status": "applied",
+      "note": "The shared enum includes chart families with separate native authoring routes. Unsupported general chart requests and bubble requests without explicit X/Y/size ranges fail before creating hidden data sheets, chart parts or drawing parts."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

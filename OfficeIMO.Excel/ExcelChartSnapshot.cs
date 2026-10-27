@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         internal ExcelChartInfo(
             string name,
             string? title,
-            ExcelChartType chartType,
+            OfficeChartType chartType,
             ExcelChartData data,
             int rowIndex,
             int columnIndex,
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
         public string? Title { get; }
 
         /// <summary>Detected chart type.</summary>
-        public ExcelChartType ChartType { get; }
+        public OfficeChartType ChartType { get; }
 
         /// <summary>Cached or worksheet-backed chart data.</summary>
         public ExcelChartData Data { get; }

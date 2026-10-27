@@ -29,7 +29,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
+        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
         sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -66,7 +66,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 1, "Done");
         sheet.CellValue(3, 2, 18);
         sheet.SetComment(2, 2, "Visual comment proof", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.ColumnClustered, title: "Visual Chart");
+        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: OfficeChartType.ColumnClustered, title: "Visual Chart");
         sheet.AddImage(3, 3, OnePixelPng, widthPixels: 36, heightPixels: 36, name: "Visual Logo", altText: "Visual image marker");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -118,7 +118,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 2, 57);
         sheet.CellFormula(4, 2, "SUM(B2:B3)");
         sheet.SetComment(2, 2, "Gallery comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.ColumnClustered, title: "Gallery Chart");
+        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: OfficeChartType.ColumnClustered, title: "Gallery Chart");
         sheet.AddImage(6, 1, OnePixelPng, widthPixels: 36, heightPixels: 36, name: "Gallery Logo", altText: "Gallery image");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
@@ -189,7 +189,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
+        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
         sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -257,7 +257,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(2, 2, 10);
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 20);
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Layer base");
+        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 140, type: OfficeChartType.ColumnClustered, title: "Layer base");
         ExcelImage image = sheet.AddImageAbsolute(33, 44, OnePixelPng, widthPixels: 52, heightPixels: 48, name: "Layer image", altText: "Absolute layer");
         image.SetRotation(17.5).SetFlip(horizontal: true, vertical: true).SetCropRatio(0.125D, 0.25D, 0.0625D, 0.1875D);
 
@@ -646,14 +646,14 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(2, 1, "Visible");
         sheet.CellFormula(2, 2, "1+1");
         sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B2", row: 2, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Visible Chart");
+        sheet.AddChartFromRange("A1:B2", row: 2, column: 4, widthPixels: 160, heightPixels: 90, type: OfficeChartType.ColumnClustered, title: "Visible Chart");
         sheet.AddImage(2, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Visible Image", altText: "Visible image");
         sheet.CellValue(4, 1, "Truncated");
         sheet.CellFormula(4, 2, "99+1");
         sheet.CellValue(5, 1, "Also truncated");
         sheet.CellValue(5, 2, 25);
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
-        sheet.AddChartFromRange("A4:B5", row: 4, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Truncated Chart");
+        sheet.AddChartFromRange("A4:B5", row: 4, column: 4, widthPixels: 160, heightPixels: 90, type: OfficeChartType.ColumnClustered, title: "Truncated Chart");
         sheet.AddImage(4, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Image", altText: "Truncated image");
         sheet.AddImageAbsolute(0, 2000, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Absolute Image", altText: "Truncated absolute image");
 
@@ -731,8 +731,8 @@ public partial class HtmlOfficeAdapters {
         ExcelSheet sheet = workbook.AddWorksheet("Scatter");
         var data = new ExcelChartData(
             new[] { "1.5", "2.5" },
-            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, ExcelChartType.Scatter) });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, OfficeChartType.Scatter) });
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: OfficeChartType.Scatter, title: "Scatter");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -757,10 +757,10 @@ public partial class HtmlOfficeAdapters {
         var data = new ExcelChartData(
             new[] { "1", "2", "3" },
             new[] {
-                new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, ExcelChartType.Scatter),
-                new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, ExcelChartType.Scatter)
+                new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, OfficeChartType.Scatter),
+                new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, OfficeChartType.Scatter)
             });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: OfficeChartType.Scatter, title: "Scatter");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -784,8 +784,8 @@ public partial class HtmlOfficeAdapters {
         ExcelSheet sheet = workbook.AddWorksheet("ScatterLive");
         var data = new ExcelChartData(
             new[] { "1", "2" },
-            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, ExcelChartType.Scatter) });
-        ExcelChart chart = sheet.AddChart(data, row: 1, column: 5, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, OfficeChartType.Scatter) });
+        ExcelChart chart = sheet.AddChart(data, row: 1, column: 5, widthPixels: 320, heightPixels: 180, type: OfficeChartType.Scatter, title: "Scatter");
         ExcelChartDataRange range = chart.DataRange!;
         ExcelSheet dataSheet = workbook[range.SheetName];
 
@@ -807,10 +807,10 @@ public partial class HtmlOfficeAdapters {
         var data = new ExcelChartData(
             new[] { "Q1", "Q2" },
             new[] {
-                new ExcelChartSeries("Sales", new[] { 10D, 20D }, ExcelChartType.ColumnClustered),
-                new ExcelChartSeries("Trend", new[] { 12D, 22D }, ExcelChartType.Line)
+                new ExcelChartSeries("Sales", new[] { 10D, 20D }, OfficeChartType.ColumnClustered),
+                new ExcelChartSeries("Trend", new[] { 12D, 22D }, OfficeChartType.Line)
             });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Combo");
+        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, title: "Combo");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -825,8 +825,8 @@ public partial class HtmlOfficeAdapters {
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Collection(
             snapshot.Data.Series,
-            series => Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType),
-            series => Assert.Equal(ExcelChartType.Line, series.ChartType));
+            series => Assert.Equal(OfficeChartType.ColumnClustered, series.ChartType),
+            series => Assert.Equal(OfficeChartType.Line, series.ChartType));
     }
 
     [Fact]
@@ -834,8 +834,8 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Mixed");
         sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
-            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Pie)
-        }), row: 1, column: 1, type: ExcelChartType.Pie, title: "Mixed chart");
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Pie)
+        }), row: 1, column: 1, type: OfficeChartType.Pie, title: "Mixed chart");
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
@@ -856,8 +856,8 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Mixed");
         sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
-            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Line)
-        }), row: 1, column: 1, type: ExcelChartType.Line, title: "Mixed chart");
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Line)
+        }), row: 1, column: 1, type: OfficeChartType.Line, title: "Mixed chart");
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });

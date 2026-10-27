@@ -203,7 +203,7 @@ public sealed class ExcelPictureHyperlinkTests {
         drawing.DeleteReferenceRelationship(drawing.HyperlinkRelationships.Single(item => item.Id == originalId));
         template.CellValue(8, 1, "Metric"); template.CellValue(8, 2, "Value");
         template.CellValue(9, 1, "Sales"); template.CellValue(9, 2, 10);
-        template.AddChartFromRange("A8:B9", 10, 3, 320, 180, ExcelChartType.ColumnClustered, true);
+        template.AddChartFromRange("A8:B9", 10, 3, 320, 180, OfficeChartType.ColumnClustered, true);
         document.ApplyTemplateSheets("Template", new IDictionary<string, object?>[] {
             new Dictionary<string, object?> { ["Name"] = "North" },
             new Dictionary<string, object?> { ["Name"] = "South" }

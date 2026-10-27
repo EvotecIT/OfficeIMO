@@ -290,7 +290,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(13, 1, "Mar");
                 summary.Cell(13, 2, 24);
                 summary.Cell(13, 3, 20);
-                summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Revenue Chart");
+                summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
                 summary.SetColumnWidth(1, 16);
                 summary.SetColumnWidth(2, 18);
                 summary.SetColumnWidth(3, 28);

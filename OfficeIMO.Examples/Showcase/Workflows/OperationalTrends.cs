@@ -21,7 +21,7 @@ internal static class OperationalTrends {
         }
         sheet.AddTable("A4:D10", hasHeader: true, name: "WeeklyWorkload", style: ExcelTableStyle.TableStyleMedium2);
         sheet.AddChartFromRange("A4:C10", row: 13, column: 1, widthPixels: 620, heightPixels: 300,
-            type: ExcelChartType.Line, title: "Received and resolved requests");
+            type: OfficeChartType.Line, title: "Received and resolved requests");
         document.Calculate();
         sheet.Range("A1:D30").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();

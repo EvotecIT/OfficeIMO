@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddRevenueTrendChart(string dataRangeA1, int row, int column, string title = "Revenue Trend",
             int widthPixels = 720, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Line, hasHeaders, title, includeCachedData);
+            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.Line, hasHeaders, title, includeCachedData);
         }
 
         /// <summary>
@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddStatusBreakdownChart(string dataRangeA1, int row, int column, string title = "Status Breakdown",
             int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Doughnut, hasHeaders, title, includeCachedData);
+            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.Doughnut, hasHeaders, title, includeCachedData);
         }
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddTopNBarChart(string dataRangeA1, int row, int column, string title = "Top Items",
             int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.BarClustered, hasHeaders, title, includeCachedData);
+            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.BarClustered, hasHeaders, title, includeCachedData);
         }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddVarianceColumnChart(string dataRangeA1, int row, int column, string title = "Variance",
             int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, hasHeaders, title, includeCachedData);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddKpiScorecardChart(string dataRangeA1, int row, int column, string title = "KPI Scorecard",
             int widthPixels = 520, int heightPixels = 300, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, hasHeaders, title, includeCachedData);
             return ApplyKpiScorecardDefaults(chart);
         }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddContributionChart(string dataRangeA1, int row, int column, string title = "Contribution",
             int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Doughnut, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.Doughnut, hasHeaders, title, includeCachedData);
             return ApplyContributionChartDefaults(chart);
         }
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart AddVarianceWaterfallChart(string dataRangeA1, int row, int column, string title = "Variance Bridge",
             int widthPixels = 720, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnStacked, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, OfficeChartType.ColumnStacked, hasHeaders, title, includeCachedData);
             return ApplyVarianceWaterfallDefaults(chart);
         }
 

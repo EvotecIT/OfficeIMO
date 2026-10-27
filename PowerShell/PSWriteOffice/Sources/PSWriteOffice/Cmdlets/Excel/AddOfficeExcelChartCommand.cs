@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
@@ -70,7 +71,7 @@ public sealed class AddOfficeExcelChartCommand : PSCmdlet
 
     /// <summary>Chart type.</summary>
     [Parameter]
-    public ExcelChartType Type { get; set; } = ExcelChartType.ColumnClustered;
+    public OfficeChartType Type { get; set; } = OfficeChartType.ColumnClustered;
 
     /// <summary>Chart title.</summary>
     [Parameter]

@@ -533,11 +533,11 @@ namespace OfficeIMO.Tests
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
                 sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
-                    type: ExcelChartType.ColumnClustered, title: "Combo Chart");
+                    type: OfficeChartType.ColumnClustered, title: "Combo Chart");
                 document.Save();
             }
 
@@ -561,11 +561,11 @@ namespace OfficeIMO.Tests
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered),
-                        new ExcelChartSeries("Target", new[] { 12d, 18d, 28d }, ExcelChartType.ColumnStacked)
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered),
+                        new ExcelChartSeries("Target", new[] { 12d, 18d, 28d }, OfficeChartType.ColumnStacked)
                     });
                 sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
-                    type: ExcelChartType.ColumnClustered, title: "Column Combo Chart");
+                    type: OfficeChartType.ColumnClustered, title: "Column Combo Chart");
                 document.Save();
             }
 
@@ -585,13 +585,13 @@ namespace OfficeIMO.Tests
             var snapshot = new ExcelChartInfo(
                 "UnsupportedCombo",
                 "Unsupported Combo Count",
-                ExcelChartType.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered),
-                        new ExcelChartSeries("Share", new[] { 12d, 18d, 28d }, ExcelChartType.Pie),
-                        new ExcelChartSeries("Ratio", new[] { 8d, 15d, 25d }, ExcelChartType.Doughnut)
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered),
+                        new ExcelChartSeries("Share", new[] { 12d, 18d, 28d }, OfficeChartType.Pie),
+                        new ExcelChartSeries("Ratio", new[] { 8d, 15d, 25d }, OfficeChartType.Doughnut)
                     }),
                 rowIndex: 1,
                 columnIndex: 5,
@@ -623,7 +623,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
                 sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered, title: "Literal Chart");
+                    type: OfficeChartType.ColumnClustered, title: "Literal Chart");
                 document.Save();
             }
 
@@ -654,7 +654,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
                 ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered, title: "Dangling Chart");
+                    type: OfficeChartType.ColumnClustered, title: "Dangling Chart");
                 chart.Name = "Dangling chart frame";
                 document.Save();
             }

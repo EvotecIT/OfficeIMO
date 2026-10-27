@@ -15,10 +15,10 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetChartConversionTests {
     [Theory]
-    [InlineData("column", ExcelChartType.ColumnClustered)]
-    [InlineData("bar", ExcelChartType.BarClustered)]
-    [InlineData("line", ExcelChartType.Line)]
-    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, ExcelChartType expectedType) {
+    [InlineData("column", OfficeChartType.ColumnClustered)]
+    [InlineData("bar", OfficeChartType.BarClustered)]
+    [InlineData("line", OfficeChartType.Line)]
+    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, OfficeChartType expectedType) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-" + kind + "-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
         OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
@@ -70,7 +70,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         using ExcelDocument converted = source.ToExcelDocumentResult().Value;
-        Assert.Equal(ExcelChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
+        Assert.Equal(OfficeChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
     }
 
     [Fact]

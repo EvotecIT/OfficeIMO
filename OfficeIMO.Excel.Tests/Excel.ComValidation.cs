@@ -274,12 +274,12 @@ namespace OfficeIMO.Tests
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
             ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+                type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
             chart.SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top)
                  .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd);
 

@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                 var chart = new ExcelChartData(new[] { "Before file failure" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d }) });
                 retainedSheet.AddChart(chart, row: 4, column: 1, widthPixels: 300, heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered, title: "Retained chart");
+                    type: OfficeChartType.ColumnClustered, title: "Retained chart");
             }
             return document;
         }

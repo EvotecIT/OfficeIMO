@@ -101,7 +101,7 @@ internal static class ExcelChartProfileRunner {
         AddStage(totals, "BuildChartData", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: ExcelChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: OfficeChartType.ColumnClustered, title: "Regional Sales");
         AddStage(totals, "AddChart", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();

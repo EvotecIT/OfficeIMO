@@ -418,9 +418,11 @@ public partial class Html {
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(3, 1, "West");
             sheet.CellValue(3, 2, 12);
-            sheet.AddPivotTable("A1:B3", "D2", "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
+            sheet.AddPivotTable("A1:B3", "D2", options: new ExcelPivotTableOptions {
+                Name = "SalesPivot",
+                RowFields = new[] { "Region" },
+                DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }
+            });
 
             HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
             string html = result.Value;

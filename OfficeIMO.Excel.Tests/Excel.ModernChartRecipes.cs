@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                     row: 1,
                     column: 1,
                     binCount: 2);
-                Assert.Equal(ExcelChartType.ColumnClustered, histogram.ChartType);
+                Assert.Equal(OfficeChartType.ColumnClustered, histogram.ChartType);
                 Assert.True(histogram.TryGetData(out ExcelChartData histogramData));
                 Assert.Equal(new[] { "1 – 3", "3 – 5" }, histogramData.Categories);
                 Assert.Equal(new[] { 3d, 3d }, Assert.Single(histogramData.Series).Values);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(pareto.TryGetData(out ExcelChartData paretoData));
                 Assert.Equal(new[] { "Major", "Medium", "Minor" }, paretoData.Categories);
                 Assert.Equal(new[] { 0.6d, 0.9d, 1d }, paretoData.Series[1].Values);
-                Assert.Equal(ExcelChartType.Line, paretoData.Series[1].ChartType);
+                Assert.Equal(OfficeChartType.Line, paretoData.Series[1].ChartType);
                 Assert.Equal(OfficeChartAxisGroup.Secondary, paretoData.Series[1].AxisGroup);
 
                 ExcelChart funnel = sheet.AddFunnelChart(
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                     new[] { 100.25d, 60.5d, 20.125d },
                     row: 20,
                     column: 1);
-                Assert.Equal(ExcelChartType.BarStacked, funnel.ChartType);
+                Assert.Equal(OfficeChartType.BarStacked, funnel.ChartType);
                 Assert.True(funnel.TryGetData(out ExcelChartData funnelData));
                 Assert.Equal(new[] { 0d, 19.875d, 40.0625d }, funnelData.Series[0].Values);
                 Assert.Equal(new[] { 100.25d, 60.5d, 20.125d }, funnelData.Series[1].Values);
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                     new[] { 100.25d, 40.5d, -30.1d },
                     row: 20,
                     column: 10);
-                Assert.Equal(ExcelChartType.ColumnStacked, waterfall.ChartType);
+                Assert.Equal(OfficeChartType.ColumnStacked, waterfall.ChartType);
                 Assert.True(waterfall.TryGetData(out ExcelChartData waterfallData));
                 Assert.Equal(new[] { "Start", "Growth", "Cost", "Total" }, waterfallData.Categories);
                 Assert.Equal(new[] { 0d, 100.25d, 110.65d, 0d }, waterfallData.Series[0].Values);
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Loaded outline")
+                sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Loaded outline")
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Effect ordering")
+                sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Effect ordering")
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                         new ExcelChartSeries("First", new[] { 1d, 2d }, seriesColorArgb: "4F46E5"),
                         new ExcelChartSeries("Second", new[] { 2d, 3d }, seriesColorArgb: "16A34A")
                     });
-                ExcelChart chart = sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Line normalization");
+                ExcelChart chart = sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Line normalization");
                 chart.SetSeriesNoFill(0).SetSeriesLineColor(0, "DC2626", 1.5d);
                 chart.SetSeriesLineColor(1, "16A34A");
                 document.Save();

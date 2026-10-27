@@ -752,7 +752,7 @@ A,120
         Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(4, 3, @""120"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellFormula(4, 4, @""=C4-B4"")", code, StringComparison.Ordinal);
         Assert.Contains(@"var chart1 = GetOrAddSheet(@""Sheet1"").AddChartFromRange(@""B3:C4"", row: 2, column: 6", code, StringComparison.Ordinal);
-        Assert.Contains("ExcelChartType.ColumnClustered", code, StringComparison.Ordinal);
+        Assert.Contains("OfficeChartType.ColumnClustered", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Product\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Revenue\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisNumberFormat(@\"#,##0\")", code, StringComparison.Ordinal);

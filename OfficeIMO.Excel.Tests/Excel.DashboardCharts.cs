@@ -25,14 +25,14 @@ namespace OfficeIMO.Tests {
                     Title = "Revenue"
                 });
 
-                Assert.Equal(ExcelChartType.BarClustered, chart.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, chart.ChartType);
                 Assert.Equal("Revenue", chart.Title);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document["Dashboard"].Charts);
-                Assert.Equal(ExcelChartType.BarClustered, chart.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, chart.ChartType);
                 Assert.Equal("Revenue", chart.Title);
             }
         }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A3:B5", result.TableRange);
                 Assert.Equal("SalesTable", result.TableName);
                 Assert.NotNull(result.Chart);
-                Assert.Equal(ExcelChartType.BarClustered, result.Chart!.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, result.Chart!.ChartType);
                 document.Save();
             }
 

@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
                     column: 4,
                     widthPixels: 280,
                     heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered,
+                    type: OfficeChartType.ColumnClustered,
                     title: "Quarterly sales");
                 document.Save();
             }
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
                     column: 2,
                     widthPixels: 220,
                     heightPixels: 140,
-                    type: ExcelChartType.Pie,
+                    type: OfficeChartType.Pie,
                     title: "Preserved chart");
                 document.Save();
             }

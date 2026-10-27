@@ -47,7 +47,7 @@ public class OfficeDiagnosticCatalogTests {
             Assert.True(Enum.TryParse(legacy.ToString(), out OfficeChartType shared));
             Assert.Equal((int)legacy, (int)shared);
         }
-        foreach (OfficeIMO.Excel.ExcelChartType native in Enum.GetValues(typeof(OfficeIMO.Excel.ExcelChartType))) {
+        foreach (OfficeIMO.OfficeChartType native in Enum.GetValues(typeof(OfficeIMO.OfficeChartType))) {
             Assert.True(Enum.TryParse(native.ToString(), out OfficeChartType _));
         }
         foreach (OfficeIMO.Excel.ExcelModernChartType native in Enum.GetValues(typeof(OfficeIMO.Excel.ExcelModernChartType))) {

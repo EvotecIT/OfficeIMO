@@ -24,7 +24,7 @@ public sealed class ExcelRepeatedMetadataSaveTests {
             retainedSheet.AddChart(new ExcelChartData(new[] { "Value" },
                     new[] { new ExcelChartSeries("Series", new[] { 42d }) }),
                 row: 4, column: 1, widthPixels: 300, heightPixels: 180,
-                type: ExcelChartType.ColumnClustered, title: "Metadata chart");
+                type: OfficeChartType.ColumnClustered, title: "Metadata chart");
             string outputPath = Path.Combine(directory, "report.xlsx");
 
             if (failFirstCommit) {

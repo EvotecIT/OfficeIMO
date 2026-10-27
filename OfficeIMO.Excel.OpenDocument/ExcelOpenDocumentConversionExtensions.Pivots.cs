@@ -310,9 +310,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 || (sourceIndexes.TryGetValue(pair.Source.Name, out PivotRangeIndex? sourceIndex)
                     && sourceIndex.Intersects(destinationRow, generatedLastRow, destinationColumn, generatedLastColumn, ref remainingCollisionWork))) continue;
             try {
-                pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
-                    rowFields: rows, columnFields: columns, dataFields: data,
-                    layout: ExcelPivotLayout.Outline);
+                pair.Target.AddPivotTable(sourceRange!, destination!, options: new ExcelPivotTableOptions {
+                    Name = pivot.Name,
+                    RowFields = rows,
+                    ColumnFields = columns,
+                    DataFields = data,
+                    Layout = ExcelPivotLayout.Outline
+                });
                 convertedNames.Add(pivot.Name);
                 generatedIndexes[pair.Source.Name].Enable(pivot);
                 converted++;

@@ -60,10 +60,10 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Theory]
-    [InlineData(OdsChartType.Pie, ExcelChartType.Pie)]
-    [InlineData(OdsChartType.Doughnut, ExcelChartType.Doughnut)]
+    [InlineData(OdsChartType.Pie, OfficeChartType.Pie)]
+    [InlineData(OdsChartType.Doughnut, OfficeChartType.Doughnut)]
     public void OdsRadialPointStylesConvertToEditableExcelCharts(OdsChartType sourceType,
-        ExcelChartType targetType) {
+        OfficeChartType targetType) {
         OdsDocument source = CreateStyledOdsChart(sourceType);
 
         OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();

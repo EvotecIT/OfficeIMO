@@ -73,12 +73,12 @@ namespace OfficeIMO.Tests {
                     snapshot.Data.Series,
                     series => {
                         Assert.Equal("Adoption", series.Name);
-                        Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType);
+                        Assert.Equal(OfficeChartType.ColumnClustered, series.ChartType);
                         Assert.Equal(OfficeChartAxisGroup.Primary, series.AxisGroup);
                     },
                     series => {
                         Assert.Equal("Conversion", series.Name);
-                        Assert.Equal(ExcelChartType.Line, series.ChartType);
+                        Assert.Equal(OfficeChartType.Line, series.ChartType);
                         Assert.Equal(OfficeChartAxisGroup.Secondary, series.AxisGroup);
                     });
             }
@@ -262,16 +262,16 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(new ExcelChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new ExcelChartSeries("Columns", new[] { 1D, 2D }, ExcelChartType.ColumnClustered),
-                    new ExcelChartSeries("Trend", new[] { 2D, 3D }, ExcelChartType.Line)
+                    new ExcelChartSeries("Columns", new[] { 1D, 2D }, OfficeChartType.ColumnClustered),
+                    new ExcelChartSeries("Trend", new[] { 2D, 3D }, OfficeChartType.Line)
                 }),
-                row: 1, column: 5, type: ExcelChartType.ColumnClustered);
+                row: 1, column: 5, type: OfficeChartType.ColumnClustered);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() => chart.UpdateData(
                 new ExcelChartData(new[] { "Q1", "Q2" }, new[] {
                     new ExcelChartSeries("Scatter", new[] { 2D, 4D }, new[] { 1D, 2D },
-                        ExcelChartType.Scatter),
-                    new ExcelChartSeries("Line", new[] { 3D, 5D }, ExcelChartType.Line)
+                        OfficeChartType.Scatter),
+                    new ExcelChartSeries("Line", new[] { 3D, 5D }, OfficeChartType.Line)
                 })));
 
             Assert.Equal("Scatter charts cannot be combined with other chart types.", exception.Message);

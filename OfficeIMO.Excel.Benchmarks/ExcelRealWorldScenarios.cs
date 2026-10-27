@@ -704,14 +704,13 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void AddOfficeImoVariantPivotTable(ExcelSheet sheet, string range) {
-        sheet.AddPivotTable(
-            sourceRange: range,
-            destinationCell: "J3",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
-            pivotStyleName: "PivotStyleMedium9");
+        sheet.AddPivotTable(range, "J3", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Owner" },
+            DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void AddEpPlusVariantPivotTable(ExcelPackage package, ExcelWorksheet dataWorksheet, int rowCount, int columnCount) {
@@ -825,14 +824,13 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void AddOfficeImoPivotTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddPivotTable(
-            sourceRange: BuildSalesRange(rowCount),
-            destinationCell: "J3",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
-            pivotStyleName: "PivotStyleMedium9");
+        sheet.AddPivotTable(BuildSalesRange(rowCount), "J3", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Owner" },
+            DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void AddOfficeImoRegionalChart(ExcelSheet sheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
@@ -844,7 +842,7 @@ internal static partial class ExcelLibraryComparisonRunner {
                 new ExcelChartSeries("Units", summaries.Select(static item => (double)item.Units))
             });
 
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: ExcelChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: OfficeChartType.ColumnClustered, title: "Regional Sales");
     }
 
     private static void ApplyEpPlusNavigation(ExcelWorksheet worksheet, int rowCount) {

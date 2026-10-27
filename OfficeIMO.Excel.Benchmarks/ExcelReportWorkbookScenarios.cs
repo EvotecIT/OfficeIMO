@@ -262,21 +262,20 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static void AddOfficeImoReportWorkbookChart(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, widthPixels: 720, heightPixels: 320, type: ExcelChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
+        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, widthPixels: 720, heightPixels: 320, type: OfficeChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
     }
 
     private static void AddOfficeImoReportWorkbookPivotTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddPivotTable(
-            sourceRange: BuildReportWorkbookRange(rowCount),
-            destinationCell: "L24",
-            name: "ReportPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Department" },
-            dataFields: new[] {
+        sheet.AddPivotTable(BuildReportWorkbookRange(rowCount), "L24", options: new ExcelPivotTableOptions {
+            Name = "ReportPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Department" },
+            DataFields = new[] {
                 new ExcelPivotDataField("Score", ExcelPivotDataFunction.Average, "Average Score"),
                 new ExcelPivotDataField("TicketCount", ExcelPivotDataFunction.Sum, "Sum TicketCount")
             },
-            pivotStyleName: "PivotStyleMedium9");
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void PopulateEpPlusReportWorkbookData(ExcelWorksheet worksheet, IReadOnlyList<Dictionary<string, object?>> rows) {

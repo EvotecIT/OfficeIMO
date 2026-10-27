@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         public int Column { get; set; } = 1;
 
         /// <summary>Optional chart type override.</summary>
-        public ExcelChartType? ChartType { get; set; }
+        public OfficeChartType? ChartType { get; set; }
 
         /// <summary>Optional chart title.</summary>
         public string? Title { get; set; }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
             switch (preset) {
                 case ExcelDashboardChartPreset.Trend:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.Line,
+                        OfficeChartType.Line,
                         widthPixels: 720,
                         heightPixels: 320,
                         styleId: 252,
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: null);
                 case ExcelDashboardChartPreset.Contribution:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.Pie,
+                        OfficeChartType.Pie,
                         widthPixels: 520,
                         heightPixels: 360,
                         styleId: 253,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: C.DataLabelPositionValues.BestFit);
                 case ExcelDashboardChartPreset.CompactComparison:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.BarClustered,
+                        OfficeChartType.BarClustered,
                         widthPixels: 420,
                         heightPixels: 260,
                         styleId: 251,
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: C.DataLabelPositionValues.OutsideEnd);
                 default:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.ColumnClustered,
+                        OfficeChartType.ColumnClustered,
                         widthPixels: 640,
                         heightPixels: 360,
                         styleId: 251,
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class ResolvedDashboardChartPreset {
             internal ResolvedDashboardChartPreset(
-                ExcelChartType chartType,
+                OfficeChartType chartType,
                 int widthPixels,
                 int heightPixels,
                 int styleId,
@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
                 DataLabelPosition = dataLabelPosition;
             }
 
-            internal ExcelChartType ChartType { get; }
+            internal OfficeChartType ChartType { get; }
             internal int WidthPixels { get; }
             internal int HeightPixels { get; }
             internal int StyleId { get; }

@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Excel {
                     });
 
                 sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.ColumnClustered, title: "Quarterly Sales");
+                    type: OfficeChartType.ColumnClustered, title: "Quarterly Sales");
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();
@@ -40,12 +40,12 @@ namespace OfficeIMO.Examples.Excel {
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
                 var comboChart = sheet.AddChart(comboData, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+                    type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
                 comboChart.ApplyStylePreset()
                           .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, lineColor: "4472C4");
                 comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
@@ -89,10 +89,10 @@ namespace OfficeIMO.Examples.Excel {
 
                 var scatterData = new ExcelChartData(
                     new[] { "1", "2", "3", "4" },
-                    new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, ExcelChartType.Scatter) });
+                    new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
                 var scatterChart = sheet.AddChart(scatterData, row: 22, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.Scatter, title: "Scatter Sample");
+                    type: OfficeChartType.Scatter, title: "Scatter Sample");
                 scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 scatterChart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);

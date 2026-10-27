@@ -66,6 +66,27 @@ public sealed class OfficeTypedChartAuthoringTests {
         } else Assert.Contains("First", xml.Descendants(c + "v").Select(value => value.Value));
     }
 
+    [Theory]
+    [InlineData(OfficeChartType.Funnel)]
+    [InlineData(OfficeChartType.Waterfall)]
+    [InlineData(OfficeChartType.BoxWhisker)]
+    [InlineData(OfficeChartType.Treemap)]
+    [InlineData(OfficeChartType.Sunburst)]
+    [InlineData(OfficeChartType.Bubble)]
+    public void UnsupportedGeneralExcelChartTypesLeaveTheWorkbookUntouched(OfficeChartType type) {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Trend");
+        var data = new ExcelChartData(new[] { "First", "Next" }, new[] { new ExcelChartSeries("Revenue", new[] { 1d, 2d }) });
+        Assert.Throws<NotSupportedException>(() => sheet.AddChart(data, 1, 1, type: type));
+        Assert.Single(document.Sheets);
+        Assert.Empty(document.Inspect().Worksheets.Single().Cells);
+        using var output = new MemoryStream();
+        document.Save(output);
+        using var archive = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.StartsWith("xl/charts/", StringComparison.Ordinal)
+            || entry.FullName.StartsWith("xl/drawings/", StringComparison.Ordinal));
+    }
+
     public sealed class Trend {
         public string Week { get; set; } = "";
         public decimal Revenue { get; set; }

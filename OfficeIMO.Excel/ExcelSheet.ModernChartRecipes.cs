@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             }
 
             var data = new ExcelChartData(categories, new[] { new ExcelChartSeries("Frequency", counts, seriesColorArgb: "4F46E5") });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, title);
+            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, title);
             return chart.HideLegend()
                 .SetCategoryAxisTitle("Bin")
                 .SetValueAxisTitle("Frequency")
@@ -141,10 +141,10 @@ namespace OfficeIMO.Excel {
             var data = new ExcelChartData(
                 points.Select(point => point.Category),
                 new[] {
-                    new ExcelChartSeries("Value", points.Select(point => point.Value), ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary, "4F46E5"),
-                    new ExcelChartSeries("Cumulative %", cumulative, ExcelChartType.Line, OfficeChartAxisGroup.Secondary, "F59E0B")
+                    new ExcelChartSeries("Value", points.Select(point => point.Value), OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary, "4F46E5"),
+                    new ExcelChartSeries("Cumulative %", cumulative, OfficeChartType.Line, OfficeChartAxisGroup.Secondary, "F59E0B")
                 });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, title);
+            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, title);
             return chart.SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetSeriesLineColor(1, "F59E0B", 2)
                 .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                     new ExcelChartSeries("Value", actual, seriesColorArgb: "0EA5E9"),
                     new ExcelChartSeries("Right spacer", spacer)
                 });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.BarStacked, title);
+            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.BarStacked, title);
             chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, false });
             return chart.SetSeriesNoFill(0)
                 .SetSeriesNoFill(2)
@@ -258,7 +258,7 @@ namespace OfficeIMO.Excel {
             }
 
             var data = new ExcelChartData(chartCategories, series);
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnStacked, title);
+            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnStacked, title);
             const string waterfallNumberFormat = "#,##0.###############";
             chart.ApplyAuthoredSeriesStyles(data.Series, visibleSeriesStyles);
             chart.SetSeriesNoFill(0)

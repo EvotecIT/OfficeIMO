@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                         new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }),
                     row: 1,
                     column: 5,
-                    type: ExcelChartType.ColumnClustered,
+                    type: OfficeChartType.ColumnClustered,
                     title: "Scores");
 
                 var packageStreamField = typeof(ExcelDocument).GetField("_packageStream", BindingFlags.Instance | BindingFlags.NonPublic);

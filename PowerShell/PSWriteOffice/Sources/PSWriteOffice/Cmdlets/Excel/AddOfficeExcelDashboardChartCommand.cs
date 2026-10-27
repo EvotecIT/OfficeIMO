@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
@@ -60,7 +61,7 @@ public sealed class AddOfficeExcelDashboardChartCommand : PSCmdlet
 
     /// <summary>Optional chart type override.</summary>
     [Parameter]
-    public ExcelChartType? ChartType { get; set; }
+    public OfficeChartType? ChartType { get; set; }
 
     /// <summary>Chart title.</summary>
     [Parameter]
