@@ -6387,6 +6387,20 @@
         "OfficeIMO.Word/WordChartSnapshot.cs",
         "OfficeIMO.Word/PublicAPI.Shipped.txt"
       ]
+    },
+    {
+      "change": "Word NativeAOT smoke is qualified on net8.0 and net10.0.",
+      "reason": "The existing smoke publishes for osx-arm64 with PublishAot enabled and its native executable creates, saves, reloads or renders the real document contract. Existing modern trimming and AOT analyzers remain enabled. Windows execution remains a separate qualification.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word.AotSmoke/OfficeIMO.Word.AotSmoke.csproj",
+        "OfficeIMO.Word.AotSmoke/Program.cs"
+      ],
+      "qualifiedFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "runtimeIdentifier": "osx-arm64"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

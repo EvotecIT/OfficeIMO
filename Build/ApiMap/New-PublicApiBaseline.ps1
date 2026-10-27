@@ -23,7 +23,7 @@ $suffix = "' is not part of the declared public API"
 foreach ($run in $inputLog.runs) {
     foreach ($result in $run.results) {
         if ($result.ruleId -ne 'RS0016') { continue }
-        $message = [string] $result.message.text
+        $message = if ($result.message -is [string]) { [string] $result.message } else { [string] $result.message.text }
         if (-not $message.StartsWith($prefix, [StringComparison]::Ordinal) -or
             -not $message.EndsWith($suffix, [StringComparison]::Ordinal)) {
             throw "Unrecognized RS0016 declaration: $message"

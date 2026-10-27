@@ -742,6 +742,14 @@
         "OfficeIMO.Core/Diagnostics/OfficeDiagnosticCodes.GP.Generated.cs",
         "OfficeIMO.Core/Diagnostics/OfficeDiagnosticCodes.QZ.Generated.cs"
       ]
+    },
+    {
+      "change": "The baseline bootstrap reads both compiler SARIF message representations.",
+      "reason": "The compiler default SARIF uses string messages; SARIF 2.1 uses message.text. Both feed the same RS0016-only baseline generator without changing source or suppressing diagnostics.",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ApiMap/New-PublicApiBaseline.ps1"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
