@@ -270,7 +270,7 @@ namespace OfficeIMO.PowerPoint {
             return (ChartPart)_ownerPart.GetPartById(relId);
         }
 
-        private void Save() {
+        internal void Save() {
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
         }

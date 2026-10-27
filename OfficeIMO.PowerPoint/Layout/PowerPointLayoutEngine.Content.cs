@@ -549,7 +549,27 @@ namespace OfficeIMO.PowerPoint {
 
             // The chart sits on the slide surface: no chart-area fill or frame.
             result.SetChartAreaStyle(noFill: true, noLine: true);
-            if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) ContrastSliceLabels(context, result, chart);
+            if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+                ContrastSliceLabels(context, result, chart);
+                return;
+            }
+
+            // Series follow the theme accents in order; lines are drawn at 2 pt.
+            bool line = chart.Kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.Scatter or OfficeChartKind.Radar;
+            for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
+                string accent = context.Theme.Accent(i + 1);
+                if (line) result.SetSeriesLineColor(i, accent, 2D);
+                else result.SetSeriesFillColor(i, accent);
+            }
+
+            // One series needs no legend; several get theirs at the top, under the title.
+            DocumentFormat.OpenXml.Drawing.Charts.Legend? legend = result.GetChart().GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Legend>();
+            if (chart.Data.Series.Count <= 1) {
+                legend?.Remove();
+                result.Save();
+            } else {
+                result.SetLegend(OfficeChartLegendPosition.Top);
+            }
         }
 
         /// <summary>
