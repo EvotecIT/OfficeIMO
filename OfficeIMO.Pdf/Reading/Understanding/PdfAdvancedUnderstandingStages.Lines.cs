@@ -61,7 +61,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                     double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
                     double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
                     double gap = alongStart - previousAlongEnd;
-                    bool repeatedGutter = gap >= context.LayoutOptions.MinGutterWidth && HasRepeatedGutter(gutterAnchors, group, alongStart);
+                    bool repeatedGutter = gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasRepeatedGutter(gutterAnchors, group, alongStart);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter)) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
                     previousAlongEnd = Math.Max(previousAlongEnd, alongEnd);
@@ -147,7 +147,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 for (int index = 0; index < ordered.Length; index++) {
                     context.ConsumeWork();
                     double start = GetProjectedAlongStart(ordered[index], radians);
-                    if (index > 0 && start - previousEnd >= context.LayoutOptions.MinGutterWidth && TryGutterKey(group, start, out var key)) {
+                    if (index > 0 && start - previousEnd >= GetRepeatedGutterWidth(context, ordered[index]) && TryGutterKey(group, start, out var key)) {
                         if (anchors.TryGetValue(key, out var existing)) {
                             if (!ReferenceEquals(existing.First, group)) anchors[key] = (existing.First, true);
                         } else anchors.Add(key, (group, false));
@@ -157,6 +157,13 @@ public static partial class PdfAdvancedUnderstandingStages {
             }
             return anchors;
         }
+
+        /// <summary>
+        /// A gap that recurs at the same position on several baselines is a column gutter even when it is narrower than
+        /// the page-level gutter option: newspaper-style columns are often set only about two ems apart.
+        /// </summary>
+        private static double GetRepeatedGutterWidth(PdfUnderstandingPageContext context, PdfUnderstandingWord word) =>
+            Math.Min(context.LayoutOptions.MinGutterWidth, Math.Max(9D, Math.Max(1D, word.FontSize) * 1.5D));
 
         private static bool HasRepeatedGutter(Dictionary<(int Angle, long Along), (BaselineGroup First, bool Repeated)> anchors,
             BaselineGroup group, double start) {

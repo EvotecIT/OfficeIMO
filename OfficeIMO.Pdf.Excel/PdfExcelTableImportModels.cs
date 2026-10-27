@@ -138,10 +138,14 @@ public sealed class PdfExcelTableImportEntry {
     public sealed class PdfExcelTableImportReport : IOfficeConversionReport {
         internal PdfExcelTableImportReport(
             IReadOnlyList<PdfExcelTableImportEntry> entries,
-            OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
+            OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope,
+            IReadOnlyList<OfficeConversionFidelityDiagnostic>? conversionDiagnostics = null) {
             Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
             SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
+            _conversionDiagnostics = conversionDiagnostics?.ToArray() ?? Array.Empty<OfficeConversionFidelityDiagnostic>();
         }
+
+        private readonly OfficeConversionFidelityDiagnostic[] _conversionDiagnostics;
 
         /// <summary>Gets a snapshot of imported table metadata.</summary>
         public IReadOnlyList<PdfExcelTableImportEntry> Entries { get; }
@@ -152,7 +156,7 @@ public sealed class PdfExcelTableImportEntry {
         /// <summary>Gets category-preserving table-projection diagnostics.</summary>
         public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
             get {
-                var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+                var diagnostics = new List<OfficeConversionFidelityDiagnostic>(_conversionDiagnostics);
                 if (HasOmittedPageContent) {
                     diagnostics.Add(new OfficeConversionFidelityDiagnostic(
                         "pdf-excel-page-content-omitted",

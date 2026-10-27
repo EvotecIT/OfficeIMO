@@ -28,7 +28,8 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Determines how images are exported during Markdown conversion.
-        /// Default is <see cref="WordMarkdownImageExportMode.Base64"/>.
+        /// Default is <see cref="WordMarkdownImageExportMode.Base64"/>. Saving to a path without options writes images
+        /// as files next to the Markdown file.
         /// </summary>
         public WordMarkdownImageExportMode ImageExportMode { get; set; } = WordMarkdownImageExportMode.Base64;
 

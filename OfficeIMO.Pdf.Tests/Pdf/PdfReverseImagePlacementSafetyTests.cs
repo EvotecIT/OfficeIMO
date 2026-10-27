@@ -829,14 +829,16 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.NotEmpty(logical.Tables);
+        // Cells keep the source cell font size, scaled by the page user unit.
+        double sourceFontSize = logical.Pages[0].TextBlocks.First(static block => block.Text.Contains("Service", StringComparison.Ordinal)).FontSize;
 
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
-            Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+            Assert.All(table.Rows.SelectMany(static row => row.Cells), cell =>
+                Assert.All(cell.Paragraphs, paragraph => Assert.Equal(sourceFontSize * 2D, paragraph.FontSizePoints)));
         }
     }
 
@@ -933,7 +935,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal(2, page.Images.Count);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -1035,7 +1037,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.NotEmpty(textSpans);
         Assert.All(textSpans, text => Assert.True(text.PaintOrder < placement.PaintOrder));
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
+        // An image painted over text floats only when positioned placement is requested; by default it is
+        // placed inline so reflowed text stays readable.
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.InFrontOfText,

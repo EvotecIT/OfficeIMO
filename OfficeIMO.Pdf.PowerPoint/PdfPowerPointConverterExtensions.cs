@@ -192,7 +192,7 @@ public static partial class PdfPowerPointConverterExtensions {
                 PptCore.PowerPointTable table = slide.AddTable(
                     tableRowCount,
                     segment.ColumnCount,
-                    options.TableStyle,
+                    ResolveReconstructedTableStyle(options.TableStyle),
                     options.TableLeft,
                     options.TableTop,
                     options.TableWidth,
@@ -406,12 +406,25 @@ public static partial class PdfPowerPointConverterExtensions {
         PptCore.PowerPointTable table = slide.AddTable(
             rowCount,
             segment.ColumnCount,
-            options.TableStyle,
+            ResolveReconstructedTableStyle(options.TableStyle),
             left,
             top,
             width,
             height);
         PopulateTable(table, sourceTable, data, segment, headerRowIncluded, options, cancellationToken);
+        // The overlay sits on the rendered page: size its text like the source and paint unfilled cells white so
+        // the editable text replaces, rather than doubles, the rendered table.
+        (double pageWidth, double pageHeight) = page.GetVisualPageSize();
+        double scale = Math.Min(
+            presentation.SlideSize.WidthPoints / Math.Max(1D, pageWidth),
+            presentation.SlideSize.HeightPoints / Math.Max(1D, pageHeight));
+        ApplyEditableTableTypography(table, page, sourceTable, scale, isContinuation: false, cancellationToken);
+        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+                PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
+                if (string.IsNullOrEmpty(cell.FillColor)) cell.FillColor = "FFFFFF";
+            }
+        }
     }
 
     private static IReadOnlyList<PdfCore.PdfPageRenderResult> RenderPages(
@@ -659,7 +672,59 @@ public static partial class PdfPowerPointConverterExtensions {
                 cancellationToken);
         }
 
+        ApplySourceCellStyles(table, sourceTable, segment, headerRowIncluded, cancellationToken);
         ApplyTableSizing(table, sourceTable, segment);
+    }
+
+    // "No Style, Table Grid": thin rules and no theme fills, so reconstructed tables carry only the source styling.
+    private const string NeutralGridTableStyleId = "{5940675A-B579-460E-94D1-54222C63F5DA}";
+
+    /// <summary>
+    /// The library default preset applies the theme's Medium Style 2, which recolours every reconstructed table.
+    /// When the caller keeps that default, use a neutral grid and let the source cell styling show.
+    /// </summary>
+    internal static PptCore.PowerPointTableStylePreset ResolveReconstructedTableStyle(PptCore.PowerPointTableStylePreset requested) {
+        PptCore.PowerPointTableStylePreset library = PptCore.PowerPointTableStylePreset.Default;
+        bool isLibraryDefault = requested.StyleId == null &&
+            requested.FirstRow == library.FirstRow && requested.LastRow == library.LastRow &&
+            requested.FirstColumn == library.FirstColumn && requested.LastColumn == library.LastColumn &&
+            requested.BandedRows == library.BandedRows && requested.BandedColumns == library.BandedColumns;
+        return isLibraryDefault
+            ? new PptCore.PowerPointTableStylePreset(NeutralGridTableStyleId, firstRow: true, bandedRows: false)
+            : requested;
+    }
+
+    private static void ApplySourceCellStyles(
+        PptCore.PowerPointTable table,
+        PdfCore.PdfLogicalTable sourceTable,
+        TableSegment segment,
+        bool headerRowIncluded,
+        CancellationToken cancellationToken) {
+        IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles = sourceTable.CellStyles;
+        if (styles == null) return;
+        int bodySourceOffset = headerRowIncluded ? 1 : 0;
+        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int sourceRow = headerRowIncluded && rowIndex == 0
+                ? 0
+                : bodySourceOffset + segment.RowStartIndex + rowIndex - (headerRowIncluded ? 1 : 0);
+            if (sourceRow < 0 || sourceRow >= styles.Count) continue;
+            IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?> rowStyles = styles[sourceRow];
+            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+                int sourceColumn = segment.ColumnStartIndex + columnIndex;
+                PdfCore.PdfLogicalTableCellStyle? style = sourceColumn < rowStyles.Count ? rowStyles[sourceColumn] : null;
+                if (style == null) continue;
+                PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
+                if (style.FillColor.HasValue) cell.FillColor = style.FillColor.Value.ToRgbHex();
+                if (style.IsBold) cell.Bold = true;
+                if (style.IsItalic) cell.Italic = true;
+                if (style.TextColor.HasValue && style.TextColor.Value.A > 0) cell.Color = style.TextColor.Value.ToRgbHex();
+                string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(style.FontName);
+                if (!string.IsNullOrWhiteSpace(family)) {
+                    cell.FontName = family!.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : family;
+                }
+            }
+        }
     }
 
     private static void ApplyTableSizing(

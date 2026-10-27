@@ -98,6 +98,9 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
     internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
 
+    /// <summary>Per-row, per-column visible cell styling read from the source page, when it was analyzed.</summary>
+    internal IReadOnlyList<IReadOnlyList<PdfLogicalTableCellStyle?>>? CellStyles { get; set; }
+
     internal static PdfLogicalTable From(int pageNumber, PdfStructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);
         for (int i = 0; i < table.Columns.Count; i++) {

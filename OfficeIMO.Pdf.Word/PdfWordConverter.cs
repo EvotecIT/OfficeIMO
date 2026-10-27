@@ -54,12 +54,21 @@ namespace OfficeIMO.Pdf.Word {
             WordList? numberedList = null;
             ImportNavigationMap navigation = BuildNavigationMap(source, options);
             var imageOverlapBudget = new ImageOverlapBudget(options);
-
+            var pageItems = new List<ImportItem>[source.Pages.Count];
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
                 ReportPageReconstructionBoundaries(page, options);
-                List<ImportItem> items = BuildImportItems(page, options, navigation);
+                List<ImportItem> pageImportItems = BuildImportItems(page, options, navigation);
+                pageImportItems.Sort(CompareImportItems);
+                pageItems[pageIndex] = pageImportItems;
+            }
+            navigation = PlaceNavigationAnchors(source, pageItems, navigation);
+
+            for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
+                List<ImportItem> items = pageItems[pageIndex];
                 var imageContext = new ImageImportContext(page, imageOverlapBudget);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
                 bool hasPageOutputCandidate = items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor;
@@ -94,23 +103,25 @@ namespace OfficeIMO.Pdf.Word {
                     continue;
                 }
 
-                items.Sort(CompareImportItems);
+                WordParagraph? formRowParagraph = null;
+                double formRowY = 0D;
                 for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     ImportItem item = items[itemIndex];
                     bool itemEmitted = true;
+                    WordParagraph? emittedParagraph = null;
                     switch (item.Kind) {
                         case ImportItemKind.Heading:
-                            AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.Paragraph:
-                            AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.TextBlock:
-                            AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.ListItem:
-                            AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
+                            emittedParagraph = AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
                             break;
                         case ImportItemKind.Table:
                             AddTable(target, item.TableExtraction!, options, typographyScale);
@@ -119,11 +130,25 @@ namespace OfficeIMO.Pdf.Word {
                             itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, sourcePageSizeApplied, options, imageContext);
                             break;
                         case ImportItemKind.FormWidget:
-                            AddFormWidgetPlaceholder(target, item.FormWidget!, options);
+                            PdfCore.PdfLogicalFormWidget widget = item.FormWidget!;
+                            bool sameRow = formRowParagraph != null && Math.Abs(formRowY - widget.Y2) <= Math.Max(4D, widget.Height * 0.5D);
+                            WordParagraph? widgetParagraph = AddFormWidget(target, widget, options, sameRow ? formRowParagraph : null);
+                            itemEmitted = widgetParagraph != null;
+                            if (widgetParagraph != null) {
+                                formRowParagraph = widgetParagraph;
+                                formRowY = widget.Y2;
+                            }
+                            break;
+                        case ImportItemKind.Figure:
+                            itemEmitted = AddVectorFigure(target, page, item.Figure!, options);
                             break;
                         case ImportItemKind.Link:
-                            AddStandaloneLink(target, item.Link!, item.LinkText, options, navigation);
+                            emittedParagraph = AddStandaloneLink(target, item.Link!, item.LinkText, options, navigation);
                             break;
+                    }
+                    if (item.Kind != ImportItemKind.FormWidget) formRowParagraph = null;
+                    if (emittedParagraph != null && navigation.TryGetItemAnchor(page.PageNumber, itemIndex, out string? itemAnchor)) {
+                        emittedParagraph.AddBookmark(itemAnchor!);
                     }
 
                     pageEmitted |= itemEmitted;
@@ -161,10 +186,26 @@ namespace OfficeIMO.Pdf.Word {
             IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
                 BuildReadingOrder(projection, options.UseSharedPageReadingOrder);
             int sequence = 0;
+            // Labels drawn as part of a chart travel with the picture of the chart.
+            var figureLabels = new HashSet<PdfCore.PdfLogicalTextBlock>(options.ImportImages
+                ? page.VectorFigures.SelectMany(static figure => figure.Labels)
+                : Enumerable.Empty<PdfCore.PdfLogicalTextBlock>());
+            var figureOrder = new Dictionary<PdfCore.PdfLogicalVectorFigure, int>();
+            void NoteFigureLabel(PdfCore.PdfLogicalTextBlock line, int? order) {
+                if (!order.HasValue) return;
+                foreach (PdfCore.PdfLogicalVectorFigure figure in page.VectorFigures) {
+                    if (!figure.Labels.Contains(line)) continue;
+                    figureOrder[figure] = figureOrder.TryGetValue(figure, out int existing) ? Math.Min(existing, order.Value) : order.Value;
+                }
+            }
 
             if (options.ImportHeadings) {
                 for (int i = 0; i < page.Headings.Count; i++) {
                     PdfCore.PdfLogicalHeading heading = page.Headings[i];
+                    if (figureLabels.Contains(heading.Line)) {
+                        NoteFigureLabel(heading.Line, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i));
+                        continue;
+                    }
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, heading.Line, options, navigation, consumedLinks);
                     items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i), link, link == null ? null : heading.Text));
                 }
@@ -174,6 +215,10 @@ namespace OfficeIMO.Pdf.Word {
                 for (int i = 0; i < page.Paragraphs.Count; i++) {
                     PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
                     if (paragraph.Lines.Count > 0 && paragraph.Lines.All(listOwnedLines.Contains)) continue;
+                    if (paragraph.Lines.Count > 0 && paragraph.Lines.All(figureLabels.Contains)) {
+                        NoteFigureLabel(paragraph.Lines[0], GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i));
+                        continue;
+                    }
                     if (options.ImportTables && !projectedParagraphs.Contains(i) &&
                         paragraph.Lines.Count > 0 && paragraph.Lines.All(static line => line.IsTableContent)) continue;
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
@@ -182,6 +227,10 @@ namespace OfficeIMO.Pdf.Word {
 
                 for (int i = 0; i < page.TextBlocks.Count; i++) {
                     PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
+                    if (figureLabels.Contains(block)) {
+                        NoteFigureLabel(block, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i));
+                        continue;
+                    }
                     if (!projectedTextBlocks.Contains(i) && block.Kind is not (PdfCore.PdfLogicalElementKind.Header or
                         PdfCore.PdfLogicalElementKind.Footer or
                         PdfCore.PdfLogicalElementKind.Caption or
@@ -212,7 +261,18 @@ namespace OfficeIMO.Pdf.Word {
                 IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(page, options.MaxTableRows);
                 for (int i = 0; i < tables.Count; i++) {
                     PdfCore.PdfLogicalTableExtraction table = tables[i];
+                    // Dot-leader rows (tables of contents, price lists) are also projected as paragraphs, which
+                    // become tabbed leader lines. A second, table copy of the same lines would duplicate them.
+                    if (options.ImportParagraphs && IsLeaderTableProjectedAsText(page, table)) continue;
                     items.Add(ImportItem.ForTable(table, table.Table.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Table, i)));
+                }
+            }
+
+            if (options.ImportImages) {
+                (double _, double pageHeight) = page.GetVisualPageSize();
+                foreach (PdfCore.PdfLogicalVectorFigure figure in page.VectorFigures) {
+                    int? order = figureOrder.TryGetValue(figure, out int labelOrder) ? labelOrder : null;
+                    items.Add(ImportItem.ForFigure(figure, pageHeight - figure.Top, sequence++, order));
                 }
             }
 
@@ -260,9 +320,9 @@ namespace OfficeIMO.Pdf.Word {
                         options,
                         "pdf-form-widget-placeholder",
                         "Page " + widget.PageNumber.ToString(CultureInfo.InvariantCulture) + "/FormWidget",
-                        "PDF form widget content is represented as editable Word placeholder text; interactive form reconstruction is not part of the semantic import contract.",
+                        "PDF form widget is represented as a Word content control holding its value; PDF field actions, calculations and appearance streams are not carried over.",
                         PdfCore.PdfConversionWarningSeverity.Warning,
-                        OfficeConversionLossKind.Omission,
+                        OfficeConversionLossKind.Approximation,
                         new Dictionary<string, string> {
                             ["FieldName"] = widget.FieldName ?? string.Empty,
                             ["FieldType"] = widget.FieldType ?? string.Empty
@@ -500,7 +560,7 @@ namespace OfficeIMO.Pdf.Word {
             int sourceIndex,
             int placementIndex = -1) => readingOrder.TryGetValue((kind, sourceIndex, placementIndex), out int index) ? index : null;
 
-        private static void AddHeading(
+        private static WordParagraph AddHeading(
             WordDocument document,
             PdfCore.PdfLogicalHeading heading,
             PdfCore.PdfLogicalLinkAnnotation? link,
@@ -522,9 +582,10 @@ namespace OfficeIMO.Pdf.Word {
             if (heading.FontSize > 0) {
                 paragraph.FontSizePoints = ScaleEditableFontSize(heading.FontSize, typographyScale);
             }
+            return paragraph;
         }
 
-        private static void AddParagraph(
+        private static WordParagraph AddParagraph(
             WordDocument document,
             PdfCore.PdfLogicalParagraph paragraph,
             PdfCore.PdfLogicalLinkAnnotation? link,
@@ -533,11 +594,10 @@ namespace OfficeIMO.Pdf.Word {
             ImportNavigationMap navigation,
             double typographyScale) {
             if (link == null) {
-                AddStyledParagraph(document, paragraph.Lines, options, typographyScale);
-                return;
+                return AddStyledParagraph(document, paragraph.Lines, options, typographyScale);
             }
 
-            AddHyperlinkParagraph(
+            return AddHyperlinkParagraph(
                 document,
                 link,
                 string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!,
@@ -546,7 +606,7 @@ namespace OfficeIMO.Pdf.Word {
                 ScaleEditableFontSize(GetFirstPositiveFontSize(paragraph.Lines), typographyScale));
         }
 
-        private static void AddTextBlock(
+        private static WordParagraph AddTextBlock(
             WordDocument document,
             PdfCore.PdfLogicalTextBlock block,
             PdfCore.PdfLogicalLinkAnnotation? link,
@@ -555,11 +615,10 @@ namespace OfficeIMO.Pdf.Word {
             ImportNavigationMap navigation,
             double typographyScale) {
             if (link == null) {
-                AddStyledParagraph(document, new[] { block }, options, typographyScale);
-                return;
+                return AddStyledParagraph(document, new[] { block }, options, typographyScale);
             }
 
-            AddHyperlinkParagraph(
+            return AddHyperlinkParagraph(
                 document,
                 link,
                 string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!,
@@ -568,11 +627,64 @@ namespace OfficeIMO.Pdf.Word {
                 ScaleEditableFontSize(GetFirstPositiveFontSize(new[] { block }), typographyScale));
         }
 
+        private static readonly System.Text.RegularExpressions.Regex LeaderLinePattern = new System.Text.RegularExpressions.Regex(
+            @"^(?<label>.*?\S)\s*(?:\.\s*){4,}(?<value>\S{1,12})$",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1));
+
+        private static bool IsLeaderTableProjectedAsText(PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalTableExtraction table) {
+            if (!string.Equals(table.DetectionKind, "leaders", StringComparison.OrdinalIgnoreCase)) return false;
+            foreach (IReadOnlyList<string> row in table.Table.Rows) {
+                string label = row.Count > 0 ? row[0]?.Trim() ?? string.Empty : string.Empty;
+                if (label.Length == 0) continue;
+                bool projected = page.Paragraphs.Any(paragraph => !paragraph.Lines.All(static line => line.IsTableContent) &&
+                        paragraph.Text.IndexOf(label, StringComparison.Ordinal) >= 0) ||
+                    page.TextBlocks.Any(block => !block.IsTableContent && block.Text.IndexOf(label, StringComparison.Ordinal) >= 0);
+                if (!projected) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Writes "Title ........ 12" as "Title", a tab and "12" over a right-aligned dot-leader tab stop, so the
+        /// leader stays aligned however the text reflows.
+        /// </summary>
+        private static bool TryAddLeaderParagraph(
+            WordDocument document,
+            IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines,
+            WordPdfImportOptions options,
+            double typographyScale,
+            out WordParagraph paragraph) {
+            paragraph = null!;
+            if (lines.Count != 1) return false;
+            System.Text.RegularExpressions.Match match = LeaderLinePattern.Match(lines[0].Text.Trim());
+            if (!match.Success) return false;
+            WordSection section = document.Sections[document.Sections.Count - 1];
+            long textWidth = (long)(section.PageSettings.Width ?? 12240U) - section.Margins.Left - section.Margins.Right;
+            if (textWidth <= 720) return false;
+            paragraph = document.AddParagraph();
+            paragraph.AddTabStop((int)Math.Min(int.MaxValue, textWidth), WordTabAlignment.Right, WordTabLeader.Dot);
+            double fontSize = lines[0].FontSize;
+            PdfCore.PdfLogicalTextRun? firstRun = lines[0].Runs.Count > 0 ? lines[0].Runs[0] : null;
+            WordParagraph label = paragraph.AddText(match.Groups["label"].Value);
+            paragraph.AddTab();
+            WordParagraph value = paragraph.AddText(match.Groups["value"].Value);
+            foreach (WordParagraph run in new[] { label, value }) {
+                if (fontSize > 0D) run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
+                if (firstRun?.IsBold == true) run.SetBold();
+                string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(firstRun?.BaseFont);
+                if (!string.IsNullOrWhiteSpace(family)) run.SetFontFamily(family!);
+            }
+            ApplySourceParagraphSpacing(paragraph, options);
+            return true;
+        }
+
         private static WordParagraph AddStyledParagraph(
             WordDocument document,
             IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines,
             WordPdfImportOptions options,
             double typographyScale) {
+            if (TryAddLeaderParagraph(document, lines, options, typographyScale, out WordParagraph leader)) return leader;
             WordParagraph paragraph = document.AddParagraph();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 if (lineIndex > 0) {
@@ -611,19 +723,25 @@ namespace OfficeIMO.Pdf.Word {
                 if (fontSize > 0D) {
                     run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
                 }
-                if (source.Color.HasValue && source.Color.Value.A > 0) {
+                // Light text was drawn on a coloured panel that a reflowed paragraph does not keep; on the white
+                // page it would be invisible, so it keeps the document text colour.
+                if (source.Color.HasValue && source.Color.Value.A > 0 && !IsNearWhite(source.Color.Value)) {
                     run.SetColorHex(source.Color.Value.ToRgbHex());
+                }
+                string? fontFamily = PdfCore.PdfFontFamilyNames.ToFamilyName(source.BaseFont);
+                if (!string.IsNullOrWhiteSpace(fontFamily)) {
+                    run.SetFontFamily(fontFamily!);
                 }
             }
         }
 
-        private static void AddStandaloneLink(
+        private static WordParagraph AddStandaloneLink(
             WordDocument document,
             PdfCore.PdfLogicalLinkAnnotation link,
             string? linkText,
             WordPdfImportOptions options,
             ImportNavigationMap navigation) {
-            AddHyperlinkParagraph(document, link, GetLinkDisplayText(link, linkText), options, navigation);
+            return AddHyperlinkParagraph(document, link, GetLinkDisplayText(link, linkText), options, navigation);
         }
 
         private static WordParagraph AddHyperlinkParagraph(
@@ -726,7 +844,7 @@ namespace OfficeIMO.Pdf.Word {
             }
         }
 
-        private static void AddListItem(
+        private static WordParagraph AddListItem(
             WordDocument document,
             PdfCore.PdfLogicalListItem item,
             ref WordList? bulletList,
@@ -739,7 +857,8 @@ namespace OfficeIMO.Pdf.Word {
                 : numberedList ??= document.AddListNumbered();
             WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
             AppendStyledRuns(paragraph, item.Runs, item.Text, item.Line.FontSize, typographyScale);
-            ApplySourceParagraphSpacing(paragraph, options);
+            ApplyCompactSpacing(paragraph);
+            return paragraph;
         }
 
         private static void ApplySourceParagraphSpacing(WordParagraph paragraph, WordPdfImportOptions options) {
@@ -747,6 +866,10 @@ namespace OfficeIMO.Pdf.Word {
                 return;
             }
 
+            ApplyCompactSpacing(paragraph);
+        }
+
+        private static void ApplyCompactSpacing(WordParagraph paragraph) {
             paragraph.LineSpacingBeforePoints = 0D;
             paragraph.LineSpacingAfterPoints = 0D;
         }
@@ -810,15 +933,19 @@ namespace OfficeIMO.Pdf.Word {
             List<WordTableRow> rows = table.Rows;
             int rowOffset = headerRowIncluded ? 1 : 0;
 
+            IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles = sourceTable.CellStyles;
+            // Table data keeps source rows in order; a promoted header is source row zero.
+            const int sourceRowOffset = 0;
             if (headerRowIncluded) {
-                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options, typographyScale);
+                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options, typographyScale, GetRowStyles(styles, sourceRowOffset));
                 if (options.RepeatHeaderRows) {
                     rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                 }
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
-                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale);
+                WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale,
+                    GetRowStyles(styles, sourceRowOffset + rowOffset + rowIndex));
             }
 
             if (options.FitTablesToPageWidth) {
@@ -856,33 +983,108 @@ namespace OfficeIMO.Pdf.Word {
         private static bool IsFinitePositive(double value) =>
             value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
 
+        private static IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>? GetRowStyles(
+            IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles,
+            int sourceRowIndex) =>
+            styles != null && sourceRowIndex >= 0 && sourceRowIndex < styles.Count ? styles[sourceRowIndex] : null;
+
         private static void WriteRow(
             WordTableRow row,
             IReadOnlyList<string> values,
             PdfCore.PdfLogicalTableData data,
             bool alignNumericColumns,
             WordPdfImportOptions options,
-            double typographyScale) {
+            double typographyScale,
+            IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>? styles = null) {
             List<WordTableCell> cells = row.Cells;
             for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
                 string value = columnIndex < values.Count ? values[columnIndex] : string.Empty;
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
-                ApplySourceParagraphSpacing(paragraph, options);
-                if (typographyScale != 1D) {
+                ApplyCompactSpacing(paragraph);
+                PdfCore.PdfLogicalTableCellStyle? style = styles != null && columnIndex < styles.Count ? styles[columnIndex] : null;
+                if (style?.FontSize is double sourceFontSize && sourceFontSize > 0D) {
+                    paragraph.FontSizePoints = ScaleEditableFontSize(sourceFontSize, typographyScale);
+                } else if (typographyScale != 1D) {
                     paragraph.FontSizePoints = ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale);
                 }
+                if (style != null) ApplyCellStyle(cells[columnIndex], paragraph, style);
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
                     paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 }
             }
         }
 
-        private static void AddFormWidgetPlaceholder(WordDocument document, PdfCore.PdfLogicalFormWidget widget, WordPdfImportOptions options) {
-            string name = string.IsNullOrWhiteSpace(widget.FieldName) ? "(unnamed)" : widget.FieldName!;
-            string type = string.IsNullOrWhiteSpace(widget.FieldType) ? "field" : widget.FieldType!;
-            string value = string.IsNullOrWhiteSpace(widget.Value) ? string.Empty : " = " + widget.Value;
-            WordParagraph paragraph = document.AddParagraph("[PDF form " + type + ": " + name + value + "]").SetItalic();
-            ApplySourceParagraphSpacing(paragraph, options);
+        /// <summary>
+        /// Carries the source cell fill and text styling. The fill and text colour travel together so light text
+        /// written on a dark source fill stays readable.
+        /// </summary>
+        private static void ApplyCellStyle(WordTableCell cell, WordParagraph paragraph, PdfCore.PdfLogicalTableCellStyle style) {
+            if (style.FillColor.HasValue) {
+                cell.ShadingFillColorHex = style.FillColor.Value.ToRgbHex();
+            }
+            if (paragraph.Text.Length == 0) return;
+            if (style.IsBold) paragraph.SetBold();
+            if (style.IsItalic) paragraph.SetItalic();
+            if (style.TextColor.HasValue && style.TextColor.Value.A > 0 && !IsBlack(style.TextColor.Value)) {
+                paragraph.SetColorHex(style.TextColor.Value.ToRgbHex());
+            }
+            string? fontFamily = PdfCore.PdfFontFamilyNames.ToFamilyName(style.FontName);
+            if (!string.IsNullOrWhiteSpace(fontFamily)) paragraph.SetFontFamily(fontFamily!);
+        }
+
+        private static bool IsBlack(OfficeIMO.OfficeColor color) => color.R == 0 && color.G == 0 && color.B == 0;
+
+        private static bool IsNearWhite(OfficeIMO.OfficeColor color) =>
+            0.2126D * color.R + 0.7152D * color.G + 0.0722D * color.B >= 0.88D * 255D;
+
+        /// <summary>
+        /// Rebuilds a form widget as a Word content control: check boxes stay check boxes, choices become drop-down
+        /// lists and text fields become text controls holding the current value. Widgets on the same source row share
+        /// one paragraph, so a form keeps its rows instead of growing one paragraph per field.
+        /// </summary>
+        private static WordParagraph? AddFormWidget(
+            WordDocument document,
+            PdfCore.PdfLogicalFormWidget widget,
+            WordPdfImportOptions options,
+            WordParagraph? rowParagraph) {
+            PdfCore.PdfFormField field = widget.Field;
+            if (field.IsPushButton || widget.IsHidden || widget.IsInvisible) return null;
+            string alias = GetFormFieldLabel(field);
+            WordParagraph paragraph = rowParagraph ?? document.AddParagraph();
+            if (rowParagraph == null) {
+                ApplySourceParagraphSpacing(paragraph, options);
+            } else {
+                paragraph.AddText(" ");
+            }
+            if (field.IsButtonField) {
+                bool isChecked = !string.IsNullOrEmpty(widget.AppearanceState) &&
+                    !string.Equals(widget.AppearanceState, "Off", StringComparison.Ordinal);
+                paragraph.AddCheckBox(isChecked, alias, field.Name);
+            } else if (field.IsChoiceField && field.HasOptions) {
+                var items = field.Options.Select(static option => option.DisplayText).Where(static text => !string.IsNullOrEmpty(text)).Distinct().ToArray();
+                if (items.Length > 0) {
+                    paragraph.AddDropDownList(items, alias, field.Name);
+                } else {
+                    paragraph.AddStructuredDocumentTag(GetFormFieldText(field), alias, field.Name);
+                }
+            } else {
+                paragraph.AddStructuredDocumentTag(GetFormFieldText(field), alias, field.Name);
+            }
+            return paragraph;
+        }
+
+        private static string GetFormFieldText(PdfCore.PdfFormField field) {
+            string? value = field.IsRichText && !string.IsNullOrEmpty(field.RichValuePlainText) ? field.RichValuePlainText : field.Value;
+            // An empty control would be invisible; keep a short blank the reader can click into.
+            return string.IsNullOrEmpty(value) ? new string('\u2002', 8) : value!;
+        }
+
+        private static string GetFormFieldLabel(PdfCore.PdfFormField field) {
+            if (!string.IsNullOrWhiteSpace(field.AlternateName)) return field.AlternateName!.Trim();
+            string? name = field.PartialName ?? field.Name;
+            if (string.IsNullOrWhiteSpace(name)) return "Form field";
+            // Generated names such as "f1_01[0]" carry no meaning for a reader beyond the field itself.
+            return name!.Trim();
         }
 
     }

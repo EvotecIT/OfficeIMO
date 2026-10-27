@@ -10633,6 +10633,38 @@
       "member": "FontNotEmbedded",
       "origins": [
         "OfficeIMO.Pdf/Options/PdfOptions.DefaultFontEmbedding.cs"
+        ]
+      },
+      {
+      "oldCode": "pdf-artifact-text-omitted",
+      "catalogCode": "pdf-artifact-text-omitted",
+      "member": "PdfArtifactTextOmitted",
+      "origins": [
+        "OfficeIMO.Pdf.Word/PdfWordConverter.Diagnostics.cs"
+      ]
+    },
+    {
+      "oldCode": "pdf-excel-numeric-convention-mixed",
+      "catalogCode": "pdf-excel-numeric-convention-mixed",
+      "member": "PdfExcelNumericConventionMixed",
+      "origins": [
+        "OfficeIMO.Pdf.Excel/PdfExcelTableConverterExtensions.NumericConvention.cs"
+      ]
+    },
+    {
+      "oldCode": "pdf-excel-numeric-convention-mismatch",
+      "catalogCode": "pdf-excel-numeric-convention-mismatch",
+      "member": "PdfExcelNumericConventionMismatch",
+      "origins": [
+        "OfficeIMO.Pdf.Excel/PdfExcelTableConverterExtensions.NumericConvention.cs"
+      ]
+    },
+    {
+      "oldCode": "pdf-excel-numeric-value-ambiguous",
+      "catalogCode": "pdf-excel-numeric-value-ambiguous",
+      "member": "PdfExcelNumericValueAmbiguous",
+      "origins": [
+        "OfficeIMO.Pdf.Excel/PdfExcelTableConverterExtensions.NumericConvention.cs"
       ]
     }
   ],

@@ -99,6 +99,11 @@ internal static partial class TableDetector {
                 positionedTables.Any(positioned => IsSubsumedByPositionedTable(table, positioned)));
             tables.AddRange(positionedTables);
         }
+        List<TextLayoutEngine.TextLine> pageLines = nonLeaderBands.SelectMany(static band => band).ToList();
+        MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
+        AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
+        AbsorbWrappedRows(tables, pageLines, consumeWork, cancellationCheck);
+        SplitColumnsAtAlignedChannels(tables, cancellationCheck);
         return tables;
     }
 

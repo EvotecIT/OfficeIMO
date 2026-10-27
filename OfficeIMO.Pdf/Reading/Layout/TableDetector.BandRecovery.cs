@@ -382,6 +382,13 @@ internal static partial class TableDetector {
         }
 
         List<TextLayoutEngine.TextLine> headerBand = bands[headerBandIndex];
+        if (headerBand.Count > 1) {
+            // A header row whose labels are far apart (a wide label column next to right-aligned figures) is built
+            // as several lines on one baseline. Treat them as the single row they are.
+            TextLayoutEngine.TextLine? combined = TryCombineSameBaselineLines(headerBand);
+            if (combined is null) return null;
+            headerBand = new List<TextLayoutEngine.TextLine> { combined };
+        }
         if (headerBand.Count != 1 || IsLeaderBand(headerBand)) {
             return null;
         }
@@ -420,15 +427,38 @@ internal static partial class TableDetector {
             return false;
         }
 
+        int labelCells = 0;
         for (int i = 0; i < cells.Length; i++) {
             string cell = ContentStructureExtractor.NormalizeShattered(cells[i]).Trim();
-            if (cell.Length == 0 ||
-                (!PdfUnicodeScalarAnalysis.ContainsLetter(cell) && !PdfUnicodeScalarAnalysis.IsAllDecimalDigits(cell))) {
+            if (cell.Length == 0) {
+                return false;
+            }
+            if (PdfUnicodeScalarAnalysis.ContainsLetter(cell) || PdfUnicodeScalarAnalysis.IsAllDecimalDigits(cell)) {
+                labelCells++;
+                continue;
+            }
+            // Short symbol labels such as "#" or "%" head numbering and rate columns.
+            if (!(cell.Length <= 2 && cell.All(static ch => char.IsSymbol(ch) || char.IsPunctuation(ch)))) {
                 return false;
             }
         }
 
-        return true;
+        return labelCells > 0;
+    }
+
+    private static TextLayoutEngine.TextLine? TryCombineSameBaselineLines(List<TextLayoutEngine.TextLine> lines) {
+        double y = lines[0].Y;
+        if (lines.Any(line => Math.Abs(line.Y - y) > 1.5D)) return null;
+        TextLayoutEngine.TextLine[] ordered = lines.OrderBy(static line => line.XStart).ToArray();
+        var spans = ordered.SelectMany(static line => line.Spans).ToList();
+        if (spans.Count == 0) return null;
+        return new TextLayoutEngine.TextLine(
+            y,
+            ordered[0].XStart,
+            ordered.Max(static line => line.XEnd),
+            string.Join(" ", ordered.Select(static line => line.Text)),
+            spans,
+            ordered[0].ReadingDirection);
     }
 
     private static bool IsUniformlyEmphasizedBand(List<TextLayoutEngine.TextLine> band) =>

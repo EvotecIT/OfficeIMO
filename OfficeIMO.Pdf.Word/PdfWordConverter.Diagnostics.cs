@@ -235,6 +235,19 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private static void ReportPageReconstructionBoundaries(PdfCore.PdfLogicalPage page, WordPdfImportOptions options) {
+            if (page.OmittedArtifactTextSpanCount > 0) {
+                AddWarning(
+                    options,
+                    "pdf-artifact-text-omitted",
+                    "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Artifacts",
+                    "Text marked as a PDF artifact (running headers, footers or page numbers) was not imported. Set ReadOptions.IncludeArtifactText to keep it.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
+                    new Dictionary<string, string> {
+                        ["ArtifactTextSpanCount"] = page.OmittedArtifactTextSpanCount.ToString(CultureInfo.InvariantCulture)
+                    });
+            }
+
             if (page.VectorPrimitiveCount > 0) {
                 bool representedByImportedTableSemantics = options.ImportTables &&
                     page.Tables.Count > 0 &&

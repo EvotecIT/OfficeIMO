@@ -215,6 +215,20 @@ public sealed partial class PdfReadPage {
         return spans;
     }
 
+    /// <summary>
+    /// Counts visible text spans that this read leaves out because they are marked as artifacts (running headers,
+    /// footers and page numbers in tagged PDFs). Returns zero without reparsing when the content has no artifacts.
+    /// </summary>
+    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken) {
+        if (_includeArtifactText) return 0;
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        string content = GetContentStreamSequence(pageContentBudget).Content;
+        if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        return Math.Max(0, withArtifacts - withoutArtifacts);
+    }
+
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
         System.Threading.CancellationToken cancellationToken,

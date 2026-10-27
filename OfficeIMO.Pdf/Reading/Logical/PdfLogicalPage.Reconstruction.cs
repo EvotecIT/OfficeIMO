@@ -104,6 +104,10 @@ public sealed partial class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
+        if (includeImages && tables.Count > 0) {
+            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, cancellationToken);
+        }
+
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
             ? pageAnalysis.ImagePlacements
             : page.GetImagePlacements(pageNumber, cancellationToken);
@@ -152,7 +156,7 @@ public sealed partial class PdfLogicalPage {
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
             CreateLogicalTextBlockLookup(textBlocks);
         LogicalTextBlockSourceIndex textBlockSourceIndex = LogicalTextBlockSourceIndex.Create(textBlocks);
-        return new PdfLogicalPage(
+        var logicalPage = new PdfLogicalPage(
             pageNumber,
             size.Width,
             size.Height,
@@ -177,6 +181,11 @@ public sealed partial class PdfLogicalPage {
             page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis, hasVisualPrimitiveCounts: includeImages,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
+        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken);
+        if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
+            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
+        }
+        return logicalPage;
     }
 
 }

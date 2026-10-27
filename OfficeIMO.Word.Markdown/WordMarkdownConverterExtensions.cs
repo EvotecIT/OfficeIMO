@@ -19,6 +19,11 @@ namespace OfficeIMO.Word.Markdown {
 
         private static WordMarkdownExportOptions CreateFileSaveOptions(string markdownPath, WordMarkdownExportOptions? options) {
             var effectiveOptions = CopyOptions(options ?? new WordMarkdownExportOptions());
+            if (options == null) {
+                // A saved Markdown file has a folder next to it, so images are written as files there instead of
+                // inflating the text with base64 data URIs. In-memory conversion keeps data URIs.
+                effectiveOptions.ImageExportMode = WordMarkdownImageExportMode.File;
+            }
             if (effectiveOptions.ImageExportMode == WordMarkdownImageExportMode.File && string.IsNullOrEmpty(effectiveOptions.ImageDirectory)) {
                 effectiveOptions.ImageDirectory = Path.GetDirectoryName(markdownPath) ?? Directory.GetCurrentDirectory();
             }

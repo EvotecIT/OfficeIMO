@@ -76,7 +76,8 @@ public static partial class PdfPowerPointConverterExtensions {
                 tablesByPage.TryGetValue(pageIndex, out IReadOnlyList<PdfCore.PdfLogicalTableExtraction>? pageTables)
                     ? pageTables
                     : Array.Empty<PdfCore.PdfLogicalTableExtraction>();
-            List<EditableBounds> tableBounds = GetEditableTableBounds(page, tables, placement, cancellationToken);
+            Dictionary<PdfCore.PdfLogicalTable, EditableBounds> tableBoundsByTable = GetEditableTableBounds(page, tables, placement, drawing, cancellationToken);
+            List<EditableBounds> tableBounds = tableBoundsByTable.Values.ToList();
             int remainingObjects = options.MaxEditableObjectsPerPage;
 
             EditableImportCount shapeImport = drawing == null
@@ -110,6 +111,7 @@ public static partial class PdfPowerPointConverterExtensions {
                 slide,
                 slideIndex,
                 placement,
+                tableBoundsByTable,
                 options,
                 tableEntries,
                 remainingObjects,
@@ -129,6 +131,21 @@ public static partial class PdfPowerPointConverterExtensions {
                 tableImport.Omitted,
                 omittedVectors,
                 imageImport.Omitted));
+            if (page.OmittedArtifactTextSpanCount > 0) {
+                warnings.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.Pdf.PowerPoint",
+                    "pdf-artifact-text-omitted",
+                    "PDF page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "Text marked as a PDF artifact (running headers, footers or page numbers) was not imported. Set ReadOptions.IncludeArtifactText to keep it.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission,
+                    details: new Dictionary<string, string> {
+                        ["pageNumber"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["construct"] = "Artifact text",
+                        ["Count"] = page.OmittedArtifactTextSpanCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["Disposition"] = "Omitted"
+                    }));
+            }
             AddEditablePageWarnings(
                 warnings,
                 page.PageNumber,
@@ -215,12 +232,15 @@ public static partial class PdfPowerPointConverterExtensions {
                 limitReached = true;
                 continue;
             }
-            EditableBounds visualBounds = new(
+            // Table bounds are in slide coordinates; compare the shape after the same page-to-slide mapping.
+            EditableBounds slideBounds = placement.Map(
                 drawingShape.X,
                 drawingShape.Y,
                 drawingShape.Shape.Width,
                 drawingShape.Shape.Height);
-            if (tableBounds.Any(bounds => bounds.ContainsCenterOf(visualBounds))) {
+            if (tableBounds.Any(bounds => bounds.Inflate(2D * placement.Scale).ContainsCenterOf(slideBounds) ||
+                    bounds.OverlapFractionOf(slideBounds) >= 0.6D)) {
+                // Cell fills and rules are carried by the native table.
                 continue;
             }
             if (!TryAddEditableShape(slide, drawingShape, placement)) {
@@ -508,9 +528,15 @@ public static partial class PdfPowerPointConverterExtensions {
         for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
+            IReadOnlyList<PdfCore.PdfLogicalTextRun>? partialRuns = null;
             if (!CanReconstructEditableTextBlock(block, page)) {
+                // Keep the runs that can be projected (for example the letters next to a colour emoji glyph)
+                // instead of dropping the whole line; the omission is still reported.
                 omitted++;
-                continue;
+                partialRuns = block.Runs
+                    .Where(run => run.SourceSpan != null && run.SourceSpan.CanProjectCompleteText(page) && !string.IsNullOrWhiteSpace(run.Text))
+                    .ToArray();
+                if (partialRuns.Count == 0) continue;
             }
             if (IsTextInsideTable(block, tables, cancellationToken)) continue;
             if (imported >= limit) {
@@ -537,13 +563,18 @@ public static partial class PdfPowerPointConverterExtensions {
             if (Math.Abs(visualRotation - 90D) < 0.01D || Math.Abs(visualRotation - 270D) < 0.01D) {
                 bounds = bounds.SwapDimensionsAroundCenter();
             }
+            // A source line is one line: font substitution can make it slightly wider, so give it room and never wrap.
+            double widenedWidth = bounds.Width * 1.08D + fontSize * placement.Scale;
             PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(
                 string.Empty,
                 bounds.Left,
                 bounds.Top,
-                bounds.Width,
+                widenedWidth,
                 bounds.Height);
             textBox.SetTextMarginsPoints(0D, 0D, 0D, 0D);
+            if (textBox.TextBody?.BodyProperties is DocumentFormat.OpenXml.Drawing.BodyProperties bodyProperties) {
+                bodyProperties.Wrap = DocumentFormat.OpenXml.Drawing.TextWrappingValues.None;
+            }
             textBox.FillColor = "FFFFFF";
             textBox.FillTransparency = 100;
             textBox.OutlineColor = "FFFFFF";
@@ -552,7 +583,8 @@ public static partial class PdfPowerPointConverterExtensions {
                 textBox,
                 block,
                 GetEditableTypographyScale(page, placement.Scale),
-                cancellationToken);
+                cancellationToken,
+                partialRuns);
             if (Math.Abs(visualRotation) > 0.01D) {
                 textBox.Rotation = visualRotation;
             }
@@ -574,9 +606,10 @@ public static partial class PdfPowerPointConverterExtensions {
         PptCore.PowerPointTextBox textBox,
         PdfCore.PdfLogicalTextBlock block,
         double scale,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        IReadOnlyList<PdfCore.PdfLogicalTextRun>? runs = null) {
         PptCore.PowerPointParagraph paragraph = textBox.Paragraphs[0];
-        IReadOnlyList<PdfCore.PdfLogicalTextRun> sourceRuns = block.Runs;
+        IReadOnlyList<PdfCore.PdfLogicalTextRun> sourceRuns = runs ?? block.Runs;
         if (sourceRuns.Count == 0) {
             paragraph.Text = block.Text;
             PptCore.PowerPointTextRun targetRun = paragraph.Runs[0];
@@ -616,6 +649,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PptCore.PowerPointSlide primarySlide,
         int primarySlideIndex,
         EditablePagePlacement placement,
+        IReadOnlyDictionary<PdfCore.PdfLogicalTable, EditableBounds> tableBounds,
         PowerPointPdfImportOptions options,
         ICollection<PdfPowerPointTableImportEntry> entries,
         int remainingObjects,
@@ -645,12 +679,12 @@ public static partial class PdfPowerPointConverterExtensions {
                     slide.AddTitle(BuildTitle(extraction, segmentIndex, segments.Count));
                 }
                 EditableBounds bounds = primary
-                    ? MapTableBounds(page, extraction.Table, placement)
+                    ? (tableBounds.TryGetValue(extraction.Table, out EditableBounds sourceBounds) ? sourceBounds : MapTableBounds(page, extraction.Table, placement))
                     : GetContinuationTableBounds(presentation, options);
                 PptCore.PowerPointTable table = slide.AddTable(
                     rowCount,
                     segment.ColumnCount,
-                    options.TableStyle,
+                    ResolveReconstructedTableStyle(options.TableStyle),
                     PowerPointUnits.FromPoints(bounds.Left),
                     PowerPointUnits.FromPoints(bounds.Top),
                     PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width)),
@@ -698,22 +732,89 @@ public static partial class PdfPowerPointConverterExtensions {
         return new EditableBounds(left, top, width, height);
     }
 
-    private static List<EditableBounds> GetEditableTableBounds(
+    private static Dictionary<PdfCore.PdfLogicalTable, EditableBounds> GetEditableTableBounds(
         PdfCore.PdfLogicalPage page,
         IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables,
         EditablePagePlacement placement,
+        OfficeDrawing? drawing,
         CancellationToken cancellationToken) {
-        var bounds = new List<EditableBounds>(tables.Count);
+        var bounds = new Dictionary<PdfCore.PdfLogicalTable, EditableBounds>();
+        EditableBounds[] cellShapes = drawing == null
+            ? Array.Empty<EditableBounds>()
+            : drawing.Elements.OfType<OfficeDrawingShape>()
+                .Where(static shape => shape.Shape.Kind is OfficeShapeKind.Rectangle or OfficeShapeKind.Line)
+                .Select(shape => placement.Map(shape.X, shape.Y, shape.Shape.Width, shape.Shape.Height))
+                .ToArray();
         for (int i = 0; i < tables.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (tables[i].Table.Columns.Count > 0) {
-                bounds.Add(MapTableBounds(page, tables[i].Table, placement));
+            if (tables[i].Table.Columns.Count > 0 && !bounds.ContainsKey(tables[i].Table)) {
+                bounds.Add(tables[i].Table, GrowToCellShapes(MapTableBounds(page, tables[i].Table, placement), cellShapes, placement.Scale));
             }
         }
         return bounds;
     }
 
+    /// <summary>
+    /// Text gives only the inner extent of a table. Grow it to the cell fills and rules drawn around and next to that
+    /// text (a last column whose cells are wider than their text), so the native table covers the drawn grid.
+    /// </summary>
+    private static EditableBounds GrowToCellShapes(EditableBounds bounds, EditableBounds[] shapes, double scale) {
+        EditableBounds grown = GrowToCellShapesCore(bounds, shapes, scale);
+        // Never chain into unrelated rules or panels far beyond the text grid.
+        double maxHorizontal = bounds.Width * 0.5D, maxVertical = Math.Max(bounds.Height * 0.25D, 12D * scale);
+        double left = Math.Max(grown.Left, bounds.Left - maxHorizontal);
+        double top = Math.Max(grown.Top, bounds.Top - maxVertical);
+        double right = Math.Min(grown.Left + grown.Width, bounds.Left + bounds.Width + maxHorizontal);
+        double bottom = Math.Min(grown.Top + grown.Height, bounds.Top + bounds.Height + maxVertical);
+        return new EditableBounds(left, top, right - left, bottom - top);
+    }
+
+    private static EditableBounds GrowToCellShapesCore(EditableBounds bounds, EditableBounds[] shapes, double scale) {
+        double tolerance = 2D * scale;
+        for (int pass = 0; pass < 8; pass++) {
+            double left = bounds.Left, top = bounds.Top, right = bounds.Left + bounds.Width, bottom = bounds.Top + bounds.Height;
+            foreach (EditableBounds shape in shapes) {
+                double shapeRight = shape.Left + shape.Width, shapeBottom = shape.Top + shape.Height;
+                double centerY = shape.Top + shape.Height / 2D, centerX = shape.Left + shape.Width / 2D;
+                bool rowAligned = centerY >= top && centerY <= bottom && shape.Height <= (bottom - top) + tolerance;
+                bool columnAligned = centerX >= left && centerX <= right && shape.Width <= (right - left) + tolerance;
+                bool touchesHorizontally = shape.Left <= right + tolerance && shapeRight >= left - tolerance;
+                bool touchesVertically = shape.Top <= bottom + tolerance && shapeBottom >= top - tolerance;
+                if (rowAligned && touchesHorizontally) {
+                    left = Math.Min(left, shape.Left);
+                    right = Math.Max(right, shapeRight);
+                }
+                if (columnAligned && touchesVertically) {
+                    top = Math.Min(top, shape.Top);
+                    bottom = Math.Max(bottom, shapeBottom);
+                }
+            }
+            var grown = new EditableBounds(left, top, right - left, bottom - top);
+            if (Math.Abs(grown.Left - bounds.Left) < 0.01D && Math.Abs(grown.Top - bounds.Top) < 0.01D &&
+                Math.Abs(grown.Width - bounds.Width) < 0.01D && Math.Abs(grown.Height - bounds.Height) < 0.01D) return grown;
+            bounds = grown;
+        }
+        return bounds;
+    }
+
     private static EditableBounds MapTableBounds(
+        PdfCore.PdfLogicalPage page,
+        PdfCore.PdfLogicalTable table,
+        EditablePagePlacement placement) {
+        EditableBounds textBounds = MapTableTextBounds(page, table, placement);
+        // Table geometry comes from its text; the drawn cells extend about half a row beyond the first and last
+        // baselines and a few points beyond the outer text, so the native table covers the source cell area.
+        double rowPitch = textBounds.Height / Math.Max(1, table.Rows.Count);
+        double vertical = Math.Max(2D * placement.Scale, rowPitch * 0.35D);
+        double horizontal = 4D * placement.Scale;
+        return new EditableBounds(
+            textBounds.Left - horizontal,
+            textBounds.Top - vertical,
+            textBounds.Width + horizontal * 2D,
+            textBounds.Height + vertical * 2D);
+    }
+
+    private static EditableBounds MapTableTextBounds(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalTable table,
         EditablePagePlacement placement) {
@@ -737,6 +838,9 @@ public static partial class PdfPowerPointConverterExtensions {
         for (int i = 0; i < tables.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTable table = tables[i].Table;
+            // Text inside the table area that the table did not recover (a row the detector missed) is still
+            // imported as a text box rather than silently dropped.
+            if (!IsTextRepresentedByTable(block, table)) continue;
             if (block.VisualBounds is PdfCore.PdfLogicalVisualBounds blockBounds &&
                 table.VisualBounds is PdfCore.PdfLogicalVisualBounds tableBounds) {
                 double centerX = (blockBounds.Left + blockBounds.Right) / 2D;
@@ -754,6 +858,29 @@ public static partial class PdfPowerPointConverterExtensions {
         }
         return false;
     }
+
+    private static bool IsTextRepresentedByTable(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalTable table) {
+        string text = NormalizeCellText(block.Text);
+        if (text.Length == 0) return true;
+        foreach (IReadOnlyList<string> row in table.Rows) {
+            foreach (string cell in row) {
+                string normalized = NormalizeCellText(cell);
+                if (normalized.Length > 0 && (ContainsOrdinal(normalized, text) || ContainsOrdinal(text, normalized))) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsOrdinal(string value, string candidate) {
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        return value.IndexOf(candidate, StringComparison.Ordinal) >= 0;
+#else
+        return value.Contains(candidate, StringComparison.Ordinal);
+#endif
+    }
+
+    private static string NormalizeCellText(string? value) =>
+        string.Concat((value ?? string.Empty).Where(static ch => !char.IsWhiteSpace(ch)));
 
     private static OfficeImageFormat ResolveImageFormat(PdfCore.PdfExtractedImage image) =>
         image.MimeType?.ToLowerInvariant() switch {
@@ -775,14 +902,10 @@ public static partial class PdfPowerPointConverterExtensions {
         };
 
     private static string ResolvePowerPointFontFamily(string? baseFont) {
-        if (string.IsNullOrWhiteSpace(baseFont)) return "Arial";
-        string value = baseFont!.Trim();
-        if (value.Length > 7 && value[6] == '+') value = value.Substring(7);
-        if (value.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase)) return "Arial";
-        if (value.StartsWith("Times", StringComparison.OrdinalIgnoreCase)) return "Times New Roman";
-        if (value.StartsWith("Courier", StringComparison.OrdinalIgnoreCase)) return "Courier New";
-        int delimiter = value.IndexOfAny(['-', ',']);
-        return delimiter > 0 ? value.Substring(0, delimiter) : value;
+        string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(baseFont);
+        if (string.IsNullOrWhiteSpace(family)) return "Arial";
+        // Helvetica is not installed with Office; Arial has the same metrics.
+        return family!.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : family!;
     }
 
     private static void AddEditablePageWarnings(
@@ -967,6 +1090,15 @@ public static partial class PdfPowerPointConverterExtensions {
             Top + (Height - Width) / 2D,
             Height,
             Width);
+
+        internal EditableBounds Inflate(double amount) => new(Left - amount, Top - amount, Width + amount * 2D, Height + amount * 2D);
+
+        internal double OverlapFractionOf(EditableBounds candidate) {
+            double width = Math.Min(Left + Width, candidate.Left + candidate.Width) - Math.Max(Left, candidate.Left);
+            double height = Math.Min(Top + Height, candidate.Top + candidate.Height) - Math.Max(Top, candidate.Top);
+            double area = Math.Max(0.0001D, candidate.Width * candidate.Height);
+            return width <= 0D || height <= 0D ? 0D : width * height / area;
+        }
 
         internal bool ContainsCenterOf(EditableBounds candidate) {
             double x = candidate.Left + candidate.Width / 2D;

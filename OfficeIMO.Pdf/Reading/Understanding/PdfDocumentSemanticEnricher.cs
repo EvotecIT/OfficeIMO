@@ -188,6 +188,19 @@ internal static partial class PdfDocumentSemanticEnricher {
                     ? PdfTextSimilarity.NormalizeSignaturePreservingDigits(region.Text)
                     : PdfTextSimilarity.NormalizeSignature(region.Text);
                 if (edge == PageEdge.None || signature.Length == 0) continue;
+                if (IsPageNumberText(region.Text)) {
+                    // A page number at the page edge is running content even on a single page, and its digits
+                    // change from page to page, so it never forms a repeated signature.
+                    elements[pageIndex][elementIndex] = WithEvidence(
+                        element,
+                        edge == PageEdge.Header ? PdfUnderstandingSemanticKind.Header : PdfUnderstandingSemanticKind.Footer,
+                        Math.Max(element.Confidence, 0.9D),
+                        new PdfInferenceEvidence(
+                            "semantic-page-number",
+                            "A short page-number pattern sits in the page header or footer band.",
+                            0.9D));
+                    continue;
+                }
                 candidates.Add(new PageEdgeCandidate(
                     pageIndex,
                     elementIndex,
@@ -219,6 +232,16 @@ internal static partial class PdfDocumentSemanticEnricher {
                     "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
                     0.95D));
         }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex PageNumberPattern = new System.Text.RegularExpressions.Regex(
+        @"^(?:[\(\[\-\u2013\u2014]?\s*\d{1,5}\s*(?:(?:/|\||\p{L}{1,4})\s*\d{1,5})?\s*[\)\]\-\u2013\u2014]?|\p{L}{1,8}\.?\s*\d{1,5}\s*(?:/|\||\p{L}{1,4})\s*\d{1,5})$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
+    internal static bool IsPageNumberText(string? text) {
+        string value = text?.Trim() ?? string.Empty;
+        return value.Length > 0 && value.Length <= 24 && PageNumberPattern.IsMatch(value);
     }
 
     private static bool[] FindRepeatedPageEdgeCandidates(
@@ -848,6 +871,27 @@ internal static partial class PdfDocumentSemanticEnricher {
     }
 
     private static PdfUnderstandingSemanticElement WithTaggedEvidence(
+        PdfUnderstandingSemanticElement current,
+        TaggedLineMatch match) {
+        // Producers often tag a document title as a plain paragraph (or a role map sends a custom "Title" role to
+        // P). A short region set materially larger than the body keeps its heading semantics.
+        if (match.Role.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+            current.Kind == PdfUnderstandingSemanticKind.Heading &&
+            current.Region.Lines.Count <= 2 &&
+            current.Evidence.Any(static evidence => evidence.Code is "semantic.large-font" or "semantic.local-font-transition")) {
+            return WithEvidence(
+                current,
+                PdfUnderstandingSemanticKind.Heading,
+                current.Confidence,
+                new PdfInferenceEvidence(
+                    "semantic-tagged-paragraph-display-heading",
+                    "Tagged-PDF role " + match.Role.Name + " covers a short line set materially larger than the body text.",
+                    0.7D));
+        }
+        return WithTaggedEvidenceCore(current, match);
+    }
+
+    private static PdfUnderstandingSemanticElement WithTaggedEvidenceCore(
         PdfUnderstandingSemanticElement current,
         TaggedLineMatch match) => WithEvidence(
             current,

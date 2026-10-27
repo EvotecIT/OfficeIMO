@@ -176,23 +176,31 @@ namespace OfficeIMO.Pdf.Word {
             try {
                 using var stream = new MemoryStream(source.Bytes);
                 imageParagraph = document.AddParagraph();
-                ApplySourceParagraphSpacing(imageParagraph, options);
-                string description = "Imported PDF image " + image.ResourceName + " from page " + image.PageNumber.ToString(CultureInfo.InvariantCulture);
+                ApplyCompactSpacing(imageParagraph);
+                string description = GetImageAlternativeText(image, placement);
                 WordImage embeddedImage;
-                if (sourcePageSizeApplied && options.PreserveImagePlacementPosition && placement != null && placement.IsAxisAligned && page.RotationDegrees == 0) {
+                bool canFloat = sourcePageSizeApplied && placement != null && placement.IsAxisAligned && page.RotationDegrees == 0;
+                bool hasOverlappingTextBefore = false;
+                bool hasOverlappingTextAfter = false;
+                if (canFloat) {
+                    GetOverlappingTextPaintOrder(
+                        page,
+                        placement!,
+                        imageContext,
+                        out hasOverlappingTextBefore,
+                        out hasOverlappingTextAfter);
+                }
+                // Reflowed text cannot avoid a page-anchored image, so only images painted behind source
+                // text keep their page position unless the caller asked for positioned placement.
+                bool floatImage = canFloat && (options.PreserveImagePlacementPosition || hasOverlappingTextAfter);
+                if (floatImage) {
                     imageParagraph.LineSpacingRule = WordLineSpacingRule.Exact;
                     imageParagraph.LineSpacing = 1;
                     PdfCore.PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(
-                        placement.X,
+                        placement!.X,
                         placement.Y,
                         placement.X + placement.Width,
                         placement.Y + placement.Height);
-                    GetOverlappingTextPaintOrder(
-                        page,
-                        placement,
-                        imageContext,
-                        out bool hasOverlappingTextBefore,
-                        out bool hasOverlappingTextAfter);
                     WordImageTextWrapping wrapping = hasOverlappingTextAfter
                         ? WordImageTextWrapping.BehindText
                         : WordImageTextWrapping.InFrontOfText;
@@ -267,6 +275,53 @@ namespace OfficeIMO.Pdf.Word {
                         ["IsImageFile"] = skippedImage.SourceImage.IsImageFile ? "true" : "false"
                     });
             }
+        }
+
+        /// <summary>
+        /// Places a vector drawing (a chart) as a picture of its page region. Its labels are part of the picture, so
+        /// they are not imported again as loose paragraphs.
+        /// </summary>
+        private static bool AddVectorFigure(WordDocument document, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalVectorFigure figure, WordPdfImportOptions options) {
+            string location = "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/VectorFigure";
+            byte[]? png = figure.RenderPng(Math.Max(1D, Math.Min(4D, options.Dpi / 72D)));
+            if (png == null || png.Length == 0) {
+                AddWarning(options, "pdf-vector-figure-omitted", location,
+                    "A vector drawing (such as a chart) could not be rendered and was not imported; its labels were kept as text.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                return false;
+            }
+            WordParagraph paragraph = document.AddParagraph();
+            ApplyCompactSpacing(paragraph);
+            string description = string.Join(" ", figure.Labels.Select(static label => label.Text.Trim()).Where(static text => text.Length > 0));
+            using var stream = new MemoryStream(png);
+            paragraph.InsertImage(stream, "vector-figure-p" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ".png",
+                PdfPointsToWordPixels(figure.Width), PdfPointsToWordPixels(figure.Height), description: description);
+            AddWarning(options, "pdf-vector-figure-rasterized", location,
+                "A vector drawing (such as a chart) was placed as a picture of its page region; its shapes and labels are not editable.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation,
+                new Dictionary<string, string> {
+                    ["PrimitiveCount"] = figure.PrimitiveCount.ToString(CultureInfo.InvariantCulture),
+                    ["LabelCount"] = figure.Labels.Count.ToString(CultureInfo.InvariantCulture)
+                });
+            return true;
+        }
+
+        /// <summary>
+        /// Uses the source alternative text or the detected figure caption. Internal resource names describe nothing to
+        /// a reader, so an image without either gets an empty description rather than a synthetic one.
+        /// </summary>
+        internal static string GetImageAlternativeText(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement) {
+            PdfCore.PdfUnderstandingImageRegion? region = null;
+            for (int index = 0; index < image.Regions.Count; index++) {
+                if (placement == null || ReferenceEquals(image.Regions[index].Placement, placement)) {
+                    region = image.Regions[index];
+                    break;
+                }
+            }
+            region ??= image.PrimaryRegion;
+            if (!string.IsNullOrWhiteSpace(region?.AlternativeText)) return region!.AlternativeText!.Trim();
+            string? caption = region?.Caption?.Region.Text;
+            return string.IsNullOrWhiteSpace(caption) ? string.Empty : caption!.Trim();
         }
 
         private static void GetOverlappingTextPaintOrder(

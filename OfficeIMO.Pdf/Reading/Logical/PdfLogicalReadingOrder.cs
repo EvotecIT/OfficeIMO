@@ -686,7 +686,10 @@ public static partial class PdfLogicalReadingOrderAnalysis {
         if (anchors.Length < 2 || item.Kind is not (PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.TextBlock)) return false;
         double center = (item.Left + item.Right) / 2D;
         bool pageCentered = Math.Abs(center - (pageWidth / 2D)) <= pageWidth * 0.12D;
-        if (item.Kind == PdfLogicalReadingOrderKind.Heading) return pageCentered;
+        // A heading that starts at a column anchor belongs to that column, even when the column sits near the page
+        // centre; a centred heading that starts away from every column edge divides the bands.
+        bool startsAtColumnEdge = anchors.Skip(1).Any(anchor => Math.Abs(item.Left - anchor) <= Math.Max(6D, pageWidth * 0.015D));
+        if (item.Kind == PdfLogicalReadingOrderKind.Heading) return pageCentered && !startsAtColumnEdge;
         double nearestAnchor = anchors.Min(anchor => Math.Abs(anchor - item.Left));
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
     }

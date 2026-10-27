@@ -89,6 +89,8 @@ public sealed class ExcelPdfImportOptions {
 
         /// <summary>
         /// Culture used when parsing detected numeric PDF table values before writing typed Excel cells.
+        /// When left as the invariant culture, the decimal separator (comma or point) is inferred from the document's
+        /// table values; mixed or ambiguous separators are reported in the conversion diagnostics.
         /// </summary>
         public CultureInfo NumericCulture { get; set; } = CultureInfo.InvariantCulture;
 
