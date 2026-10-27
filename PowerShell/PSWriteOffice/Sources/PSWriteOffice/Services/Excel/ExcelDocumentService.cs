@@ -117,6 +117,12 @@ internal static partial class ExcelDocumentService
 
     public static void SaveDocument(ExcelDocument document, bool show, string? filePath, string? password = null, ExcelSaveOptions? saveOptions = null)
     {
+        if (string.IsNullOrEmpty(password))
+        {
+            saveOptions = saveOptions?.Clone() ?? new ExcelSaveOptions();
+            saveOptions.Password = null;
+        }
+
         if (document == null) throw new ArgumentNullException(nameof(document));
 
         var currentPath = GetAssociatedPath(document) ?? string.Empty;
@@ -153,11 +159,7 @@ internal static partial class ExcelDocumentService
                 throw new InvalidOperationException("Provide -Password when saving a workbook loaded from an encrypted package.");
             }
 
-            if (saveOptions == null)
-            {
-                document.Save(currentPath);
-            }
-            else if (!string.IsNullOrWhiteSpace(currentPath))
+            if (!string.IsNullOrWhiteSpace(currentPath))
             {
                 document.Save(currentPath, saveOptions);
             }

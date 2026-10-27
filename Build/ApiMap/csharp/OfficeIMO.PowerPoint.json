@@ -9402,7 +9402,7 @@
       "category": "naming",
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "All partial files and in-repo consumers use PowerPointDocument, without an alias, obsolete wrapper or type forward. Open XML PresentationDocument/PresentationPart schema names and the PowerShell Ppt alias prefix retain their meanings."
+      "note": "All partial files and in-repo consumers use PowerPointDocument, without an alias, obsolete wrapper or type forward. Open XML PresentationDocument/PresentationPart schema names retain their meanings. PowerShell aliases belong to the command migration."
     }
   ],
   "packageMoves": [
@@ -9523,7 +9523,7 @@
     {
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "PowerPointPresentationImageExportOptions/Builder and internal conversion routing/models now use PowerPointDocument; PowerPointSignedPresentationMutationException becomes PowerPointSignedDocumentMutationException. Slide ownership plumbing uses OwnerDocument. PowerShell command names and Ppt aliases are unchanged."
+      "note": "PowerPointPresentationImageExportOptions/Builder and internal conversion routing/models now use PowerPointDocument; PowerPointSignedPresentationMutationException becomes PowerPointSignedDocumentMutationException. Slide ownership plumbing uses OwnerDocument. PowerShell command and alias migration remains separate."
     },
     {
       "phase": "B",
@@ -9539,6 +9539,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Typed AddTable configures the existing bounded projection engine with shared column selection/order, header transformation, formatters and column alignment."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerShell read-only inspection tests call LoadDocument and CloseDocument. The reflection test pinning removed service names is removed. Encrypted lifecycle and source-preservation tests use PowerPointDocument.Load with PowerPointLoadOptions.Password and no longer bypass execution through removed OpenEncrypted/LoadEncrypted probes."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

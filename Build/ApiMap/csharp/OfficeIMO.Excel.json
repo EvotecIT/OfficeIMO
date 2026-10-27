@@ -5336,6 +5336,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "PSWriteOffice and the CLI direct XLSX reader exports and the combined AOT smoke use CreateWriter(...).WriteTable(...). PowerShell preserves ReaderData as its default table name, Sheet1 for blank worksheet names, native header normalization, caller resource ownership and the existing atomic file commit. Remaining static row/reader/DataSet consumers and the superseded public entry points remain pending the writer-removal batch."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerShell encrypted workbook lifecycle and HTML conversion tests exercise the current API directly; removed LoadEncrypted probes no longer bypass these workflows."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

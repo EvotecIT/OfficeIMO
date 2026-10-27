@@ -68,7 +68,7 @@ public sealed class SaveOfficeWordCommand : PSCmdlet {
             if (!string.IsNullOrEmpty(Password)) {
                 OfficeEncryptedPackageService.SaveWord(Document, resolvedPath, Password!, false);
             } else {
-                Document.Save(resolvedPath);
+                Document.Save(resolvedPath, new WordSaveOptions { Password = null });
             }
             savedPath = resolvedPath;
         } else {
@@ -83,7 +83,7 @@ public sealed class SaveOfficeWordCommand : PSCmdlet {
                     throw new PSInvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
                 }
 
-                Document.Save(associatedPath!);
+                Document.Save(associatedPath!, new WordSaveOptions { Password = null });
             }
             savedPath = associatedPath!;
         }

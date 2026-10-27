@@ -5700,6 +5700,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "WordSmartArtNode.Id addresses a native node independently of its index. WordSmartArt.Nodes exposes attached handles in diagram order; edits reuse the existing node text and package-part writers. Removed nodes reject subsequent reads and writes instead of editing a different node at the former index."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerShell encrypted document lifecycle tests exercise the current options-based API directly; probes for removed LoadEncrypted entry points no longer bypass their artifact and source-preservation assertions."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -8,26 +8,6 @@ BeforeAll {
 
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType($TypeName, $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        if ($null -eq $type) {
-            throw "Unable to find loaded type '$TypeName'."
-        }
-
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
-
     function Add-TestWordParagraphStyle {
         param(
             [Parameter(Mandatory)]
@@ -240,13 +220,6 @@ Describe 'Word DSL surface' {
     }
 
     It 'round-trips encrypted Word documents through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Word.WordDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command New-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Get-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedWord.docx'
 
         New-OfficeWord -Path $path -Password 'secret' {

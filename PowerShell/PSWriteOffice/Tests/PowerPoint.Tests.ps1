@@ -8,25 +8,6 @@ BeforeAll {
 
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType($TypeName, $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        if ($null -eq $type) {
-            throw "Unable to find loaded type '$TypeName'."
-        }
-
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
 }
 
 Describe 'PowerPoint cmdlets' {
@@ -136,26 +117,9 @@ Describe 'PowerPoint cmdlets' {
 
     It 'rejects external SaveOnDispose presentations before tracking them' {
         $path = Join-Path $TestDrive 'PowerPointExternalAutoSave.pptx'
-        $presentationType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointDocument', $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        $optionsType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointCreateOptions', $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        $modeType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.DocumentPersistenceMode', $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        $options = [Activator]::CreateInstance($optionsType)
-        $options.PersistenceMode = [Enum]::Parse($modeType, 'SaveOnDispose')
-        $create = $presentationType.GetMethods() | Where-Object {
-            $_.Name -eq 'Create' -and
-            $_.GetParameters().Count -eq 2 -and
-            $_.GetParameters()[0].ParameterType -eq [string]
-        } | Select-Object -First 1
-        $presentation = $create.Invoke($null, [object[]]@([string] $path, $options))
+        $options = [OfficeIMO.PowerPoint.PowerPointCreateOptions]::new()
+        $options.PersistenceMode = [OfficeIMO.DocumentPersistenceMode]::SaveOnDispose
+        $presentation = [OfficeIMO.PowerPoint.PowerPointDocument]::Create($path, $options)
         try {
             Add-OfficePowerPointSlide -Presentation $presentation | Out-Null
 
@@ -175,10 +139,6 @@ Describe 'PowerPoint cmdlets' {
                 [System.Runtime.InteropServices.OSPlatform]::Linux)) {
             return
         }
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
-            return
-        }
-
         $sourcePath = Join-Path $TestDrive 'Deck.pptx'
         $savedAsPath = Join-Path $TestDrive 'deck.pptx'
         New-OfficePowerPoint -Path $sourcePath -Password 'secret' {
@@ -209,10 +169,6 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'saves an encrypted presentation through the canonical path writer' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
-            return
-        }
-
         $sourcePath = Join-Path $TestDrive 'EncryptedPowerPointSource.pptx'
         $savedAsPath = Join-Path (Join-Path $TestDrive 'encrypted-output') 'EncryptedPowerPoint.Copy.pptx'
         $presentation = New-OfficePowerPoint -Path $sourcePath -NoSave
@@ -233,28 +189,14 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'does not overwrite an externally loaded encrypted presentation without a password' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'LoadEncrypted')) {
-            return
-        }
-
         $sourcePath = Join-Path $TestDrive 'EncryptedExternalPowerPoint.pptx'
         New-OfficePowerPoint -Path $sourcePath -Password 'secret' {
             PptSlide { PptTitle -Title 'Encrypted external deck' }
         }
 
-        $presentationType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointDocument', $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        $loadEncrypted = $presentationType.GetMethods() | Where-Object {
-            $_.Name -eq 'LoadEncrypted' -and
-            $_.GetParameters().Count -eq 3 -and
-            $_.GetParameters()[0].ParameterType -eq [string] -and
-            $_.GetParameters()[1].ParameterType -eq [string]
-        } | Select-Object -First 1
-        $presentation = $loadEncrypted.Invoke(
-            $null,
-            [object[]]@([string] $sourcePath, [string] 'secret', $null))
+        $loadOptions = [OfficeIMO.PowerPoint.PowerPointLoadOptions]::new()
+        $loadOptions.Password = 'secret'
+        $presentation = [OfficeIMO.PowerPoint.PowerPointDocument]::Load($sourcePath, $loadOptions)
         try {
             { Save-OfficePowerPoint -Presentation $presentation -Path $sourcePath -ErrorAction Stop } |
                 Should -Throw '*Provide -Password*'
@@ -272,10 +214,6 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'does not overwrite a different encrypted target from a tracked presentation without a password' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
-            return
-        }
-
         $sourcePath = Join-Path $TestDrive 'TrackedNormalPowerPoint.pptx'
         $encryptedTarget = Join-Path $TestDrive 'ProtectedPowerPointTarget.pptx'
         New-OfficePowerPoint -Path $encryptedTarget -Password 'secret' {
@@ -299,57 +237,49 @@ Describe 'PowerPoint cmdlets' {
         }
     }
 
-    It 'loads owned inspection sources as explicit read-only presentations' {
+    It 'saves a plain copy of an encrypted document and associates later saves with that copy' {
+        $sourcePath = Join-Path $TestDrive 'EncryptedSource.pptx'
+        $copyPath = Join-Path $TestDrive 'PlainCopy.pptx'
+        $created = New-OfficePowerPoint -Path $sourcePath -NoSave
+        try {
+            Add-OfficePowerPointSlide -Presentation $created | Out-Null
+            Save-OfficePowerPoint -Presentation $created -Password 'secret'
+        } finally { Close-OfficePowerPoint -Presentation $created }
+
+        $document = Get-OfficePowerPoint -Path $sourcePath -Password 'secret'
+        try {
+            Save-OfficePowerPoint -Presentation $document -Path $copyPath
+            Add-OfficePowerPointSlide -Presentation $document | Out-Null
+            Save-OfficePowerPoint -Presentation $document
+        } finally { Close-OfficePowerPoint -Presentation $document }
+
+        { Get-ZipEntriesLocal -Path $sourcePath } | Should -Throw
+        { Get-ZipEntriesLocal -Path $copyPath } | Should -Not -Throw
+        $original = Get-OfficePowerPoint -Path $sourcePath -Password 'secret'
+        $copy = Get-OfficePowerPoint -Path $copyPath
+        try {
+            $original.Slides.Count | Should -Be 1
+            $copy.Slides.Count | Should -Be 2
+        } finally {
+            Close-OfficePowerPoint -Presentation $original
+            Close-OfficePowerPoint -Presentation $copy
+        }
+    }
+
+    It 'loads owned inspection sources as explicit read-only documents' {
         $path = Join-Path $TestDrive 'PowerPointReadOnly.pptx'
         New-OfficePowerPoint -Path $path { PptSlide { PptTitle -Title 'Read only' } } | Out-Null
 
-        $presentation = [PSWriteOffice.Services.PowerPoint.PowerPointDocumentService]::LoadPresentation($path, $null, $true)
+        $presentation = [PSWriteOffice.Services.PowerPoint.PowerPointDocumentService]::LoadDocument($path, $null, $true)
         try {
             $presentation.AccessMode.ToString() | Should -Be 'ReadOnly'
             $presentation.PersistenceMode.ToString() | Should -Be 'Explicit'
         } finally {
-            [PSWriteOffice.Services.PowerPoint.PowerPointDocumentService]::ClosePresentation($presentation, $false, $false)
+            [PSWriteOffice.Services.PowerPoint.PowerPointDocumentService]::CloseDocument($presentation, $false, $false)
         }
-    }
-
-    It 'preserves the existing PowerPoint service method signatures' {
-        $serviceType = [PSWriteOffice.Services.PowerPoint.PowerPointDocumentService]
-        $load = $serviceType.GetMethods() | Where-Object {
-            $_.Name -eq 'LoadPresentation' -and
-            $_.GetParameters().Count -eq 2 -and
-            $_.GetParameters()[0].ParameterType -eq [string] -and
-            $_.GetParameters()[1].ParameterType -eq [string]
-        }
-        $save = $serviceType.GetMethods() | Where-Object {
-            $_.Name -eq 'SavePresentation' -and
-            $_.GetParameters().Count -eq 3 -and
-            $_.GetParameters()[1].ParameterType -eq [bool] -and
-            $_.GetParameters()[2].ParameterType -eq [string]
-        }
-        $close = $serviceType.GetMethods() | Where-Object {
-            $_.Name -eq 'ClosePresentation' -and
-            $_.GetParameters().Count -eq 4
-        }
-        $closeWithPath = $serviceType.GetMethods() | Where-Object {
-            $_.Name -eq 'ClosePresentation' -and
-            $_.GetParameters().Count -eq 5
-        }
-
-        $load | Should -HaveCount 1
-        $save | Should -HaveCount 1
-        $save.ReturnType | Should -Be ([void])
-        $close | Should -HaveCount 1
-        $closeWithPath | Should -HaveCount 1
     }
 
     It 'round-trips encrypted presentations through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
-            (Get-Command New-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Get-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedPowerPoint.pptx'
 
         New-OfficePowerPoint -Path $path -Password 'secret' {

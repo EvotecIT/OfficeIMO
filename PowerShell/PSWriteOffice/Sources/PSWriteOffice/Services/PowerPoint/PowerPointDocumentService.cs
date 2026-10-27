@@ -115,7 +115,7 @@ public static class PowerPointDocumentService
                 throw new InvalidOperationException("Provide -Password when saving a presentation loaded from an encrypted package.");
             }
 
-            presentation.Save(resolvedPath);
+            presentation.Save(resolvedPath, new PowerPointSaveOptions { Password = null });
         }
 
         Track(presentation, resolvedPath, encrypted: !string.IsNullOrEmpty(password));

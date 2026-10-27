@@ -98,19 +98,6 @@ namespace PSWriteOfficeTestSupport {
         $type
     }
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = Get-TestLoadedType -Name $TypeName
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
-
     function Get-TestWorkbookDate1904 {
         param(
             [Parameter(Mandatory)]
@@ -817,13 +804,6 @@ Describe 'Excel DSL surface' {
     }
 
     It 'round-trips encrypted workbooks through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Excel.ExcelDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command New-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Get-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedExcel.xlsx'
 
         New-OfficeExcel -Path $path -Password 'secret' -SafePreflight {
@@ -920,11 +900,6 @@ Describe 'Excel DSL surface' {
     }
 
     It 'converts encrypted workbooks to HTML without changing or retaining the source' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Excel.ExcelDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command ConvertTo-OfficeExcelHtml).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedExcelHtml.xlsx'
         $htmlPath = Join-Path $TestDrive 'EncryptedExcelHtml.html'
         New-OfficeExcel -Path $path -Password 'secret' {

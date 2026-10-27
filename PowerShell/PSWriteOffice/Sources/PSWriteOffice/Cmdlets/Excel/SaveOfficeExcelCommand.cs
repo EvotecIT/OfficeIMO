@@ -95,6 +95,9 @@ public sealed class SaveOfficeExcelCommand : PSCmdlet {
             ClearCachedFormulaResults.IsPresent,
             MarkFormulasDirty.IsPresent,
             ForceFullCalculationOnOpen.IsPresent);
+        saveOptions ??= new ExcelSaveOptions();
+        saveOptions.Password = null;
+
 
         string savedPath;
         if (!string.IsNullOrWhiteSpace(Path)) {
