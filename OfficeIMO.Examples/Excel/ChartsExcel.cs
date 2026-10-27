@@ -40,16 +40,16 @@ namespace OfficeIMO.Examples.Excel {
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                        new ExcelChartSeries("Sales", new[] { 10500d, 19800d, 25300d, 30100d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12000d, 18000d, 28000d, 35000d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
                 var comboChart = sheet.AddChart(comboData, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
                     type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
                 comboChart.ApplyStylePreset()
                           .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, lineColor: "4472C4");
-                comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
-                          .SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top, numberFormat: "0.0")
+                comboChart.SetValueAxisNumberFormat("#,##0", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
+                          .SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top, numberFormat: "#,##0")
                           .SetSeriesDataLabelTextStyle(1, fontSizePoints: 9, color: "1F4E79")
                           .SetSeriesDataLabelShapeStyle(1, fillColor: "FFFFFF", lineColor: "1F4E79", lineWidthPoints: 0.5);
                 comboChart.SetSeriesDataLabelLeaderLines(1, showLeaderLines: true, lineColor: "1F4E79", lineWidthPoints: 0.5);
@@ -64,7 +64,7 @@ namespace OfficeIMO.Examples.Excel {
                           .SetCategoryAxisLabelRotation(45)
                           .SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low);
                 comboChart.SetCategoryAxisReverseOrder()
-                          .SetValueAxisScale(minimum: 0, maximum: 40, majorUnit: 10, minorUnit: 5);
+                          .SetValueAxisScale(minimum: 0, maximum: 40000, majorUnit: 10000, minorUnit: 5000);
                 comboChart.SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum)
                           .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum)
                           .SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
@@ -76,14 +76,14 @@ namespace OfficeIMO.Examples.Excel {
                 var labelTemplate = new ExcelChartDataLabelTemplate {
                     ShowValue = true,
                     Position = OfficeChartDataLabelPosition.Top,
-                    NumberFormat = "0.0",
+                    NumberFormat = "#,##0",
                     FontSizePoints = 9,
                     TextColor = "404040",
                     Separator = " - "
                 };
                 comboChart.SetSeriesDataLabelTemplate(1, labelTemplate)
                           .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd,
-                            numberFormat: "0.00")
+                            numberFormat: "#,##0")
                           .SetSeriesDataLabelSeparatorForPoint(1, 2, " | ")
                           .SetSeriesDataLabelTextStyleForPoint(1, 2, fontSizePoints: 11, bold: true, color: "FF0000");
 
@@ -108,11 +108,11 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.AddScatterChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Series 1", "A31:A33", "B31:B33"),
                     new ExcelChartSeriesRange("Series 2", "A31:A33", "C31:C33")
-                }, row: 38, column: 6, widthPixels: 640, heightPixels: 360, title: "Scatter (Ranges)");
+                }, row: 42, column: 6, widthPixels: 640, heightPixels: 360, title: "Scatter (Ranges)");
 
                 sheet.AddBubbleChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Bubbles", "A31:A33", "B31:B33", "D31:D33")
-                }, row: 54, column: 6, widthPixels: 640, heightPixels: 360, title: "Bubble");
+                }, row: 62, column: 6, widthPixels: 640, heightPixels: 360, title: "Bubble");
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

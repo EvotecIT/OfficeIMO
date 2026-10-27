@@ -408,7 +408,8 @@ namespace OfficeIMO.Excel {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
                     series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
-                        .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
+                        .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions)
+                        .WithTrendline(style.Trendline));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -444,6 +445,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                style.Trendline = ReadImageExportTrendline(series, workbookPart);
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
@@ -519,6 +521,35 @@ namespace OfficeIMO.Excel {
 
         private static bool GetImageExportConnectScatterPoints(C.ScatterStyleValues? style) =>
             style == null || style.Value != C.ScatterStyleValues.Marker;
+
+        // The first trendline of a series; the renderer draws one fitted line per series.
+        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart) {
+            C.Trendline? trendline = series.GetFirstChild<C.Trendline>();
+            if (trendline == null) return null;
+            OfficeChartTrendlineType? type = trendline.GetFirstChild<C.TrendlineType>()?.Val?.InnerText switch {
+                "exp" => OfficeChartTrendlineType.Exponential,
+                "linear" => OfficeChartTrendlineType.Linear,
+                "log" => OfficeChartTrendlineType.Logarithmic,
+                "movingAvg" => OfficeChartTrendlineType.MovingAverage,
+                "poly" => OfficeChartTrendlineType.Polynomial,
+                "power" => OfficeChartTrendlineType.Power,
+                _ => null
+            };
+            if (type == null) return null;
+            int? order = trendline.GetFirstChild<C.PolynomialOrder>()?.Val?.Value is byte polynomialOrder ? polynomialOrder : null;
+            int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
+            if (type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6) return null;
+            if (type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) return null;
+            C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
+            OfficeColor? color = TryGetSolidLine(properties, workbookPart, out OfficeColor line) ? line : null;
+            double? width = TryGetLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
+            double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
+                ? fixedIntercept : null;
+            return new OfficeChartTrendline(type.Value, order, period,
+                displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
+                displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
+                color: color, width: width, intercept: intercept);
+        }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
             if (TryGetSolidFill(properties, workbookPart, out OfficeColor fill)) {
@@ -789,11 +820,15 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             string source = GetImageExportSource();
             WorkbookPart workbookPart = _document.WorkbookPartRoot;
-            if (chartSpace.Descendants<C.Trendline>().Any()) {
+            // Every trendline type is drawn now; forward and backward forecasts and further
+            // trendlines on the same series are not, so only those still warn.
+            if (chartSpace.Descendants<C.Trendline>().Any(trendline =>
+                    trendline.GetFirstChild<C.Forward>() != null || trendline.GetFirstChild<C.Backward>() != null ||
+                    trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported,
-                    "Worksheet chart trendlines are not rendered by the shared image renderer yet.",
+                    "Worksheet chart trendline forecasts and additional trendlines on a series are not rendered by the shared image renderer.",
                     source));
             }
 
@@ -1588,6 +1623,8 @@ namespace OfficeIMO.Excel {
 
         private sealed class ImageExportSeriesStyle {
             internal string? SeriesColorArgb { get; set; }
+
+            internal OfficeChartTrendline? Trendline { get; set; }
 
             internal bool AutomaticColor { get; set; }
 

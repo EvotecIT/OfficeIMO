@@ -4250,7 +4250,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsUnsupportedChartTrendlines() {
+        public void ExcelRange_ImageExportDrawsChartTrendlinesWithEquation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Trendline");
@@ -4262,15 +4262,25 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.Line, title: "Trendline");
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Line, title: "Trendline");
             chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1);
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult svg = sheet.Range("A1:J14").ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            string markup = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported);
-            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal("Trendline!" + chart.Name, diagnostic.Source);
-            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            // Least squares over (1,120), (2,180), (3,160): y = 20x + 113.3, R² = 0.4286.
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported);
+            Assert.Contains("stroke=\"#FF0000\"", markup, StringComparison.OrdinalIgnoreCase);
+            Assert.True(ExportedSvgContainsText(markup, "y = 20x + 113.3"), "The trendline equation is drawn.");
+            Assert.True(ExportedSvgContainsText(markup, "0.4286"), "The R squared value is drawn.");
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+        }
+
+        // Exported SVG text may be split into positioned runs; compare the characters only.
+        private static bool ExportedSvgContainsText(string markup, string text) {
+            string plain = System.Text.RegularExpressions.Regex.Replace(markup, "<[^>]+>", string.Empty);
+            plain = System.Net.WebUtility.HtmlDecode(plain);
+            return plain.Replace(" ", string.Empty).Contains(text.Replace(" ", string.Empty), StringComparison.Ordinal);
         }
 
         [Fact]
