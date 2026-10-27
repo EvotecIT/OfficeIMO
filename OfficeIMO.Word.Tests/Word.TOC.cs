@@ -186,9 +186,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists[0].IsToc == true, "This list should be TOC");
                 Assert.True(document.Lists[1].IsToc == false, "This list should not be TOC");
                 var authoredParagraphs = document.Paragraphs.Where(paragraph => !IsTocHeadingBookmark(paragraph)).ToList();
-                Assert.True(document.Lists[0].ListItems[0].Text == authoredParagraphs[1].Text, "Text should be identical");
+                var authoredItems = document.Lists[0].ListItems.Where(paragraph => !IsTocHeadingBookmark(paragraph)).ToList();
+                Assert.True(authoredItems[0].Text == authoredParagraphs[1].Text, "Text should be identical");
 
-                Assert.True(document.Lists[0].ListItems[document.Lists[0].ListItems.Count - 1].Text == document.Paragraphs[document.Paragraphs.Count - 1].Text, "Text should be identical");
+                Assert.True(authoredItems[authoredItems.Count - 1].Text == authoredParagraphs[authoredParagraphs.Count - 1].Text, "Text should be identical");
 
                 document.Save();
             }
