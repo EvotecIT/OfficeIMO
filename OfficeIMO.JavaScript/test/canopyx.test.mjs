@@ -61,6 +61,35 @@ test("Canopy report fallbacks keep unsafe links and genuine unsupported presenta
   await assert.rejects(exportCanopy(input(["relative-link"]), "xlsx", { onDiagnostic: async () => {} }), /synchronous/);
 });
 
+test("Canopy relative link labels include null and non-string text-column inputs", async () => {
+  const rows = [null, false, 42].map((value, index) => ({ id: "r" + index,
+    cells: { Name: cell(value, "View record " + index, { diagnostics: ["relative-link"] }) } }));
+  const input = capture(rows);
+  const zip = await readZip(await exportCanopy(input, "xlsx"));
+  const xml = zip.get("xl/worksheets/sheet1.xml").content;
+  for (let index = 0; index < rows.length; index++) assert.ok(xml.includes("View record " + index));
+  assert.equal(await (await exportCanopy(input, "csv")).text(), "Name\r\nView record 0\r\nView record 1\r\nView record 2\r\n");
+});
+
+test("Canopy grouped relative links preserve raw identities and reject mismatched captured ranges", async () => {
+  const make = (values) => capture([
+    { id: "r1", cells: { Name: cell(values[0], "Shared label", { diagnostics: ["relative-link"] }), "Name#raw": cell("Unrelated") } },
+    { id: "r2", cells: { Name: cell(values[1], "Shared label", { diagnostics: ["relative-link"] }), "Name#raw": cell("Unrelated") } }
+  ], [column("Name"), column("Name#raw")], { grouping: { levels: [{ column: "Name", direction: "asc" }], aggregates: [], totals: {}, groups: [
+    { key: "first", value: values[0], text: "First record", offset: 0, count: 1, aggregates: {} },
+    { key: "second", value: values[1], text: "Second record", offset: 1, count: 1, aggregates: {} }
+  ] } });
+  for (const values of [["#record/42", "#record/43"], [null, false]]) for (const format of ["xlsx", "pdf"]) {
+    const blob = await exportCanopy(make(values), format);
+    const text = format === "xlsx" ? (await readZip(blob)).get("xl/worksheets/sheet1.xml").content : (await inspectPdf(blob)).text;
+    assert.ok(text.includes("First record") && text.includes("Second record"));
+    assert.equal((text.match(/Shared label/g) ?? []).length, 2);
+    assert.ok(!text.includes("#record/42") && !text.includes("#record/43"));
+    const bad = make(values); bad.request.grouping.groups[0].value = "#record/wrong";
+    await assert.rejects(exportCanopy(bad, format), /disagrees with its captured group/);
+  }
+});
+
 test("Canopy capture preserves column order, own keys, nulls and reusable enumeration without query evaluation", async () => {
   const columns = [column("Amount", "number"), column("__proto__"), column("Name")];
   const rows = [{ id: "r1", cells: { Name: cell(null, "Missing"), ["__proto__"]: cell("Literal"), Amount: cell(12.5, "12.50 USD") } }];

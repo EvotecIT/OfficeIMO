@@ -1,5 +1,5 @@
 import { ExportCell, checkAbort, inputRows } from "../../core/index.js";
-import type { CellPresentation, ExportValue } from "../../core/index.js";
+import type { CellPresentation, CellValue, ExportValue } from "../../core/index.js";
 import { canopyPivot, pivotNumberFormat } from "./pivot.js";
 import type { CanopyPivotMapping } from "./pivot.js";
 import { datetime } from "./dates.js";
@@ -11,6 +11,14 @@ import { canopyNumberFormat, canopyXlsxWidth } from "./presentation.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
+const rawIdentities = new WeakMap<ExportCell, CellValue>();
+
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+export function canopyIdentityValue(value: ExportValue): CellValue {
+  if (!(value instanceof ExportCell)) return value;
+  const original = rawIdentities.get(value);
+  return original === undefined ? value.value : original;
+}
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): CanopyExport {
@@ -109,7 +117,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         diagnostics(cell.diagnostics, row.id, spec.id);
         // A relative destination is navigation metadata, not the visible label.
         // History captures already carry their frozen latest scalar (or null).
-        const relativeLabel = spec.kind === "text" && typeof cell.value === "string" && cell.diagnostics?.includes("relative-link");
+        const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
         let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? cell.text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
@@ -118,7 +126,12 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
           ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
-        result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+        if (format === "csv") result.push(value);
+        else {
+          const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+          if (relativeLabel) rawIdentities.set(exported, cell.value);
+          result.push(exported);
+        }
       }
       if (rowCount !== null && count >= rowCount) throw new TypeError("Canopy capture exceeded its declared recordCount.");
       count++; yield result;

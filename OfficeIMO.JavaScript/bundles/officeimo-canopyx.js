@@ -11839,7 +11839,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("03a99631b5788e268146f9623a4bffa8d56381854d9917227c4c168e4c548ac4") ?? (() => {
+const _m96 = _modules.get("96ec39a0eee24369a0bc788957efa2991ac7c3740c7c419b4888b0ed29d00e7b") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11857,6 +11857,14 @@ const { canopyDiagnostics } = _m95;
 const { canopyNumberFormat, canopyXlsxWidth } = _m99;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
+const rawIdentities = new WeakMap();
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+function canopyIdentityValue(value) {
+    if (!(value instanceof ExportCell))
+        return value;
+    const original = rawIdentities.get(value);
+    return original === undefined ? value.value : original;
+}
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
     return prepareCanopyExport(capture, format, options).source;
@@ -11964,7 +11972,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     diagnostics(cell.diagnostics, row.id, spec.id);
                     // A relative destination is navigation metadata, not the visible label.
                     // History captures already carry their frozen latest scalar (or null).
-                    const relativeLabel = spec.kind === "text" && typeof cell.value === "string" && cell.diagnostics?.includes("relative-link");
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
                     let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
@@ -11975,7 +11983,14 @@ function prepareCanopyExport(capture, format, options = {}) {
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
-                    result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+                    if (format === "csv")
+                        result.push(value);
+                    else {
+                        const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+                        if (relativeLabel)
+                            rawIdentities.set(exported, cell.value);
+                        result.push(exported);
+                    }
                 }
                 if (rowCount !== null && count >= rowCount)
                     throw new TypeError("Canopy capture exceeded its declared recordCount.");
@@ -11987,8 +12002,8 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("03a99631b5788e268146f9623a4bffa8d56381854d9917227c4c168e4c548ac4", _exports);
+const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+_modules.set("96ec39a0eee24369a0bc788957efa2991ac7c3740c7c419b4888b0ed29d00e7b", _exports);
 return _exports;
 })();
 
@@ -12295,10 +12310,8 @@ _modules.set("13582dc7ba6ecf2a33722c6fee326b500408542ffdaa5cdac26ae72c310ea1ba",
 return _exports;
 })();
 
-const _m102 = _modules.get("0f2b50bd606bf0a3273e7a3bec7ed6255f23cfee522a7cfeb2cb676c062ad40e") ?? (() => {
+const _m102 = _modules.get("e4641e1fba547a7dd4ec3881578ee6eeb552e00b20ed7ebf0c9fd60696672eb1") ?? (() => {
 const { createGroupedReport } = _m8;
-
-const { ExportCell } = _m5;
 
 const { checkAbort } = _m4;
 
@@ -12308,8 +12321,10 @@ const { captureFields } = _m10;
 
 const { datetime } = _m98;
 
+const { canopyIdentityValue } = _m96;
+
 const identity = (value) => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
-const scalar = (value) => value instanceof ExportCell ? value.value : value;
+const scalar = canopyIdentityValue;
 /** Validate captured ranges, then use the owned grouping factory and its existing writers.
  * Only ranges, labels and at most four active aggregate vectors are retained; no detail body is buffered. */
 function canopyGrouped(source, request, options, limits, report, format) {
@@ -12476,10 +12491,20 @@ function canopyGrouped(source, request, options, limits, report, format) {
         }
         verify(grand, grandExpected);
     }
+    // The factory's hidden fields keep raw group identity separate from projected
+    // detail labels. Never override a declared output column's value getter.
+    const groupKeys = new Set([...source.columns.map(column => column.key), ...levels.map(level => level.column)]);
     const groupBy = levels.map((level, depth) => {
-        const visible = source.columns.some(column => column.key === level.column);
-        return { key: level.column,
-            ...(visible ? {} : { value: (_row, context) => at(depth, context.rowIndex).value }),
+        const column = source.columns.findIndex(column => column.key === level.column);
+        let key = level.column;
+        if (column >= 0) {
+            do {
+                key += "#raw";
+            } while (groupKeys.has(key));
+            groupKeys.add(key);
+        }
+        return { key,
+            value: (row, context) => column < 0 ? at(depth, context.rowIndex).value : scalar(row[column]),
             label: (value) => labels[depth].get(identity(value)) ?? String(value ?? "") };
     });
     const sourceLimits = limits === undefined ? undefined : {
@@ -12491,7 +12516,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("0f2b50bd606bf0a3273e7a3bec7ed6255f23cfee522a7cfeb2cb676c062ad40e", _exports);
+_modules.set("e4641e1fba547a7dd4ec3881578ee6eeb552e00b20ed7ebf0c9fd60696672eb1", _exports);
 return _exports;
 })();
 
@@ -12615,7 +12640,7 @@ _modules.set("8b7d3691def49cffcdaa55a0e3bd181bae4e69f2bce767724190882eec6dc645",
 return _exports;
 })();
 
-const _m0 = _modules.get("2dcfaa68cfae95065944e4639a9f647285307df8de4f869d38db02e511ef81c2") ?? (() => {
+const _m0 = _modules.get("0c6180381a632ed2c9898644d690cfe801871acad4106199acb604a36b034ec7") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12746,7 +12771,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("2dcfaa68cfae95065944e4639a9f647285307df8de4f869d38db02e511ef81c2", _exports);
+_modules.set("0c6180381a632ed2c9898644d690cfe801871acad4106199acb604a36b034ec7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

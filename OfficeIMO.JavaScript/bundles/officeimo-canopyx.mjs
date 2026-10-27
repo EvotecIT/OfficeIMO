@@ -11753,6 +11753,14 @@ const { canopyDiagnostics } = _m95;
 const { canopyNumberFormat, canopyXlsxWidth } = _m99;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
+const rawIdentities = new WeakMap();
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+function canopyIdentityValue(value) {
+    if (!(value instanceof ExportCell))
+        return value;
+    const original = rawIdentities.get(value);
+    return original === undefined ? value.value : original;
+}
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
     return prepareCanopyExport(capture, format, options).source;
@@ -11860,7 +11868,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     diagnostics(cell.diagnostics, row.id, spec.id);
                     // A relative destination is navigation metadata, not the visible label.
                     // History captures already carry their frozen latest scalar (or null).
-                    const relativeLabel = spec.kind === "text" && typeof cell.value === "string" && cell.diagnostics?.includes("relative-link");
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
                     let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
@@ -11871,7 +11879,14 @@ function prepareCanopyExport(capture, format, options = {}) {
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
-                    result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+                    if (format === "csv")
+                        result.push(value);
+                    else {
+                        const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+                        if (relativeLabel)
+                            rawIdentities.set(exported, cell.value);
+                        result.push(exported);
+                    }
                 }
                 if (rowCount !== null && count >= rowCount)
                     throw new TypeError("Canopy capture exceeded its declared recordCount.");
@@ -11883,7 +11898,7 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
@@ -12191,8 +12206,6 @@ return _exports;
 const _m102 = (() => {
 const { createGroupedReport } = _m8;
 
-const { ExportCell } = _m5;
-
 const { checkAbort } = _m4;
 
 const { createTotals } = _m12;
@@ -12201,8 +12214,10 @@ const { captureFields } = _m10;
 
 const { datetime } = _m98;
 
+const { canopyIdentityValue } = _m96;
+
 const identity = (value) => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
-const scalar = (value) => value instanceof ExportCell ? value.value : value;
+const scalar = canopyIdentityValue;
 /** Validate captured ranges, then use the owned grouping factory and its existing writers.
  * Only ranges, labels and at most four active aggregate vectors are retained; no detail body is buffered. */
 function canopyGrouped(source, request, options, limits, report, format) {
@@ -12369,10 +12384,20 @@ function canopyGrouped(source, request, options, limits, report, format) {
         }
         verify(grand, grandExpected);
     }
+    // The factory's hidden fields keep raw group identity separate from projected
+    // detail labels. Never override a declared output column's value getter.
+    const groupKeys = new Set([...source.columns.map(column => column.key), ...levels.map(level => level.column)]);
     const groupBy = levels.map((level, depth) => {
-        const visible = source.columns.some(column => column.key === level.column);
-        return { key: level.column,
-            ...(visible ? {} : { value: (_row, context) => at(depth, context.rowIndex).value }),
+        const column = source.columns.findIndex(column => column.key === level.column);
+        let key = level.column;
+        if (column >= 0) {
+            do {
+                key += "#raw";
+            } while (groupKeys.has(key));
+            groupKeys.add(key);
+        }
+        return { key,
+            value: (row, context) => column < 0 ? at(depth, context.rowIndex).value : scalar(row[column]),
             label: (value) => labels[depth].get(identity(value)) ?? String(value ?? "") };
     });
     const sourceLimits = limits === undefined ? undefined : {
