@@ -166,9 +166,12 @@ internal static partial class TableDetector {
                 // A list or a heading under the table is the next block, not a row.
                 if (ContentStructureExtractor.IsListItemText(row.Text.Trim())) break;
                 if (row.Spans.Any(span => span.FontSize > fontSize * 1.15D)) break;
+                // An emphasized row under plain rows starts the next table.
+                if (lines.Count > 0 && HasEmphasizedText(row) && !HasEmphasizedText(lines[lines.Count - 1])) break;
                 string[]? cells = SplitIntoTableColumns(table, row);
                 if (cells is null) break;
                 int filled = cells.Count(static cell => !string.IsNullOrWhiteSpace(cell));
+                if (!AlignsWithTableColumns(table, lines, row, fontSize)) break;
                 if (table.Rows.Count > 0 && cells.SequenceEqual(table.Rows[0], StringComparer.Ordinal)) break;
                 bool continuation = cursor - rowY <= lineGap;
                 if (continuation) {
@@ -217,6 +220,36 @@ internal static partial class TableDetector {
         tables.RemoveAll(absorbedTables.Contains);
     }
 
+    /// <summary>
+    /// A new or continued row must start its cells where the table's rows already start (left-aligned) or end
+    /// them where the rows end (right-aligned); a line that drifts between those edges is not part of the grid.
+    /// </summary>
+    private static bool AlignsWithTableColumns(PdfStructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> rows,
+        TextLayoutEngine.TextLine candidate, double fontSize) {
+        double tolerance = Math.Max(2.5D, fontSize * 0.3D);
+        for (int column = 0; column < table.Columns.Count; column++) {
+            double from = column == 0 ? double.MinValue : table.Columns[column].From;
+            double to = column + 1 == table.Columns.Count ? double.MaxValue : table.Columns[column].To;
+            PdfTextSpan[] spans = candidate.Spans.Where(span => span.X >= from && span.X < to).ToArray();
+            if (spans.Length == 0) continue;
+            double start = spans.Min(static span => span.X);
+            double end = spans.Max(static span => span.X + Math.Max(0D, span.Advance));
+            var starts = new List<double>();
+            var ends = new List<double>();
+            foreach (TextLayoutEngine.TextLine row in rows) {
+                PdfTextSpan[] existing = row.Spans.Where(span => span.X >= from && span.X < to).ToArray();
+                if (existing.Length == 0) continue;
+                starts.Add(existing.Min(static span => span.X));
+                ends.Add(existing.Max(static span => span.X + Math.Max(0D, span.Advance)));
+            }
+            if (starts.Count == 0) continue;
+            bool leftAligned = starts.Any(value => Math.Abs(value - start) <= tolerance);
+            bool rightAligned = ends.Any(value => Math.Abs(value - end) <= tolerance);
+            if (!leftAligned && !rightAligned) return false;
+        }
+        return true;
+    }
+
     /// <summary>Splits a line at the table's column boundaries, or returns null when a span straddles one.</summary>
     private static string[]? SplitIntoTableColumns(PdfStructuredTable table, TextLayoutEngine.TextLine line) {
         var fragments = new List<PdfTextSpan>[table.Columns.Count];
@@ -230,6 +263,76 @@ internal static partial class TableDetector {
             fragments[column].Add(span);
         }
         return fragments.Select(fragment => ComposeCell(fragment, line.ReadingDirection)).ToArray();
+    }
+
+    /// <summary>
+    /// Splits a column at a whitespace channel that runs through every row. Right-aligned figures end close to the
+    /// next left-aligned column (themed tables pad cells, not gaps), so the gap between them can be narrower than
+    /// the generic cell-gap threshold, yet it sits at the same position on every row.
+    /// </summary>
+    internal static void SplitColumnsAtAlignedChannels(List<PdfStructuredTable> tables, Action? cancellationCheck) {
+        foreach (PdfStructuredTable table in tables) {
+            cancellationCheck?.Invoke();
+            if (string.Equals(table.Kind, "leaders", StringComparison.Ordinal) || table.Columns.Count == 0 ||
+                table.SourceLines.Count < 3 || table.Rows.Count != table.SourceLines.Count) continue;
+            for (int column = 0; column < table.Columns.Count && table.Columns.Count < MaximumPositionedRecoveryColumns; column++) {
+                double? split = FindAlignedChannel(table, column);
+                if (!split.HasValue) continue;
+                PdfStructuredTableColumn source = table.Columns[column];
+                table.Columns.Insert(column + 1, new PdfStructuredTableColumn { From = split.Value, To = source.To });
+                source.To = split.Value;
+                source.VisualBounds = null;
+                for (int row = 0; row < table.Rows.Count; row++) {
+                    string[]? cells = SplitIntoTableColumns(table, table.SourceLines[row]);
+                    table.Rows[row] = cells ?? InsertEmptyCell(table.Rows[row], column + 1);
+                }
+                column++;
+            }
+        }
+    }
+
+    private static string[] InsertEmptyCell(string[] row, int index) {
+        var cells = row.ToList();
+        cells.Insert(Math.Min(index, cells.Count), string.Empty);
+        return cells.ToArray();
+    }
+
+    private static double? FindAlignedChannel(PdfStructuredTable table, int column) {
+        double from = table.Columns[column].From, to = table.Columns[column].To;
+        // Start with the whole column as free and remove every span extent row by row.
+        var free = new List<(double Start, double End)> { (from, to) };
+        int rowsWithText = 0;
+        double fontSize = 10D;
+        foreach (TextLayoutEngine.TextLine line in table.SourceLines) {
+            PdfTextSpan[] spans = line.Spans.Where(span => span.X >= from - 0.5D && span.X < to).ToArray();
+            if (spans.Length == 0) continue;
+            rowsWithText++;
+            fontSize = Math.Max(fontSize, spans.Max(static span => span.FontSize));
+            foreach (PdfTextSpan span in spans) {
+                double start = span.X, end = span.X + Math.Max(0D, span.Advance);
+                var next = new List<(double Start, double End)>();
+                foreach ((double freeStart, double freeEnd) in free) {
+                    if (end <= freeStart || start >= freeEnd) { next.Add((freeStart, freeEnd)); continue; }
+                    if (start > freeStart) next.Add((freeStart, start));
+                    if (end < freeEnd) next.Add((end, freeEnd));
+                }
+                free = next;
+            }
+        }
+        if (rowsWithText < 3) return null;
+        double minimum = Math.Max(6D, fontSize * 0.6D);
+        foreach ((double start, double end) in free.OrderByDescending(static gap => gap.End - gap.Start)) {
+            if (end - start < minimum || start <= from + 0.5D || end >= to - 0.5D) continue;
+            double split = (start + end) / 2D;
+            int left = 0, right = 0;
+            foreach (TextLayoutEngine.TextLine line in table.SourceLines) {
+                if (line.Spans.Any(span => span.X >= from - 0.5D && span.X < split)) left++;
+                if (line.Spans.Any(span => span.X >= split && span.X < to)) right++;
+            }
+            // Both sides must carry content on most rows; otherwise this is ragged text, not two columns.
+            if (left * 10 >= rowsWithText * 8 && right * 10 >= rowsWithText * 8) return split;
+        }
+        return null;
     }
 
     private static bool LooksLikeHeaderLabels(string[] cells) {
@@ -282,6 +385,10 @@ internal static partial class TableDetector {
             return false;
         }
         if (upper.Rows.Count > 0 && lower.Rows.Count > 0 && upper.Rows[0].SequenceEqual(lower.Rows[0], StringComparer.Ordinal)) return false;
+        // An emphasized first row under plain rows is the header of the next table.
+        TextLayoutEngine.TextLine lowerFirst = lower.SourceLines.OrderByDescending(static line => line.Y).First();
+        TextLayoutEngine.TextLine upperLast = upper.SourceLines.OrderBy(static line => line.Y).First();
+        if (HasEmphasizedText(lowerFirst) && !HasEmphasizedText(upperLast)) return false;
         return true;
     }
 

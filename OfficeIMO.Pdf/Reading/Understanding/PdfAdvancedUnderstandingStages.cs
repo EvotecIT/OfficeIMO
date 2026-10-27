@@ -781,8 +781,7 @@ public static partial class PdfAdvancedUnderstandingStages {
 
     private sealed class AdvancedSemanticClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
-            double[] sizes = orderedRegions.SelectMany(static region => region.Lines).Select(static line => line.FontSize).OrderBy(static size => size).ToArray();
-            double median = sizes.Length == 0 ? 0D : sizes[(sizes.Length - 1) / 2];
+            double median = GetBodyFontSize(orderedRegions.SelectMany(static region => region.Lines));
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
             foreach (PdfUnderstandingRegion region in orderedRegions) {
                 context.ConsumeWork();
@@ -815,6 +814,27 @@ public static partial class PdfAdvancedUnderstandingStages {
         /// <summary>
         /// True when the text reads as words rather than a value: "1.8 h", "94.2%" or "Q3" are figures with a unit.
         /// </summary>
+        /// <summary>
+        /// The page's reference font size. On a short page a median over lines lets a few large headings outvote
+        /// the body (two headings and one paragraph), so pages with fewer than five lines weight each line by its
+        /// length instead.
+        /// </summary>
+        internal static double GetBodyFontSize(IEnumerable<PdfUnderstandingLine> lines) {
+            (double Size, int Weight)[] weighted = lines
+                .Select(static line => (line.FontSize, Math.Max(1, line.Text.Trim().Length)))
+                .OrderBy(static item => item.Item1)
+                .ToArray();
+            if (weighted.Length == 0) return 0D;
+            if (weighted.Length >= 5) return weighted[(weighted.Length - 1) / 2].Size;
+            long total = weighted.Sum(static item => (long)item.Weight);
+            long cumulative = 0;
+            foreach ((double size, int weight) in weighted) {
+                cumulative += weight;
+                if (cumulative * 2 >= total) return size;
+            }
+            return weighted[weighted.Length - 1].Size;
+        }
+
         internal static bool HasLetter(string text) {
             int letters = 0, digits = 0;
             for (int index = 0; index < text.Length; index++) {

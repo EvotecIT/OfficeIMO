@@ -103,6 +103,7 @@ internal static partial class TableDetector {
         MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
         AbsorbWrappedRows(tables, pageLines, consumeWork, cancellationCheck);
+        SplitColumnsAtAlignedChannels(tables, cancellationCheck);
         return tables;
     }
 
