@@ -253,7 +253,7 @@ namespace OfficeIMO.Excel.Pdf {
             return 0;
         }
 
-        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
+        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred, IReadOnlyDictionary<(int Row, int Column), string>? textOverrides = null) {
             int endColumn = Math.Min(values.GetLength(1), startColumn + columnCount);
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
                 int row = rowIndexes[localRow];
@@ -270,7 +270,14 @@ namespace OfficeIMO.Excel.Pdf {
                     ExcelCellStyleInfo? style = GetCellStyle(styles, row, column);
                     StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
                     ExcelHyperlinkInfo? hyperlink = GetHyperlink(hyperlinks, row, column);
-                    string text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
+                    string text;
+                    if (textOverrides != null && textOverrides.TryGetValue((row, column), out string? overrideText)) {
+                        text = overrideText;
+                        // Overflowing text, and its link, are painted over the neighbours instead.
+                        if (text.Length == 0) hyperlink = null;
+                    } else {
+                        text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
+                    }
                     MergeSpan? span = mergedCells?.GetSpan(row, column);
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
@@ -310,7 +317,7 @@ namespace OfficeIMO.Excel.Pdf {
             string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)
                 ? destinationName
                 : null;
-            string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
+            string? linkContents = linkUri == null && linkDestinationName == null || string.IsNullOrWhiteSpace(text) ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
             PdfCore.PdfStandardFont? font = MapFont(style?.FontName, defaultFontFamily);
             double? fontSize = style?.FontSize is double authoredFontSize && authoredFontSize > 0D

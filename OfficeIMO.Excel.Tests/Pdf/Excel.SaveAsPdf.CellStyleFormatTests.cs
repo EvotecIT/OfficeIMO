@@ -357,7 +357,7 @@ public partial class Excel {
         Assert.Contains("100", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        int barFillCount = rawPdf.Split(new[] { "0.357 0.608 0.835 rg" }, StringSplitOptions.None).Length - 1;
+        int barFillCount = rawPdf.Split(new[] { "0.678 0.804 0.918 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(2, barFillCount);
         Assert.Contains(" re f", rawPdf, StringComparison.Ordinal);
@@ -386,7 +386,7 @@ public partial class Excel {
         }
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        MatchCollection barRects = Regex.Matches(rawPdf, @"0\.357 0\.608 0\.835 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
+        MatchCollection barRects = Regex.Matches(rawPdf, @"0\.678 0\.804 0\.918 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
 
         Assert.Equal(2, barRects.Count);
         double firstX = double.Parse(barRects[0].Groups["x"].Value, CultureInfo.InvariantCulture);
@@ -598,6 +598,8 @@ public partial class Excel {
             sheet.CellAt(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
             sheet.Cell(7, 1, "Zero");
             sheet.CellAt(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
+            // Wide enough that Excel would show each value rather than "####".
+            sheet.SetColumnWidth(2, 24);
 
             ExcelCellStyleInfo currencyStyle = sheet.CellAt(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
@@ -646,6 +648,7 @@ public partial class Excel {
             sheet.CellAt(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
             sheet.Cell(3, 1, "QuotedSectionSeparator");
             sheet.CellAt(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
+            sheet.SetColumnWidth(2, 24);
 
             document.Save();
 

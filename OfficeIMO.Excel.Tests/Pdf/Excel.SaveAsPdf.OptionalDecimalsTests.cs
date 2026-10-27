@@ -43,7 +43,10 @@ public partial class Excel {
     [InlineData(12.345d, "\"$\"0.00%", "$1234.50%")]
     public void Saved_numeric_formats_use_shared_display_semantics_in_pdf(double value, string format, string expected) {
         using var workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Formats").CellAt(1, 1).SetValue(value).SetNumberFormat(format);
+        ExcelSheet sheet = workbook.AddWorksheet("Formats");
+        sheet.CellAt(1, 1).SetValue(value).SetNumberFormat(format);
+        // Wide enough that Excel would show the formatted value rather than "####".
+        sheet.SetColumnWidth(1, 20);
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
