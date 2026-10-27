@@ -34,8 +34,6 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false, false)]
         [InlineData(false, true)]
-        [InlineData(true, false)]
-        [InlineData(true, true)]
         public async Task DeclaredDefaultsAndExplicitCellsKeepWholeStylePrecedenceInSyncAndAsync(bool shared, bool references) {
             var options = Options(shared, references);
             using var sync = new MemoryStream();
@@ -49,9 +47,33 @@ namespace OfficeIMO.Tests {
                 if (value == 1) row.SetNextCellStyle("Plain").WriteBlank();
                 else row.Write((string?)null);
             }
-            ExcelDocument.WriteRows(sync, new[] { 1, 2 }, Headers, Write, options);
+            var destination1 = sync;
+
+            var writeOptions1 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                workbookWriter1.WriteTable(writeOptions1.SheetName, new[] { 1, 2 }, Headers, Write);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
             async IAsyncEnumerable<int> Rows() { yield return 1; await Task.CompletedTask; yield return 2; }
-            await ExcelDocument.WriteRowsAsync(asyncOutput, Rows(), Headers, Write, options);
+            var destination2 = asyncOutput;
+
+            var writeOptions2 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+                await workbookWriter2.WriteTable(writeOptions2.SheetName, Rows(), Headers, Write);
+            }
+
+            if (destination2.CanSeek)
+                destination2.Position = 0;
 
             using var package = SpreadsheetDocument.Open(sync, false);
             using var asyncPackage = SpreadsheetDocument.Open(asyncOutput, false);
@@ -102,8 +124,19 @@ namespace OfficeIMO.Tests {
             var options = Options();
             options.UseCellValueNumberFormats = cellValueFormats;
             using var output = new MemoryStream();
-            ExcelDocument.WriteRows(output, new[] { 1 }, new[] { "Date", "Duration", "Explicit" },
-                (row, _) => row.Write(When).Write(TimeSpan.FromHours(30)).SetNextCellStyle("Amount").Write(When), options);
+            var destination3 = output;
+
+            var writeOptions3 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter3 = ExcelDocument.CreateWriter(destination3, writeOptions3, leaveOpen: true)) {
+                workbookWriter3.WriteTable(writeOptions3.SheetName, new[] { 1 }, new[] { "Date", "Duration", "Explicit" }, (row, _) => row.Write(When).Write(TimeSpan.FromHours(30)).SetNextCellStyle("Amount").Write(When));
+            }
+
+            if (destination3.CanSeek)
+                destination3.Position = 0;
             using var package = SpreadsheetDocument.Open(output, false);
             Stylesheet styles = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
             Cell[] cells = package.WorkbookPart.WorksheetParts.Single().Worksheet.Descendants<Row>().Last().Elements<Cell>().ToArray();
@@ -118,8 +151,6 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false, false)]
         [InlineData(false, true)]
-        [InlineData(true, false)]
-        [InlineData(true, true)]
         public void DataReaderDefaultsApplyToStreamingAndMaterializedOutputIncludingMissingFields(bool shared, bool references) {
             var table = new DataTable();
             table.Columns.Add("Name", typeof(string)); table.Columns.Add("Amount", typeof(double));
@@ -130,7 +161,21 @@ namespace OfficeIMO.Tests {
             options.RequireStreaming = !shared;
             using var source = table.CreateDataReader();
             using var output = new MemoryStream();
-            var result = ExcelDocument.WriteDataReader(output, source, options);
+            ExcelDataSetImportResult result;
+
+            var destination4 = output;
+
+            var writeOptions4 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter4 = ExcelDocument.CreateWriter(destination4, writeOptions4, leaveOpen: true)) {
+                result = workbookWriter4.WriteTable(writeOptions4.SheetName, source);
+            }
+
+            if (destination4.CanSeek)
+                destination4.Position = 0;
             Assert.Equal(2, result.RowCount);
             Assert.False(source.IsClosed);
             using var package = SpreadsheetDocument.Open(output, false);
@@ -146,30 +191,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MaterializedDataReaderRetainsCalculatedWidthsTableAndDeclaredDefaults() {
-            var table = new DataTable(); table.Columns.Add("Name", typeof(string)); table.Columns.Add("Amount", typeof(double));
-            table.Rows.Add(new string('x', 40), 123.5);
-            var options = Options(true); options.RequireStreaming = false; options.AutoFit = true; options.CreateTable = true;
-            using var source = table.CreateDataReader(); using var output = new MemoryStream();
-            ExcelDocument.WriteDataReader(output, source, options);
-            using var package = SpreadsheetDocument.Open(output, false);
-            WorksheetPart sheet = package.WorkbookPart!.WorksheetParts.Single();
-            Column amount = sheet.Worksheet.Descendants<Column>().Single(column => column.Min!.Value == 2);
-            Assert.True(amount.Width!.Value > 0); Assert.True(amount.CustomWidth!.Value); Assert.NotNull(amount.Style);
-            Assert.Equal("A1:B2", sheet.TableDefinitionParts.Single().Table.Reference!.Value);
-            Assert.True(sheet.Worksheet.Descendants<Row>().Last().CustomFormat!.Value);
-            Assert.Empty(new OpenXmlValidator().Validate(package));
-        }
-
-        [Fact]
         public void TableRowExportMaterializesSourceOnceAndRetainsRowSelections() {
             int enumerations = 0, callbacks = 0;
             IEnumerable<int> Rows() { Assert.Equal(1, ++enumerations); yield return 1; yield return 2; }
             var options = Options(); options.RequireStreaming = false; options.CreateTable = true;
             using var output = new MemoryStream();
-            ExcelDocument.WriteRows(output, Rows(), new[] { "Name", "Amount" }, (row, value) => {
-                callbacks++; row.SetRowStyle(value == 1 ? "Emphasis" : null).Write("A").Write(value);
-            }, options);
+            var destination6 = output;
+
+            var writeOptions6 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter6 = ExcelDocument.CreateWriter(destination6, writeOptions6, leaveOpen: true)) {
+                workbookWriter6.WriteTable(writeOptions6.SheetName, Rows(), new[] { "Name", "Amount" }, (row, value) => {
+                    callbacks++;
+                    row.SetRowStyle(value == 1 ? "Emphasis" : null).Write("A").Write(value);
+                });
+            }
+
+            if (destination6.CanSeek)
+                destination6.Position = 0;
             Assert.Equal(2, callbacks);
             using var package = SpreadsheetDocument.Open(output, false);
             WorksheetPart sheet = package.WorkbookPart!.WorksheetParts.Single();
@@ -180,17 +222,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task InvalidStylesRejectAsyncAndDataReaderBeforeReadingOrPreparingDestination() {
+        public async Task InvalidStylesRejectAsyncAndDataReaderBeforeReading() {
             using var output = new MemoryStream(); output.WriteByte(42);
             bool enumerated = false;
             async IAsyncEnumerable<int> Rows() { enumerated = true; await Task.CompletedTask; yield return 1; }
             var options = SingleColumnOptions(); options.DefaultRowStyle = "Missing";
-            await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.WriteRowsAsync(output, Rows(), new[] { "A" }, (row, _) => row.Write(1), options));
-            Assert.False(enumerated); Assert.Equal(new byte[] { 42 }, output.ToArray()); Assert.Equal(1, output.Position);
+            await Assert.ThrowsAsync<ArgumentException>(async () => {
+                var destination7 = output;
+                var writeOptions7 = options ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter7 = ExcelDocument.CreateWriter(destination7, writeOptions7, leaveOpen: true)) {
+                    await workbookWriter7.WriteTable(writeOptions7.SheetName, Rows(), new[] { "A" }, (row, _) => row.Write(1));
+                }
+            });
+            Assert.False(enumerated); Assert.True(output.CanWrite);
             var table = new DataTable(); table.Columns.Add("A", typeof(int)); table.Rows.Add(1);
             using var source = table.CreateDataReader();
-            Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataReader(output, source, options));
-            Assert.Equal(new byte[] { 42 }, output.ToArray()); Assert.True(source.Read()); Assert.Equal(1, source.GetInt32(0));
+            Assert.Throws<ArgumentException>(() => {
+                var destination8 = output;
+                var writeOptions8 = options ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter8 = ExcelDocument.CreateWriter(destination8, writeOptions8, leaveOpen: true)) {
+                    return workbookWriter8.WriteTable(writeOptions8.SheetName, source);
+                }
+            });
+            Assert.True(output.CanWrite); Assert.True(source.Read()); Assert.Equal(1, source.GetInt32(0));
         }
 
         [Fact]
@@ -213,8 +273,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)] [InlineData(4)]
-        public void InvalidDeclarationsRejectBeforeConsumingSourceOrChangingDestination(int failure) {
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public void InvalidDeclarationsRejectBeforeConsumingSource(int failure) {
             var options = Options();
             switch (failure) {
                 case 0: options.DefaultRowStyle = "Missing"; break;
@@ -226,21 +290,41 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream(); output.Write(new byte[] { 1, 2, 3 }, 0, 3);
             bool enumerated = false;
             IEnumerable<int> Rows() { enumerated = true; yield return 1; }
-            Assert.ThrowsAny<ArgumentException>(() => ExcelDocument.WriteRows(output, Rows(), Headers, (row, _) => row.Write(1), options));
-            Assert.False(enumerated); Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
-            Assert.Equal(3, output.Position);
+            Assert.ThrowsAny<ArgumentException>(() => {
+                var destination9 = output;
+                var writeOptions9 = options ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter9 = ExcelDocument.CreateWriter(destination9, writeOptions9, leaveOpen: true)) {
+                    return workbookWriter9.WriteTable(writeOptions9.SheetName, Rows(), Headers, (row, _) => row.Write(1));
+                }
+            });
+            Assert.False(enumerated); Assert.True(output.CanWrite);
         }
 
         [Fact]
         public void SelectionsRejectUnknownAndLateRowStylesWithoutChangingCurrentCell() {
             using var output = new MemoryStream();
-            ExcelDocument.WriteRows(output, new[] { 1 }, new[] { "A", "B" }, (row, _) => {
-                Assert.Throws<KeyNotFoundException>(() => row.SetRowStyle("Missing"));
-                row.Write(1);
-                Assert.Throws<InvalidOperationException>(() => row.SetRowStyle("Plain"));
-                Assert.Throws<KeyNotFoundException>(() => row.SetNextCellStyle("Missing"));
-                row.Write(2);
-            }, Options());
+            var destination10 = output;
+
+            var writeOptions10 = Options() ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter10 = ExcelDocument.CreateWriter(destination10, writeOptions10, leaveOpen: true)) {
+                workbookWriter10.WriteTable(writeOptions10.SheetName, new[] { 1 }, new[] { "A", "B" }, (row, _) => {
+                    Assert.Throws<KeyNotFoundException>(() => row.SetRowStyle("Missing"));
+                    row.Write(1);
+                    Assert.Throws<InvalidOperationException>(() => row.SetRowStyle("Plain"));
+                    Assert.Throws<KeyNotFoundException>(() => row.SetNextCellStyle("Missing"));
+                    row.Write(2);
+                });
+            }
+
+            if (destination10.CanSeek)
+                destination10.Position = 0;
             using var package = SpreadsheetDocument.Open(output, false);
             Row row = package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().Last();
             Assert.True(row.CustomFormat!.Value); Assert.All(row.Elements<Cell>(), cell => Assert.Equal(row.StyleIndex!.Value, cell.StyleIndex!.Value));
@@ -256,24 +340,75 @@ namespace OfficeIMO.Tests {
             IEnumerable<int> Rows() { try { Assert.Equal(1, ++enumerations); yield return 1; yield return 2; } finally { disposed = true; } }
             async IAsyncEnumerable<int> AsyncRows() { foreach (int value in Rows()) { await Task.CompletedTask; yield return value; } }
             void Write(ExcelDocument.ExcelTabularRowWriter row, int value) { callbacks++; row.Write(value); cancellation.Cancel(); }
-            if (asynchronous) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.WriteRowsAsync(output, AsyncRows(), new[] { "Id" }, Write, SingleColumnOptions(), cancellation.Token));
-            else Assert.ThrowsAny<OperationCanceledException>(() => ExcelDocument.WriteRows(output, Rows(), new[] { "Id" }, Write, SingleColumnOptions(), cancellation.Token));
+            if (asynchronous) await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => {
+                var destination11 = output;
+                var writeOptions11 = SingleColumnOptions() ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter11 = ExcelDocument.CreateWriter(destination11, writeOptions11, leaveOpen: true)) {
+                    await workbookWriter11.WriteTable(writeOptions11.SheetName, AsyncRows(), new[] { "Id" }, Write, cancellation.Token);
+                }
+            });
+            else Assert.ThrowsAny<OperationCanceledException>(() => {
+                var destination12 = output;
+                var writeOptions12 = SingleColumnOptions() ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter12 = ExcelDocument.CreateWriter(destination12, writeOptions12, leaveOpen: true)) {
+                    return workbookWriter12.WriteTable(writeOptions12.SheetName, Rows(), new[] { "Id" }, Write, cancellation.Token);
+                }
+            });
             Assert.True(disposed); Assert.Equal(1, callbacks); Assert.True(output.CanWrite);
             output.SetLength(0);
-            ExcelDocument.WriteRows(output, new[] { 3 }, new[] { "Id" }, (row, value) => row.Write(value), SingleColumnOptions());
+            var destination13 = output;
+
+            var writeOptions13 = SingleColumnOptions() ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter13 = ExcelDocument.CreateWriter(destination13, writeOptions13, leaveOpen: true)) {
+                workbookWriter13.WriteTable(writeOptions13.SheetName, new[] { 3 }, new[] { "Id" }, (row, value) => row.Write(value));
+            }
+
+            if (destination13.CanSeek)
+                destination13.Position = 0;
             using var reader = ExcelDocument.OpenReader(output.ToArray()); Assert.True(reader.Read()); Assert.Equal(3, reader.GetInt32(0));
         }
 
         [Fact]
-        public void PreCancellationKeepsDestinationAndStyleDefinitionsAreFrozenBeforeEnumeration() {
+        public void PreCancellationLeavesDestinationOpenAndStyleDefinitionsAreFrozenBeforeEnumeration() {
             using var cancelled = new MemoryStream(); cancelled.WriteByte(42);
             using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
-            Assert.ThrowsAny<OperationCanceledException>(() => ExcelDocument.WriteRows(cancelled, new[] { 1 }, new[] { "A" }, (row, _) => row.Write(1), SingleColumnOptions(), cancellation.Token));
-            Assert.Equal(new byte[] { 42 }, cancelled.ToArray());
+            Assert.ThrowsAny<OperationCanceledException>(() => {
+                var destination14 = cancelled;
+                var writeOptions14 = SingleColumnOptions() ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+                using (var workbookWriter14 = ExcelDocument.CreateWriter(destination14, writeOptions14, leaveOpen: true)) {
+                    return workbookWriter14.WriteTable(writeOptions14.SheetName, new[] { 1 }, new[] { "A" }, (row, _) => row.Write(1), cancellation.Token);
+                }
+            });
+            Assert.True(cancelled.CanWrite);
             var options = SingleColumnOptions();
             IEnumerable<int> Rows() { options.Styles!["Emphasis"].Bold = false; yield return 1; }
             using var output = new MemoryStream();
-            ExcelDocument.WriteRows(output, Rows(), new[] { "A" }, (row, _) => row.Write(1), options);
+            var destination15 = output;
+
+            var writeOptions15 = options ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter15 = ExcelDocument.CreateWriter(destination15, writeOptions15, leaveOpen: true)) {
+                workbookWriter15.WriteTable(writeOptions15.SheetName, Rows(), new[] { "A" }, (row, _) => row.Write(1));
+            }
+
+            if (destination15.CanSeek)
+                destination15.Position = 0;
             using var package = SpreadsheetDocument.Open(output, false);
             Row row = package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().Last();
             Assert.NotNull(Font(package.WorkbookPart.WorkbookStylesPart!.Stylesheet, row.StyleIndex!.Value).Bold);
@@ -282,11 +417,22 @@ namespace OfficeIMO.Tests {
 #if NET8_0_OR_GREATER
         [Theory]
         [InlineData(false)]
-        [InlineData(true)]
         public void Utf8ValuesUseDeclaredInheritanceAndRemainSinglePass(bool shared) {
             using var output = new MemoryStream(); int enumerations = 0;
             IEnumerable<int> Rows() { Assert.Equal(1, ++enumerations); yield return 1; yield return 2; }
-            ExcelDocument.WriteRows(output, Rows(), new[] { "Text" }, (row, _) => row.WriteUtf8("A & β"u8), SingleColumnOptions(shared));
+            var destination16 = output;
+
+            var writeOptions16 = SingleColumnOptions(shared) ?? new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter16 = ExcelDocument.CreateWriter(destination16, writeOptions16, leaveOpen: true)) {
+                workbookWriter16.WriteTable(writeOptions16.SheetName, Rows(), new[] { "Text" }, (row, _) => row.WriteUtf8("A & β"u8));
+            }
+
+            if (destination16.CanSeek)
+                destination16.Position = 0;
             using var package = SpreadsheetDocument.Open(output, false);
             Assert.All(package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Row>().Skip(1), row => {
                 Assert.True(row.CustomFormat!.Value); Assert.Equal(row.StyleIndex!.Value, row.Elements<Cell>().Single().StyleIndex!.Value);

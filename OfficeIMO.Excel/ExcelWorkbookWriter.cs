@@ -52,7 +52,10 @@ public sealed class ExcelWorkbookWriter : IDisposable {
             if (table == null) throw new ArgumentNullException(nameof(table));
             string[] headers = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
             return WriteTable(name, table.Rows.Cast<DataRow>(), headers, (writer, row) => {
-                for (int column = 0; column < headers.Length; column++) writer.Write(row[column]);
+                for (int column = 0; column < headers.Length; column++) {
+                    if (row.IsNull(column)) writer.WriteBlank();
+                    else writer.Write(row[column]);
+                }
             }, cancellationToken);
         } catch { _workbook.Abort(); throw; }
     }
@@ -63,7 +66,10 @@ public sealed class ExcelWorkbookWriter : IDisposable {
             if (reader == null) throw new ArgumentNullException(nameof(reader));
             string[] headers = ExcelSheet.BuildReaderHeaders(reader);
             return WriteTable(name, ReadRows(reader), headers, (writer, row) => {
-                for (int column = 0; column < headers.Length; column++) writer.Write(row.GetValue(column));
+                for (int column = 0; column < headers.Length; column++) {
+                    if (row.IsDBNull(column)) writer.WriteBlank();
+                    else writer.Write(row.GetValue(column));
+                }
             }, cancellationToken);
         } catch { _workbook.Abort(); throw; }
     }

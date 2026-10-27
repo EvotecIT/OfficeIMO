@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOOriginal() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = false });
             long sum = 0;
             int count = 0;
             while (reader.Read()) {
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         private void ValidateOfficeIMO() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = false });
             int count = 0;
             while (reader.Read()) {
                 if (reader.FieldCount != 4 || reader.GetValue(0) is not string name || reader.GetValue(1) is not double id

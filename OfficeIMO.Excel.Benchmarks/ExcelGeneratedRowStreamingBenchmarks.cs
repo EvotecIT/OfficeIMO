@@ -29,16 +29,21 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 FileShare.None,
                 256 * 1024,
                 FileOptions.SequentialScan)) {
-                ExcelDataSetImportResult result = ExcelDocument.WriteRows(
-                    officeStream,
-                    GenerateRows(RowCount),
-                    Headers,
-                    static (writer, row) => writer
-                        .Write(row.Id)
-                        .Write(row.Amount)
-                        .Write(row.CreatedOn)
-                        .Write(row.Active),
-                    CompactWriteOptions);
+                ExcelDataSetImportResult result;
+
+                var destination1 = officeStream;
+
+                var writeOptions1 = CompactWriteOptions ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+
+                using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                    result = workbookWriter1.WriteTable(writeOptions1.SheetName, GenerateRows(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount).Write(row.CreatedOn).Write(row.Active));
+                }
+
+                if (destination1.CanSeek)
+                    destination1.Position = 0;
                 if (result.RowCount != RowCount) {
                     throw new InvalidDataException(
                         $"OfficeIMO reported {result.RowCount} rows instead of {RowCount} during write preflight.");
@@ -70,16 +75,21 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 FileShare.None,
                 256 * 1024,
                 FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-                ExcelDataSetImportResult result = ExcelDocument.WriteRowsAsync(
-                    officeAsyncStream,
-                    GenerateRowsAsync(RowCount),
-                    Headers,
-                    static (writer, row) => writer
-                        .Write(row.Id)
-                        .Write(row.Amount)
-                        .Write(row.CreatedOn)
-                        .Write(row.Active),
-                    CompactWriteOptions).GetAwaiter().GetResult();
+                ExcelDataSetImportResult result;
+
+                var destination2 = officeAsyncStream;
+
+                var writeOptions2 = CompactWriteOptions ?? new ExcelWriterOptions {
+                    UseSharedStrings = false,
+                    CreateTable = false
+                };
+
+                using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+                    result = workbookWriter2.WriteTable(writeOptions2.SheetName, GenerateRowsAsync(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount).Write(row.CreatedOn).Write(row.Active)).GetAwaiter().GetResult();
+                }
+
+                if (destination2.CanSeek)
+                    destination2.Position = 0;
                 if (result.RowCount != RowCount) {
                     throw new InvalidDataException(
                         $"OfficeIMO async reported {result.RowCount} rows instead of {RowCount} during write preflight.");
@@ -103,7 +113,8 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 }
             }
             ValidateWorkbook(nameof(ExcelReaderNetWriteRowsAsyncGenerated), excelReaderAsyncPath, RowCount);
-        } finally {
+        }
+        finally {
             File.Delete(officePath);
             File.Delete(excelReaderPath);
             File.Delete(officeAsyncPath);
@@ -116,16 +127,21 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
     [Benchmark]
     public int WriteRowsGenerated() {
-        ExcelDataSetImportResult result = ExcelDocument.WriteRows(
-            Stream.Null,
-            GenerateRows(RowCount),
-            Headers,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Amount)
-                .Write(row.CreatedOn)
-                .Write(row.Active),
-            CompactWriteOptions);
+        ExcelDataSetImportResult result;
+
+        var destination3 = Stream.Null;
+
+        var writeOptions3 = CompactWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter3 = ExcelDocument.CreateWriter(destination3, writeOptions3, leaveOpen: true)) {
+            result = workbookWriter3.WriteTable(writeOptions3.SheetName, GenerateRows(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount).Write(row.CreatedOn).Write(row.Active));
+        }
+
+        if (destination3.CanSeek)
+            destination3.Position = 0;
         return result.RowCount;
     }
 
@@ -135,16 +151,21 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
     [Benchmark]
     public async Task<int> WriteRowsAsyncGenerated() {
-        ExcelDataSetImportResult result = await ExcelDocument.WriteRowsAsync(
-            Stream.Null,
-            GenerateRowsAsync(RowCount),
-            Headers,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Amount)
-                .Write(row.CreatedOn)
-                .Write(row.Active),
-            CompactWriteOptions);
+        ExcelDataSetImportResult result;
+
+        var destination4 = Stream.Null;
+
+        var writeOptions4 = CompactWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter4 = ExcelDocument.CreateWriter(destination4, writeOptions4, leaveOpen: true)) {
+            result = await workbookWriter4.WriteTable(writeOptions4.SheetName, GenerateRowsAsync(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount).Write(row.CreatedOn).Write(row.Active));
+        }
+
+        if (destination4.CanSeek)
+            destination4.Position = 0;
         return result.RowCount;
     }
 

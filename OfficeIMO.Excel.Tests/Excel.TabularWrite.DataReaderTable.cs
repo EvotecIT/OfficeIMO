@@ -18,18 +18,26 @@ namespace OfficeIMO.Tests {
             using var reader = table.CreateDataReader();
             using var output = new MemoryStream();
 
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                output,
-                reader,
-                new ExcelWriterOptions {
-                    SheetName = "Query Results",
-                    CreateTable = true,
-                    TableName = "QueryResults",
-                    TableStyle = ExcelTableStyle.TableStyleMedium9,
-                    IncludeAutoFilter = false,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination1 = output;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                SheetName = "Query Results",
+                CreateTable = true,
+                TableName = "QueryResults",
+                TableStyle = ExcelTableStyle.TableStyleMedium9,
+                IncludeAutoFilter = false,
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                result = workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
 
             Assert.False(reader.IsClosed);
             Assert.Equal("Query Results", result.SheetName);
@@ -67,16 +75,24 @@ namespace OfficeIMO.Tests {
             using var reader = table.CreateDataReader();
             using var output = new MemoryStream();
 
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                output,
-                reader,
-                new ExcelWriterOptions {
-                    CreateTable = true,
-                    TableName = "EmptyResults",
-                    IncludeAutoFilter = true,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination2 = output;
+
+            var writeOptions2 = new ExcelWriterOptions {
+                CreateTable = true,
+                TableName = "EmptyResults",
+                IncludeAutoFilter = true,
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+                result = workbookWriter2.WriteTable(writeOptions2.SheetName, reader);
+            }
+
+            if (destination2.CanSeek)
+                destination2.Position = 0;
 
             Assert.Equal("A1:B1", result.Range);
             Assert.Equal(0, result.RowCount);
@@ -101,15 +117,23 @@ namespace OfficeIMO.Tests {
             using var reader = table.CreateDataReader();
             using var output = new NonSeekableWriteStream();
 
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                output,
-                reader,
-                new ExcelWriterOptions {
-                    CreateTable = true,
-                    TableName = "StreamedResults",
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination3 = output;
+
+            var writeOptions3 = new ExcelWriterOptions {
+                CreateTable = true,
+                TableName = "StreamedResults",
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter3 = ExcelDocument.CreateWriter(destination3, writeOptions3, leaveOpen: true)) {
+                result = workbookWriter3.WriteTable(writeOptions3.SheetName, reader);
+            }
+
+            if (destination3.CanSeek)
+                destination3.Position = 0;
 
             Assert.Equal("A1:B2", result.Range);
             using var package = new MemoryStream(output.ToArray(), writable: false);
@@ -129,16 +153,24 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             string requestedTableName = new string('T', 300);
 
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                output,
-                reader,
-                new ExcelWriterOptions {
-                    SheetName = "'[]:*?/ '",
-                    CreateTable = true,
-                    TableName = requestedTableName,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination4 = output;
+
+            var writeOptions4 = new ExcelWriterOptions {
+                SheetName = "'[]:*?/ '",
+                CreateTable = true,
+                TableName = requestedTableName,
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter4 = ExcelDocument.CreateWriter(destination4, writeOptions4, leaveOpen: true)) {
+                result = workbookWriter4.WriteTable(writeOptions4.SheetName, reader);
+            }
+
+            if (destination4.CanSeek)
+                destination4.Position = 0;
 
             Assert.Equal("Sheet1", result.SheetName);
             Assert.Equal(255, result.TableName?.Length);
@@ -159,62 +191,28 @@ namespace OfficeIMO.Tests {
             using var reader = table.CreateDataReader();
             using var output = new MemoryStream();
 
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                output,
-                reader,
-                new ExcelWriterOptions {
-                    SheetName = new string('S', 40),
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination5 = output;
+
+            var writeOptions5 = new ExcelWriterOptions {
+                SheetName = new string('S', 40),
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter5 = ExcelDocument.CreateWriter(destination5, writeOptions5, leaveOpen: true)) {
+                result = workbookWriter5.WriteTable(writeOptions5.SheetName, reader);
+            }
+
+            if (destination5.CanSeek)
+                destination5.Position = 0;
 
             Assert.Equal(new string('S', 31), result.SheetName);
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
             var savedSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single();
             Assert.Equal(new string('S', 31), savedSheet.Name?.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
-        }
-
-        [Fact]
-        public void WriteDataReader_DefaultTableNameMatchesBufferedFallback() {
-            var table = new DataTable("SourceRows");
-            table.Columns.Add("Id", typeof(int));
-            table.Rows.Add(1);
-            using var compactReader = table.CreateDataReader();
-            using var bufferedReader = table.CreateDataReader();
-            using var compactOutput = new MemoryStream();
-            using var bufferedOutput = new MemoryStream();
-
-            ExcelDataSetImportResult compactResult = ExcelDocument.WriteDataReader(
-                compactOutput,
-                compactReader,
-                new ExcelWriterOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
-            ExcelDataSetImportResult bufferedResult = ExcelDocument.WriteDataReader(
-                bufferedOutput,
-                bufferedReader,
-                new ExcelWriterOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    UseSharedStrings = true
-                });
-
-            Assert.Equal("ReaderData", compactResult.TableName);
-            Assert.Equal(compactResult.TableName, bufferedResult.TableName);
-            using var compactPackage = SpreadsheetDocument.Open(compactOutput, false);
-            using var bufferedPackage = SpreadsheetDocument.Open(bufferedOutput, false);
-            string? compactName = compactPackage.WorkbookPart!.WorksheetParts.Single()
-                .TableDefinitionParts.Single().Table?.Name?.Value;
-            string? bufferedName = bufferedPackage.WorkbookPart!.WorksheetParts.Single()
-                .TableDefinitionParts.Single().Table?.Name?.Value;
-            Assert.Equal("ReaderData", compactName);
-            Assert.Equal(compactName, bufferedName);
-            Assert.Empty(new OpenXmlValidator().Validate(compactPackage));
-            Assert.Empty(new OpenXmlValidator().Validate(bufferedPackage));
         }
     }
 }

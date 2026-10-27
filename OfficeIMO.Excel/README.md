@@ -1758,127 +1758,86 @@ document.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
 document.Execution.SaveWorksheetAfterAutoFit = false;
 ```
 
-For a new workbook that only contains tabular data, write the XLSX package
-directly without building an editable workbook model:
+For a new workbook that only contains tabular data, use the bounded writer. It
+writes each source row once and keeps workbook metadata instead of source rows:
 
 ```csharp
-using var output = File.Create("large-export.xlsx");
-
-ExcelDocument.WriteRows(
-    output,
-    rows,
-    new[] { "Id", "Name", "Created", "Active" },
-    static (writer, row) => writer
-        .Write(row.Id)
-        .Write(row.Name)
-        .Write(row.Created)
-        .Write(row.Active),
-    new ExcelWriterOptions {
-        SheetName = "Data",
-        IncludeCellReferences = false,
-        UseSharedStrings = false
-});
+using (var writer = ExcelDocument.CreateWriter("large-export.xlsx",
+    new ExcelWriterOptions { CreateTable = true, IncludeCellReferences = false })) {
+    writer.WriteTable("Events", rows);
+}
 ```
 
-When rows arrive asynchronously, use the same headers and row writer without
-buffering the sequence:
+`WriteTable` accepts `IEnumerable<T>`, `IAsyncEnumerable<T>`, `DataTable`, or an
+open `IDataReader`. The caller retains ownership of a supplied reader. Use an
+explicit schema and callback to select columns or avoid property reflection:
 
 ```csharp
-await ExcelDocument.WriteRowsAsync(
-    output,
-    GetRowsAsync(cancellationToken),
-    new[] { "Id", "Name", "Created", "Active" },
-    static (writer, row) => writer
-        .Write(row.Id)
-        .Write(row.Name)
-        .Write(row.Created)
-        .Write(row.Active),
-    ct: cancellationToken);
+using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+    await writer.WriteTable("Events", GetRowsAsync(cancellationToken),
+        new[] { "Id", "Name", "Created", "Active" },
+        static (row, item) => row.Write(item.Id).Write(item.Name)
+            .Write(item.Created).Write(item.Active), cancellationToken);
+}
+// Dispose finalizes the ZIP package before its bytes are read.
+output.Position = 0;
 ```
 
-`WriteRowsAsync` awaits and disposes the source enumerator and writes each row
-once. Because the final row count is unknown when package output starts, this
-overload does not support `CreateTable` or `AutoFit`; add those features through
-the editable workbook API when they are required.
-
-`WriteRows` and `WriteRowsAsync` use inline strings when options are omitted.
-Pass `new ExcelWriterOptions { UseSharedStrings = true }` to deduplicate
-text in a workbook shared-string table. Both methods still consume the source
-once, including with `RequireStreaming = true`; memory for shared strings grows
-with the distinct text values. Pass `UseSharedStrings = false` for inline text
-when supplying other options.
+Both synchronous and asynchronous sources support tables. Inline text is the
+default. Shared-string planning and automatic column sizing use the editable
+workbook API, such as `sheet.InsertDataReader(...)` or `sheet.InsertDataTable(...)`
+followed by `document.Save(...)`; the bounded writer rejects those settings.
 
 Declare styles before writing when rows or columns need default formatting:
 
 ```csharp
 var options = new ExcelWriterOptions {
-    RequireStreaming = true,
-    UseSharedStrings = false,
     Styles = new Dictionary<string, ExcelStyleDefinition> {
-        ["Emphasis"] = new() { Bold = true },
-        ["Amount"] = new() { NumberFormat = "#,##0.00" },
-        ["Plain"] = new()
+        ["Emphasis"] = new() { Bold = true, BackgroundColor = OfficeColor.Yellow },
+        ["Amount"] = new() { NumberFormat = "0.00" }
     },
     DefaultRowStyle = "Emphasis",
     ColumnStyles = new Dictionary<int, string> { [2] = "Amount" }
 };
-
-ExcelDocument.WriteRows(output, rows, ["Name", "Amount", "Created", "Comment"],
-    static (writer, row) => {
-        writer.SetRowStyle(row.Emphasized ? "Emphasis" : null);
-        writer.Write(row.Name).Write(row.Amount).Write(row.Created);
-        writer.SetNextCellStyle("Plain").WriteBlank();
-    }, options);
+using (var writer = ExcelDocument.CreateWriter(output, options, leaveOpen: true)) {
+    writer.WriteTable("Data", rows, ["Name", "Amount", "Created", "Comment"],
+        static (row, item) => row.Write(item.Name).Write(item.Amount)
+            .Write(item.Created).Write(item.Comment));
+}
 ```
 
-`Styles` contains complete definitions based on Normal formatting. Supported
-properties are bold, italic, underline, font family, size and color, solid
-background color, text wrapping, horizontal and vertical alignment, and number
-format. Names are trimmed and compared without case. The catalog is copied and
-compiled before reading source rows or preparing the destination; callbacks
-select declared names and cannot register additional styles. The export limits
-the compiled catalog, including automatic temporal variants, to 64,000 cell
-formats. Style memory depends on the declared catalog and columns, without
-buffering rows.
+Styles form a fixed catalog, including automatic temporal variants, limited to
+64,000 cell formats. `DefaultRowStyle` applies to data rows. `ColumnStyles` uses
+1-based schema columns and formats the entire column, including headers.
+`SetRowStyle` selects a complete row style before its first cell; null clears
+the row default. `SetNextCellStyle` overrides the next cell. These selections
+do not merge individual properties. Dates and durations retain visual styles
+while receiving automatic number formats unless a definition supplies its own.
+`WriteBlank` writes a blank cell; `Write((string?)null)` retains empty-text behavior.
+Reader and DataTable database nulls become blank cells.
 
-`DefaultRowStyle` applies to data rows. `SetRowStyle` must run before the first
-cell; passing null clears the row default for that row. `ColumnStyles` uses
-1-based schema columns and formats each entire worksheet column, including
-headers. A row default overrides a column default, and `SetNextCellStyle`
-overrides both for one cell. These rules select a complete style, without
-combining individual properties. An empty definition explicitly selects Normal
-formatting. The package contains real row and column defaults and assigns the
-resolved style to authored cells so their formatting is also visible in Excel.
-Declared columns use the standard Calibri 11 column width when no automatic
-width was calculated, so applying a column style does not collapse the column.
-Dates and durations receive automatic number formats that retain
-the selected visual formatting, unless the definition supplies its own number
-format. `WriteBlank` writes a genuine blank; `Write((string?)null)` retains its
-empty-text behavior.
+Named definitions remain available through `GetNamedStyles` after loading the
+exported workbook. For an editable workbook, use `document.DefineNamedStyle(...)`
+and `sheet.ApplyNamedStyle(...)`.
 
-The same options apply to `WriteRowsAsync` and `WriteDataReader`, including its
-streaming and materialized paths. Named definitions remain available through
-`GetNamedStyles` after loading the exported workbook. For an editable workbook,
-use `document.DefineNamedStyle("Emphasis", new ExcelStyleDefinition { Bold = true })`
-and the existing `sheet.ApplyNamedStyle("Emphasis", "A2:D20")` API.
+A file destination is published atomically when the writer is disposed after
+successful writes. A failed or canceled stream export may contain a partial
+package; discard or reset it before reuse. Pass `leaveOpen: true` when the caller
+owns the destination stream. Seek explicitly before reading it.
 
-Invalid declarations and pre-cancellation leave the destination untouched.
-An exception or cancellation after writing starts may leave a partial package;
-discard or reset it before reuse. The supplied destination stream stays open.
-
-On .NET 8 and later, callers that already have UTF-8 text can pass its bytes to
-`WriteUtf8` without first creating a string:
+On .NET 8 and later, UTF-8 text can be written without creating a string:
 
 ```csharp
 byte[][] names = [System.Text.Encoding.UTF8.GetBytes("Zażółć 🚀")];
-ExcelDocument.WriteRows(output, names, ["Name"],
-    static (row, utf8) => row.WriteUtf8(utf8));
+using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+    writer.WriteTable("Names", names, ["Name"],
+        static (row, utf8) => row.WriteUtf8(utf8));
+}
 ```
 
-The method consumes the bytes during the call, escapes XML markup, and preserves
-whitespace and carriage returns. It rejects invalid UTF-8 and text longer than
-Excel's 32,767-character limit. Inline output copies the text directly; selecting
-shared strings materializes text for the shared-string table.
+The callback consumes the bytes during the call, escapes XML markup, preserves
+whitespace and carriage returns, and rejects invalid UTF-8 or text longer than
+Excel's 32,767-character limit.
 
 ### Fluent compose
 

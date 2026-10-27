@@ -83,10 +83,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             ? new FileStream(PlainPath, FileMode.Open, FileAccess.Read) : new MemoryStream(Plain, writable: false);
         internal Stream OpenEncryptedStream() => FileStreams
             ? new FileStream(EncryptedPath, FileMode.Open, FileAccess.Read) : new MemoryStream(Encrypted, writable: false);
-        internal static ExcelReadOptions PeerOptions(bool verify = true) => new() {
+        internal static ExcelReader.Core.Reader.ExcelReaderOptions PeerOptions(bool verify = true) => new() {
             Password = new ExcelPassword(Password), VerifyEncryptedIntegrity = verify,
         };
-        internal static ExcelReadOptions OfficeOptions() => new() { HasHeaderRow = false, SheetIndex = 0 };
+        internal static OfficeIMO.Excel.ExcelReaderOptions OfficeOptions() => new() { Password = Password, HasHeaderRow = false, SheetIndex = 0 };
         private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
         private static byte[] ReadChecked(string path, string hash, int bytes) {
             byte[] value = File.ReadAllBytes(path);

@@ -73,8 +73,8 @@ using (var output = File.CreateText("contacts.csv")) {
 
 using (var rows = DbfDataReader.Open("contacts.dbf"))
 using (var output = File.Create("contacts.xlsx")) {
-    ExcelDocument.WriteDataReader(output, rows,
-        new ExcelWriterOptions { RequireStreaming = true });
+    using var writer = ExcelDocument.CreateWriter(output, leaveOpen: true);
+    writer.WriteTable("Contacts", rows);
 }
 ```
 

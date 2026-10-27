@@ -46,12 +46,15 @@ public class ExcelTextEscapingTests {
         table.Columns.Add(header, typeof(string));
         foreach (string value in values) table.Rows.Add(value);
         using var stream = new MemoryStream();
-        using (var reader = table.CreateDataReader()) {
-            ExcelDocument.WriteDataReader(stream, reader, new ExcelWriterOptions {
-                SheetName = "Data & '\"",
-                UseSharedStrings = sharedStrings,
-                IncludeCellReferences = cellReferences
-            });
+        if (sharedStrings) {
+            using var document = ExcelDocument.Create();
+            document.AddWorksheet("Data & '\"").InsertDataTable(table);
+            document.Save(stream);
+        }
+        else {
+            using var writer = ExcelDocument.CreateWriter(stream,
+                new ExcelWriterOptions { IncludeCellReferences = cellReferences }, leaveOpen: true);
+            writer.WriteTable("Data & '\"", table);
         }
         stream.Position = 0;
         using var package = SpreadsheetDocument.Open(stream, false);

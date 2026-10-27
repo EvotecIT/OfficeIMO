@@ -5,45 +5,6 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
-            internal static async Task<int> WriteRowsAsync<T>(
-                Stream stream,
-                DirectDataSetWorkbookModel model,
-                IAsyncEnumerable<T> rows,
-                Action<ExcelTabularRowWriter, T> writeRow,
-                int maximumRows,
-                CancellationToken ct,
-                bool useSharedStrings) {
-                if (model.Sheets.Count != 1 || model.Sheets[0].HasTable) {
-                    throw new InvalidOperationException(
-                        "Asynchronous row exports require one package-native worksheet without an Excel table.");
-                }
-
-                DirectStylePlan stylePlan = DirectStylePlan.Create(model);
-                DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                using var positionReportingDestination = stream.CanSeek
-                    ? null
-                    : new ExcelPositionReportingWriteStream(stream);
-                Stream packageDestination = positionReportingDestination ?? stream;
-                using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                var sharedStrings = useSharedStrings ? DirectSharedStringTable.CreateStreaming() : null;
-                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: sharedStrings != null);
-
-                int rowCount = await WriteAsyncWorksheetRows(
-                    archive,
-                    model.Sheets[0],
-                    model.DateTimeOffsetWriteStrategy,
-                    model.DateSystem,
-                    columnWritePlans[0],
-                    rows,
-                    writeRow,
-                    maximumRows,
-                    sharedStrings,
-                    stylePlan.TabularStyles,
-                    ct).ConfigureAwait(false);
-                if (sharedStrings != null) WriteSharedStrings(archive, sharedStrings, ct);
-                return rowCount;
-            }
-
             private static async Task<int> WriteAsyncWorksheetRows<T>(
                 ZipArchive archive,
                 DirectDataSetSheetModel sheet,
@@ -122,7 +83,8 @@ namespace OfficeIMO.Excel {
                         rowWriter.EndRow();
                         rowCount++;
                     }
-                } finally {
+                }
+                finally {
                     await enumerator.DisposeAsync().ConfigureAwait(false);
                 }
 

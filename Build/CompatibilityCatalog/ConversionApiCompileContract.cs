@@ -200,7 +200,19 @@ internal static class ConversionApiCompileContract {
             CsvDocument.WriteDataReader(csvOutput, dbf);
         }
         using (DbfDataReader dbf = DbfDataReader.Open(source)) {
-            _ = ExcelDocument.WriteDataReader(stream, dbf);
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                _ = workbookWriter1.WriteTable(writeOptions1.SheetName, dbf);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
         }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);

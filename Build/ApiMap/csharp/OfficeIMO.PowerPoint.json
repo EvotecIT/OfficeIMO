@@ -9811,6 +9811,17 @@
         "OfficeIMO.PowerPoint/packages.lock.json",
         "OfficeIMO.PowerPoint/packages.nonwindows.lock.json"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Compatibility catalog projections are regenerated from their existing owners so protection/package operation references use PowerPointDocument after its rename.",
+      "files": [
+        "Docs/Compatibility/generated/package-operations.json",
+        "Docs/Compatibility/generated/package-operations.md",
+        "Docs/Compatibility/generated/protected-content.json",
+        "Docs/Compatibility/generated/protected-content.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

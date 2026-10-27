@@ -13,8 +13,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
     /// <summary>Shares validated scan operations between the two larger input suites.</summary>
     internal sealed partial class WorkbookScanWorkload {
-        private static readonly ExcelReaderOptions PrefetchOptions = new() { PrefetchDecompression = true };
-        private static readonly ExcelReaderOptions InternOptions = new() { InternStrings = true };
+        private static readonly ExcelReader.Core.Reader.ExcelReaderOptions PrefetchOptions = new() { PrefetchDecompression = true };
+        private static readonly ExcelReader.Core.Reader.ExcelReaderOptions InternOptions = new() { InternStrings = true };
         private byte[] _bytes = [];
         private ComparisonWorkbookFormat _format;
         private int _rows, _columns;
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         internal long ExcelReader(bool materializeStrings = false, bool prefetch = false, bool memory = false, bool intern = false) {
-            ExcelReaderOptions? options = prefetch ? PrefetchOptions : intern ? InternOptions : null;
+            ExcelReader.Core.Reader.ExcelReaderOptions? options = prefetch ? PrefetchOptions : intern ? InternOptions : null;
             return _format switch {
                 ComparisonWorkbookFormat.Xlsx or ComparisonWorkbookFormat.Xlsm => ReadXlsx(materializeStrings, options, memory),
                 ComparisonWorkbookFormat.Xlsb => ReadXlsb(materializeStrings, options, memory),
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             };
         }
 
-        private long ReadXlsx(bool materialize, ExcelReaderOptions? options, bool memory) {
+        private long ReadXlsx(bool materialize, ExcelReader.Core.Reader.ExcelReaderOptions? options, bool memory) {
             using MemoryStream? stream = memory ? null : new MemoryStream(_bytes, writable: false);
             using XlsxWorkbook workbook = memory ? ExcelReaderApi.FromXlsx(_bytes.AsMemory(), options)
                 : ExcelReaderApi.FromXlsx(stream!, options: options);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return Check(sum, rows, materialize ? _stringChecksum : _spanChecksum);
         }
 
-        private long ReadXlsb(bool materialize, ExcelReaderOptions? options, bool memory) {
+        private long ReadXlsb(bool materialize, ExcelReader.Core.Reader.ExcelReaderOptions? options, bool memory) {
             using MemoryStream? stream = memory ? null : new MemoryStream(_bytes, writable: false);
             using XlsbWorkbook workbook = memory ? ExcelReaderApi.FromXlsb(_bytes.AsMemory(), options)
                 : ExcelReaderApi.FromXlsb(stream!, options: options);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return Check(sum, rows, materialize ? _stringChecksum : _spanChecksum);
         }
 
-        private long ReadXls(bool materialize, ExcelReaderOptions? options, bool memory) {
+        private long ReadXls(bool materialize, ExcelReader.Core.Reader.ExcelReaderOptions? options, bool memory) {
             using MemoryStream? stream = memory ? null : new MemoryStream(_bytes, writable: false);
             using XlsWorkbook workbook = memory ? ExcelReaderApi.FromXls(_bytes.AsMemory(), options)
                 : ExcelReaderApi.FromXls(stream!, options: options);
@@ -95,8 +95,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         internal long OfficeIMO(bool streamInput = false) {
             using MemoryStream? stream = streamInput ? new MemoryStream(_bytes, writable: false) : null;
             using ExcelWorkbookDataReader reader = streamInput
-                ? ExcelDocument.OpenReader(stream!, new ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 })
-                : ExcelDocument.OpenReader(_bytes, new ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
+                ? ExcelDocument.OpenReader(stream!, new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 })
+                : ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
             long sum = 0;
             int rows = 0;
             while (reader.Read()) {
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return Check(sum, rows, _stringChecksum);
         }
 
-        private IExcelWorkbook OpenPeer(Stream stream, ExcelReaderOptions? options = null) => _format switch {
+        private IExcelWorkbook OpenPeer(Stream stream, ExcelReader.Core.Reader.ExcelReaderOptions? options = null) => _format switch {
             ComparisonWorkbookFormat.Xlsx or ComparisonWorkbookFormat.Xlsm => ExcelReaderApi.FromXlsx(stream, options: options),
             ComparisonWorkbookFormat.Xlsb => ExcelReaderApi.FromXlsb(stream, options: options),
             ComparisonWorkbookFormat.Xls => ExcelReaderApi.FromXls(stream, options: options),

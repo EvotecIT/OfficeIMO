@@ -1,5 +1,19 @@
 # Upgrading OfficeIMO
 
+## Streaming Excel exports
+
+Replace `ExcelDocument.WriteRows`, `WriteRowsAsync` and `WriteDataReader` with
+`ExcelDocument.CreateWriter(...).WriteTable(name, source, ...)`. Both synchronous
+and asynchronous sources support tables. Dispose the writer before reading the
+package, pass `leaveOpen: true` for caller-owned streams, and seek explicitly
+before reading those streams.
+
+`ExcelWriterOptions.UseSharedStrings` defaults to false. The bounded writer uses
+inline text; shared-string planning and automatic sizing use the editable model
+(`InsertDataReader` or `InsertDataTable`, followed by `Save`). Reader and DataTable
+database nulls produce blank cells; empty strings remain text. A failed stream
+export may contain a partial package and must be discarded or reset.
+
 ## PDF adapter package direction
 
 `OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`
@@ -3483,8 +3497,8 @@ projection name for CSV. Replace the removed overlapping entry points as follows
 
 | Removed 3.1 preview API | Current 3.1 API |
 | --- | --- |
-| `ExcelDocument.WriteObjects(..., IReadOnlyList<(string Header, Func<T, object?> Selector)>, ...)` | `ExcelDocument.WriteRows(..., headers, (writer, row) => writer.Write(...), ...)` |
-| `ExcelTabularColumn<T>` and its `ExcelDocument.WriteObjects` overload | `ExcelDocument.WriteRows(...)` |
+| `ExcelDocument.WriteObjects(..., IReadOnlyList<(string Header, Func<T, object?> Selector)>, ...)` | `ExcelDocument.CreateWriter(...).WriteTable(name, rows, headers, (writer, row) => writer.Write(...))` |
+| `ExcelTabularColumn<T>` and its `ExcelDocument.WriteObjects` overload | `ExcelDocument.CreateWriter(...).WriteTable(...)` |
 | `CsvDocument.Map<T>(...)` | `CsvDocument.RowsAs<T>(...)` |
 | `RowMapper<T>` | `OfficeIMO.Data.RowMapper<T>` |
 | `CsvObjectWriter` | `CsvRowWriter` |

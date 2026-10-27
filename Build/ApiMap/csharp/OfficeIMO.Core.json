@@ -759,6 +759,20 @@
         "OfficeIMO.Core/packages.lock.json",
         "OfficeIMO.Core/packages.nonwindows.lock.json"
       ]
+    },
+    {
+      "change": "DBF-to-XLSX route entry point uses CreateWriter(...).WriteTable(name, reader).",
+      "reason": "The retired static ExcelDocument.WriteDataReader entry point no longer exists. Catalog projections retain the same route and fidelity.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/Compatibility/OfficeConversionCapabilityCatalog.cs",
+        "Docs/Compatibility/generated/conversion-routes.md",
+        "Docs/Compatibility/generated/conversion-routes.json",
+        "Docs/Compatibility/generated/package-operations.md",
+        "Docs/Compatibility/generated/package-operations.json",
+        "Website/data/office_conversion_routes.json",
+        "Website/data/format_map.json"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

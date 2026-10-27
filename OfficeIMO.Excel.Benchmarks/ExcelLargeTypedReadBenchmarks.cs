@@ -46,20 +46,30 @@ public class ExcelLargeTypedReadBenchmarks {
         _path = Path.Combine(root, $"large-typed-read-{Guid.NewGuid():N}.xlsx");
         try {
             using (Stream output = File.Create(_path)) {
-                ExcelDocument.WriteRows(output,
-                    ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
-                    static (writer, row) => writer.Write(row.Id).Write(row.Amount)
-                        .Write(row.CreatedOn).Write(row.Active),
-                    new ExcelWriterOptions { IncludeCellReferences = true, UseSharedStrings = false });
+                var destination1 = output;
+
+                var writeOptions1 = new ExcelWriterOptions {
+                    IncludeCellReferences = true,
+                    UseSharedStrings = false
+                };
+
+                using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                    workbookWriter1.WriteTable(writeOptions1.SheetName, ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount).Write(row.CreatedOn).Write(row.Active));
+                }
+
+                if (destination1.CanSeek)
+                    destination1.Position = 0;
             }
             _expected = ExpectedObservation(Operation == "FirstRow" ? 1 : RowCount);
             if (engine == nameof(ExcelReaderNet)) {
                 ReadExcelReader(validate: true, firstRow: false);
-            } else {
+            }
+            else {
                 using DbDataReader reader = Open(engine);
                 Read(reader, validate: true, firstRow: false);
             }
-        } catch {
+        }
+        catch {
             Cleanup();
             throw;
         }

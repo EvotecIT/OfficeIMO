@@ -6759,16 +6759,24 @@ namespace OfficeIMO.Tests
             using var reader = new CountingDataReader(
                 table.CreateDataReader(),
                 throwOnTypedGetters: true);
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                memory,
-                reader,
-                new ExcelWriterOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    TableName = "ReaderTable",
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination1 = memory;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                SheetName = "Data",
+                CreateTable = true,
+                TableName = "ReaderTable",
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                result = workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
 
             Assert.Equal(1, result.RowCount);
             Assert.Equal(2, reader.GetValueCalls);

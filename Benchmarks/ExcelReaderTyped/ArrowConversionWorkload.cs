@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 _ => _xlsbTyped
             }, writable: false);
             using DbDataReader reader = scenario == ArrowConversionScenario.XlsbTyped
-                ? ExcelDocument.OpenReader(source, new ExcelReadOptions { NumericAsDecimal = false })
+                ? ExcelDocument.OpenReader(source, new OfficeIMO.Excel.ExcelReaderOptions { NumericAsDecimal = false })
                 : CsvDocument.OpenDataReader(source,
                     scenario == ArrowConversionScenario.CsvAllString
                         ? new CsvLoadOptions { HasHeaderRow = false, Header = WideHeaders }

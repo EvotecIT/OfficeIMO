@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 if (workbook.SheetCount != 1) throw new InvalidDataException("Incorrect typed XLSB sheet count.");
                 Validate(ExcelParser.FromAttributes<TypedRecord>().Parse(workbook.FirstSheet));
             }
-            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Workbook, new ExcelReaderOptions { HasHeaderRow = true })) {
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(Workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = true })) {
                 ValidateHeaders(reader);
                 int count = 0;
                 while (reader.Read()) TypedWorkbookFixture.ValidateRecord(new TypedRecord {
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOTypedXlsb() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Workbook, new ExcelReaderOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(Workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             while (reader.Read()) {

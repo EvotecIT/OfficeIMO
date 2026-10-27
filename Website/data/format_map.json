@@ -859,7 +859,7 @@
       "package": "OfficeIMO.Excel",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)",
+      "api": "DbfDataReader.Open(path), then ExcelDocument.CreateWriter(stream, options).WriteTable(name, reader)",
       "surfaces": [
         "dotnet"
       ]
@@ -1563,7 +1563,7 @@
       "package": "OfficeIMO.PowerPoint.Html",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2186,7 +2186,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdpPresentation.Load(stream).ToPowerPointPresentationResult(options)",
+      "api": "OdpPresentation.Load(stream).ToPowerPointDocumentResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2423,7 +2423,7 @@
       "package": "OfficeIMO.Markup.PowerPoint",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointPresentationResult(exportOptions)",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointDocumentResult(exportOptions)",
       "surfaces": [
         "dotnet"
       ]
@@ -2782,7 +2782,7 @@
       "package": "OfficeIMO.PowerPoint.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(source, options, out var importReport).SaveAsPdf(destination)",
+      "api": "PowerPointDocument.Load(source, options, out var importReport).SaveAsPdf(destination)",
       "surfaces": [
         "dotnet"
       ]
@@ -2794,7 +2794,7 @@
       "package": "OfficeIMO.PowerPoint.GoogleSlides",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "PowerPointPresentation.Load(stream).ExportToGoogleSlidesAsync(session, options)",
+      "api": "PowerPointDocument.Load(stream).ExportToGoogleSlidesAsync(session, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2806,7 +2806,7 @@
       "package": "OfficeIMO.PowerPoint.Html",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "PowerPointPresentation.Load(stream).ToHtmlResult(options)",
+      "api": "PowerPointDocument.Load(stream).ToHtmlResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2821,7 +2821,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2836,7 +2836,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)",
+      "api": "PowerPointDocument.Load(stream).ToOpenDocumentResult(options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2851,7 +2851,7 @@
       "package": "OfficeIMO.PowerPoint.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).SaveAsPdf(output, options)",
+      "api": "PowerPointDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2869,7 +2869,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2884,7 +2884,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2899,7 +2899,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2914,7 +2914,7 @@
       "package": "OfficeIMO.PowerPoint",
       "support": "Established",
       "fidelity": "FixedLayout",
-      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "api": "PowerPointDocument.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet",
         "powershell"

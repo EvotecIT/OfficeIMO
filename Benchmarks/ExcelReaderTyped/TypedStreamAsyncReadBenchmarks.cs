@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _fixture.Shape = Shape;
             await _fixture.SetupAsync();
             await using MemoryStream stream = new MemoryStream(_fixture.Workbook, writable: false);
-            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(stream, new ExcelReadOptions { HasHeaderRow = true });
+            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(stream, new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true });
             int count = 0;
             await foreach (TypedRecord record in reader.RowsAsAsync<TypedRecord>())
                 TypedWorkbookFixture.ValidateRecord(record, ++count);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public async Task<long> OfficeIMOStreamOpenTypedAsync() {
             await using MemoryStream stream = new MemoryStream(_fixture.Workbook, writable: false);
-            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(stream, new ExcelReadOptions { HasHeaderRow = true });
+            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(stream, new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true });
             int count = 0;
             long sum = 0;
             await foreach (TypedRecord record in reader.RowsAsAsync<TypedRecord>()) {

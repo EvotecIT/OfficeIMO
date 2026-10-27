@@ -1701,17 +1701,23 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         if (!autoFit) {
             using var reader = dataTable.CreateDataReader();
-            ExcelDocument.WriteDataReader(
-                stream,
-                reader,
-                new ExcelWriterOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    TableName = "SalesData",
-                    TableStyle = ExcelTableStyle.TableStyleMedium2,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                SheetName = "Data",
+                CreateTable = true,
+                TableName = "SalesData",
+                TableStyle = ExcelTableStyle.TableStyleMedium2,
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
             return stream.ToArray();
         }
 
@@ -1746,7 +1752,19 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteDataReaderDirectPackageBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
-        ExcelDocument.WriteDataReader(stream, reader);
+        var destination2 = stream;
+
+        var writeOptions2 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+            workbookWriter2.WriteTable(writeOptions2.SheetName, reader);
+        }
+
+        if (destination2.CanSeek)
+            destination2.Position = 0;
         return stream.ToArray();
     }
 
@@ -1756,7 +1774,19 @@ internal static partial class ExcelLibraryComparisonRunner {
     internal static byte[] OfficeImoWriteDataReaderCompactPackageBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
-        ExcelDocument.WriteDataReader(stream, reader, CompactTabularWriteOptions);
+        var destination3 = stream;
+
+        var writeOptions3 = CompactTabularWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter3 = ExcelDocument.CreateWriter(destination3, writeOptions3, leaveOpen: true)) {
+            workbookWriter3.WriteTable(writeOptions3.SheetName, reader);
+        }
+
+        if (destination3.CanSeek)
+            destination3.Position = 0;
         return stream.ToArray();
     }
 
@@ -1840,19 +1870,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteTypedRowsPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Region)
-                .Write(row.Owner)
-                .Write(row.CreatedOn)
-                .Write(row.Amount)
-                .Write(row.Units)
-                .Write(row.Active)
-                .Write(row.Notes));
+        var destination4 = stream;
+
+        var writeOptions4 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter4 = ExcelDocument.CreateWriter(destination4, writeOptions4, leaveOpen: true)) {
+            workbookWriter4.WriteTable(writeOptions4.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => writer.Write(row.Id).Write(row.Region).Write(row.Owner).Write(row.CreatedOn).Write(row.Amount).Write(row.Units).Write(row.Active).Write(row.Notes));
+        }
+
+        if (destination4.CanSeek)
+            destination4.Position = 0;
         return stream.ToArray();
     }
 
@@ -1861,20 +1891,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteTypedRowsCompactPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Region)
-                .Write(row.Owner)
-                .Write(row.CreatedOn)
-                .Write(row.Amount)
-                .Write(row.Units)
-                .Write(row.Active)
-                .Write(row.Notes),
-            CompactTabularWriteOptions);
+        var destination5 = stream;
+
+        var writeOptions5 = CompactTabularWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter5 = ExcelDocument.CreateWriter(destination5, writeOptions5, leaveOpen: true)) {
+            workbookWriter5.WriteTable(writeOptions5.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => writer.Write(row.Id).Write(row.Region).Write(row.Owner).Write(row.CreatedOn).Write(row.Amount).Write(row.Units).Write(row.Active).Write(row.Notes));
+        }
+
+        if (destination5.CanSeek)
+            destination5.Position = 0;
         return stream.ToArray();
     }
 
@@ -1932,11 +1961,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteDictionaryRowsPackageBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => WriteOfficeImoDictionaryRow(writer, row));
+        var destination6 = stream;
+
+        var writeOptions6 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter6 = ExcelDocument.CreateWriter(destination6, writeOptions6, leaveOpen: true)) {
+            workbookWriter6.WriteTable(writeOptions6.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => WriteOfficeImoDictionaryRow(writer, row));
+        }
+
+        if (destination6.CanSeek)
+            destination6.Position = 0;
         return stream.ToArray();
     }
 
