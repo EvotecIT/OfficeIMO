@@ -69,7 +69,9 @@ namespace OfficeIMO.Word.Pdf {
             "native-shape-group-unsupported" or
             "native-watermark-image-unsupported" or
             "native-anchored-image-clipped" or
-            "native-paragraph-bar-tab-omitted" => OfficeIMO.OfficeConversionLossKind.Omission,
+            "native-paragraph-bar-tab-omitted" or
+            "native-bookmark-target-unprojected" or
+            "native-bookmark-target-missing" => OfficeIMO.OfficeConversionLossKind.Omission,
             _ => OfficeIMO.OfficeConversionLossKind.Approximation
         };
     }

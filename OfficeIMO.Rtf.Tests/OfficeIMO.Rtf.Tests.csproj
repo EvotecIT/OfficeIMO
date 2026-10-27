@@ -52,6 +52,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.HorizontalMetrics.cs" Link="Shared\ManagedTextShapingTestAssets.HorizontalMetrics.cs" />
     <None Update="Documents\**" CopyToOutputDirectory="Always" />
     <None Include="..\Docs\officeimo.rtf-capabilities.json" Link="Documents\RtfCapabilities\officeimo.rtf-capabilities.json" CopyToOutputDirectory="Always" />
   </ItemGroup>

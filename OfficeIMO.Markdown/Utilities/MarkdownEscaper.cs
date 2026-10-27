@@ -32,7 +32,8 @@ public static partial class MarkdownEscaper {
 
     internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
     internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
-    internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
+    /// <summary>Escapes literal table-cell text, including character-reference-like ampersands.</summary>
+    internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text);
     internal static string EscapeEmphasis(string? text) => EscapeTextForWriter(text);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeInsertedText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '+']);
@@ -337,7 +338,6 @@ public static partial class MarkdownEscaper {
 
     private static string EncodeLiteralMarkdownText(
         string? text,
-        bool encodeEntityLikeAmpersands = true,
         char? additionalReserved = null) {
         string value = text ?? string.Empty;
         if (value.Length == 0) {
@@ -362,7 +362,7 @@ public static partial class MarkdownEscaper {
                 '=' => @"\=",
                 '<' => "&lt;",
                 '>' => "&gt;",
-                '&' when encodeEntityLikeAmpersands && IsEntityLikeAmpersand(value, i) => "&amp;",
+                '&' when IsEntityLikeAmpersand(value, i) => "&amp;",
                     _ => null
                 };
 

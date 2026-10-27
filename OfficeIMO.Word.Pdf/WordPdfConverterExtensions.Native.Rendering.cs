@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeImage(pdf, image, options: options, source: "body image");
                     break;
                 case WordHyperLink link:
-                    RenderNativeHyperLink(pdf, link);
+                    RenderNativeHyperLink(pdf, link, nativeDefaults.BookmarkTargets);
                     break;
                 case WordBreak wordBreak:
                     RenderNativeBreak(pdf, wordBreak);
@@ -738,7 +738,7 @@ namespace OfficeIMO.Word.Pdf {
                     footnoteNumbersById, emittedNoteTokens);
             } else if (!projectedContentOnly && paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-                AddNativeCasedText(builder, paragraph.Hyperlink.Text, style, tabStops, ref tabIndex, paragraph.Hyperlink);
+                AddNativeCasedText(builder, paragraph.Hyperlink.Text, style, tabStops, ref tabIndex, paragraph.Hyperlink, nativeDefaults.BookmarkTargets);
                 ResetNativeTextStyle(builder);
             } else {
                 AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
@@ -1207,7 +1207,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraphStyleFallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             style = style with { FontSize = style.FontSize ?? nativeFontMap.DefaultFontSize ?? nativeDefaults.FontSize };
-            AddNativeCasedText(builder, text, style, tabStops, ref tabIndex, run.IsHyperLink ? run.Hyperlink : null);
+            AddNativeCasedText(builder, text, style, tabStops, ref tabIndex, run.IsHyperLink ? run.Hyperlink : null, nativeDefaults.BookmarkTargets);
 
             ResetNativeTextStyle(builder);
         }
@@ -1306,7 +1306,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryResolveNativeMappedFont(string? familyName, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
             (nativeFontMap != null && nativeFontMap.TryGetFontSlot(familyName, out font)) ||
-            PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out font);
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(
+                familyName == null ? null : OfficeFontFamilyParser.Quote(familyName), out font);
 
         private static string? ResolveNativeTextRunFontFamily(
             WordParagraph paragraph,
@@ -1422,26 +1423,30 @@ namespace OfficeIMO.Word.Pdf {
             builder.Tab();
         }
 
-        private static void AddNativeHyperLinkRun(PdfCore.PdfParagraphBuilder builder, string text, WordHyperLink hyperlink, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, NativeResolvedTextStyle? style = null) {
+        private static void AddNativeHyperLinkRun(PdfCore.PdfParagraphBuilder builder, string text, WordHyperLink hyperlink, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, NativeResolvedTextStyle? style = null, NativeBookmarkTargets? bookmarks = null) {
             Uri? uri = hyperlink.Uri;
             string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
-            string? bookmarkName = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
-            if (linkUri == null && bookmarkName == null) {
+            string? sourceBookmark = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
+            string? bookmarkName = bookmarks == null ? sourceBookmark : bookmarks.Resolve(sourceBookmark);
+            bool retainLinkAppearance = sourceBookmark != null && bookmarkName == null;
+            if (linkUri == null && bookmarkName == null && !retainLinkAppearance) {
                 AddNativeRunText(builder, text, tabStops, ref tabIndex);
                 return;
             }
 
-            string? contents = GetNativeHyperLinkContents(hyperlink);
+            string? contents = retainLinkAppearance ? null : GetNativeHyperLinkContents(hyperlink);
             int currentTabIndex = tabIndex;
             AddNativeTextSegments(
                 text,
                 value => {
                     if (style.HasValue) {
-                        builder.Runs(new[] { CreateNativeHyperLinkTextRun(value, linkUri, bookmarkName, contents, style.Value) });
+                        builder.Runs(new[] { CreateNativeHyperLinkTextRun(value, linkUri, bookmarkName, contents, style.Value, retainLinkAppearance) });
                     } else if (linkUri != null) {
                         builder.Link(value, linkUri, contents: contents);
+                    } else if (bookmarkName != null) {
+                        builder.LinkToBookmark(value, bookmarkName, contents: contents);
                     } else {
-                        builder.LinkToBookmark(value, bookmarkName!, contents: contents);
+                        builder.Runs(new[] { new PdfCore.PdfTextRun(value, underline: true) });
                     }
                 },
                 () => builder.LineBreak(),
@@ -1458,11 +1463,11 @@ namespace OfficeIMO.Word.Pdf {
             string? linkUri,
             string? bookmarkName,
             string? contents,
-            NativeResolvedTextStyle style) =>
+            NativeResolvedTextStyle style, bool retainLinkAppearance = false) =>
             style.ApplyTo(new PdfCore.PdfTextRun(
                 text,
                 bold: style.Bold,
-                underline: style.Underline || linkUri != null || bookmarkName != null,
+                underline: style.Underline || linkUri != null || bookmarkName != null || retainLinkAppearance,
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
@@ -1474,7 +1479,7 @@ namespace OfficeIMO.Word.Pdf {
                 linkDestinationName: bookmarkName,
                 backgroundColor: style.BackgroundColor,
                 fontFamily: style.FontFamily,
-                underlineStyle: style.Underline || linkUri != null || bookmarkName != null
+                underlineStyle: style.Underline || linkUri != null || bookmarkName != null || retainLinkAppearance
                     ? style.UnderlineStyle == OfficeTextDecorationStyle.None
                         ? OfficeTextDecorationStyle.Single
                         : style.UnderlineStyle
@@ -1484,17 +1489,17 @@ namespace OfficeIMO.Word.Pdf {
         private static string? GetNativeHyperLinkContents(WordHyperLink hyperlink) =>
             string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
 
-        private static void AddNativeHyperLinkRun(PdfCore.PdfParagraphBuilder builder, WordHyperLink hyperlink) {
+        private static void AddNativeHyperLinkRun(PdfCore.PdfParagraphBuilder builder, WordHyperLink hyperlink, NativeBookmarkTargets? bookmarks = null) {
             int tabIndex = 0;
-            AddNativeHyperLinkRun(builder, hyperlink.Text, hyperlink, Array.Empty<WordTabStop>(), ref tabIndex);
+            AddNativeHyperLinkRun(builder, hyperlink.Text, hyperlink, Array.Empty<WordTabStop>(), ref tabIndex, bookmarks: bookmarks);
         }
 
-        private static void RenderNativeHyperLink(INativePdfFlow pdf, WordHyperLink link) {
+        private static void RenderNativeHyperLink(INativePdfFlow pdf, WordHyperLink link, NativeBookmarkTargets? bookmarks) {
             if (link == null || string.IsNullOrEmpty(link.Text)) {
                 return;
             }
 
-            pdf.Paragraph(builder => AddNativeHyperLinkRun(builder, link));
+            pdf.Paragraph(builder => AddNativeHyperLinkRun(builder, link, bookmarks));
         }
 
     }

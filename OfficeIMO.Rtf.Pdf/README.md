@@ -26,6 +26,10 @@ By default, borderless zero-gap RTF tables do not acquire a PDF grid or convenie
 
 When the selected font programs and resolved run sizes provide usable line metrics, automatic, minimum, and multiple spacing use those metrics. Otherwise, the shared PDF spacing policy remains in effect. Exact spacing keeps the requested advance. Font substitution can change line heights and page breaks; this supported metric profile does not establish identical native Word layout for arbitrary documents.
 
+Font admission uses effective character formatting from paragraph and character styles, including inherited styles, table cells, field results and referenced notes. Empty and control-only paragraphs retain their effective font for line-box measurement. Notes attached directly through the authoring APIs do not need a second entry in the document's note collection for their fonts to be available.
+
+Caller-supplied named fonts and planned substitutions in `RtfToPdfOptions.PdfOptions` apply to supported rich text and its empty-line metrics. A named document-default font also supplies unformatted generated text, list markers and the existing appended note labels. Explicit PDF default-font assignments retain precedence. Use the same [font files and mappings](../OfficeIMO.Pdf/README.md#supply-document-font-families) on Windows and Linux when consistent typography matters; fonts available only on one host can change widths, line heights and pagination.
+
 Footnotes, endnotes, and annotations are appended after the body with a label on each note's first paragraph. Their paragraph formatting is retained within that flow; this route does not place footnotes beside their reference pages or reproduce native endnote continuation. Nested tables remain delimited text with `NestedTableFlattened` diagnostics.
 
 Paragraph-frame positioning, dimensions, and wrapping are flattened to ordinary flow and reported as `ParagraphFrameFlattened`. The warning applies to projected body, cell, note, and selected running-story paragraphs. `RequireNoLoss()` rejects this approximation; the lossless RTF API remains available when source frame syntax must survive.

@@ -1389,7 +1389,7 @@ const { captureFields } = _m10;
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
 const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
 /** @internal Worksheet settings also used by the portable sheet owner. */
-const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
+const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
 /** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
 const workbookLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxStyles", "maxSheets", "maxOverflowCharacters", "maxHyperlinks", "maxImageBytes", "maxBufferedCells", "maxBufferedCharacters", "maxMergedRanges", "maxConditionalFormats", "maxDifferentialStyles", "maxCharts", "maxChartPoints", "maxChartTextCharacters", "maxFormulaCharacters", "maxDataValidations", "maxValidationTextCharacters"];
 /** @internal Capture the workbook's known ceilings without dropping supported prototype fields. */
@@ -2808,7 +2808,52 @@ const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, c
 return _exports;
 })();
 
-const _m39 = (() => {
+const _m37 = (() => {
+const { captureFields } = _m10;
+
+/** Capture bounded disjoint ranges before asynchronous serialization; absent columns stay visible. */
+function captureColumnOutlines(input, columns) {
+    if (input === undefined)
+        return undefined;
+    if (!Array.isArray(input) || input.length > columns)
+        throw new TypeError("Column outlines must be bounded, non-overlapping ranges.");
+    let end = 0;
+    return Object.freeze(input.map(range => {
+        if (!range || typeof range !== "object")
+            throw new TypeError("Column outlines require range metadata.");
+        return captureFields(range, ["firstColumn", "columnCount", "level", "hidden", "collapsed"]);
+    }).sort((a, b) => a.firstColumn - b.firstColumn).map(range => {
+        const { firstColumn, columnCount, level = 0, hidden, collapsed } = range;
+        if (!Number.isSafeInteger(firstColumn) || firstColumn < end || !Number.isSafeInteger(columnCount) || columnCount < 1 || firstColumn + columnCount > columns)
+            throw new RangeError("Column outline ranges must be disjoint and within the declared columns.");
+        if (!Number.isInteger(level) || level < 0 || level > 7)
+            throw new RangeError("Column outline level must be from zero through seven.");
+        for (const flag of [hidden, collapsed])
+            if (flag !== undefined && typeof flag !== "boolean")
+                throw new TypeError("Column outline flags must be booleans.");
+        end = firstColumn + columnCount;
+        return Object.freeze({ firstColumn, columnCount, level, ...(hidden === undefined ? {} : { hidden }), ...(collapsed === undefined ? {} : { collapsed }) });
+    }));
+}
+/** @internal Positions are captured even when a sheet has only column outlines. */
+function validateOutlinePositions(options) {
+    for (const flag of [options.outlineSummaryBelow, options.outlineSummaryRight])
+        if (flag !== undefined && typeof flag !== "boolean")
+            throw new TypeError("Outline summary positions must be booleans.");
+}
+/** @internal Resolve at most 16,384 columns once, without retaining any worksheet body. */
+function columnOutlineMap(ranges) {
+    const result = new Map();
+    for (const range of ranges ?? [])
+        for (let index = range.firstColumn; index < range.firstColumn + range.columnCount; index++)
+            result.set(index, range);
+    return result;
+}
+const _exports = Object.freeze({ captureColumnOutlines: captureColumnOutlines, validateOutlinePositions: validateOutlinePositions, columnOutlineMap: columnOutlineMap });
+return _exports;
+})();
+
+const _m40 = (() => {
 const { ChunkedTextSink } = _m3;
 
 const { escapeXml, xmlDeclaration } = _m28;
@@ -2920,14 +2965,14 @@ const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentTyp
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m39 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m28;
 
 const { copyExportLink } = _m7;
 
 const { officeRelationshipsNamespace } = _m25;
 
-const { chartAnchorXml } = _m39;
+const { chartAnchorXml } = _m40;
 
 const { captureFields } = _m10;
 
@@ -2997,10 +3042,10 @@ const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosit
 return _exports;
 })();
 
-const _m41 = (() => {
+const _m42 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { cellPosition } = _m38;
+const { cellPosition } = _m39;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -3101,7 +3146,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m42 = (() => {
+const _m43 = (() => {
 const { ExportCell } = _m5;
 
 const { tableSpans } = _m18;
@@ -3137,7 +3182,7 @@ const _exports = Object.freeze({ StructuredRows: StructuredRows });
 return _exports;
 })();
 
-const _m40 = (() => {
+const _m41 = (() => {
 const { ExportCell } = _m5;
 
 const { isDate } = _m6;
@@ -3148,13 +3193,13 @@ const { FormulaCell } = _m36;
 
 const { escapeOoxmlAttribute } = _m28;
 
-const { MergeRegions } = _m41;
+const { MergeRegions } = _m42;
 
 const { OfficeIMOError } = _m2;
 
 const { createTotals } = _m12;
 
-const { StructuredRows } = _m42;
+const { StructuredRows } = _m43;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -3337,7 +3382,7 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m44 = (() => {
+const _m45 = (() => {
 const { columnName } = _m35;
 
 /** @internal Data-column selectors use stable keys or one-based worksheet columns. */
@@ -3367,7 +3412,7 @@ const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualified
 return _exports;
 })();
 
-const _m45 = (() => {
+const _m46 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { columnName } = _m35;
@@ -3413,18 +3458,18 @@ const _exports = Object.freeze({ retainDataRowRanges: retainDataRowRanges, dataR
 return _exports;
 })();
 
-const _m43 = (() => {
+const _m44 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m28;
 
-const { cellPosition } = _m38;
+const { cellPosition } = _m39;
 
 const { colorArgb } = _m33;
 
 const { fields, optionalBoolean, differentialXml } = _m34;
 
-const { resolveDataColumn } = _m44;
+const { resolveDataColumn } = _m45;
 
-const { dataRowReference } = _m45;
+const { dataRowReference } = _m46;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -3582,7 +3627,7 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m46 = (() => {
+const _m47 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -3591,9 +3636,9 @@ const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m28;
 
 const { fields, optionalBoolean } = _m34;
 
-const { resolveDataColumn } = _m44;
+const { resolveDataColumn } = _m45;
 
-const { dataRowReference } = _m45;
+const { dataRowReference } = _m46;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -3685,7 +3730,7 @@ const _exports = Object.freeze({ prepareDataValidations: prepareDataValidations,
 return _exports;
 })();
 
-const _m37 = (() => {
+const _m38 = (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -3706,25 +3751,27 @@ const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m35;
 
 const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m32;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m38;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m39;
 
 const { ExportCell, assertScalar } = _m5;
 
-const { ReportLayout, ComputedTotal, printXml } = _m40;
+const { ReportLayout, ComputedTotal, printXml } = _m41;
 
 const { cleanXml } = _m28;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m43;
+const { ConditionalFormats, prepareConditionalFormats } = _m44;
 
 const { isDate } = _m6;
 
 const { FormulaCell, formulaXml, isSubtotalFormula } = _m36;
 
-const { prepareDataValidations, dataValidationsXml } = _m46;
+const { prepareDataValidations, dataValidationsXml } = _m47;
 
-const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m44;
+const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m45;
 
-const { dataRowRanges, dataRowCount } = _m45;
+const { dataRowRanges, dataRowCount } = _m46;
+
+const { captureColumnOutlines, columnOutlineMap, validateOutlinePositions } = _m37;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -3856,6 +3903,8 @@ class Worksheet {
                 throw new TypeError("Row and style callbacks must be functions.");
         if (options.maxOutlineLevel !== undefined && (!Number.isInteger(options.maxOutlineLevel) || options.maxOutlineLevel < 0 || options.maxOutlineLevel > 7))
             throw new RangeError("Maximum outline level must be an integer from zero through seven.");
+        validateOutlinePositions(options);
+        captureColumnOutlines(options.columnOutlines, columns.length);
         if (options.rowOutline && options.maxOutlineLevel === undefined)
             throw new TypeError("A row outline callback requires maxOutlineLevel before streamed rows are written.");
         if (!options.rowOutline && options.maxOutlineLevel !== undefined)
@@ -4140,17 +4189,22 @@ class Worksheet {
         const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
         const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
         const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
+        const outlines = columnOutlineMap(opts.columnOutlines), hasOutline = !!opts.rowOutline || outlines.size > 0;
+        const maxColumnLevel = Math.max(0, ...Array.from(outlines.values(), value => value.level ?? 0));
         await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' +
-            (opts.print || opts.rowOutline ? '<sheetPr>' + (opts.rowOutline ? '<outlinePr summaryBelow="1" showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
+            (opts.print || hasOutline ? '<sheetPr>' + (hasOutline ? '<outlinePr summaryBelow="' + (opts.outlineSummaryBelow === false ? "0" : "1") + '"' + (opts.outlineSummaryRight === undefined ? "" : ' summaryRight="' + (opts.outlineSummaryRight ? "1" : "0") + '"') + ' showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
             (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>' +
-            (opts.rowOutline ? '<sheetFormatPr defaultRowHeight="15" outlineLevelRow="' + opts.maxOutlineLevel + '"/>' : ""));
+            (hasOutline ? '<sheetFormatPr defaultRowHeight="15"' + (opts.rowOutline ? ' outlineLevelRow="' + opts.maxOutlineLevel + '"' : "") + (outlines.size ? ' outlineLevelCol="' + maxColumnLevel + '"' : "") + '/>' : ""));
         const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
-        if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined)) {
+        if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined || outlines.has(i))) {
             await buffer.write('<cols>');
             for (let i = 0; i < this.columns.length; i++) {
-                const width = this.layout.widths[i] ?? defaultWidth;
-                if (width !== undefined)
-                    await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + width + '" customWidth="1"/>');
+                const width = this.layout.widths[i] ?? defaultWidth, outline = outlines.get(i);
+                if (width !== undefined || outline)
+                    await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '"' +
+                        (width === undefined ? "" : ' width="' + width + '" customWidth="1"') +
+                        (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") +
+                        (outline?.collapsed ? ' collapsed="1"' : "") + '/>');
             }
             await buffer.write('</cols>');
         }
@@ -4411,7 +4465,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m47 = (() => {
+const _m48 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m28;
 
 const { cellText, columnName } = _m35;
@@ -4422,7 +4476,7 @@ const { ExportCell } = _m5;
 
 const { Cell } = _m35;
 
-const { totalFormula } = _m40;
+const { totalFormula } = _m41;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -4457,7 +4511,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m48 = (() => {
+const _m49 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { cleanXml } = _m28;
@@ -4524,7 +4578,7 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m50 = (() => {
+const _m51 = (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4655,18 +4709,18 @@ const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareCh
 return _exports;
 })();
 
-const _m49 = (() => {
+const _m50 = (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { cleanXml } = _m28;
 
-const { copyDrawingAnchor } = _m38;
+const { copyDrawingAnchor } = _m39;
 
 const { captureFields } = _m10;
 
-const { captureChartRange, prepareChartBinding } = _m50;
+const { captureChartRange, prepareChartBinding } = _m51;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -4848,25 +4902,27 @@ const { copyColumns } = _m11;
 
 const { captureFields } = _m10;
 
+const { captureColumnOutlines } = _m37;
+
 const { captureTableSpans } = _m18;
 
 const { assertExportValue } = _m5;
 
-const { Worksheet } = _m37;
+const { Worksheet } = _m38;
 
-const { defineTable, tableXml } = _m47;
+const { defineTable, tableXml } = _m48;
 
-const { copyHyperlink, drawingXml, drawingContentType } = _m38;
+const { copyHyperlink, drawingXml, drawingContentType } = _m39;
 
-const { TextOverflow } = _m48;
+const { TextOverflow } = _m49;
 
 const { captureWorkbookOptions, sheetOptionFields } = _m22;
 
-const { prepareChart } = _m49;
+const { prepareChart } = _m50;
 
-const { qualifiedColumnRange, resolveDataColumn } = _m44;
+const { qualifiedColumnRange, resolveDataColumn } = _m45;
 
-const { chartContentType, writeChartXml } = _m39;
+const { chartContentType, writeChartXml } = _m40;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -4877,6 +4933,7 @@ function captureSheet(options, policy) {
     const footer = captured.footer && captureFields(captured.footer, ["rows", "values", "totals", "style"]);
     const print = captured.print && captureFields(captured.print, ["paper", "orientation", "fitToWidth", "fitToHeight", "repeatHeaders", "margins", "header", "footer"]);
     return { ...captured, columns,
+        ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length) }),
         ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
         ...(footer ? { footer: { ...footer,
                 ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
@@ -5306,7 +5363,7 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m52 = (() => {
+const _m53 = (() => {
 const { ExportCell, assertScalar } = _m5;
 
 const { captureWorkbookOptions, sheetOptionFields } = _m22;
@@ -5358,14 +5415,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m51 = (() => {
+const _m52 = (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
 
 const { Workbook } = _m24;
 
-const { portableSheet, portableWorkbook } = _m52;
+const { portableSheet, portableWorkbook } = _m53;
 
 const { captureFields } = _m10;
 
@@ -5416,7 +5473,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m54 = (() => {
+const _m55 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -5427,9 +5484,9 @@ const { fields } = _m34;
 
 const { sheetOptionFields } = _m22;
 
-const { portableSheet } = _m52;
+const { portableSheet } = _m53;
 
-const { resolveDataColumn } = _m44;
+const { resolveDataColumn } = _m45;
 
 const { copyStylePatch } = _m32;
 
@@ -5508,7 +5565,7 @@ const _exports = Object.freeze({ groupedOptionFields: groupedOptionFields, prepa
 return _exports;
 })();
 
-const _m53 = (() => {
+const _m54 = (() => {
 const { groupedReportOperation } = _m8;
 
 const { checkAbort, withAbort } = _m4;
@@ -5525,9 +5582,9 @@ const { columnName } = _m35;
 
 const { captureWorkbookLimits, workbookOptionFields } = _m22;
 
-const { retainDataRowRanges } = _m45;
+const { retainDataRowRanges } = _m46;
 
-const { groupedOptionFields, prepareGroupedSheet } = _m54;
+const { groupedOptionFields, prepareGroupedSheet } = _m55;
 
 const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
 function label(value) {
@@ -5686,11 +5743,11 @@ return _exports;
 
 const _m23 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m51.writeXlsx, writeXlsxTo: _m51.writeXlsxTo, writeGroupedXlsx: _m53.writeGroupedXlsx, writeGroupedXlsxTo: _m53.writeGroupedXlsxTo, addGroupedXlsx: _m53.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m37.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m52.writeXlsx, writeXlsxTo: _m52.writeXlsxTo, writeGroupedXlsx: _m54.writeGroupedXlsx, writeGroupedXlsxTo: _m54.writeGroupedXlsxTo, addGroupedXlsx: _m54.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m38.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
 return _exports;
 })();
 
-const _m56 = (() => {
+const _m57 = (() => {
 const { captureTableSpans, tableSpans } = _m18;
 
 /** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
@@ -5711,7 +5768,7 @@ const _exports = Object.freeze({ csvStructuredRows: csvStructuredRows });
 return _exports;
 })();
 
-const _m55 = (() => {
+const _m56 = (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -5726,7 +5783,7 @@ const { notifyProgress } = _m14;
 
 const { copyColumns, createRowProjector } = _m11;
 
-const { csvStructuredRows } = _m56;
+const { csvStructuredRows } = _m57;
 
 const { captureBooleanText } = _m21;
 
@@ -5864,7 +5921,7 @@ const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportC
 return _exports;
 })();
 
-const _m61 = (() => {
+const _m62 = (() => {
 /** @internal One type byte, an eight-byte offset/container number and a two-byte generation/index. */
 const pdfXrefEntryBytes = 11;
 function unsigned(bytes, offset, value, width) {
@@ -5899,12 +5956,12 @@ const _exports = Object.freeze({ pdfXrefEntryBytes: pdfXrefEntryBytes, pdfXrefCh
 return _exports;
 })();
 
-const _m60 = (() => {
+const _m61 = (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
 
-const { pdfXrefChunks, pdfXrefEntryBytes } = _m61;
+const { pdfXrefChunks, pdfXrefEntryBytes } = _m62;
 
 const compactObjectCount = 256, compactObjectBytes = 32768;
 const compactIndexChunkEntries = 4096;
@@ -6227,7 +6284,7 @@ const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, P
 return _exports;
 })();
 
-const _m65 = (() => {
+const _m66 = (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -6256,8 +6313,8 @@ const _exports = Object.freeze({ FontReader: FontReader, checksum: checksum, ali
 return _exports;
 })();
 
-const _m66 = (() => {
-const { align4 } = _m65;
+const _m67 = (() => {
+const { align4 } = _m66;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6480,12 +6537,12 @@ const _exports = Object.freeze({ subsetTrueType: subsetTrueType, subsetTrueTypeC
 return _exports;
 })();
 
-const _m64 = (() => {
+const _m65 = (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m65;
+const { FontReader } = _m66;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m66;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m67;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6724,8 +6781,8 @@ const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
 })();
 
-const _m63 = (() => {
-const { TrueTypeFont } = _m64;
+const _m64 = (() => {
+const { TrueTypeFont } = _m65;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -6787,7 +6844,7 @@ const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
 return _exports;
 })();
 
-const _m68 = (() => {
+const _m69 = (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -7109,12 +7166,12 @@ const _exports = Object.freeze({ helveticaWidths: helveticaWidths });
 return _exports;
 })();
 
-const _m67 = (() => {
+const _m68 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m63;
+const { PdfFont, fontProgram } = _m64;
 
-const { helveticaWidths } = _m68;
+const { helveticaWidths } = _m69;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -7177,14 +7234,14 @@ const _exports = Object.freeze({ standardCode: standardCode, resolveScalar: reso
 return _exports;
 })();
 
-const _m62 = (() => {
+const _m63 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m63;
+const { fontProgram } = _m64;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m67;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m68;
 
-const { pdfNumber, unicodeHex } = _m60;
+const { pdfNumber, unicodeHex } = _m61;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -7408,7 +7465,7 @@ const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResour
 return _exports;
 })();
 
-const _m70 = (() => {
+const _m71 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -7519,7 +7576,7 @@ const _exports = Object.freeze({ pdfBudgetText: pdfBudgetText, synchronousText: 
 return _exports;
 })();
 
-const _m72 = (() => {
+const _m73 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7731,7 +7788,7 @@ const _exports = Object.freeze({ wrapShapedPdfText: wrapShapedPdfText });
 return _exports;
 })();
 
-const _m71 = (() => {
+const _m72 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
@@ -7740,11 +7797,11 @@ const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { presentation, color } = _m17;
 
-const { wrapShapedPdfText } = _m72;
+const { wrapShapedPdfText } = _m73;
 
-const { PdfFont } = _m63;
+const { PdfFont } = _m64;
 
-const { pdfBudgetText } = _m70;
+const { pdfBudgetText } = _m71;
 
 /** @internal Callers supply an owned, validated, frozen base presentation. A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true, reserveBudget = true) {
@@ -7926,10 +7983,10 @@ const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wr
 return _exports;
 })();
 
-const _m73 = (() => {
+const _m74 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { wrapPdfText } = _m71;
+const { wrapPdfText } = _m72;
 
 /** Plan without opening a source. Exact column widths never shrink in band mode. */
 function planTableBands(widths, settings) {
@@ -8024,7 +8081,7 @@ const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows
 return _exports;
 })();
 
-const _m69 = (() => {
+const _m70 = (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8035,11 +8092,11 @@ const { createTotals } = _m12;
 
 const { presentation, positive } = _m17;
 
-const { displayText, pdfBudgetText } = _m70;
+const { displayText, pdfBudgetText } = _m71;
 
-const { capturePdfText, wrapPdfText } = _m71;
+const { capturePdfText, wrapPdfText } = _m72;
 
-const { planTableBands, projectBandRows, alignBandBlocks } = _m73;
+const { planTableBands, projectBandRows, alignBandBlocks } = _m74;
 
 class PdfTableLayout {
     settings;
@@ -8258,7 +8315,7 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m75 = (() => {
+const _m76 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8399,7 +8456,7 @@ const _exports = Object.freeze({ PdfTableBandFlow: PdfTableBandFlow });
 return _exports;
 })();
 
-const _m76 = (() => {
+const _m77 = (() => {
 /** @internal Source-cell identities survive page fragments and horizontal band projections.
  * Only column headers and still-owned row objects remain reachable from this table owner. */
 class PdfTableStructure {
@@ -8513,10 +8570,10 @@ const _exports = Object.freeze({ PdfTableStructure: PdfTableStructure });
 return _exports;
 })();
 
-const _m77 = (() => {
+const _m78 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m60;
+const { pdfNumber, unicodeHex } = _m61;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -8558,10 +8615,10 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m78 = (() => {
+const _m79 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { unicodeHex } = _m60;
+const { unicodeHex } = _m61;
 
 const { captureFields } = _m10;
 
@@ -8606,7 +8663,7 @@ const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSectio
 return _exports;
 })();
 
-const _m79 = (() => {
+const _m80 = (() => {
 const { settings } = _m17;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -8624,28 +8681,28 @@ const _exports = Object.freeze({ sectionSettings: sectionSettings });
 return _exports;
 })();
 
-const _m74 = (() => {
+const _m75 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m60;
+const { pdfNumber } = _m61;
 
 const { color } = _m17;
 
-const { PdfTableBandFlow } = _m75;
+const { PdfTableBandFlow } = _m76;
 
-const { PdfTableStructure } = _m76;
+const { PdfTableStructure } = _m77;
 
-const { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } = _m70;
+const { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } = _m71;
 
-const { linkAnnotation } = _m77;
+const { linkAnnotation } = _m78;
 
-const { unicodeHex } = _m60;
+const { unicodeHex } = _m61;
 
-const { captureSection, captureBookmark } = _m78;
+const { captureSection, captureBookmark } = _m79;
 
-const { sectionSettings } = _m79;
+const { sectionSettings } = _m80;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -9365,7 +9422,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m81 = (() => {
+const _m82 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -9427,14 +9484,14 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m80 = (() => {
+const _m81 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { unicodeHex } = _m60;
+const { unicodeHex } = _m61;
 
-const { PdfParentTree } = _m81;
+const { PdfParentTree } = _m82;
 
 /** Same-page marked content uses integer K; cross-page MCR and annotation OBJR stay explicit. */
 function structureChild(child) {
@@ -9738,12 +9795,12 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m82 = (() => {
+const _m83 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber, unicodeHex } = _m60;
+const { pdfNumber, unicodeHex } = _m61;
 
 /** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
 class PdfOutlines {
@@ -9801,18 +9858,18 @@ const _exports = Object.freeze({ PdfOutlines: PdfOutlines });
 return _exports;
 })();
 
-const _m59 = (() => {
-const { PdfObjects, unicodeHex } = _m60;
+const _m60 = (() => {
+const { PdfObjects, unicodeHex } = _m61;
 
-const { PdfFontResources } = _m62;
+const { PdfFontResources } = _m63;
 
-const { PdfTableLayout } = _m69;
+const { PdfTableLayout } = _m70;
 
-const { PdfPages } = _m74;
+const { PdfPages } = _m75;
 
-const { PdfStructure } = _m80;
+const { PdfStructure } = _m81;
 
-const { PdfOutlines } = _m82;
+const { PdfOutlines } = _m83;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -9867,7 +9924,7 @@ const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
 return _exports;
 })();
 
-const _m58 = (() => {
+const _m59 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9878,7 +9935,7 @@ const { createRowProjector } = _m11;
 
 const { settings } = _m17;
 
-const { PdfWriteSession } = _m59;
+const { PdfWriteSession } = _m60;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -9935,7 +9992,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m86 = (() => {
+const _m87 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -10202,12 +10259,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m85 = (() => {
+const _m86 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m86;
+const { pngPixels } = _m87;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -10335,14 +10392,14 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m87 = (() => {
+const _m88 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m17;
 
-const { pdfNumber: n } = _m60;
+const { pdfNumber: n } = _m61;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -10421,14 +10478,14 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m88 = (() => {
+const _m89 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m17;
 
-const { pdfNumber: n } = _m60;
+const { pdfNumber: n } = _m61;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -10667,20 +10724,20 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m89 = (() => {
+const _m90 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m71;
+const { capturePdfText, wrapPdfText } = _m72;
 
 const { positive } = _m17;
 
 const { resolveParagraphStyle } = _m19;
 
-const { captureBookmark } = _m78;
+const { captureBookmark } = _m79;
 
 const { captureFields } = _m10;
 
-const { pdfBudgetText } = _m70;
+const { pdfBudgetText } = _m71;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts, budgetOnPaint = false) {
@@ -10750,10 +10807,10 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCapt
 return _exports;
 })();
 
-const _m90 = (() => {
-const { capturePdfText, wrapPdfText } = _m71;
+const _m91 = (() => {
+const { capturePdfText, wrapPdfText } = _m72;
 
-const { captureParagraph, prepareParagraph } = _m89;
+const { captureParagraph, prepareParagraph } = _m90;
 
 const { resolveParagraphStyle } = _m19;
 
@@ -10807,7 +10864,7 @@ const _exports = Object.freeze({ captureListOptions: captureListOptions, prepare
 return _exports;
 })();
 
-const _m92 = (() => {
+const _m93 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -10856,22 +10913,22 @@ const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, g
 return _exports;
 })();
 
-const _m91 = (() => {
+const _m92 = (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
 
 const { ExportCell } = _m5;
 
-const { captureGroupedPdfTableOptions } = _m92;
+const { captureGroupedPdfTableOptions } = _m93;
 
 const { settings } = _m17;
 
-const { PdfTableLayout } = _m69;
+const { PdfTableLayout } = _m70;
 
-const { captureCaption, captureParagraph, prepareParagraph } = _m89;
+const { captureCaption, captureParagraph, prepareParagraph } = _m90;
 
-const { synchronousText } = _m70;
+const { synchronousText } = _m71;
 
 /** @internal Render one analytical source in the existing document session. Retain one detail row and
  * at most four closing subtotals. All captions, rows, pages, bytes and fonts use the document owners. */
@@ -11113,7 +11170,7 @@ const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable })
 return _exports;
 })();
 
-const _m84 = (() => {
+const _m85 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11128,27 +11185,27 @@ const { captureFields } = _m10;
 
 const { settings, captureWideTable } = _m17;
 
-const { pdfNumber: n } = _m60;
+const { pdfNumber: n } = _m61;
 
-const { PdfTableLayout } = _m69;
+const { PdfTableLayout } = _m70;
 
-const { PdfWriteSession } = _m59;
+const { PdfWriteSession } = _m60;
 
-const { PdfDocumentImages } = _m85;
+const { PdfDocumentImages } = _m86;
 
-const { vectorCommands } = _m87;
+const { vectorCommands } = _m88;
 
-const { graphicAlternative } = _m80;
+const { graphicAlternative } = _m81;
 
-const { checkDrawingBlock, prepareDrawing } = _m88;
+const { checkDrawingBlock, prepareDrawing } = _m89;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m89;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m90;
 
-const { captureListOptions, prepareListItem } = _m90;
+const { captureListOptions, prepareListItem } = _m91;
 
-const { captureSection } = _m78;
+const { captureSection } = _m79;
 
-const { renderGroupedPdfTable } = _m91;
+const { renderGroupedPdfTable } = _m92;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -11406,18 +11463,18 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m83 = (() => {
+const _m84 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
 
-const { writePdfDocumentTo } = _m84;
+const { writePdfDocumentTo } = _m85;
 
 const { pdfOptionFields } = _m17;
 
 const { captureFields } = _m10;
 
-const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m92;
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m93;
 
 
 
@@ -11451,14 +11508,14 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     delete documentOptions.footer;
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ pdfGroupedTable: _m92.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+const _exports = Object.freeze({ pdfGroupedTable: _m93.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
 return _exports;
 })();
 
-const _m93 = (() => {
-const { fontProgram } = _m63;
+const _m94 = (() => {
+const { fontProgram } = _m64;
 
-const { resolveScalar, selectFont, validateFonts } = _m67;
+const { resolveScalar, selectFont, validateFonts } = _m68;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -11494,13 +11551,107 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m57 = (() => {
+const _m58 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m84.writePdfDocument, writePdfDocumentTo: _m84.writePdfDocumentTo, pdfTable: _m84.pdfTable, PdfFont: _m63.PdfFont, preflightPdfText: _m93.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m59.writePdf, writePdfTo: _m59.writePdfTo, writeGroupedPdf: _m84.writeGroupedPdf, writeGroupedPdfTo: _m84.writeGroupedPdfTo, pdfGroupedTable: _m84.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m85.writePdfDocument, writePdfDocumentTo: _m85.writePdfDocumentTo, pdfTable: _m85.pdfTable, PdfFont: _m64.PdfFont, preflightPdfText: _m94.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 return _exports;
 })();
 
 const _m95 = (() => {
+/** One policy for capture diagnostics and unsupported adapter mappings; callbacks stay synchronous. */
+function canopyDiagnostics(format, options) {
+    const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), notify = options.onDiagnostic;
+    if (policy !== "reject" && policy !== "text")
+        throw new TypeError("unsupportedPresentation must be reject or text.");
+    if (notify !== undefined && typeof notify !== "function")
+        throw new TypeError("onDiagnostic must be a synchronous function.");
+    return diagnostic => {
+        if (policy === "reject")
+            throw new TypeError("Unsupported Canopy presentation: " + diagnostic.code + (diagnostic.columnId ? " (" + diagnostic.columnId + ")" : ""));
+        const result = notify?.(Object.freeze(diagnostic));
+        if (result && typeof result.then === "function") {
+            void Promise.resolve(result).catch(() => { });
+            throw new TypeError("onDiagnostic must be synchronous.");
+        }
+    };
+}
+const _exports = Object.freeze({ canopyDiagnostics: canopyDiagnostics });
+return _exports;
+})();
+
+const _m97 = (() => {
+function presentation(input, axes) {
+    const { axisKey, outlineLevel, summary, grandTotal, hidden, collapsed } = input;
+    if (typeof axisKey !== "string" || !axes.has(axisKey) || !Number.isInteger(outlineLevel) || outlineLevel < 0 || outlineLevel > 7 ||
+        [summary, grandTotal, hidden, collapsed].some(flag => typeof flag !== "boolean"))
+        throw new TypeError("Invalid frozen Canopy pivot axis presentation.");
+    return Object.freeze({ level: outlineLevel, hidden: hidden, collapsed: collapsed });
+}
+/** Qualify the explicit pivot path before flat/grouped handling; never evaluate query or aggregate data. */
+function canopyPivot(request) {
+    if (request.pivot === undefined)
+        return undefined;
+    const pivot = request.pivot;
+    if (!pivot || typeof pivot !== "object" || request.grouping !== undefined || !Array.isArray(request.columns) ||
+        request.scope !== "filtered" || !Number.isSafeInteger(request.recordCount) || request.recordCount < 0 ||
+        !pivot.definition || !Array.isArray(pivot.definition.rows) || pivot.definition.rows.length > 4 ||
+        !Array.isArray(pivot.definition.columns) || pivot.definition.columns.length > 2 ||
+        !Array.isArray(pivot.definition.values) || !pivot.definition.values.length || pivot.definition.values.length > 32 ||
+        pivot.definition.values.some(value => typeof value !== "string") ||
+        !Number.isSafeInteger(pivot.distinctColumns) || pivot.distinctColumns < 0 || typeof pivot.columnsLimited !== "boolean" ||
+        !Array.isArray(pivot.retainedColumns) || !Array.isArray(pivot.columnGroups))
+        throw new TypeError("Invalid explicit Canopy pivot descriptor.");
+    const axes = (nodes) => {
+        if (!Array.isArray(nodes) || nodes.length > 100001)
+            throw new TypeError("Pivot axes require bounded accepted identities.");
+        const keys = new Set();
+        for (const node of nodes) {
+            if (!node || typeof node.key !== "string" || !node.key || keys.has(node.key) || !Array.isArray(node.path) || typeof node.other !== "boolean")
+                throw new TypeError("Invalid or duplicate Canopy pivot axis identity.");
+            keys.add(node.key);
+        }
+        for (const node of nodes)
+            if (node.parent !== undefined && !keys.has(node.parent))
+                throw new TypeError("Unknown Canopy pivot parent identity.");
+        return keys;
+    };
+    const rowKeys = axes(pivot.rowAxis), columnKeys = axes(pivot.columnAxis);
+    const columns = request.columns.map((column, index) => {
+        if (index === 0 && column.axisKey === undefined && column.kind === "text")
+            return Object.freeze({ ...column });
+        const outline = presentation(column, columnKeys);
+        return Object.freeze({ ...column, outlineLevel: outline.level, hidden: outline.hidden, collapsed: outline.collapsed });
+    });
+    // Ranges are descriptor metadata, not another body. Validate them against the same ordered columns.
+    if (pivot.columnGroups.length > columns.length)
+        throw new RangeError("Pivot column group count exceeds projected columns.");
+    for (const group of pivot.columnGroups) {
+        if (!group || !columnKeys.has(group.key) || !Number.isSafeInteger(group.firstColumn) || group.firstColumn < 0 ||
+            !Number.isSafeInteger(group.columnCount) || group.columnCount < 1 || group.firstColumn + group.columnCount > columns.length ||
+            !Number.isInteger(group.depth) || group.depth < 1 || group.depth > 7 ||
+            typeof group.hidden !== "boolean" || typeof group.collapsed !== "boolean")
+            throw new TypeError("Invalid Canopy pivot column range.");
+    }
+    let current;
+    const sheet = Object.freeze({ outlineSummaryBelow: false, outlineSummaryRight: false,
+        maxOutlineLevel: 7, rowOutline: () => current,
+        columnOutlines: Object.freeze(columns.flatMap((column, firstColumn) => column.axisKey === undefined ? [] :
+            [Object.freeze({ firstColumn, columnCount: 1, level: column.outlineLevel, hidden: column.hidden, collapsed: column.collapsed })])) });
+    return Object.freeze({ columns: Object.freeze(columns), sheet,
+        observe(row) { current = presentation(row, rowKeys); } });
+}
+/** Per-cell formats preserve already-computed fractional percentages, ranks and differences. */
+function pivotNumberFormat(cell) {
+    if (!["value", "percentGrandTotal", "percentParent", "percentColumn", "percentRow", "runningTotal", "rank", "difference", "percentChange"].includes(cell.mode ?? "") ||
+        typeof cell.numberFormat !== "string" || !cell.numberFormat.length)
+        throw new TypeError("Numeric pivot cells require a frozen mode and native numberFormat.");
+    return cell.numberFormat;
+}
+const _exports = Object.freeze({ canopyPivot: canopyPivot, pivotNumberFormat: pivotNumberFormat });
+return _exports;
+})();
+
+const _m98 = (() => {
 /** @internal Typed conversion follows declared datetime intent, never localized display text. */
 function datetime(value, mode, clock) {
     if (mode === "text")
@@ -11539,29 +11690,7 @@ const _exports = Object.freeze({ datetime: datetime });
 return _exports;
 })();
 
-const _m96 = (() => {
-/** One policy for capture diagnostics and unsupported adapter mappings; callbacks stay synchronous. */
-function canopyDiagnostics(format, options) {
-    const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), notify = options.onDiagnostic;
-    if (policy !== "reject" && policy !== "text")
-        throw new TypeError("unsupportedPresentation must be reject or text.");
-    if (notify !== undefined && typeof notify !== "function")
-        throw new TypeError("onDiagnostic must be a synchronous function.");
-    return diagnostic => {
-        if (policy === "reject")
-            throw new TypeError("Unsupported Canopy presentation: " + diagnostic.code + (diagnostic.columnId ? " (" + diagnostic.columnId + ")" : ""));
-        const result = notify?.(Object.freeze(diagnostic));
-        if (result && typeof result.then === "function") {
-            void Promise.resolve(result).catch(() => { });
-            throw new TypeError("onDiagnostic must be synchronous.");
-        }
-    };
-}
-const _exports = Object.freeze({ canopyDiagnostics: canopyDiagnostics });
-return _exports;
-})();
-
-const _m97 = (() => {
+const _m99 = (() => {
 /** Calibri 11, 96-DPI CSS pixels, seven-pixel maximum digit and five-pixel cell padding.
  * Quantize to native 1/256-character units; this is a reproducible profile, not pixel-identical rendering. */
 function canopyXlsxWidth(pixels) {
@@ -11606,10 +11735,12 @@ const _exports = Object.freeze({ canopyXlsxWidth: canopyXlsxWidth, canopyNumberF
 return _exports;
 })();
 
-const _m94 = (() => {
+const _m96 = (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
-const { datetime } = _m95;
+const { canopyPivot, pivotNumberFormat } = _m97;
+
+const { datetime } = _m98;
 
 const { captureFields } = _m10;
 
@@ -11617,9 +11748,9 @@ const { copyColumns } = _m11;
 
 const { copyCellPresentation } = _m5;
 
-const { canopyDiagnostics } = _m96;
+const { canopyDiagnostics } = _m95;
 
-const { canopyNumberFormat, canopyXlsxWidth } = _m97;
+const { canopyNumberFormat, canopyXlsxWidth } = _m99;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
@@ -11633,7 +11764,8 @@ function prepareCanopyExport(capture, format, options = {}) {
         throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
     if (!capture || typeof capture.rows !== "function" || !capture.request)
         throw new TypeError("A portable CanopyX capture with request and rows() is required.");
-    const request = captureFields(capture.request, ["columns", "recordCount", "values", "presentation", "timeZone", "revision", "scope", "total", "matched", "selection", "query", "generatedAt", "grouping", "formatRules"]);
+    const request = captureFields(capture.request, ["columns", "recordCount", "values", "presentation", "timeZone", "revision", "scope", "total", "matched", "selection", "query", "generatedAt", "grouping", "pivot", "formatRules"]);
+    const pivot = canopyPivot(request);
     const signal = options.signal, values = request.values;
     if (!Array.isArray(request.columns) || !request.columns.length || (request.recordCount !== null && (!Number.isSafeInteger(request.recordCount) || request.recordCount < 0)) ||
         (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
@@ -11670,7 +11802,7 @@ function prepareCanopyExport(capture, format, options = {}) {
         return style;
     };
     const ids = new Set();
-    const specs = request.columns.map(input => {
+    const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
         const column = Object.freeze({ ...fields,
             ...(fields.width === undefined ? {} : { width: Object.freeze(captureFields(fields.width, ["unit", "preferred", "minimum", "maximum"])) }),
@@ -11681,7 +11813,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             (column.width !== undefined && (column.width.unit !== "css-px" || !Number.isFinite(column.width.preferred) ||
                 !Number.isFinite(column.width.minimum) || column.width.minimum <= 0 || column.width.preferred < column.width.minimum ||
                 column.width.maximum !== undefined && (!Number.isFinite(column.width.maximum) || column.width.maximum < column.width.preferred))) ||
-            (request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
+            (!pivot && request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
             throw new TypeError("Invalid or duplicate Canopy export column.");
         ids.add(column.id);
         diagnostics(column.diagnostics, undefined, column.id);
@@ -11699,7 +11831,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                 ...(values === "raw" && column.kind === "number" ? { type: "number" } : {}),
                 ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
                 ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }) }]);
-        return Object.freeze({ id: column.id, kind: column.kind, input: column, column: Object.freeze(captured) });
+        return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
     const source = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
@@ -11709,6 +11841,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                 checkAbort(signal);
                 if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object")
                     throw new TypeError("Invalid Canopy export record.");
+                pivot?.observe(row);
                 diagnostics(row.diagnostics, row.id);
                 const rowStyle = tone(row.tone, row.id), result = [];
                 for (const spec of specs) {
@@ -11723,7 +11856,11 @@ function prepareCanopyExport(capture, format, options = {}) {
                     let value = values === "display" ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
-                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle ? { ...rowStyle, ...cellStyle } : undefined;
+                    const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
+                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
+                        ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                    } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
                     result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
@@ -11736,18 +11873,18 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (rowCount !== null && count !== rowCount)
                 throw new TypeError("Canopy capture did not produce its declared recordCount.");
         } });
-    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones });
+    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
-const _m99 = (() => {
+const _m101 = (() => {
 const { columnName, excelDate } = _m35;
 
 const { captureFields } = _m10;
 
-const { datetime } = _m95;
+const { datetime } = _m98;
 
 /** Compile only comparisons whose raw types and native encodings have a faithful bounded mapping. */
 function canopyPredicate(request, grouped, options, root, unsupported, cellTypes) {
@@ -11860,10 +11997,10 @@ const _exports = Object.freeze({ canopyPredicate: canopyPredicate });
 return _exports;
 })();
 
-const _m98 = (() => {
+const _m100 = (() => {
 const { captureFields } = _m10;
 
-const { canopyPredicate } = _m99;
+const { canopyPredicate } = _m101;
 
 // Stable document palette. Browser CSS variables and resolved cell.format are never interpreted.
 const palette = {
@@ -12043,7 +12180,7 @@ const _exports = Object.freeze({ canopyRules: canopyRules });
 return _exports;
 })();
 
-const _m100 = (() => {
+const _m102 = (() => {
 const { createGroupedReport } = _m8;
 
 const { ExportCell } = _m5;
@@ -12054,7 +12191,7 @@ const { createTotals } = _m12;
 
 const { captureFields } = _m10;
 
-const { datetime } = _m95;
+const { datetime } = _m98;
 
 const identity = (value) => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
 const scalar = (value) => value instanceof ExportCell ? value.value : value;
@@ -12242,7 +12379,7 @@ const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
 return _exports;
 })();
 
-const _m101 = (() => {
+const _m103 = (() => {
 const { cellText } = _m35;
 
 const { cleanXml } = _m28;
@@ -12300,10 +12437,10 @@ const _exports = Object.freeze({ canopyAbout: canopyAbout });
 return _exports;
 })();
 
-const _m102 = (() => {
+const _m104 = (() => {
 const { Workbook, addGroupedXlsx } = _m23;
 
-const { portableWorkbook } = _m52;
+const { portableWorkbook } = _m53;
 
 const { withDestination } = _m3;
 
@@ -12371,21 +12508,23 @@ const { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOp
 
 const { writeXlsxTo } = _m23;
 
-const { writeCsvTo } = _m55;
+const { writeCsvTo } = _m56;
 
-const { writePdfTo, writeGroupedPdfTo } = _m57;
+const { writePdfTo, writeGroupedPdfTo } = _m58;
 
-const { prepareCanopyExport } = _m94;
+const { canopyDiagnostics } = _m95;
 
-const { canopyPins } = _m97;
+const { prepareCanopyExport } = _m96;
 
-const { canopyRules } = _m98;
+const { canopyPins } = _m99;
 
-const { canopyGrouped } = _m100;
+const { canopyRules } = _m100;
 
-const { canopyAbout } = _m101;
+const { canopyGrouped } = _m102;
 
-const { writeCanopyWorkbook } = _m102;
+const { canopyAbout } = _m103;
+
+const { writeCanopyWorkbook } = _m104;
 
 
 
@@ -12400,7 +12539,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     const xlsx = captureXlsxOptions(format === "xlsx" ? selected.xlsx : undefined);
     const csv = captureCsvOptions(format === "csv" ? selected.csv : undefined);
     const pdf = capturePdfOptions(format === "pdf" ? selected.pdf : undefined);
-    const prepared = prepareCanopyExport(capture, format, { ...selected, xlsx }), { request, report, tones } = prepared;
+    const prepared = prepareCanopyExport(capture, format, { ...selected, xlsx }), { request, report, tones, pivot } = prepared;
     if (selected.about !== undefined && typeof selected.about !== "boolean")
         throw new TypeError("Canopy about must be boolean.");
     const labels = selected.grouped === undefined ? undefined : captureFields(selected.grouped, ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"]);
@@ -12431,9 +12570,14 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         } } : {};
     const stream = { ...(signal ? { signal } : {}), ...progress };
     if (format === "xlsx") {
-        const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
+        const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
         const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
-        const sheet = { ...xlsx.sheet,
+        if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
+            xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
+            throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
+        if (pivot && xlsx.cellValueWriters !== undefined)
+            throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
+        const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
             freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
             freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
             conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
@@ -12442,8 +12586,12 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
             return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
         return writeXlsxTo(source.rows(), destination, settings);
     }
+    if (pivot)
+        canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" })({ code: "PIVOT_OUTLINES_XLSX_ONLY" });
     if (format === "pdf") {
-        const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = canopyGrouped(source, request, selected, formatLimits, report, format);
+        if (pivot && pdf.footer?.totals !== undefined)
+            throw new TypeError("Captured pivot metadata owns totals; PDF footer totals cannot recalculate it.");
+        const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, selected, formatLimits, report, format);
         canopyRules(request, format, grouped !== undefined, tones, report, selected);
         // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
         const fitted = request.columns.every(column => column.width !== undefined) ? request.columns.map(column => column.width.preferred * 72 / 96) : undefined;
@@ -12479,7 +12627,7 @@ async function exportCanopy(capture, format, options = {}) {
         throw error;
     }
 }
-const _exports = Object.freeze({ createCanopyExport: _m94.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
 return _exports;
 })();
 const { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy } = _m0;

@@ -10633,9 +10633,9 @@
       "member": "FontNotEmbedded",
       "origins": [
         "OfficeIMO.Pdf/Options/PdfOptions.DefaultFontEmbedding.cs"
-        ]
-      },
-      {
+      ]
+    },
+    {
       "oldCode": "pdf-artifact-text-omitted",
       "catalogCode": "pdf-artifact-text-omitted",
       "member": "PdfArtifactTextOmitted",
@@ -10665,6 +10665,22 @@
       "member": "PdfExcelNumericValueAmbiguous",
       "origins": [
         "OfficeIMO.Pdf.Excel/PdfExcelTableConverterExtensions.NumericConvention.cs"
+      ]
+    },
+    {
+      "oldCode": "NativeBookmarkTargetUnprojected",
+      "catalogCode": "native-bookmark-target-unprojected",
+      "member": "NativeBookmarkTargetUnprojected",
+      "origins": [
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Bookmarks.cs"
+      ]
+    },
+    {
+      "oldCode": "NativeBookmarkTargetMissing",
+      "catalogCode": "native-bookmark-target-missing",
+      "member": "NativeBookmarkTargetMissing",
+      "origins": [
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Bookmarks.cs"
       ]
     }
   ],

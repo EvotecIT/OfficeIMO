@@ -747,17 +747,20 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
             Uri? uri = hyperlink.Uri;
             string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
-            string? destinationName = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
-            if (linkUri == null && destinationName == null) {
+            string? sourceBookmark = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
+            NativeBookmarkTargets? bookmarks = nativeDefaults?.BookmarkTargets;
+            string? destinationName = bookmarks == null ? sourceBookmark : bookmarks.Resolve(sourceBookmark);
+            bool retainLinkAppearance = sourceBookmark != null && destinationName == null;
+            if (linkUri == null && destinationName == null && !retainLinkAppearance) {
                 return CreateNativeCellTextRun(text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, resolvedStyle);
             }
 
-            string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
+            string? contents = retainLinkAppearance || string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
             NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
-                underline: style.Underline || linkUri != null || destinationName != null,
+                underline: style.Underline || linkUri != null || destinationName != null || retainLinkAppearance,
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
@@ -770,7 +773,7 @@ namespace OfficeIMO.Word.Pdf {
                 linkDestinationName: destinationName,
                 backgroundColor: style.BackgroundColor,
                 fontFamily: style.FontFamily,
-                underlineStyle: style.Underline || linkUri != null || destinationName != null
+                underlineStyle: style.Underline || linkUri != null || destinationName != null || retainLinkAppearance
                     ? style.UnderlineStyle == OfficeTextDecorationStyle.None
                         ? OfficeTextDecorationStyle.Single
                         : style.UnderlineStyle

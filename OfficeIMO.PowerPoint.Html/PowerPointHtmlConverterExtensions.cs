@@ -121,6 +121,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             IncludeHiddenShapes = options.IncludeHiddenShapes,
             IncludeTables = options.IncludeTables
         };
+        if (options.Fonts != null) snapshotOptions.Fonts = options.Fonts;
         PptCore.PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(snapshotOptions);
         IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = snapshot.Diagnostics;
         body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Core\" data-officeimo-snapshot-diagnostics=\"")

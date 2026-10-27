@@ -2884,6 +2884,28 @@ ICC profile. Each accepted fixup is applied to the inspected PDF snapshot and
 the result is reopened for a new engine inspection. A qualified external
 validator is still required for a PDF/X conformance claim.
 
+### Supply document font families
+
+Applications can supply a font family independently of the host's installed fonts. Provide every face needed by the document, then register any source-family replacement explicitly:
+
+```csharp
+using OfficeIMO.Pdf;
+
+var fonts = new PdfOptions().RegisterNamedFontFamily(
+    PdfEmbeddedFontFamily.FromFiles("Carlito",
+        "Fonts/Carlito-Regular.ttf",
+        "Fonts/Carlito-Bold.ttf",
+        "Fonts/Carlito-Italic.ttf",
+        "Fonts/Carlito-BoldItalic.ttf"));
+
+fonts.RegisterFontFamilySubstitution("Calibri", "Carlito",
+    PdfFontFamilySubstitutionImpact.LayoutSensitive);
+```
+
+Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfToPdfOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
+
+These files are supplied by the application and are not bundled with the PDF package. Use fonts whose licensing permits the intended embedding and distribution. `LayoutSensitive` records that replacement can affect layout. `Compatible` expresses the caller's compatibility intent; registration does not verify identical glyph advances, line metrics or pagination for the source and replacement font versions. Inspect the conversion report and representative output when choosing a substitute.
+
 ### Choose converter-friendly text fallbacks
 
 ```csharp
@@ -2910,7 +2932,7 @@ The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.
 
 On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
-`PdfCreateOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. It also preserves caller-owned named families, including their bold and italic faces, when a fallback candidate requests the same normalized family name. The fallback uses a separate resource, and runs from the reusable fallback plan resolve that resource through the current `PdfCreateOptions`; callers do not need to rewrite the planned run's family name. A later explicit family registration retains caller ownership.
+`PdfCreateOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. It also preserves caller-owned named families, including their bold and italic faces, when a fallback candidate requests the same normalized family name. The fallback uses a separate resource, and runs from the reusable fallback plan resolve that resource through the current `PdfCreateOptions`; callers do not need to rewrite the planned run's family name. A later explicit family registration retains caller ownership. Named fallback plans and explicit named-run mappings preserve literal resource-family names containing commas or backslashes instead of interpreting those names as fallback lists. Unambiguous ordinary names keep the same public run-family value.
 
 `PdfEmbeddedFontFallbackSet.RegisterFonts` installs the supplied slot and named-family mappings directly and can replace those mappings. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data. Missing-font substitution can change glyph metrics and line breaks even when the substitute covers every character.
 

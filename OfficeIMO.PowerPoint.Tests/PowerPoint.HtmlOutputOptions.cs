@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using Xunit;
@@ -75,6 +76,47 @@ public sealed class PowerPointHtmlOutputOptionsTests {
         Assert.False(clone.IncludeHeading);
         Assert.False(clone.IncludeSlideHeadings);
         Assert.False(clone.IncludeRenderDiagnostics);
+    }
+
+    [Fact]
+    public void VisualReviewSnapshotEmbedsSuppliedFonts() {
+        using var presentation = CreateWithCalibriText();
+        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        string installed = presentation.ToHtml(options);
+        var fonts = new OfficeFontFaceCollection().Add("Calibri", ReadBaselineSans());
+        options.Fonts = fonts;
+
+        string supplied = presentation.ToHtml(options);
+
+        Assert.Contains(SlideSvg(presentation, new PowerPointImageExportOptions { Fonts = fonts }), supplied, StringComparison.Ordinal);
+        Assert.Equal(supplied, presentation.ToHtml(options.Clone()));
+        Assert.NotEqual(installed, supplied);
+    }
+
+    [Fact]
+    public void VisualReviewSnapshotKeepsPlatformFontsWithoutFonts() {
+        using var presentation = CreateWithCalibriText();
+        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+
+        string html = presentation.ToHtml(options);
+
+        Assert.Null(options.Fonts);
+        Assert.Null(options.Clone().Fonts);
+        Assert.Contains(SlideSvg(presentation, new PowerPointImageExportOptions()), html, StringComparison.Ordinal);
+    }
+
+    static string SlideSvg(PowerPointPresentation presentation, PowerPointImageExportOptions options) =>
+        OfficeDrawingSvgExporter.ToSvg(presentation.Slides[0].CreateVisualSnapshot(options).Drawing);
+
+    static byte[] ReadBaselineSans() =>
+        File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
+
+    static PowerPointPresentation CreateWithCalibriText() {
+        var presentation = PowerPointPresentation.Create();
+        presentation.SlideSize.SetSizePoints(320, 120);
+        var box = presentation.AddSlide().AddTextBoxPoints("Pinned fonts", 20, 20, 280, 60);
+        box.FontName = "Calibri";
+        return presentation;
     }
 
     static PowerPointPresentation CreateWithOffSlideShape() {

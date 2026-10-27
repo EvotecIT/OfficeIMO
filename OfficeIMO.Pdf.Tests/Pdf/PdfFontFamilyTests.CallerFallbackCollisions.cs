@@ -295,6 +295,54 @@ public partial class PdfFontFamilyTests {
         Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
     }
 
+    [Theory]
+    [InlineData("bound-plan", "Fallback, Literal", "\"Fallback, Literal\"", "Fallback")]
+    [InlineData("bound-plan", @"Fallback\zFace", "\"Fallback\\\\zFace\"", "FallbackzFace")]
+    [InlineData("bound-plan", "Fallback Plain", "Fallback Plain", "Other Family")]
+    [InlineData("mapped-plan", "Fallback, Literal", "\"Fallback, Literal\"", "Fallback")]
+    [InlineData("mapped-plan", @"Fallback\zFace", "\"Fallback\\\\zFace\"", "FallbackzFace")]
+    [InlineData("mapped-plan", "Fallback Plain", "Fallback Plain", "Other Family")]
+    [InlineData("profile", "Fallback, Literal", "\"Fallback, Literal\"", "Fallback")]
+    [InlineData("profile", @"Fallback\zFace", "\"Fallback\\\\zFace\"", "FallbackzFace")]
+    [InlineData("profile", "Fallback Plain", "Fallback Plain", "Other Family")]
+    public void NamedFallbackPublicPathsPreserveLiteralFamilyMetrics(
+        string route, string familyName, string familyReference, string competingFamily) {
+        byte[] familyData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, ' ', 'A', 'B');
+        byte[] competingData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 'B');
+        var options = new PdfCreateOptions { DefaultFontSize = 10 };
+        IReadOnlyList<PdfTextRun>? runs = null;
+        if (route == "profile") {
+            options.UseRenderingProfile(new OfficeRenderingProfile("literal-family", new OfficeFontFaceCollection()
+                .Add(competingFamily, competingData).Add(familyName, familyData)));
+        } else {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(competingFamily, competingData));
+            var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate(familyName, familyData)
+            });
+            if (route == "bound-plan") {
+                options.RegisterEmbeddedFontFallbacks(fallbacks);
+                runs = fallbacks.PlanTextRuns("AB");
+            } else {
+                options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, familyData));
+                runs = fallbacks.PlanText("AB").ToNamedTextRuns(new[] { familyName },
+                    PdfTextRun.Normal("template", fontSize: 10));
+            }
+            // Plain names already represent one literal family and keep their public run value.
+            if (familyName == familyReference) Assert.All(runs, run => Assert.Equal(familyName, run.FontFamily));
+        }
+
+        PdfDocument document = PdfDocument.Create(options.Clone());
+        if (runs == null) document.Paragraph(paragraph => paragraph.FontFamily(familyReference).Text("AB"));
+        else document.Paragraph(paragraph => paragraph.Runs(runs));
+        byte[] pdf = document.ToBytes();
+        Assert.InRange(GetCallerCollisionAdvance(pdf, "AB"), 17.999D, 18.001D);
+        IReadOnlyList<PdfTextGlyph> glyphs = ReadCallerCollisionGlyphs(pdf);
+        Assert.Equal(new[] { "A", "B" }, glyphs.Select(glyph => glyph.Text));
+        Assert.All(glyphs, glyph => Assert.InRange(glyph.PaintedAdvance, 8.999D, 9.001D));
+        Assert.Equal(familyData, options.NamedFontFamilies[familyName].Regular);
+        Assert.Equal(competingData, options.NamedFontFamilies[competingFamily].Regular);
+    }
+
     private static PdfEmbeddedFontFamily CreateCallerCollisionFamily() => new(
         "Caller Family",
         ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 'A', 'B'),

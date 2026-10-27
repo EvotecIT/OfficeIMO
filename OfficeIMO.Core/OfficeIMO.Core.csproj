@@ -51,6 +51,7 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />

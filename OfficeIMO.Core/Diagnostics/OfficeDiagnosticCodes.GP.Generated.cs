@@ -281,6 +281,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string NativeBodyImageUnavailable = "native-body-image-unavailable";
     /// <summary>Stable code: <c>native-body-smart-art-unsupported</c>.</summary>
     public const string NativeBodySmartArtUnsupported = "native-body-smart-art-unsupported";
+    /// <summary>Stable code: <c>native-bookmark-target-missing</c>.</summary>
+    public const string NativeBookmarkTargetMissing = "native-bookmark-target-missing";
+    /// <summary>Stable code: <c>native-bookmark-target-unprojected</c>.</summary>
+    public const string NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected";
     /// <summary>Stable code: <c>native-check-box-glyph-appearance-unavailable</c>.</summary>
     public const string NativeCheckBoxGlyphAppearanceUnavailable = "native-check-box-glyph-appearance-unavailable";
     /// <summary>Stable code: <c>native-continuous-section-pagination-approximated</c>.</summary>

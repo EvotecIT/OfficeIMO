@@ -277,7 +277,8 @@ public sealed partial class PdfCreateOptions {
                 && TryGetNamedFontFamilyDirect(candidate, out family)) {
                 return true;
             }
-            if (allowSubstitution && TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
+            if (allowSubstitution && TryGetFontFamilySubstitution(
+                    OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(candidate), out PdfFontFamilySubstitution? substitution) &&
                 substitution != null &&
                 TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {
                 return true;

@@ -34,6 +34,10 @@ public sealed class RtfToPdfOptions {
     internal HashSet<RtfParagraph> DiagnosedFrameParagraphs { get; } = new HashSet<RtfParagraph>();
     internal HashSet<RtfParagraph> DiagnosedBarTabParagraphs { get; } = new HashSet<RtfParagraph>();
     internal HashSet<RtfParagraph> DiagnosedRunningParagraphs { get; } = new HashSet<RtfParagraph>();
+    // Prepared image occurrences belong to one normalized conversion. CloneForConversion
+    // deliberately starts a new cache so payloads never leak between conversions.
+    internal Dictionary<RtfParagraph, Dictionary<int, PdfCore.PdfTextRun?>> PreparedRunningImages { get; }
+        = new Dictionary<RtfParagraph, Dictionary<int, PdfCore.PdfTextRun?>>();
 
     /// <summary>When true, RTF hidden runs are included in PDF output. Hidden text is skipped by default.</summary>
     public bool IncludeHiddenText { get; set; }

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
 namespace OfficeIMO.PowerPoint.Html;
@@ -123,6 +124,12 @@ public sealed class PowerPointHtmlSaveOptions {
     /// <summary>When true, reports supported picture adjustments and diagnosed effect simplifications.</summary>
     public bool IncludeAdvancedEffects { get; set; } = true;
 
+    /// <summary>
+    /// Caller-supplied TrueType faces used to measure and embed slide text in visual-review snapshots,
+    /// ahead of installed platform fonts. Null by default, which keeps platform font resolution.
+    /// </summary>
+    public OfficeFontFaceCollection? Fonts { get; set; }
+
     /// <summary>Creates a reusable copy of these conversion settings.</summary>
     public PowerPointHtmlSaveOptions Clone() => new PowerPointHtmlSaveOptions {
         ExportProfile = ExportProfile,
@@ -138,7 +145,8 @@ public sealed class PowerPointHtmlSaveOptions {
         IncludeMasterInventory = IncludeMasterInventory,
         IncludeSmartArt = IncludeSmartArt,
         IncludeMedia = IncludeMedia,
-        IncludeAdvancedEffects = IncludeAdvancedEffects
+        IncludeAdvancedEffects = IncludeAdvancedEffects,
+        Fonts = Fonts?.Clone()
     };
 
     internal void Validate() {
