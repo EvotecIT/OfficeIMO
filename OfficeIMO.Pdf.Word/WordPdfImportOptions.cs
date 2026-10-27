@@ -69,10 +69,11 @@ namespace OfficeIMO.Pdf.Word {
         public double EditablePageMarginPoints { get; set; } = 36D;
 
         /// <summary>
-        /// Whether imported PDF paragraphs and table cells should suppress Word's style-level before/after spacing.
-        /// PDF text already carries explicit line placement, so compact spacing avoids inflating dense business documents.
+        /// Whether imported PDF paragraphs and headings should suppress Word's style-level before/after spacing.
+        /// When false (the default), reflowed paragraphs keep the document style's spacing so they read as separate
+        /// paragraphs. Table cells, list items and image paragraphs are always compact.
         /// </summary>
-        public bool PreserveCompactSourceSpacing { get; set; } = true;
+        public bool PreserveCompactSourceSpacing { get; set; }
 
         /// <summary>Whether empty PDF pages should produce an empty Word paragraph when page breaks are preserved.</summary>
         public bool IncludeEmptyPages { get; set; }
@@ -119,9 +120,11 @@ namespace OfficeIMO.Pdf.Word {
 
         /// <summary>
         /// Whether axis-aligned images on unrotated pages should retain their source page position as floating Word images.
-        /// Unsupported rotations and transforms fall back to inline editable placement.
+        /// When false (the default), images are placed inline in reading order so reflowed text never runs under them;
+        /// only images that sit behind source text, such as backgrounds and panels, keep their page position behind the text.
+        /// Unsupported rotations and transforms always use inline editable placement.
         /// </summary>
-        public bool PreserveImagePlacementPosition { get; set; } = true;
+        public bool PreserveImagePlacementPosition { get; set; }
 
         /// <summary>Whether image resources should be represented by editable placeholder paragraphs when native image embedding is unavailable or disabled.</summary>
         public bool IncludeImagePlaceholders { get; set; } = true;
