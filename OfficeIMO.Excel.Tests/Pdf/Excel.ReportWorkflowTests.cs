@@ -47,7 +47,7 @@ public partial class Excel
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("PDF-unrendered pivot tables", string.Join(Environment.NewLine, report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
                 document.Save();
-                pdfBytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(560, 520), Margins = PdfCore.PdfPageMargins.Uniform(24) }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+                pdfBytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(520)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)) }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, false))

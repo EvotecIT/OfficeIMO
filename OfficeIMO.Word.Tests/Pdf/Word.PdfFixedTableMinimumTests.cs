@@ -190,6 +190,6 @@ public partial class Word {
 
     private static WordPdfExportOptions UnequalFixedMinimumOptions() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = new PdfPageSize(600, 400), Margins = PdfPageMargins.Uniform(72)
+        PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
     };
 }

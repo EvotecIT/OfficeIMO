@@ -21,7 +21,7 @@ public partial class Excel {
         sheet.AddManualColumnPageBreak(firstBreak); sheet.AddManualColumnPageBreak(6);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.DoesNotContain("Column4", pdf.GetPage(1).Text);
@@ -82,7 +82,7 @@ public partial class Excel {
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-            PageSize = new PdfCore.PdfPageSize(300, 300), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
@@ -136,7 +136,7 @@ public partial class Excel {
         document.SetPrintArea(sheet, "A1:D4");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(275, 105), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(275),OfficeIMO.OfficeLength.Points(105)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(4, pdf.NumberOfPages);
@@ -167,7 +167,7 @@ public partial class Excel {
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);

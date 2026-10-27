@@ -150,7 +150,7 @@ internal sealed partial class StudioNativeDocument {
             null or "fit" => PdfPageResizeMode.Fit, "fill" => PdfPageResizeMode.Fill, "stretch" => PdfPageResizeMode.Stretch,
             _ => throw new ArgumentException($"“{size.Mode}” isn't a way to fit content.", nameof(size))
         };
-        return _workspace.ResizePagesAsync(AllOrChosenPages(size.Pages), new PdfPageSize(size.Width, size.Height), mode, cancellationToken);
+        return _workspace.ResizePagesAsync(AllOrChosenPages(size.Pages), new PdfPageSize(OfficeIMO.OfficeLength.Points(size.Width),OfficeIMO.OfficeLength.Points(size.Height)), mode, cancellationToken);
     }
 
     private int[] AllOrChosenPages(IReadOnlyList<int>? pages) => pages is { Count: > 0 }

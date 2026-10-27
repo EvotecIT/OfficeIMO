@@ -12,8 +12,8 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
         PdfDocument document = PdfDocument.Create(_ => { });
 
         document.Compose(compose => compose.Settings(settings => {
-            settings.PageSize = new PdfPageSize(300, 400);
-            settings.Margins = PdfPageMargins.Uniform(24);
+            settings.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
+            settings.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
             settings.BackgroundColor = PdfColor.FromRgb(240, 248, 255);
         }));
         document.Compose(compose => compose.Content(content => content
@@ -76,8 +76,8 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
                 .Size(200, 120)
                 .Margin(0)
                 .PrintProductionPageBoxes(new PdfPrintProductionPageBoxes(
-                    PdfPageMargins.Uniform(12),
-                    PdfPageMargins.Uniform(4)))
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12)),
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(4))))
                 .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Production")))))
             .Page(page => page
                 .Size(200, 120)

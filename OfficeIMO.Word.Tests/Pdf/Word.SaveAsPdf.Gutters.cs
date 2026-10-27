@@ -26,7 +26,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_ExplicitMarginOverrideReplacesTheAuthoredGutter() {
-        var options = new WordPdfExportOptions { IncludePageNumbers = false, Margins = PdfCore.PdfPageMargins.Uniform(30) };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) };
         var baseline = RenderGutterMarkers(false, false, WordFileFormat.Docx, 0, options);
         var gutter = RenderGutterMarkers(true, true, WordFileFormat.Docx, 400, options);
         Assert.Equal(baseline, gutter);

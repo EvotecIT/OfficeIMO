@@ -25,7 +25,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(360, 360), Margins = PdfCore.PdfPageMargins.Uniform(0)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(360)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var yellow = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetIdentityVisualPrimitives()
             .Where(item => item.FillColor is OfficeColor color && color.R == 255 && color.G == 192 && color.B == 0)
@@ -78,7 +78,7 @@ public sealed class ExcelConditionalIconFidelityTests {
 
         byte[] pdfBytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(360, 240), Margins = PdfCore.PdfPageMargins.Uniform(0)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(pdfBytes);
         double worksheetScale = percent / 100D;

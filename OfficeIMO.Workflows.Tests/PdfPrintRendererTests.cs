@@ -15,7 +15,7 @@ public sealed class PdfPrintRendererTests {
             PageWidth = 100, PageHeight = 100, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
         }).Canvas(canvas => canvas.Shape(background, 0, 0).Shape(stripe, 80, 0));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new() {
-            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(150, 180), Margin = 10,
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(150),OfficeIMO.OfficeLength.Points(180)), Margin = 10,
             ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 250, Alignment = alignment
         }, new() { Dpi = 72 });
         PdfRenderedPrintSheet sheet = Assert.Single(prepared.Sheets);
@@ -38,7 +38,7 @@ public sealed class PdfPrintRendererTests {
         }).Canvas(canvas => canvas.Shape(marker, 0, 0));
         byte[] source = document.ToBytes();
         var request = new PdfPrintPlanRequest {
-            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(200, 200), Margin = 10,
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(200)), Margin = 10,
             ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 50, Alignment = PdfPrintAlignment.BottomRight
         };
         OfficeRasterImage color = Assert.Single(PdfPrintRenderer.Prepare(document, request,
@@ -70,7 +70,7 @@ public sealed class PdfPrintRendererTests {
         // This sheet fits the pixel budget, but its RGB scanlines and decoded RGBA output
         // together exceed the shared 256 MiB decoder bound. A blank bilevel sheet does not.
         Assert.Throws<InvalidOperationException>(() => PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(650, 900) },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(650),OfficeIMO.OfficeLength.Points(900)) },
             new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 45_000_000 }));
     }
 
@@ -79,7 +79,7 @@ public sealed class PdfPrintRendererTests {
         PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(PdfPageSizes.A4).Content(content =>
             content.Item(item => item.Paragraph(text => text.Text("This source must not disappear"))))));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(200, 300) },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(300)) },
             new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 5_000_000 });
         OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
         Assert.InRange((long)raster.Width * raster.Height, 1, 5_000_000);
@@ -98,7 +98,7 @@ public sealed class PdfPrintRendererTests {
         })
             .Canvas(canvas => canvas.Shape(stripe, 30, 0));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(720, 720), Margin = 0, ScaleMode = mode },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(720),OfficeIMO.OfficeLength.Points(720)), Margin = 0, ScaleMode = mode },
             new PdfPrintRenderOptions { Dpi = 72, MaximumPixelsPerImage = 1_000_000 });
         OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
         int darkPixels = Enumerable.Range(0, raster.Width).Count(x => raster.GetPixel(x, raster.Height / 2).R < 128);
@@ -131,7 +131,7 @@ public sealed class PdfPrintRendererTests {
             PaperSize = PdfPageSizes.A4, Pages = "1", Orientation = PdfPrintOrientation.Landscape
         });
         Assert.Single(prepared.Sheets);
-        Assert.True(prepared.Sheets[0].Plan.PaperSize.Width > prepared.Sheets[0].Plan.PaperSize.Height);
+        Assert.True(prepared.Sheets[0].Plan.PaperSize.Width.ToPoints() > prepared.Sheets[0].Plan.PaperSize.Height.ToPoints());
         Assert.True(OfficeImageReader.TryValidateContent(prepared.Sheets[0].GetPng(), "sheet.png", out var image));
         Assert.True(image.Width > image.Height);
         Assert.Equal(bytes, document.ToBytes());

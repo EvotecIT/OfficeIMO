@@ -103,8 +103,8 @@ public sealed class WordPdfBiDiOnOffTests {
         string? settingsBefore = main.DocumentSettingsPart?.Settings?.OuterXml;
         var options = new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfPageSize(300, 300),
-            Margins = PdfPageMargins.Uniform(30),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             FontFamily = "Helvetica"
         };
         if (viewerDirection.HasValue)

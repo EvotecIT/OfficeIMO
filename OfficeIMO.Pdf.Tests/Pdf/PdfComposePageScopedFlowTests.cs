@@ -155,12 +155,12 @@ namespace OfficeIMO.Tests.Pdf {
             PdfPageSize portrait = PdfPageSizes.A4.Portrait();
             PdfPageSize landscape = PdfPageSizes.A4.Landscape();
 
-            Assert.InRange(portrait.Width, 594.0, 596.0);
-            Assert.InRange(portrait.Height, 841.0, 843.0);
-            Assert.InRange(landscape.Width, 841.0, 843.0);
-            Assert.InRange(landscape.Height, 594.0, 596.0);
-            Assert.Equal(landscape.Width, new PdfPageSize(842, 595).Landscape().Width);
-            Assert.Equal(landscape.Height, new PdfPageSize(842, 595).Landscape().Height);
+            Assert.InRange(portrait.Width.ToPoints(), 594.0, 596.0);
+            Assert.InRange(portrait.Height.ToPoints(), 841.0, 843.0);
+            Assert.InRange(landscape.Width.ToPoints(), 841.0, 843.0);
+            Assert.InRange(landscape.Height.ToPoints(), 594.0, 596.0);
+            Assert.Equal(landscape.Width.ToPoints(), new PdfPageSize(OfficeIMO.OfficeLength.Points(842),OfficeIMO.OfficeLength.Points(595)).Landscape().Width.ToPoints());
+            Assert.Equal(landscape.Height.ToPoints(), new PdfPageSize(OfficeIMO.OfficeLength.Points(842),OfficeIMO.OfficeLength.Points(595)).Landscape().Height.ToPoints());
 
             var exception = Assert.Throws<ArgumentException>(() =>
                 PdfPageSizes.A4.WithOrientation((OfficePageOrientation)99));

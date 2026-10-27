@@ -347,8 +347,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel * printLayoutScale;
                     double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel * printLayoutScale;
                     page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
-                        PdfCore.PdfPageMargins.Uniform(trimInset),
-                        PdfCore.PdfPageMargins.Uniform(bleedInset)));
+                        PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(trimInset)),
+                        PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(bleedInset))));
                 }
                 page.Canvas(canvas => {
                     // The retained HTML surface already clips its paint at the page edge.

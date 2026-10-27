@@ -52,9 +52,9 @@ internal static class CupsPdfPrinter {
         if (options.PaperSourceId is not null && !(await GetPaperSourcesAsync(options.PrinterName, token).ConfigureAwait(false)).Any(source => source.Id == options.PaperSourceId))
             throw new ArgumentException("The selected paper source is no longer available on this printer.", nameof(options));
         PdfPageSize paper = document.Sheets[0].Plan.PaperSize;
-        double width = Math.Min(paper.Width, paper.Height), height = Math.Max(paper.Width, paper.Height);
-        if (document.Sheets.Any(sheet => Math.Abs(Math.Min(sheet.Plan.PaperSize.Width, sheet.Plan.PaperSize.Height) - width) > 1 ||
-            Math.Abs(Math.Max(sheet.Plan.PaperSize.Width, sheet.Plan.PaperSize.Height) - height) > 1))
+        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
+        if (document.Sheets.Any(sheet => Math.Abs(Math.Min(sheet.Plan.PaperSize.Width.ToPoints(), sheet.Plan.PaperSize.Height.ToPoints()) - width) > 1 ||
+            Math.Abs(Math.Max(sheet.Plan.PaperSize.Width.ToPoints(), sheet.Plan.PaperSize.Height.ToPoints()) - height) > 1))
             throw new NotSupportedException("One CUPS job must use a single paper size.");
         var pages = new List<PdfDocument>();
         foreach (PdfRenderedPrintSheet sheet in document.Sheets) {
@@ -79,7 +79,7 @@ internal static class CupsPdfPrinter {
         PdfPrintDeliveryOptions options, byte[] bytes, CancellationToken token, CupsCommandRunner run) {
         token.ThrowIfCancellationRequested();
         PdfPageSize paper = document.Sheets[0].Plan.PaperSize;
-        double width = Math.Min(paper.Width, paper.Height), height = Math.Max(paper.Width, paper.Height);
+        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
         string directory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-print-");
         bool submissionUncertain = false;
         string? jobId = null;
@@ -94,9 +94,9 @@ internal static class CupsPdfPrinter {
                 "-d", options.PrinterName, "-n", options.Copies.ToString(CultureInfo.InvariantCulture), "-t", options.DocumentName,
                 "-o", "media=" + Media(width, height), "-o", "print-scaling=none", "-o", "number-up=1", "-o", "Collate=True"
             };
-            if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width > sheet.Plan.PaperSize.Height)) {
+            if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width.ToPoints() > sheet.Plan.PaperSize.Height.ToPoints())) {
                 arguments.Add("-o"); arguments.Add("orientation-requested=4");
-            } else if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width <= sheet.Plan.PaperSize.Height)) {
+            } else if (document.Sheets.All(sheet => sheet.Plan.PaperSize.Width.ToPoints() <= sheet.Plan.PaperSize.Height.ToPoints())) {
                 arguments.Add("-o"); arguments.Add("orientation-requested=3");
             }
             if (options.Duplex != PdfPrintDuplex.PrinterDefault) {
@@ -148,10 +148,10 @@ internal static class CupsPdfPrinter {
     }
 
     private static string Media(double width, double height) {
-        if (Math.Abs(width - PdfPageSizes.A4.Width) < 1 && Math.Abs(height - PdfPageSizes.A4.Height) < 1) return "A4";
-        if (Math.Abs(width - PdfPageSizes.A3.Width) < 1 && Math.Abs(height - PdfPageSizes.A3.Height) < 1) return "A3";
-        if (Math.Abs(width - PdfPageSizes.Letter.Width) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height) < 1) return "Letter";
-        if (Math.Abs(width - PdfPageSizes.Legal.Width) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height) < 1) return "Legal";
+        if (Math.Abs(width - PdfPageSizes.A4.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A4.Height.ToPoints()) < 1) return "A4";
+        if (Math.Abs(width - PdfPageSizes.A3.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A3.Height.ToPoints()) < 1) return "A3";
+        if (Math.Abs(width - PdfPageSizes.Letter.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height.ToPoints()) < 1) return "Letter";
+        if (Math.Abs(width - PdfPageSizes.Legal.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height.ToPoints()) < 1) return "Legal";
         return string.Format(CultureInfo.InvariantCulture, "Custom.{0:0.###}x{1:0.###}pt", width, height);
     }
 

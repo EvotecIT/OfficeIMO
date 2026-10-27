@@ -938,8 +938,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             Assert.Equal(2, reopened.Images.Count);
-            OfficeIMO.Word.WordImage front = Assert.Single(reopened.Images, static image => image.Width > 100D);
-            OfficeIMO.Word.WordImage back = Assert.Single(reopened.Images, static image => image.Width < 100D);
+            OfficeIMO.Word.WordImage front = Assert.Single(reopened.Images, static image => image.Width?.ToPixels() > 100D);
+            OfficeIMO.Word.WordImage back = Assert.Single(reopened.Images, static image => image.Width?.ToPixels() < 100D);
             Assert.True(front.ZOrder > back.ZOrder);
         }
     }

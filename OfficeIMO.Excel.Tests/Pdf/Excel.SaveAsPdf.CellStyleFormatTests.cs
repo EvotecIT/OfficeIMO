@@ -46,8 +46,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -96,8 +96,8 @@ public partial class Excel {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -125,8 +125,8 @@ public partial class Excel {
                 PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -253,8 +253,8 @@ public partial class Excel {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -295,8 +295,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -346,8 +346,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -380,8 +380,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -422,8 +422,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -473,8 +473,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -516,8 +516,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -559,8 +559,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(320, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -612,8 +612,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(420, 360),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -652,8 +652,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(420, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -687,8 +687,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 

@@ -314,16 +314,16 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PrintProductionPageBoxesRequireBleedToContainTrim() {
         Assert.Throws<ArgumentException>(() => new PdfPrintProductionPageBoxes(
-            PdfPageMargins.Uniform(3D),
-            PdfPageMargins.Uniform(6D)));
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(3D)),
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(6D))));
 
         var options = new PdfCreateOptions {
             PageWidth = 100D,
             PageHeight = 100D,
-            Margins = PdfPageMargins.Uniform(0D),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)),
             PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(
-                new PdfPageMargins(60D, 0D, 40D, 0D),
-                PdfPageMargins.Uniform(0D))
+                new PdfPageMargins(OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(0D),OfficeIMO.OfficeLength.Points(40D),OfficeIMO.OfficeLength.Points(0D)),
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)))
         };
 
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)

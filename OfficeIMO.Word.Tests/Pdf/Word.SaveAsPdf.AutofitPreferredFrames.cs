@@ -61,7 +61,7 @@ public partial class Word {
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(325, 400), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var left = Assert.Single(page.Letters, letter => letter.Value == "A");

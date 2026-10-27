@@ -60,8 +60,8 @@ public partial class Word {
         using var input = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx }));
         using WordDocument loaded = WordDocument.Load(input);
         using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();

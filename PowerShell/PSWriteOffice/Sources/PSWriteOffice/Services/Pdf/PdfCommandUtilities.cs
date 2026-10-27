@@ -333,7 +333,7 @@ internal static class PdfCommandUtilities
         PdfPageSize size = pageSizeName.ToUpperInvariant() switch
         {
             "CUSTOM" => width.HasValue && height.HasValue
-                ? new PdfPageSize(width.Value, height.Value)
+                ? new PdfPageSize(OfficeIMO.OfficeLength.Points(width.Value),OfficeIMO.OfficeLength.Points(height.Value))
                 : throw new PSArgumentException("Custom page size requires -Width and -Height."),
             _ => PdfPageSizes.TryGet(pageSizeName, out var resolved)
                 ? resolved

@@ -73,8 +73,8 @@ public partial class Word {
             cell.Width = column == 0 ? percentage : otherWidth;
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(164D, 792D),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(164D),OfficeIMO.OfficeLength.Points(792D)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));

@@ -44,7 +44,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(prefix ? 3 : 2, pdf.NumberOfPages);
         if (prefix) Assert.Equal("P", Assert.Single(pdf.GetPage(1).Letters).Value);

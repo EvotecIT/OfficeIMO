@@ -51,8 +51,8 @@ public partial class Word {
         table.Rows[0].Cells[0].Borders.BottomSize = previousBottomSize;
         table.Rows[1].AllowRowToBreakAcrossPages = splitRow;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 90),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(90)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         var words = pdf.GetPage(2).GetWords().ToArray();

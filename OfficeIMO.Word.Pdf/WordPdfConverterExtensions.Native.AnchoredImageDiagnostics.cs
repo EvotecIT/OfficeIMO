@@ -44,7 +44,7 @@ public static partial class WordPdfConverterExtensions {
                     if (supported && mapped) {
                         RecordNativeWrappedImagePageClipping(options, image._Image, source, pageSize,
                             layout.WidthPoints, layout.HeightPoints, new PdfCore.PdfAnchoredImagePosition(
-                                placement.X, placement.Y, placement.MarginX, margins.Left, placement.ParagraphY));
+                                placement.X, placement.Y, placement.MarginX, margins.Left.ToPoints(), placement.ParagraphY));
                         continue;
                     }
                     RecordNativeImageWrapApproximation(options, image._Image, source,
@@ -63,8 +63,8 @@ public static partial class WordPdfConverterExtensions {
     private static void RecordNativeWrappedImagePageClipping(WordPdfExportOptions? options, W.Drawing drawing,
         string source, PdfCore.PdfPageSize pageSize, double width, double height,
         PdfCore.PdfAnchoredImagePosition position) {
-        if (options == null || !(position.X < 0D || position.X + width > pageSize.Width + 0.001D ||
-                !position.ParagraphY && (position.Y < 0D || position.Y + height > pageSize.Height + 0.001D)) ||
+        if (options == null || !(position.X < 0D || position.X + width > pageSize.Width.ToPoints() + 0.001D ||
+                !position.ParagraphY && (position.Y < 0D || position.Y + height > pageSize.Height.ToPoints() + 0.001D)) ||
             !options.DiagnosedWrappedImageClippingElements.Add(drawing)) return;
         AddNativeExportWarning(options, "native-anchored-image-clipped", source,
             "The anchored image extends beyond the page; the page boundary clips its visible appearance.");

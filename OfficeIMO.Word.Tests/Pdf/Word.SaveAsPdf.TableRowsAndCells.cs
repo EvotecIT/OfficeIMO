@@ -27,8 +27,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -156,8 +156,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(40),
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -190,8 +190,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(320, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -238,8 +238,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica",
                 PdfOptions = new PdfCore.PdfCreateOptions {
                     DefaultTableStyle = new PdfCore.PdfTableStyle {
@@ -361,8 +361,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 320),
-                Margins = PdfCore.PdfPageMargins.Uniform(30),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica"
             });
         }
@@ -393,8 +393,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -438,8 +438,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -483,8 +483,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -539,8 +539,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 300),
-                Margins = new PdfCore.PdfPageMargins(72, 72, 40, 40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(300)),
+                Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(40),OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -575,8 +575,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -614,8 +614,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -662,8 +662,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -699,8 +699,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -750,8 +750,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -780,8 +780,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -818,8 +818,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -859,8 +859,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -918,8 +918,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica"
             });
         }
@@ -974,8 +974,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1032,8 +1032,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1088,8 +1088,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1126,8 +1126,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1169,8 +1169,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1215,8 +1215,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 180),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(180)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1259,8 +1259,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1299,8 +1299,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1353,8 +1353,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1381,8 +1381,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(72),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)),
                 FontFamily = "Helvetica",
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
@@ -1420,8 +1420,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 180),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(180)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1454,8 +1454,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1503,8 +1503,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1552,8 +1552,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1675,8 +1675,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1799,8 +1799,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 

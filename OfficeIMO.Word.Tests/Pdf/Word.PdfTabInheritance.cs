@@ -332,8 +332,8 @@ public sealed class WordPdfTabInheritanceTests {
         Assert.Empty(document.ValidateDocument());
         byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfPageSize(612, 792),
-            Margins = PdfPageMargins.Uniform(72),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));

@@ -17,8 +17,8 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
             double headingHeight = options.IncludeSheetHeadings ? WorksheetHeadingHeight : 0D;
-            double availableWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
-            double availableHeight = Math.Max(1D, pageSize.Height - margins.Top - margins.Bottom - headingHeight);
+            double availableWidth = Math.Max(1D, pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
+            double availableHeight = Math.Max(1D, pageSize.Height.ToPoints() - margins.Top.ToPoints() - margins.Bottom.ToPoints() - headingHeight);
             pdf.Section(page => {
                 ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
                 ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
@@ -75,18 +75,18 @@ namespace OfficeIMO.Excel.Pdf {
             double headingHeight,
             bool firstPageForSheet,
             ExcelDateSystem dateSystem) {
-            double sceneX = margins.Left;
-            double sceneY = margins.Top + headingHeight;
+            double sceneX = margins.Left.ToPoints();
+            double sceneY = margins.Top.ToPoints() + headingHeight;
             if (firstPageForSheet) {
-                canvas.Outline(plan.SheetName, 1, margins.Top);
+                canvas.Outline(plan.SheetName, 1, margins.Top.ToPoints());
             }
 
             if (headingHeight > 0D) {
                 canvas.Text(
                     new[] { PdfCore.PdfTextRun.Bolded(plan.SheetName, fontSize: 15D) },
                     PdfCore.PdfCanvasTextStructureRole.Heading1,
-                    margins.Left,
-                    margins.Top,
+                    margins.Left.ToPoints(),
+                    margins.Top.ToPoints(),
                     availableWidth,
                     headingHeight,
                     fontSize: 15D);

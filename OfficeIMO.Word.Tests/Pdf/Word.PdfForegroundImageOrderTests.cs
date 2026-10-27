@@ -59,7 +59,7 @@ public sealed class PdfForegroundImageOrderTests {
         AddImage(first, OfficeColor.Red, firstOrder, 10);
         var second = sameParagraph ? first.AddText("Second anchor") : word.AddParagraph("Second anchor");
         AddImage(second, OfficeColor.Blue, secondOrder, 28);
-        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         Assert.Equal(2, pdf.Images.Placements().Count);
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");

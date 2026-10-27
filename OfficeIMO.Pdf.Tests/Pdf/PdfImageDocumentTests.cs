@@ -130,8 +130,8 @@ public sealed class PdfImageDocumentTests {
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PdfPageSizes.A4.Height, info.Pages[0].Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Width, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Height, 2);
     }
 
     [Fact]
@@ -150,8 +150,8 @@ public sealed class PdfImageDocumentTests {
             });
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
-        Assert.Equal(PdfPageSizes.A4.Height, page.Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Width, page.Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), page.Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), page.Height, 2);
     }
 
     [Fact]
@@ -186,8 +186,8 @@ public sealed class PdfImageDocumentTests {
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PdfPageSizes.A4.Width, info.Pages[0].Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Height, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Height, 2);
         PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
         Assert.Equal(2, extracted.Width);
         Assert.Equal(1, extracted.Height);

@@ -155,7 +155,7 @@ public partial class Word {
 
     private static WordPdfExportOptions NativeInputTableOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PdfCore.PdfPageSize(400, 500),
-        Margins = PdfCore.PdfPageMargins.Uniform(40)
+        PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+        Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
     };
 }

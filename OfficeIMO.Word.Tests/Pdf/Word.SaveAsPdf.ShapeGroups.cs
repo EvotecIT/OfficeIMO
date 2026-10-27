@@ -157,7 +157,7 @@ public sealed class PdfShapeGroupTests {
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
         image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
-        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));
         Assert.True(page.PageNumber > 1);
@@ -411,7 +411,7 @@ public sealed class PdfShapeGroupTests {
         anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Paragraph;
         paragraph.AddText("ANCHOR " + string.Join(" ", Enumerable.Range(0, 40).Select(index => "word" + index)));
         var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(400, pageHeight), Margins = PdfCore.PdfPageMargins.Uniform(40)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(pageHeight)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         });
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));

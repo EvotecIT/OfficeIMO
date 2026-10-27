@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfPageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PdfPageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
-                double sectionContentWidth = Math.Max(1D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
+                double sectionContentWidth = Math.Max(1D, sectionPageSize.Width.ToPoints() - sectionMargins.Left.ToPoints() - sectionMargins.Right.ToPoints());
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
@@ -448,14 +448,14 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool NativePageSizesEquivalent(PdfCore.PdfPageSize first, PdfCore.PdfPageSize second) =>
-            NativeDoubleEquals(first.Width, second.Width) &&
-            NativeDoubleEquals(first.Height, second.Height);
+            NativeDoubleEquals(first.Width.ToPoints(), second.Width.ToPoints()) &&
+            NativeDoubleEquals(first.Height.ToPoints(), second.Height.ToPoints());
 
         private static bool NativeMarginsEquivalent(PdfCore.PdfPageMargins first, PdfCore.PdfPageMargins second) =>
-            NativeDoubleEquals(first.Left, second.Left) &&
-            NativeDoubleEquals(first.Top, second.Top) &&
-            NativeDoubleEquals(first.Right, second.Right) &&
-            NativeDoubleEquals(first.Bottom, second.Bottom);
+            NativeDoubleEquals(first.Left.ToPoints(), second.Left.ToPoints()) &&
+            NativeDoubleEquals(first.Top.ToPoints(), second.Top.ToPoints()) &&
+            NativeDoubleEquals(first.Right.ToPoints(), second.Right.ToPoints()) &&
+            NativeDoubleEquals(first.Bottom.ToPoints(), second.Bottom.ToPoints());
 
         private static bool NativeDoubleEquals(double first, double second) =>
             Math.Abs(first - second) < 0.001D;

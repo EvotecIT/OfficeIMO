@@ -254,8 +254,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -304,8 +304,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -428,8 +428,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(320, 240),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -471,8 +471,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 260),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }

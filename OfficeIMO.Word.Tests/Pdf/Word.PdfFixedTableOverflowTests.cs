@@ -45,7 +45,7 @@ public partial class Word {
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PdfPageSize(325, 400), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var left = Assert.Single(letters, letter => letter.Value == "L");
@@ -88,7 +88,7 @@ public partial class Word {
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PdfPageSize(325, 400), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var left = Assert.Single(page.Letters, letter => letter.Value == "L");
@@ -135,7 +135,7 @@ public partial class Word {
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PdfPageSize(325, 400), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var left = Assert.Single(page.Letters, letter => letter.Value == "L");
@@ -192,7 +192,7 @@ public partial class Word {
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PdfPageSize(325, 400), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var left = Assert.Single(letters, letter => letter.Value == "L");

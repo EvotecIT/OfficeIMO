@@ -108,10 +108,10 @@ public sealed class PdfImageImportOptions {
     }
 
     private void ValidatePageSize(PdfPageSize size, string name, bool validatePrintableArea) {
-        if (size.Width > MaximumPageDimension || size.Height > MaximumPageDimension) {
+        if (size.Width.ToPoints() > MaximumPageDimension || size.Height.ToPoints() > MaximumPageDimension) {
             throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension:N0} points.");
         }
-        if (validatePrintableArea && (size.Width <= Margin * 2D || size.Height <= Margin * 2D)) {
+        if (validatePrintableArea && (size.Width.ToPoints() <= Margin * 2D || size.Height.ToPoints() <= Margin * 2D)) {
             throw new ArgumentException("Page margins leave no printable image area.", name);
         }
     }
@@ -173,8 +173,8 @@ public sealed partial class PdfDocument {
             PreparedImage prepared = PrepareImageDocumentSource(sourceBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
-            double frameWidth = pageSize.Width - effective.Margin * 2D;
-            double frameHeight = pageSize.Height - effective.Margin * 2D;
+            double frameWidth = pageSize.Width.ToPoints() - effective.Margin * 2D;
+            double frameHeight = pageSize.Height.ToPoints() - effective.Margin * 2D;
             string? alternativeText = string.IsNullOrWhiteSpace(source.Name) ? null : source.Name;
             OfficeImageFit placementFit = effective.FixedPageSize.HasValue
                 ? effective.Fit
@@ -219,17 +219,17 @@ public sealed partial class PdfDocument {
                 throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
             }
             double scale = Math.Min(1D, maximumContentDimension / Math.Max(width, height));
-            pageSize = new PdfPageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
+            pageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(width * scale + options.Margin * 2D),OfficeIMO.OfficeLength.Points(height * scale + options.Margin * 2D));
             return pageSize;
         } else {
             pageSize = options.FallbackPageSize;
         }
 
         if (options.AutoOrientPage) pageSize = isLandscape ? pageSize.Landscape() : pageSize.Portrait();
-        if (pageSize.Width > options.MaximumPageDimension || pageSize.Height > options.MaximumPageDimension) {
+        if (pageSize.Width.ToPoints() > options.MaximumPageDimension || pageSize.Height.ToPoints() > options.MaximumPageDimension) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resolved page dimensions exceed the configured maximum.");
         }
-        if (pageSize.Width <= options.Margin * 2D || pageSize.Height <= options.Margin * 2D) {
+        if (pageSize.Width.ToPoints() <= options.Margin * 2D || pageSize.Height.ToPoints() <= options.Margin * 2D) {
             throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
         }
         return pageSize;

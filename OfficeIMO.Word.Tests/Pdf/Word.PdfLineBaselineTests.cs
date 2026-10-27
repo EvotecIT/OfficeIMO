@@ -34,7 +34,7 @@ public partial class Word {
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");
@@ -73,7 +73,7 @@ public partial class Word {
         options.EmbedStandardFont(PdfStandardFont.Helvetica, CreateBaselineMetricFont(), "OfficeIMO-Portable-Regular");
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");

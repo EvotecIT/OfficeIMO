@@ -172,8 +172,8 @@ Batch and saved jobs fail when no inputs are selected unless --allow-empty is su
         foreach (PdfPrintSheet sheet in plan.Sheets) {
             await output.WriteLineAsync(
                 "Sheet " + sheet.SheetNumber.ToString(CultureInfo.InvariantCulture) + ": " +
-                sheet.PaperSize.Width.ToString("0.##", CultureInfo.InvariantCulture) + " x " +
-                sheet.PaperSize.Height.ToString("0.##", CultureInfo.InvariantCulture) + " pt; pages " +
+                sheet.PaperSize.Width.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " x " +
+                sheet.PaperSize.Height.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) + " pt; pages " +
                 string.Join(',', sheet.Placements.Select(static placement => placement.PageNumber))).ConfigureAwait(false);
         }
         return (int)OfficeImoToolExitCode.Success;

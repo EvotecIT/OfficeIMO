@@ -173,7 +173,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
             PageWidth = preview.Width,
             PageHeight = preview.Height,
-            Margins = PdfCore.PdfPageMargins.Uniform(0)
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         });
         pdf.Canvas(canvas => canvas.DrawingForClippedRendering(preview, 0, 0, preview.Width, preview.Height));
         byte[] bytes = pdf.ToBytes();

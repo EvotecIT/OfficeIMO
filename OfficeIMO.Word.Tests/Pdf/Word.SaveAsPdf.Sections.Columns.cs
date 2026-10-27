@@ -39,7 +39,7 @@ public partial class Word {
         }
         using (WordDocument document = WordDocument.Load(source)) {
             document.SaveAsPdf(target, new WordPdfExportOptions { IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(500, 400), Margins = PdfCore.PdfPageMargins.Uniform(40) });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)) });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -65,8 +65,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 792),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -108,8 +108,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 792),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -145,8 +145,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 792),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -177,8 +177,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 792),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -219,8 +219,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(500, 400),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -273,8 +273,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(500, 400),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -309,8 +309,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 792),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 

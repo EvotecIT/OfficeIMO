@@ -41,8 +41,8 @@ public partial class Excel {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
             MaxRowsPerSheet = 2,
-            PageSize = new PdfCore.PdfPageSize(460, 320),
-            Margins = PdfCore.PdfPageMargins.Uniform(24)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(460),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
         };
 
         byte[] bytes;

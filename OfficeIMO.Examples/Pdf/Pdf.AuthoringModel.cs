@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Settings(options => {
                     options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                     options.PageSize = PdfPageSizes.A4;
-                    options.Margins = PdfPageMargins.Uniform(42);
+                    options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(42));
                 })
                 .Content(content => content
                     .Element(element => element

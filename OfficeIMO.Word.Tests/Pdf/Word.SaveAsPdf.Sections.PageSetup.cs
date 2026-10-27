@@ -23,8 +23,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(240, 320),
-                Margins = new PdfCore.PdfPageMargins(80, 36, 36, 36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(320)),
+                Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(80),OfficeIMO.OfficeLength.Points(36),OfficeIMO.OfficeLength.Points(36),OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -48,8 +48,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 

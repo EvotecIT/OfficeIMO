@@ -11,8 +11,8 @@ public sealed class PdfPageResizeOptions {
     /// </summary>
     /// <param name="pageSize">Target page size in PDF points.</param>
     public PdfPageResizeOptions(PdfPageSize pageSize) {
-        Guard.Positive(pageSize.Width, nameof(pageSize));
-        Guard.Positive(pageSize.Height, nameof(pageSize));
+        Guard.Positive(pageSize.Width.ToPoints(), nameof(pageSize));
+        Guard.Positive(pageSize.Height.ToPoints(), nameof(pageSize));
         PageSize = pageSize;
     }
 

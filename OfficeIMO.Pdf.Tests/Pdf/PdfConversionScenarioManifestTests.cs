@@ -2460,8 +2460,8 @@ public sealed class PdfConversionScenarioManifestTests {
             return (document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 3,
-                PageSize = new PdfCore.PdfPageSize(560, 360),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         } finally {
             Directory.Delete(tempDirectory, recursive: true);

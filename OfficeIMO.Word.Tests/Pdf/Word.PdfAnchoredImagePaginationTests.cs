@@ -108,7 +108,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         }
         anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = 12;
         word.AddParagraph("Following paragraph");
-        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         var anchorPage = Assert.Single(pdf.Reader.Pages(), page => pdf.Reader.Text(PdfCore.PdfPageSelection.From(page.PageNumber)).Contains("ANCHOR"));
         var placements = pdf.Images.Placements();

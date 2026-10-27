@@ -78,7 +78,7 @@ public partial class Word {
         string original = OriginalXml();
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(noteKind == 0
             ? new WordPdfExportOptions {
-                IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
+                IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             } : FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());

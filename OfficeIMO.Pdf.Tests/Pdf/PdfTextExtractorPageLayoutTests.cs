@@ -12,9 +12,9 @@ public partial class PdfTextExtractorPageTests {
         byte[] pdf = BuildTwoColumnPdf();
 
         IReadOnlyList<string> pages = PdfTextExtractor.ExtractTextByPage(pdf, new PdfTextLayoutOptions {
-            MarginLeft = 36,
-            MarginRight = 36,
-            MinGutterWidth = 24
+            MarginLeft = OfficeIMO.OfficeLength.Points(36),
+            MarginRight = OfficeIMO.OfficeLength.Points(36),
+            MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
         });
 
         string text = Normalize(pages[0]);

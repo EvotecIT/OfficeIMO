@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Pdf {
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PdfPageSizes.A4 : GetNativePageSize(firstSection, options);
             pdfOptions.Margins = firstSection == null
-                ? PdfCore.PdfPageMargins.Uniform(72)
+                ? PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
                 : GetNativeMargins(firstSection, options, GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers));
             pdfOptions.MirrorMargins = firstSection != null && ShouldMirrorNativeMargins(firstSection, options);
             bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;

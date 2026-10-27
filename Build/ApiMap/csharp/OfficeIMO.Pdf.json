@@ -1963,53 +1963,53 @@
       "old": "OfficeIMO.Pdf.PageMargins.FromInches(double left, double top, double right, double bottom)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PageMargins.From(... OfficeLength ...)",
+      "new": "OfficeIMO.Pdf.PdfPageMargins(OfficeLength left, OfficeLength top, OfficeLength right, OfficeLength bottom)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Pdf/Compose/PageMargins.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Use the PdfPageSize/PdfPageMargins constructor, or PdfPageMargins.Uniform, with OfficeLength values. Unit-specific factories are removed; the models retain exact lengths until PDF serialization.",
       "supersededM0Target": "OfficeIMO.Pdf.PageMargins.From(... OfficeLength ...)"
     },
     {
       "old": "OfficeIMO.Pdf.PageMargins.UniformInches(double inches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PageMargins.Uniform(... OfficeLength ...)",
+      "new": "OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength length)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Pdf/Compose/PageMargins.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use the PdfPageSize/PdfPageMargins constructor, or PdfPageMargins.Uniform, with OfficeLength values. Unit-specific factories are removed; the models retain exact lengths until PDF serialization."
     },
     {
       "old": "OfficeIMO.Pdf.PageSize.FromInches(double width, double height)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PageSize.From(... OfficeLength ...)",
+      "new": "OfficeIMO.Pdf.PdfPageSize(OfficeLength width, OfficeLength height)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Pdf/Compose/PageSize.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Use the PdfPageSize/PdfPageMargins constructor, or PdfPageMargins.Uniform, with OfficeLength values. Unit-specific factories are removed; the models retain exact lengths until PDF serialization.",
       "supersededM0Target": "OfficeIMO.Pdf.PageSize.From(... OfficeLength ...)"
     },
     {
@@ -2023,11 +2023,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgba(... OfficeLength ...)",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2042,11 +2042,11 @@
       "notes": "Numeric parameters with unit-suffixed names: geometryTolerancePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The helper is internal after the visibility pass. Public PdfLogicalTableContinuationOptions.GeometryTolerance uses OfficeLength; the internal engine continues to use PDF points."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(PdfDocumentReadResult document, int maxRows, bool mergePageContinuations, bool suppressRepeatedBodyHeaderRows, int maximumSegmentsPerTable, double geometryTolerancePoints, CancellationToken cancellationToken)",
@@ -2059,11 +2059,11 @@
       "notes": "Numeric parameters with unit-suffixed names: geometryTolerancePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The helper is internal after the visibility pass. Public PdfLogicalTableContinuationOptions.GeometryTolerance uses OfficeLength; the internal engine continues to use PDF points."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch",
@@ -2093,11 +2093,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRaster : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2143,11 +2143,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotal : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2161,11 +2161,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfPageDisplayOptions.Maximum : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2179,11 +2179,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfPagePrintOptions.Maximum : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2197,11 +2197,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShading : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2215,11 +2215,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "LineMergeMax and all physical text-layout dimensions use OfficeLength; ratios retain their dimensionless numeric types."
     },
     {
       "old": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotalPixels",
@@ -2231,11 +2231,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotal : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2249,11 +2249,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfVisualPageComparison.Compared : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -2267,11 +2267,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "retained-scalar",
-      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "applied": "phase-b-applied",
+      "note": "Reviewed: this is a pixel count, pixel-data buffer or resource budget, not a physical length. Its numeric meaning and existing type are retained.",
       "supersededM0Target": "OfficeIMO.Pdf.PdfVisualPageComparison.Different : OfficeLength",
       "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
@@ -3022,6 +3022,204 @@
         "Directory.Build.targets",
         "OfficeIMO.Pdf/PublicAPI.Shipped.txt",
         "OfficeIMO.Pdf/PublicAPI.Unshipped.txt"
+      ]
+    },
+    {
+      "change": "PDF page-size/margin constructors and dimensions, text-layout physical settings and table-continuation tolerance use OfficeLength.",
+      "reason": "Stores exact physical lengths in the public models and converts to PDF points at the existing layout/codec boundaries. Removes inch/centimeter factory twins. Preserves page presets, dimensionless ratios, pixel budgets and mechanical PowerShell numeric-point behavior.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Compose/PageSize.cs",
+        "OfficeIMO.Pdf/Compose/PageMargins.cs",
+        "OfficeIMO.Pdf/Reading/Layout/PdfTextLayoutOptions.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+        "OfficeIMO.Pdf/PublicAPI.Shipped.txt"
+      ],
+      "consumerFiles": [
+        "OfficeIMO.Examples/Converters/Pdf/Pdf.SaveAsPdf.cs",
+        "OfficeIMO.Examples/Converters/Pdf/Pdf01_SaveAsPdf.cs",
+        "OfficeIMO.Examples/Excel/ReportWorkflow.cs",
+        "OfficeIMO.Examples/Pdf/Pdf.AuthoringModel.cs",
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.TableStyles.cs",
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetContent.cs",
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetScene.cs",
+        "OfficeIMO.Excel.Pdf/README.md",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.ConditionalIconFidelity.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.ReportWorkflowTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.CellStyleFormatTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.ChartTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.DefaultFontGeometry.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.FitDrawingBounds.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.HeaderFooterTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.HyperlinkTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.ImageTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.LayoutTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.ManualBreakMerges.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.MergeFragmentReview.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.OptionsWarningTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PageSetupPrintAreaTests.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PrintTitleColumns.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PrintTitleMedia.cs",
+        "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PrintTitleRows.cs",
+        "OfficeIMO.Html/Pdf/HtmlPdfRenderedConverter.cs",
+        "OfficeIMO.Pdf.Ocr/PdfScanPreview.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposeIncrementalAdapterTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageDictionaryBuilderTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageOptionsSupport.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageScopedFlowTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageSetupTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfConversionScenarioManifestTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentRasterVisualBaselineNativeScenarios.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentWorkflowTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfFormCreationTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfITextInspiredCoverageTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfImageDocumentTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfInspectorSupport.Basic.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfMergerTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfMetadataEditorTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfNUpImpositionTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageChangeAnalyzerTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageEditorPathInputLimitTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageEditorSupport.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageExtractorSupport.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageInterleaverTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageLengthTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfReaderAndFooterTextOperatorTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfRenderingProfileTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfRepeatedPageEdgeEnvelopeTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfReverseImagePlacementSafetyTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfSemanticAuthoringTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfTextExtractorPageAllTextPipelineTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfTextExtractorPageFileOutputTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfTextExtractorPageLayoutTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfUnderstandingPipelineTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfVisualComparerTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfXGroundworkTests.cs",
+        "OfficeIMO.Pdf/Compose/PageSizes.cs",
+        "OfficeIMO.Pdf/Compose/PdfPageBuilder.cs",
+        "OfficeIMO.Pdf/Core/PdfDocument.Blocks.Setup.cs",
+        "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfNUpOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageEditor.Crop.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageEditor.NormalizeRotation.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageEditor.Resize.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageImposer.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageResizeOptions.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.Page.cs",
+        "OfficeIMO.Pdf/Options/PdfPrintProductionPageBoxes.cs",
+        "OfficeIMO.Pdf/README.md",
+        "OfficeIMO.Pdf/Reading/Layout/PdfTextLayoutOptions.cs",
+        "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPageInfo.cs",
+        "OfficeIMO.Pdf/Reading/Options/PdfLoadOptions.Semantics.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.Lines.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfRecursiveXyCutReadingOrderStage.cs",
+        "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.Fonts.cs",
+        "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.TablePreview.cs",
+        "OfficeIMO.PowerPoint.Tests/Pdf/PowerPoint.PdfTableFidelityTests.cs",
+        "OfficeIMO.Reader.Tests/Reader.Pdf.Modular.cs",
+        "OfficeIMO.Studio.Native/StudioNativeDocument.Structure.cs",
+        "OfficeIMO.Studio.Tests/PrintDeliveryTests.cs",
+        "OfficeIMO.Studio/Features/Workflows/PrintPreviewViewModel.cs",
+        "OfficeIMO.Tool/Commands/Workflow/WorkflowCommand.cs",
+        "OfficeIMO.Word.Pdf/README.md",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.AnchoredImageDiagnostics.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.AnchoredImageSources.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.AnchoredImages.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Columns.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.CoverPages.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.HeaderFooter.RunningContent.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.OptionsAndToc.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.PageFootnotes.Admission.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.PageLayout.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.RunningTextBoxAnchors.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.RunningTextBoxContent.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.RunningTextBoxGeometry.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.ShapeGroups.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfAnchoredImagePaginationTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfAnchoredRunningTextBoxMirroredGuards.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfBiDiOnOff.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfEndnoteContinuation.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfExactColumnOverflowTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfExactLineBaselineTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfExactLineOverflowTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfFixedTableMinimumTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfFixedTableOverflowTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfFontLineMetricSelection.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfForegroundImageOrderTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfInlineContentControls.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfInlineControlPaint.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfJustificationPolicies.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfLineBaselineTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfLineFrameFitTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfNativeTableStructures.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfNaturalEmptyLineMetrics.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfNoteTables.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfPageImageLayoutTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfParagraphImageAnchorsTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfReportedTabs.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfSignedTableIndentTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfSmallCapsTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfTabInheritance.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.AsymmetricParagraphBorders.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.AutofitPreferredFrames.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.CellPreferredWidths.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Charts.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.FidelityRegression.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.FloatingTables.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Gutters.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.HeaderFooterContent.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ImagesAndHyperlinks.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.KeptParagraphContinuation.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ListTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.MergedCellPageFlow.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.MixedPercentagePreferences.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.NestedTableLayout.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.NestedTableTerminals.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphBorderGroupFrameStarts.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphBorderGroups.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphFormatting.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.RunStyleTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Sections.Basic.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Sections.ColumnBalancing.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Sections.Columns.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Sections.PageSetup.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ShapeGroups.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ShortNumberingTabs.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Streams.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableBorderFlow.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableBorderPadding.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableCellBorders.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableCellPagination.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableCompatibilityPlacement.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableHeaders.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableMarginsSpacing.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TablePlacementWidth.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableRowsAndCells.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableStyleBorders.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableWidthDefaults.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Whitespace.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.cs",
+        "OfficeIMO.Word.Tests/Pdf/WordNativeCompressionAdmissionTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/WordNativeHeadingJustificationPolicyTests.cs",
+        "OfficeIMO.Word.Tests/Word.ImageExport.SharedLayout.cs",
+        "OfficeIMO.Word.Tests/Word.SaveAsPdf.NestedTableCompatibility.cs",
+        "OfficeIMO.Word.Tests/Word.Security.AllSeverityBatch21.cs",
+        "OfficeIMO.Workflows.Tests/OfficeOutputWorkflowTests.cs",
+        "OfficeIMO.Workflows.Tests/PdfCupsSubmissionTests.cs",
+        "OfficeIMO.Workflows.Tests/PdfPrintLayoutTests.cs",
+        "OfficeIMO.Workflows.Tests/PdfPrintRendererTests.cs",
+        "OfficeIMO.Workflows/PdfPrintPlanner.cs",
+        "OfficeIMO.Workflows/Printing/CupsPdfPrinter.cs",
+        "OfficeIMO.Workflows/Printing/PdfPrintRenderer.cs",
+        "OfficeIMO.Workflows/Printing/WindowsPdfPrinter.cs",
+        "OfficeIMO.Xps.Pdf/XpsPdfExtensions.cs",
+        "OfficeIMO.Xps.Tests/XpsPdfNavigationTests.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelPdfOptionsCommand.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordPdfOptionsCommand.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Pdf/PdfCommandUtilities.cs"
       ]
     }
   ],

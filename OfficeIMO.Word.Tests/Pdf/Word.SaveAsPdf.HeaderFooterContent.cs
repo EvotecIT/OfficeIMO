@@ -74,8 +74,8 @@ public partial class Word {
 
             PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(260, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(72)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
             });
             result.Save(pdfPath);
 

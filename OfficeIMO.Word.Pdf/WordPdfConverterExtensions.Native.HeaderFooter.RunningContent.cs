@@ -47,7 +47,7 @@ public static partial class WordPdfConverterExtensions {
         bool hasParagraph = false;
         bool ordinaryStoriesSupported = !HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter);
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options, (0D, 0D));
-        double width = GetNativePageSize(section, options).Width - margins.Left - margins.Right;
+        double width = GetNativePageSize(section, options).Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
         foreach (WordHeaderFooter? story in variants) {
             if (story == null) continue;
             hasParagraph |= !story.ChildElements.Any();
@@ -97,7 +97,7 @@ public static partial class WordPdfConverterExtensions {
             // ordinary stories. Its expansion clamp preserves a usable body;
             // bounded running flow cannot create continuation pages for them.
             double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
-            ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height;
+            ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height.ToPoints();
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
     }
@@ -209,7 +209,7 @@ public static partial class WordPdfConverterExtensions {
             using IDisposable? resolutionScope = resolutionSnapshot?.Use();
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
-                new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
+                new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(context.PageWidth),OfficeIMO.OfficeLength.Points(context.PageHeight))), preserveInitialSpacingBefore: true);
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
             if (story != null && !story.ChildElements.Any())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);

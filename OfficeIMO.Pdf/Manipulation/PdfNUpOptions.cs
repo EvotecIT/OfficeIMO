@@ -40,14 +40,14 @@ public sealed class PdfNUpOptions {
         if (MaxOutputBytes < 1L || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
         if (SignaturePolicy != PdfImpositionSignaturePolicy.Reject && SignaturePolicy != PdfImpositionSignaturePolicy.CreateUnsignedDerivative)
             throw new ArgumentOutOfRangeException(nameof(SignaturePolicy));
-        if (SheetSize.Width <= 0D || SheetSize.Height <= 0D ||
-            double.IsNaN(SheetSize.Width) || double.IsNaN(SheetSize.Height) ||
-            double.IsInfinity(SheetSize.Width) || double.IsInfinity(SheetSize.Height)) throw new ArgumentOutOfRangeException(nameof(SheetSize));
+        if (SheetSize.Width.ToPoints() <= 0D || SheetSize.Height.ToPoints() <= 0D ||
+            double.IsNaN(SheetSize.Width.ToPoints()) || double.IsNaN(SheetSize.Height.ToPoints()) ||
+            double.IsInfinity(SheetSize.Width.ToPoints()) || double.IsInfinity(SheetSize.Height.ToPoints())) throw new ArgumentOutOfRangeException(nameof(SheetSize));
         ValidateNonNegative(Margin, nameof(Margin));
         ValidateNonNegative(HorizontalGutter, nameof(HorizontalGutter));
         ValidateNonNegative(VerticalGutter, nameof(VerticalGutter));
-        double width = (SheetSize.Width - 2D * Margin - (Columns - 1) * HorizontalGutter) / Columns;
-        double height = (SheetSize.Height - 2D * Margin - (Rows - 1) * VerticalGutter) / Rows;
+        double width = (SheetSize.Width.ToPoints() - 2D * Margin - (Columns - 1) * HorizontalGutter) / Columns;
+        double height = (SheetSize.Height.ToPoints() - 2D * Margin - (Rows - 1) * VerticalGutter) / Rows;
         if (width <= 0D || height <= 0D) throw new ArgumentException("Sheet margins and gutters leave no drawable cell area.");
         return (width, height);
     }

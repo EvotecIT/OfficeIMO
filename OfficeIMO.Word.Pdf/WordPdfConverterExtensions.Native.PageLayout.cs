@@ -15,8 +15,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } else if (section.PageSettings.Width > 0 && section.PageSettings.Height > 0) {
                 size = new PdfCore.PdfPageSize(
-                    section.PageSettings.Width.GetValueOrDefault() / 20D,
-                    section.PageSettings.Height.GetValueOrDefault() / 20D);
+                    OfficeIMO.OfficeLength.Points(section.PageSettings.Width.GetValueOrDefault() / 20D),                    OfficeIMO.OfficeLength.Points(section.PageSettings.Height.GetValueOrDefault() / 20D));
                 // The stored physical dimensions already describe the page, even when
                 // the optional orientation flag is absent. Only an export override
                 // should normalize these dimensions into another orientation.
@@ -45,7 +44,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfPageSize MapNativePageSize(WordPageSize pageSize) =>
             WordPageSizes.GetDefinition(pageSize) is { } definition
-                ? new PdfCore.PdfPageSize(definition.WidthTwips / 20D, definition.HeightTwips / 20D)
+                ? new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(definition.WidthTwips / 20D),OfficeIMO.OfficeLength.Points(definition.HeightTwips / 20D))
                 : PdfCore.PdfPageSizes.A4;
 
         private static PdfCore.PdfPageMargins GetNativeMargins(WordSection section, WordPdfExportOptions? options) {
@@ -65,7 +64,7 @@ namespace OfficeIMO.Word.Pdf {
             if (section._document.Settings.GutterAtTop) top += gutter;
             else if (section.RtlGutter) right += gutter;
             else left += gutter;
-            return new PdfCore.PdfPageMargins(left, top, right, bottom);
+            return new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(left),OfficeIMO.OfficeLength.Points(top),OfficeIMO.OfficeLength.Points(right),OfficeIMO.OfficeLength.Points(bottom));
         }
     }
 }

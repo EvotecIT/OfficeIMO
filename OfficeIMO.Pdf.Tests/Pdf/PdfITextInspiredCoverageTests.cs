@@ -767,7 +767,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsAnnotationsAndNormalizesProductionBoxes() {
         byte[] pdf = BuildResizableAnnotatedPagePdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -809,7 +809,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsDestinationsFromUnresizedPages() {
         byte[] pdf = BuildResizableTwoPageLinkPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         }, 1);
 
@@ -826,7 +826,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesConvertsRotatedFitDestinationsToConcretePoints() {
         byte[] pdf = BuildResizableRotatedFitDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -842,7 +842,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesConvertsRotatedPartialXyzDestinationsToConcretePoints() {
         byte[] pdf = BuildResizableRotatedPartialXyzDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -858,7 +858,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesFillClipsToMarginBoxBeforeScaling() {
         byte[] pdf = BuildResizableTallPagePdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
             Margin = 50
         });
@@ -876,7 +876,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesFillClipsAnnotationRectanglesToMarginBox() {
         byte[] pdf = BuildResizableTallPageWithCroppedAnnotationsPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
             Margin = 50
         });
@@ -896,7 +896,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
         byte[] pdf = BuildResizableSharedDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -916,7 +916,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsIndirectAnnotationGeometryArrays() {
         byte[] pdf = BuildResizableIndirectAnnotationGeometryPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -933,7 +933,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesRemapsPopupAnnotationReferencesToTransformedClones() {
         byte[] pdf = BuildResizablePopupAnnotationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -948,7 +948,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesCollectsClonedAnnotationActionDependencies() {
         byte[] pdf = BuildResizableAnnotationActionPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);

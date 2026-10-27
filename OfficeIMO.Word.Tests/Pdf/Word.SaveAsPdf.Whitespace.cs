@@ -48,7 +48,7 @@ public partial class Word {
         PdfCreateOptions unconfigured = new PdfCreateOptions { DefaultFontSize = 12D }.Clone();
         var options = new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Arial",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = unconfigured,
-            PageSize = new PdfPageSize(240D, 792D), Margins = PdfPageMargins.Uniform(72D) };
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(792D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D)) };
         using var normal = PdfPigDocument.Open(word.ToPdf(options).ToBytes());
         var letters = normal.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.InRange(letters[0].StartBaseLine.Y - letters[5].StartBaseLine.Y, 12D, 16D);

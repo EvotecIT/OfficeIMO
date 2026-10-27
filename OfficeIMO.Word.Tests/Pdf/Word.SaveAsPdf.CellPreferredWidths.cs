@@ -211,7 +211,7 @@ public partial class Word {
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(frameWidth + 144D, 792D), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(frameWidth + 144D),OfficeIMO.OfficeLength.Points(792D)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(left + right, string.Concat(letters.Select(letter => letter.Value)));

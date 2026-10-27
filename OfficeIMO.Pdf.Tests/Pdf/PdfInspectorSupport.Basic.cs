@@ -23,7 +23,7 @@ public partial class PdfInspectorTests {
             });
 
             compose.Page(page => {
-                page.Size(new PdfPageSize(792, 612));
+                page.Size(new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612)));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Landscape page."))));
             });
         });

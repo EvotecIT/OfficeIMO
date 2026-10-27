@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
-            var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width, pageSize.Height, pageSize.Width, pageSize.Height, 0D, 0D);
+            var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), 0D, 0D);
             bool rendered = false;
-            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default) || rendered);
+            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default) || rendered);
             return rendered;
         }
 

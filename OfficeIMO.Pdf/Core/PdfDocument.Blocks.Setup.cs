@@ -77,7 +77,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets the document-wide default page size in points.</summary>
     internal PdfDocument Size(double width, double height) {
-        _options.PageSize = new PdfPageSize(width, height);
+        _options.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         return this;
     }
 
@@ -218,7 +218,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets uniform document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double all) {
-        _options.Margins = PdfPageMargins.Uniform(all);
+        _options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(all));
         return this;
     }
 
@@ -230,7 +230,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double left, double top, double right, double bottom) {
-        _options.Margins = new PdfPageMargins(left, top, right, bottom);
+        _options.Margins = new PdfPageMargins(OfficeIMO.OfficeLength.Points(left),OfficeIMO.OfficeLength.Points(top),OfficeIMO.OfficeLength.Points(right),OfficeIMO.OfficeLength.Points(bottom));
         return this;
     }
 

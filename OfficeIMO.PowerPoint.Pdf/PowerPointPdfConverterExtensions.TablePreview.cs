@@ -13,7 +13,7 @@ public static partial class PowerPointPdfConverterExtensions {
         // Master/layout tables have a relationship owner but no consuming slide.
         // Discover only this table's fonts, using the same registration path as
         // slide export, before creating the canonical layout measurer.
-        var pdfOptions = new PdfCore.PdfCreateOptions { Margins = PdfCore.PdfPageMargins.Uniform(0) };
+        var pdfOptions = new PdfCore.PdfCreateOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0)) };
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
         var families = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

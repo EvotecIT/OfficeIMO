@@ -37,7 +37,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         // Word retains the authored negative glyph positions in the PDF but
@@ -82,7 +82,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");

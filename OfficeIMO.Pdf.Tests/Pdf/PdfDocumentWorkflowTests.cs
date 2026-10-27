@@ -347,12 +347,12 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PdfPageSizes.TryGet("a0", out PdfPageSize a0));
-        Assert.Equal(2384, a0.Width);
-        Assert.Equal(3370, a0.Height);
+        Assert.Equal(2384, a0.Width.ToPoints());
+        Assert.Equal(3370, a0.Height.ToPoints());
 
         Assert.True(PdfPageSizes.TryGet("B10", out PdfPageSize b10));
-        Assert.Equal(88, b10.Width);
-        Assert.Equal(124, b10.Height);
+        Assert.Equal(88, b10.Width.ToPoints());
+        Assert.Equal(124, b10.Height.ToPoints());
 
         Assert.Equal(PdfPageSizes.Executive, PdfPageSizes.Get("Executive"));
         Assert.Equal(PdfPageSizes.Ledger, PdfPageSizes.Get("LedgerOrTabloid"));
@@ -1285,7 +1285,7 @@ public class PdfDocumentWorkflowTests {
         PdfMutationBlockedException mergeException = Assert.Throws<PdfMutationBlockedException>(
             () => PdfDocument.Merge(PdfDocument.Load(new System.IO.MemoryStream(onePage)), constrained));
         PdfMutationBlockedException resizeException = Assert.Throws<PdfMutationBlockedException>(
-            () => constrained.Pages.Resize(new PdfPageSize(612, 792)));
+            () => constrained.Pages.Resize(new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792))));
 
         PdfMutationBlockedException optimizeException = Assert.Throws<PdfMutationBlockedException>(
             () => constrained.Optimize());

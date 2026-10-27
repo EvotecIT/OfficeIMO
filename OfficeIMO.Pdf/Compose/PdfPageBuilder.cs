@@ -20,8 +20,8 @@ public sealed class PdfPageBuilder {
 
     /// <summary>Sets page size using a predefined <see cref="PdfPageSize"/>.</summary>
     public PdfPageBuilder Size(PdfPageSize size) {
-        Guard.Positive(size.Width, nameof(size));
-        Guard.Positive(size.Height, nameof(size));
+        Guard.Positive(size.Width.ToPoints(), nameof(size));
+        Guard.Positive(size.Height.ToPoints(), nameof(size));
         Options.PageSize = size;
         return this;
     }
@@ -35,9 +35,9 @@ public sealed class PdfPageBuilder {
     }
     /// <summary>Sets page orientation while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Orientation(OfficePageOrientation orientation) {
-        var oriented = new PdfPageSize(Options.PageWidth, Options.PageHeight).WithOrientation(orientation);
-        Options.PageWidth = oriented.Width;
-        Options.PageHeight = oriented.Height;
+        var oriented = new PdfPageSize(OfficeIMO.OfficeLength.Points(Options.PageWidth),OfficeIMO.OfficeLength.Points(Options.PageHeight)).WithOrientation(orientation);
+        Options.PageWidth = oriented.Width.ToPoints();
+        Options.PageHeight = oriented.Height.ToPoints();
         return this;
     }
     /// <summary>Sets or clears the page background color.</summary>

@@ -76,8 +76,8 @@ public partial class Word {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = options,
-            Margins = PdfPageMargins.Uniform(30D),
-            PageSize = new PdfPageSize(300D, 300D)
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

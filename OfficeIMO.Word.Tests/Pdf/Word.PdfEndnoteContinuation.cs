@@ -231,8 +231,8 @@ public partial class Word {
 
     private static WordPdfExportOptions EndnoteContinuationOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PdfPageSize(400, 500),
-        Margins = PdfPageMargins.Uniform(40),
+        PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+        Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
 

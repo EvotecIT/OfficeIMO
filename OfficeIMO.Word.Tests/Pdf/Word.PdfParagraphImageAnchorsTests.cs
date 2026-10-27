@@ -44,7 +44,7 @@ public sealed class PdfParagraphImageAnchorsTests {
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
         image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(-5 * 12700);
         var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            Margins = PdfCore.PdfPageMargins.Uniform(30),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());

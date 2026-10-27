@@ -59,8 +59,8 @@ public static partial class WordPdfConverterExtensions {
         // Upfront reporting has no visible page parity. Both passes retain the
         // warned flow until an asymmetric mirrored exclusion is qualified.
         if (ShouldMirrorNativeMargins(defaults.RunningContentSection, options) &&
-            margins.Left != margins.Right) return false;
-        double textLeft = margins.Left + paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
+            margins.Left.ToPoints() != margins.Right.ToPoints()) return false;
+        double textLeft = margins.Left.ToPoints() + paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
         double textWidth = 0D;
         foreach (WordParagraph run in surrounding) {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(run, paragraph, nativeDefaults: defaults, nativeFontMap: fontMap);
@@ -71,8 +71,8 @@ public static partial class WordPdfConverterExtensions {
                 textWidth += measured.Value;
             }
         }
-        double contentWidth = defaults.RunningContentContext?.ContentWidth ?? pageSize.Width - margins.Left - margins.Right;
-        if (textLeft + textWidth > margins.Left + contentWidth - paragraphStyle.RightIndent) return false;
+        double contentWidth = defaults.RunningContentContext?.ContentWidth ?? pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
+        if (textLeft + textWidth > margins.Left.ToPoints() + contentWidth - paragraphStyle.RightIndent) return false;
         var canvas = new PdfCore.PdfPageCanvas();
         foreach (WordTextBox box in boxes.OrderBy(box => box.ZOrder)) {
             options?.CancellationToken.ThrowIfCancellationRequested();

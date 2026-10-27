@@ -28,15 +28,15 @@ public static partial class WordPdfConverterExtensions {
         WP14.RelativeWidth? relativeWidth = box.Anchor?.GetFirstChild<WP14.RelativeWidth>();
         WP14.RelativeHeight? relativeHeight = box.Anchor?.GetFirstChild<WP14.RelativeHeight>();
         if (!TryGetNativeRunningRelativeExtent(relativeWidth?.PercentageWidth?.Text, relativeWidth?.ObjectId?.InnerText,
-                page.Width, margins.Left, margins.Right, ref width) ||
+                page.Width.ToPoints(), margins.Left.ToPoints(), margins.Right.ToPoints(), ref width) ||
             !TryGetNativeRunningRelativeExtent(relativeHeight?.PercentageHeight?.Text, relativeHeight?.RelativeFrom?.InnerText,
-                page.Height, margins.Top, margins.Bottom, ref height)) return false;
+                page.Height.ToPoints(), margins.Top.ToPoints(), margins.Bottom.ToPoints(), ref height)) return false;
         if (!TryGetNativeGroupAxis("page", layout.HorizontalOffsetPoints, layout.HorizontalAlignment,
-                page.Width, 0D, 0D, width, false, out x) ||
+                page.Width.ToPoints(), 0D, 0D, width, false, out x) ||
             !TryGetNativeGroupAxis("page", layout.VerticalOffsetPoints, layout.VerticalAlignment,
-                page.Height, 0D, 0D, height, true, out y)) return false;
+                page.Height.ToPoints(), 0D, 0D, height, true, out y)) return false;
         return width > 0D && height > 0D && x >= 0D && y >= 0D &&
-            x + width <= page.Width + .001D && y + height <= page.Height + .001D;
+            x + width <= page.Width.ToPoints() + .001D && y + height <= page.Height.ToPoints() + .001D;
     }
 
     private static bool TryGetNativeRunningRelativeExtent(string? percentage, string? reference,

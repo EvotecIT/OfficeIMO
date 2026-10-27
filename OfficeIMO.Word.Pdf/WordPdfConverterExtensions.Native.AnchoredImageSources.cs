@@ -35,7 +35,7 @@ public static partial class WordPdfConverterExtensions {
             paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(paint, layout.RelativeHeight) };
         item = new PdfCore.PdfCanvasAnchoredImageItem(sourceIdentity, new PdfCore.PdfCanvasBlock(paint),
             width, height, new PdfCore.PdfAnchoredImagePosition(placement.X, placement.Y,
-                placement.MarginX, margins.Left, placement.ParagraphY), exclusion);
+                placement.MarginX, margins.Left.ToPoints(), placement.ParagraphY), exclusion);
         return true;
     }
 

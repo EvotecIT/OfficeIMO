@@ -23,8 +23,8 @@ public partial class Word {
 
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 140),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(140)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("BeforeThree", pdf.GetPage(1).Text);

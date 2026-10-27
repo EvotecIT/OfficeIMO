@@ -1931,8 +1931,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 80D,
-                IgnoreFooterHeight = 80D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(80D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(80D)
             }).Pages);
 
         Assert.Equal("Retained body evidence", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -1956,8 +1956,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 60D,
-                IgnoreFooterHeight = 60D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(60D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(60D)
             }).Pages);
 
         Assert.Equal("Retained visual body", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -2061,7 +2061,7 @@ public partial class PdfUnderstandingPipelineTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(
             pdf,
             options,
-            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D }));
+            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) }));
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
         Assert.Equal(2, exception.Limit);
@@ -2079,7 +2079,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
             spans,
             PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes()).Pages[0],
-            new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D },
+            new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) },
             consumeWork: null,
             cancellationCheck: () => {
                 if (++polls == 5) cancellation.Cancel();

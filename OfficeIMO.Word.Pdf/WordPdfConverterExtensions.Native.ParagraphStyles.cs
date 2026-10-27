@@ -404,7 +404,7 @@ namespace OfficeIMO.Word.Pdf {
             double baseTop = (section.Margins.Top ?? 0) / 20D;
             if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;
             double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
-            double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height - baseTop - baseBottom);
+            double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height.ToPoints() - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);
             double maximumExpansion = Math.Max(0D, availableBodyHeight - minimumBodyHeight);
             double totalExpansion = headerExpansion + footerExpansion;

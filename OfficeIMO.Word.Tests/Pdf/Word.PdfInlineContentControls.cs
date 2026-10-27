@@ -294,8 +294,8 @@ public sealed partial class WordPdfInlineContentControlTests {
         AddText(referenceParagraph, " TAIL", 10);
         AddText(reference.AddParagraph(), "FOLLOW", 10);
         var options = new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(220, 400),
-            Margins = new PdfCore.PdfPageMargins(24, 24, 24, 24)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(400)),
+            Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24))
         };
         byte[] bytes = ConvertSavedDocument(source, options);
         using PdfPigDocument pdf = OpenVisiblePdf(bytes);

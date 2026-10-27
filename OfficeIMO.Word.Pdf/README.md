@@ -56,7 +56,7 @@ using var document = WordDocument.Load("proposal.docx");
 
 var options = new WordPdfExportOptions {
     Orientation = OfficePageOrientation.Portrait,
-    Margins = PdfPageMargins.UniformCentimeters(1.5),
+    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
     Title = "Customer proposal",
     Author = "Evotec",
     IncludePageNumbers = true,

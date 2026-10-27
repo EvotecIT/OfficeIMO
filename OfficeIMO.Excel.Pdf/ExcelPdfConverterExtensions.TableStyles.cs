@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static double CalculateFitToHeightMaxHeight(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
-            double pageContentHeight = Math.Max(24D, pageSize.Height - margins.Top - margins.Bottom);
+            double pageContentHeight = Math.Max(24D, pageSize.Height.ToPoints() - margins.Top.ToPoints() - margins.Bottom.ToPoints());
             uint fitToHeight = pageSetup?.FitToHeight ?? 1U;
             return pageContentHeight * Math.Max(1U, fitToHeight);
         }
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static double CalculateFitToWidthMaxWidth(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
-            return Math.Max(24D, pageSize.Width - margins.Left - margins.Right);
+            return Math.Max(24D, pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
         }
 
         private static PdfCore.PdfPageSize GetEffectivePageSize(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
-            return new PdfCore.PdfPageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
+            return new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(officePageSize.ToPointWidth()),OfficeIMO.OfficeLength.Points(officePageSize.ToPointHeight()));
         }
 
         private static PdfCore.PdfPageMargins GetEffectiveMargins(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {

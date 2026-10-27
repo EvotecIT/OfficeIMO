@@ -83,10 +83,10 @@ public sealed class WordSharedPageLayoutTests {
     public void SharedLayoutHonorsConversionSettingsAndClonesThem() {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions {
-            LayoutOptions = new WordPdfExportOptions { PageSize = new OfficeIMO.Pdf.PdfPageSize(400, 500), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
+            LayoutOptions = new WordPdfExportOptions { PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
         };
         WordImageExportOptions clone = options.Clone();
-        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PdfPageSize(700, 800);
+        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(800));
         var expected = document.ConvertToPdfWithEvidence(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
         var actual = document.ExportImages(OfficeImageExportFormat.Svg, clone);
         Assert.Equal(expected.Select(page => page.Bytes), actual.Select(page => page.Bytes), ByteArrayComparer.Instance);

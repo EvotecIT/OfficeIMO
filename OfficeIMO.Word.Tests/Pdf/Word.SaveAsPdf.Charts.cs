@@ -18,8 +18,8 @@ public partial class Word {
         string beforePdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingBefore.pdf");
         var options = new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfCore.PdfPageSize(420, 520),
-            Margins = PdfCore.PdfPageMargins.Uniform(40)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(520)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {

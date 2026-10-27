@@ -145,7 +145,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsMeasuresReducedGlyphsBeforeWrappingMixedCaseWords() {
         using WordDocument document = CreateDocument();
         document.AddParagraph("MMMMmmmm Z").SetSmallCaps();
-        using var pdf = OpenPdf(document, new PdfPageSize(115, 300));
+        using var pdf = OpenPdf(document, new PdfPageSize(OfficeIMO.OfficeLength.Points(115),OfficeIMO.OfficeLength.Points(300)));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ").ToArray();
         Assert.Equal("MMMMMMMMZ", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters.Take(8), letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
@@ -200,7 +200,7 @@ public sealed class WordPdfSmallCapsTests {
 
     private static WordPdfExportOptions Options(PdfPageSize? pageSize = null) => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = pageSize, Margins = PdfPageMargins.Uniform(20)
+        PageSize = pageSize, Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
     };
 
     private static PdfPigDocument OpenPdf(WordDocument document, PdfPageSize? pageSize = null) =>

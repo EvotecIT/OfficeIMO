@@ -22,9 +22,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 double radians = angle * Math.PI / 180D;
                 bool selectionAnchor = IsSelectionAnchor(word);
                 double normal = GetGroupingNormal(word, radians);
-                double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMaxPoints, word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
+                double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMax.ToPoints(), word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
                 if (selectionAnchor) tolerance = Math.Max(tolerance,
-                    Math.Min(context.LayoutOptions.LineMergeMaxPoints * 2D, word.FontSize * 0.2D));
+                    Math.Min(context.LayoutOptions.LineMergeMax.ToPoints() * 2D, word.FontSize * 0.2D));
                 BaselineGroup? group = FindIndexedGroup(context, spatialIndex, angle, normal, tolerance, selectionAnchor);
                 (int Angle, int Normal) previousKey = default;
                 if (group is null) {
@@ -59,9 +59,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 for (int i = 0; i < ordered.Length; i++) {
                     double alongStart = GetProjectedAlongStart(ordered[i], radians);
                     double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
-                    double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
+                    double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
                     double gap = alongStart - previousAlongEnd;
-                    bool repeatedGutter = gap >= context.LayoutOptions.MinGutterWidth && HasRepeatedGutter(gutterAnchors, group, alongStart);
+                    bool repeatedGutter = gap >= context.LayoutOptions.MinGutterWidth.ToPoints() && HasRepeatedGutter(gutterAnchors, group, alongStart);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter)) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
                     previousAlongEnd = Math.Max(previousAlongEnd, alongEnd);
@@ -147,7 +147,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 for (int index = 0; index < ordered.Length; index++) {
                     context.ConsumeWork();
                     double start = GetProjectedAlongStart(ordered[index], radians);
-                    if (index > 0 && start - previousEnd >= context.LayoutOptions.MinGutterWidth && TryGutterKey(group, start, out var key)) {
+                    if (index > 0 && start - previousEnd >= context.LayoutOptions.MinGutterWidth.ToPoints() && TryGutterKey(group, start, out var key)) {
                         if (anchors.TryGetValue(key, out var existing)) {
                             if (!ReferenceEquals(existing.First, group)) anchors[key] = (existing.First, true);
                         } else anchors.Add(key, (group, false));

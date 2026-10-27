@@ -110,7 +110,7 @@ namespace OfficeIMO.Examples.Excel
                     return;
                 }
 
-                document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(560, 520), Margins = PdfCore.PdfPageMargins.Uniform(24) });
+                document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(520)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)) });
                 if (openExcel)
                 {
                     document.OpenInApplication(workbookPath);

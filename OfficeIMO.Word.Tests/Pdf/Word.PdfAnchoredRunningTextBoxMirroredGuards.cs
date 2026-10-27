@@ -13,7 +13,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_ExplicitMarginsKeepAsymmetricMirroredRunningTextBoxQualified() =>
-        AssertStableMirroredRunningTextBoxAdmission(2880, PdfCore.PdfPageMargins.Uniform(72D));
+        AssertStableMirroredRunningTextBoxAdmission(2880, PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D)));
 
     private static void AssertStableMirroredRunningTextBoxAdmission(uint authoredRightMargin,
         PdfCore.PdfPageMargins? exportMargins) {

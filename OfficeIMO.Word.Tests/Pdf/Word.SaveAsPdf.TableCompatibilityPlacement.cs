@@ -41,8 +41,8 @@ public sealed class PdfTableCompatibilityPlacementTests {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "OTHER";
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PdfPageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var first = Assert.Single(words, word => word.Text == "FIRST");

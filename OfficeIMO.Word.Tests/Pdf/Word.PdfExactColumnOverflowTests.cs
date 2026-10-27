@@ -58,7 +58,7 @@ public partial class Word {
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 300), Margins = new PdfPageMargins(30, 72, 30, 72)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(300)), Margins = new PdfPageMargins(OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml);
         using var pdf = PdfPigDocument.Open(bytes);
@@ -110,7 +110,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 300), Margins = new PdfPageMargins(30, 72, 30, 72)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(300)), Margins = new PdfPageMargins(OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("A", Assert.Single(pdf.GetPage(1).Letters).Value);

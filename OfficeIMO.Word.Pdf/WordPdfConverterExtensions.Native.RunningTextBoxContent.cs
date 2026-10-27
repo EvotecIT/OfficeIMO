@@ -69,9 +69,9 @@ public static partial class WordPdfConverterExtensions {
         // indents, and the page bottom for imported exact-line footer overflow.
         if (!behindDocument && measuredBox.PaintWidth > 0D && measuredBox.PaintHeight > 0D &&
             x + measuredBox.PaintLeft + measuredBox.PaintWidth > 0D &&
-            x + measuredBox.PaintLeft < pageSize.Width &&
-            y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top + defaults.BodyTextInkTopOffset.GetValueOrDefault() &&
-            y + measuredBox.PaintTop < pageSize.Height) return false;
+            x + measuredBox.PaintLeft < pageSize.Width.ToPoints() &&
+            y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top.ToPoints() + defaults.BodyTextInkTopOffset.GetValueOrDefault() &&
+            y + measuredBox.PaintTop < pageSize.Height.ToPoints()) return false;
         canvas.TextBox(boxRuns, x, y, width, height, style);
         return true;
     }

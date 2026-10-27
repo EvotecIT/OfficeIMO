@@ -212,8 +212,8 @@ public sealed partial class WordPdfInlineContentControlTests {
     }
 
     private static WordPdfExportOptions InlinePaintOptions() => new() {
-        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(300, 160),
-        Margins = new PdfCore.PdfPageMargins(24, 24, 24, 24)
+        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(160)),
+        Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24))
     };
 
     private static (int Left, int Top, int Right, int Bottom, int Pixels) InlineControlYellowBounds(byte[] bytes) {

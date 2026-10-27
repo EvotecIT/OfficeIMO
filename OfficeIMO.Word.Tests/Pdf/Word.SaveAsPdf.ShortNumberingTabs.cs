@@ -89,7 +89,7 @@ public sealed class PdfShortNumberingTabTests {
         ConfigureShortNumbering(list, true);
         list.AddItem("RUNNING"); document.AddParagraph("BODY");
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points(300D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
@@ -182,8 +182,8 @@ public sealed class PdfShortNumberingTabTests {
         document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
         Assert.Empty(document.ValidateDocument());
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points(300D)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();

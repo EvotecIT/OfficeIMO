@@ -41,7 +41,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
-        double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D);
+        double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), medianFontSize * 1.5D);
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
             context.LayoutOptions.ReadingDirection,
             regions.SelectMany(static region => region.Lines)

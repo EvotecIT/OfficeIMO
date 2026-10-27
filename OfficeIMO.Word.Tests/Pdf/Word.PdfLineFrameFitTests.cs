@@ -35,7 +35,7 @@ public partial class Word {
         options.EmbedStandardFont(PdfStandardFont.Helvetica, CreateBaselineMetricFont(), "OfficeIMO-LineFit-Regular");
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, (count == 1 ? 20D : 91D) + 40D), Margins = PdfPageMargins.Uniform(20D)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points((count == 1 ? 20D : 91D) + 40D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var letters = page.Letters.Where(letter => "ABCD".Contains(letter.Value)).ToArray();

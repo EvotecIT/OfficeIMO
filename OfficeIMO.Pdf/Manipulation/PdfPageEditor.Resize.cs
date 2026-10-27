@@ -81,8 +81,8 @@ internal static partial class PdfPageEditor {
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
-                ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
-                ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
+                ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
+                ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
                 ["UserUnit"] = new PdfNumber(1D),
                 ["Rotate"] = new PdfNumber(0D),
                 ["Contents"] = BuildResizedContentsArray(
@@ -259,7 +259,7 @@ internal static partial class PdfPageEditor {
     }
 
     private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PdfPageSize pageSize) {
-        PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width, pageSize.Height);
+        PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints());
         if (geometry.BleedBox is not null) {
             pageOverrides["BleedBox"] = ClonePageBoxArray(targetBox);
         }
@@ -839,8 +839,8 @@ internal static partial class PdfPageEditor {
 
     private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees, PdfPageResizeOptions options) {
         double margin = options.Margin;
-        double availableWidth = options.PageSize.Width - margin * 2D;
-        double availableHeight = options.PageSize.Height - margin * 2D;
+        double availableWidth = options.PageSize.Width.ToPoints() - margin * 2D;
+        double availableHeight = options.PageSize.Height.ToPoints() - margin * 2D;
         double visualSourceWidth = rotationDegrees == 90 || rotationDegrees == 270 ? sourceHeight : sourceWidth;
         double visualSourceHeight = rotationDegrees == 90 || rotationDegrees == 270 ? sourceWidth : sourceHeight;
         double scaleX = availableWidth / visualSourceWidth;
@@ -946,13 +946,13 @@ internal static partial class PdfPageEditor {
     }
 
     private static void ValidateResizeOptions(PdfPageResizeOptions options) {
-        Guard.Positive(options.PageSize.Width, nameof(options));
-        Guard.Positive(options.PageSize.Height, nameof(options));
+        Guard.Positive(options.PageSize.Width.ToPoints(), nameof(options));
+        Guard.Positive(options.PageSize.Height.ToPoints(), nameof(options));
         if (!IsFinite(options.Margin) || options.Margin < 0D) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must be a finite non-negative number.");
         }
 
-        if (options.Margin * 2D >= options.PageSize.Width || options.Margin * 2D >= options.PageSize.Height) {
+        if (options.Margin * 2D >= options.PageSize.Width.ToPoints() || options.Margin * 2D >= options.PageSize.Height.ToPoints()) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must leave a positive content area.");
         }
     }

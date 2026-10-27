@@ -56,8 +56,8 @@ public partial class Word {
             Assert.Equal(suppressBalancing, loaded.CompatibilitySettings.DoNotBalanceTextColumns);
             loaded.SaveAsPdf(target, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(500, 400),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));

@@ -39,12 +39,12 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Page size in points.</summary>
     public PdfPageSize PageSize {
-        get => new PdfPageSize(PageWidth, PageHeight);
+        get => new PdfPageSize(OfficeIMO.OfficeLength.Points(PageWidth),OfficeIMO.OfficeLength.Points(PageHeight));
         set {
-            Guard.Positive(value.Width, nameof(PageSize));
-            Guard.Positive(value.Height, nameof(PageSize));
-            _pageWidth = value.Width;
-            _pageHeight = value.Height;
+            Guard.Positive(value.Width.ToPoints(), nameof(PageSize));
+            Guard.Positive(value.Height.ToPoints(), nameof(PageSize));
+            _pageWidth = value.Width.ToPoints();
+            _pageHeight = value.Height.ToPoints();
             _pageSizeConfigurationVersion++;
         }
     }
@@ -62,12 +62,12 @@ public sealed partial class PdfCreateOptions {
     public double MarginBottom { get; set; } = 72;
     /// <summary>Page margins in points.</summary>
     public PdfPageMargins Margins {
-        get => new PdfPageMargins(MarginLeft, MarginTop, MarginRight, MarginBottom);
+        get => new PdfPageMargins(OfficeIMO.OfficeLength.Points(MarginLeft),OfficeIMO.OfficeLength.Points(MarginTop),OfficeIMO.OfficeLength.Points(MarginRight),OfficeIMO.OfficeLength.Points(MarginBottom));
         set {
-            MarginLeft = value.Left;
-            MarginTop = value.Top;
-            MarginRight = value.Right;
-            MarginBottom = value.Bottom;
+            MarginLeft = value.Left.ToPoints();
+            MarginTop = value.Top.ToPoints();
+            MarginRight = value.Right.ToPoints();
+            MarginBottom = value.Bottom.ToPoints();
         }
     }
 }

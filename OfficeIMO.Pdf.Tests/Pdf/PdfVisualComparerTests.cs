@@ -10,7 +10,7 @@ public class PdfVisualComparerTests {
     [InlineData(true)]
     public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
         byte[] single = BuildPdf("Common page");
-        byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(240, 180) })
+        byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
             .Paragraph(paragraph => paragraph.Text("Common page"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Extra page"))
@@ -67,12 +67,12 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void Compare_ReportsPageCountAndDimensionStructureWithCenterAlignment() {
-        byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(300, 400) })
+        byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400)) })
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))
             .ToBytes();
-        byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(320, 420) })
+        byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(420)) })
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .ToBytes();
 
@@ -226,7 +226,7 @@ public class PdfVisualComparerTests {
                 cancellationToken: cancellation.Token));
     }
 
-    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(240, 180) })
+    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
         .Paragraph(paragraph => paragraph.Text(text))
         .ToBytes();
 

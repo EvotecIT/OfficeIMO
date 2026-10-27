@@ -35,7 +35,7 @@ public sealed class PdfScanPreview {
     /// <summary>Creates a single-page raster PDF of the reviewed appearance. Interactive content and native text are not copied.</summary>
     public PdfDocument CreateImagePdf(CancellationToken cancellationToken = default) => PdfDocument.CreateFromImages(
         new[] { new PdfImageDocumentSource(_processed) }, new PdfImageImportOptions {
-            FixedPageSize = new PdfPageSize(Width, Height),
+            FixedPageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(Width),OfficeIMO.OfficeLength.Points(Height)),
             Margin = 0,
             Fit = OfficeImageFit.Stretch
         }, cancellationToken);

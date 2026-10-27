@@ -13,11 +13,11 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "First document",
             "First page",
-            ("First second page", new PdfPageSize(300, 500)));
+            ("First second page", new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500))));
         byte[] second = BuildPdf(
             "Second document",
             "Second document page",
-            ("Second second page", new PdfPageSize(792, 612)));
+            ("Second second page", new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612))));
 
         byte[] merged = PdfMerger.Merge(first, second);
 
@@ -99,7 +99,7 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "Mixed size first",
             "Letter source page",
-            ("Small source page", new PdfPageSize(300, 500)));
+            ("Small source page", new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500))));
         byte[] second = BuildPdf(
             "Mixed size second",
             "Landscape source page",

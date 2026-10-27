@@ -70,6 +70,6 @@ public static partial class WordPdfConverterExtensions {
 
     private static double GetNativeFootnoteSectionWidth(WordSection section, WordPdfExportOptions? options) {
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options, (0D, 0D));
-        return Math.Max(1D, GetNativePageSize(section, options).Width - margins.Left - margins.Right);
+        return Math.Max(1D, GetNativePageSize(section, options).Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
     }
 }

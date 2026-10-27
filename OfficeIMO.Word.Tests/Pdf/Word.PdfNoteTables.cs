@@ -166,8 +166,8 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml + main.EndnotesPart?.Endnotes?.OuterXml;
         WordPdfExportOptions options = FootnoteDiagnosticOptions();
-        options.PageSize = new PdfPageSize(360D, 260D);
-        options.Margins = PdfPageMargins.Uniform(30D);
+        options.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(360D),OfficeIMO.OfficeLength.Points(260D));
+        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D));
         options.PdfOptions = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {

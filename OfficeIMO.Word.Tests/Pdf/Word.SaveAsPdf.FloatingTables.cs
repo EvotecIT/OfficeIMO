@@ -22,7 +22,7 @@ public partial class Word {
             TablePositionX = 0
         };
         var options = new WordPdfExportOptions { IncludePageNumbers = false,
-            PageSize = new PdfCore.PdfPageSize(400, 500), Margins = PdfCore.PdfPageMargins.Uniform(40) };
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)) };
         using var baseline = PdfPigDocument.Open(document.ConvertToPdfWithEvidence(options).Value.ToBytes());
         table._tableProperties.TablePositionProperties.TablePositionX = offset;
         using var shifted = PdfPigDocument.Open(document.ConvertToPdfWithEvidence(options).ToBytes());
@@ -49,7 +49,7 @@ public partial class Word {
         };
         document.AddParagraph("following");
         var options = new WordPdfExportOptions { IncludePageNumbers = false,
-            PageSize = new PdfCore.PdfPageSize(400, 500), Margins = PdfCore.PdfPageMargins.Uniform(40) };
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)) };
         using var aligned = PdfPigDocument.Open(document.ConvertToPdfWithEvidence(options).Value.ToBytes());
         table._tableProperties.TablePositionProperties.TablePositionYAlignment = null;
         using var absolute = PdfPigDocument.Open(document.ConvertToPdfWithEvidence(options).Value.ToBytes());
@@ -74,7 +74,7 @@ public partial class Word {
             document.AddParagraph("following");
         }
         using var pdf = PdfPigDocument.Open(document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(400, 500), Margins = PdfCore.PdfPageMargins.Uniform(40)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         }).Value.ToBytes());
         Assert.Equal(oddTop, pdf.GetPage(1).GetWords().Single(w => w.Text == "odd").BoundingBox.Top > 300);
         Assert.Equal(!oddTop, pdf.GetPage(2).GetWords().Single(w => w.Text == "even").BoundingBox.Top > 300);
@@ -97,7 +97,7 @@ public partial class Word {
         };
         document.AddParagraph(string.Join(" ", Enumerable.Range(0, 40).Select(index => "word" + index)));
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(400, pageHeight), Margins = PdfCore.PdfPageMargins.Uniform(40)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(pageHeight)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var tableWord = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Floating");
@@ -127,7 +127,7 @@ public partial class Word {
         };
         document.AddParagraph(string.Join(" ", Enumerable.Range(0, 100).Select(index => "word" + index)));
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(400, 500), Margins = PdfCore.PdfPageMargins.Uniform(40)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var words = pdf.GetPage(1).GetWords().ToList();

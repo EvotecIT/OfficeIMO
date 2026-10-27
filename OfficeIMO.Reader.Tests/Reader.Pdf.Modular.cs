@@ -2214,7 +2214,7 @@ public sealed class ReaderPdfModularTests {
             PageSelection = PdfPageSelection.From(1),
             LayoutOptions = new PdfTextLayoutOptions {
                 ForceSingleColumn = true,
-                MarginLeft = 12
+                MarginLeft = OfficeIMO.OfficeLength.Points(12)
             },
             Pipeline = new PdfUnderstandingPipelineOptions {
                 MaxPages = 2_048,
@@ -2235,7 +2235,7 @@ public sealed class ReaderPdfModularTests {
         Assert.NotSame(options.ReadOptions.Pipeline, clone.ReadOptions.Pipeline);
         Assert.NotSame(options.MarkdownOptions, clone.MarkdownOptions);
         Assert.NotSame(options.ParagraphContinuationOptions, clone.ParagraphContinuationOptions);
-        Assert.Equal(options.ReadOptions.LayoutOptions.MarginLeft, clone.ReadOptions.LayoutOptions.MarginLeft);
+        Assert.Equal(options.ReadOptions.LayoutOptions.MarginLeft.ToPoints(), clone.ReadOptions.LayoutOptions.MarginLeft.ToPoints());
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
         Assert.Equal(PdfReadProfile.Fast, clone.ReadOptions.Profile);
         Assert.Equal(2_048, clone.ReadOptions.Pipeline!.MaxPages);
@@ -2245,12 +2245,12 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
         Assert.False(clone.ParagraphContinuationOptions.RejoinSoftHyphens);
 
-        clone.ReadOptions.LayoutOptions.MarginLeft = 48;
+        clone.ReadOptions.LayoutOptions.MarginLeft= OfficeIMO.OfficeLength.Points(48);
         clone.ReadOptions.Pipeline.MaxPages = 32;
         clone.MarkdownOptions.IncludeLinkAnnotations = false;
         clone.MarkdownOptions.AlignNumericTableColumns = true;
 
-        Assert.Equal(12, options.ReadOptions.LayoutOptions.MarginLeft);
+        Assert.Equal(12, options.ReadOptions.LayoutOptions.MarginLeft.ToPoints());
         Assert.Equal(2_048, options.ReadOptions.Pipeline.MaxPages);
         Assert.True(options.MarkdownOptions.IncludeLinkAnnotations);
         Assert.False(options.MarkdownOptions.AlignNumericTableColumns);

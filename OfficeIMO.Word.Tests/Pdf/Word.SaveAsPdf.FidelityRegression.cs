@@ -290,8 +290,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 220),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(24)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             });
         }
 

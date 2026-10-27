@@ -569,8 +569,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                    Margins = PdfPageMargins.Uniform(40),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                     FontFamily = "Helvetica"
                 });
             }

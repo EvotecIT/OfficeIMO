@@ -40,8 +40,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             FontFamily = "Helvetica"
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -69,8 +69,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(300)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
             FontFamily = "Helvetica"
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);

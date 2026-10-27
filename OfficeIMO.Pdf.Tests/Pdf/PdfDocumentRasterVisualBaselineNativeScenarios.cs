@@ -203,7 +203,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PdfPageSize(612, 792),
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
                     PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }
@@ -239,8 +239,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PdfPageSize(612, 360),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(360)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -331,8 +331,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions {
                     IncludeSheetHeadings = true,
                     HeaderRowCount = 2,
-                    PageSize = new PdfPageSize(792, 612),
-                    Margins = PdfPageMargins.FromInches(0.35, 0.55, 0.35, 0.55),
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612)),
+                    Margins = new OfficeIMO.Pdf.PdfPageMargins(OfficeIMO.OfficeLength.Inches(0.35),OfficeIMO.OfficeLength.Inches(0.55),OfficeIMO.OfficeLength.Inches(0.35),OfficeIMO.OfficeLength.Inches(0.55)),
                     PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }

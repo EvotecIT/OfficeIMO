@@ -56,7 +56,7 @@ public sealed partial class PdfLoadOptions {
         BinWidth = options.BinWidth,
         MinGutterWidth = options.MinGutterWidth,
         LineMergeToleranceEm = options.LineMergeToleranceEm,
-        LineMergeMaxPoints = options.LineMergeMaxPoints,
+        LineMergeMax = options.LineMergeMax,
         ForceSingleColumn = options.ForceSingleColumn,
         ReadingDirection = options.ReadingDirection,
         JoinSoftHyphensAcrossLines = options.JoinSoftHyphensAcrossLines,

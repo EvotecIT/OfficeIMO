@@ -94,8 +94,8 @@ public partial class Excel {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas,
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(500, 200),
-            Margins = PdfCore.PdfPageMargins.Uniform(24),
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(200)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
             PdfOptions = new PdfCore.PdfCreateOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                 "GeometryDefault", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         };

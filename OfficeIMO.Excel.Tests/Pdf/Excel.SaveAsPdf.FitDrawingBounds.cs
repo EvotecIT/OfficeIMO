@@ -23,7 +23,7 @@ public partial class Excel {
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
         workbook.Save();
         using var pdf = PdfPigDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions {
-            PageSize = new PdfCore.PdfPageSize(400, 300), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("Row10", pdf.GetPage(1).Text);

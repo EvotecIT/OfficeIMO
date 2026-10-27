@@ -395,7 +395,7 @@ image and PDF output limits remain separate.
 PdfDocument.Create(document => document
     .Settings(options => {
         options.PageSize = PdfPageSizes.A4;
-        options.Margins = PdfPageMargins.Uniform(36);
+        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36));
     })
     .Content(content => content
         .H1("Work items")
@@ -878,7 +878,7 @@ The shared layout uses transformed text dimensions for script attachment and
 respects explicit breaks in logical fragment order. It leaves ambiguous anchors,
 distant runs and ordinary neighboring rows separate. Setting either
 `PdfTextLayoutOptions.LineMergeToleranceEm` below `0.6` or
-`LineMergeMaxPoints` below `2.5` retains baseline-only grouping. This is a
+`LineMergeMax` below `OfficeLength.Points(2.5)` retains baseline-only grouping. This is a
 conservative reading-order rule, not mathematical reconstruction. The separate
 semantic understanding pipeline used by `PdfDocument.Read()` retains its own
 line grouping.
@@ -1035,7 +1035,7 @@ PdfDocument.Create(pdf => pdf.Page(page => page
                 new[] { "Messaging", "Yellow", "Exchange" }
             })))), new PdfCreateOptions {
             PageSize = PdfPageSizes.A4,
-            Margins = PdfPageMargins.UniformCentimeters(1.6),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.6)),
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         })
@@ -1789,10 +1789,10 @@ To place source pages on printable sheets, use the same page import engine for
 N-up or duplex booklet output:
 
 ```csharp
-var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PdfPageSize(842, 595), columns: 2, rows: 1));
+var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(842), OfficeIMO.OfficeLength.Points(595)), columns: 2, rows: 1));
 nup.ToDocument().Save("packet-two-up.pdf");
 
-var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PdfPageSize(842, 595)));
+var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(842), OfficeIMO.OfficeLength.Points(595))));
 booklet.ToDocument().Save("packet-booklet.pdf");
 foreach (var placement in booklet.Placements)
     Console.WriteLine($"Source {placement.SourcePageNumber}: sheet side {placement.SheetPageNumber}, column {placement.Column}");
@@ -2984,8 +2984,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Draft report")
         .Paragraph(paragraph => paragraph.Text("This document uses page-level options instead of post-processing."))),
     new PdfCreateOptions {
-            PageSize = PdfPageSize.FromCentimeters(21, 29.7).Portrait(),
-            Margins = PdfPageMargins.UniformCentimeters(1.5),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Centimeters(21), OfficeIMO.OfficeLength.Centimeters(29.7)).Portrait(),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
             TextWatermark = new PdfTextWatermark("DRAFT") {
                 Opacity = 0.12,
                 RotationAngle = -35

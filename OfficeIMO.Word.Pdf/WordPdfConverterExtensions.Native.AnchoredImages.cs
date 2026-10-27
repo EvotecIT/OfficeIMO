@@ -36,9 +36,9 @@ public static partial class WordPdfConverterExtensions {
         string? horizontal = marginX ? "margin" : layout.HorizontalRelativeFrom;
         string? vertical = paragraphY ? "paragraph" : layout.VerticalRelativeFrom;
         if (!TryGetNativeGroupAxis(horizontal, layout.HorizontalOffsetPoints, layout.HorizontalAlignment,
-                pageSize.Width, margins.Left, margins.Right, width, false, out double x) ||
+                pageSize.Width.ToPoints(), margins.Left.ToPoints(), margins.Right.ToPoints(), width, false, out double x) ||
             !TryGetNativeGroupAxis(vertical, layout.VerticalOffsetPoints, layout.VerticalAlignment,
-                pageSize.Height, margins.Top, margins.Bottom, height, true, out double y)) return false;
+                pageSize.Height.ToPoints(), margins.Top.ToPoints(), margins.Bottom.ToPoints(), height, true, out double y)) return false;
         placement = new NativeAnchoredImagePlacement(x, y, marginX, paragraphY);
         return true;
     }
@@ -52,7 +52,7 @@ public static partial class WordPdfConverterExtensions {
             return false;
 
         WordSection? section = paragraph?.GetBodySection() ?? anchorSection;
-        PdfCore.PdfPageMargins margins = section == null ? PdfCore.PdfPageMargins.Uniform(0D)
+        PdfCore.PdfPageMargins margins = section == null ? PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D))
             : layout.Wrap == WordDrawingWrapKind.None ? GetNativeMargins(section, options)
             : GetNativeMargins(section, options, (0D, 0D));
         if (layout.Wrap != WordDrawingWrapKind.None) {
@@ -89,15 +89,15 @@ public static partial class WordPdfConverterExtensions {
                     zOrder: layout.RelativeHeight, style: imageStyle);
         });
         IReadOnlyList<PdfCore.PdfCanvasItem> items = imageCanvas.Items;
-        if (placement.MarginX) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, margins.Left) };
+        if (placement.MarginX) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, margins.Left.ToPoints()) };
         if (placement.ParagraphY) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(items) };
         if (layout.BehindDocument) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, layout.RelativeHeight) };
         PdfCore.PdfPageCanvas canvas = target ?? new PdfCore.PdfPageCanvas();
         if (target == null && style.AnchoredCanvas != null) canvas.AddItems(style.AnchoredCanvas.Items);
         canvas.AddItems(items);
         if (target == null) style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);
-        if (options != null && (placement.X < 0D || placement.X + width > pdf.PageSize.Width + 0.001D ||
-                !placement.ParagraphY && (placement.Y < 0D || placement.Y + height > pdf.PageSize.Height + 0.001D)))
+        if (options != null && (placement.X < 0D || placement.X + width > pdf.PageSize.Width.ToPoints() + 0.001D ||
+                !placement.ParagraphY && (placement.Y < 0D || placement.Y + height > pdf.PageSize.Height.ToPoints() + 0.001D)))
             AddNativeExportWarning(options, "native-anchored-image-clipped", source,
                 "The anchored image extends beyond the page; the page boundary clips its visible appearance.");
         return true;

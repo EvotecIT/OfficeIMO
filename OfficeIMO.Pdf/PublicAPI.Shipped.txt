@@ -4465,8 +4465,8 @@ OfficeIMO.Pdf.PdfLogicalTableContinuationGroup.SuppressedRepeatedHeaderRows.get 
 OfficeIMO.Pdf.PdfLogicalTableContinuationGroup.TotalRowCount.get -> int
 OfficeIMO.Pdf.PdfLogicalTableContinuationGroup.Truncated.get -> bool
 OfficeIMO.Pdf.PdfLogicalTableContinuationOptions
-OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerancePoints.get -> double
-OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerancePoints.init -> void
+OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerance.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerance.init -> void
 OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.MaxRows.get -> int
 OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.MaxRows.init -> void
 OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.MaximumSegmentsPerTable.get -> int
@@ -5470,12 +5470,12 @@ OfficeIMO.Pdf.PdfPageLayoutInfo.VisualHeight.get -> double
 OfficeIMO.Pdf.PdfPageLayoutInfo.VisualWidth.get -> double
 OfficeIMO.Pdf.PdfPageLayoutInfo.Width.get -> double
 OfficeIMO.Pdf.PdfPageMargins
-OfficeIMO.Pdf.PdfPageMargins.Bottom.get -> double
-OfficeIMO.Pdf.PdfPageMargins.Left.get -> double
+OfficeIMO.Pdf.PdfPageMargins.Bottom.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageMargins.Left.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageMargins.PdfPageMargins() -> void
-OfficeIMO.Pdf.PdfPageMargins.PdfPageMargins(double left, double top, double right, double bottom) -> void
-OfficeIMO.Pdf.PdfPageMargins.Right.get -> double
-OfficeIMO.Pdf.PdfPageMargins.Top.get -> double
+OfficeIMO.Pdf.PdfPageMargins.PdfPageMargins(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength bottom) -> void
+OfficeIMO.Pdf.PdfPageMargins.Right.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageMargins.Top.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageNumberStyle
 OfficeIMO.Pdf.PdfPageNumberStyle.Arabic = 0 -> OfficeIMO.Pdf.PdfPageNumberStyle
 OfficeIMO.Pdf.PdfPageNumberStyle.LowerLetter = 3 -> OfficeIMO.Pdf.PdfPageNumberStyle
@@ -5643,12 +5643,12 @@ OfficeIMO.Pdf.PdfPageSelector.Resolve(int pageCount) -> System.Collections.Gener
 OfficeIMO.Pdf.PdfPageSelector.Resolve(int pageCount, int maximumPages) -> System.Collections.Generic.IReadOnlyList<int>!
 OfficeIMO.Pdf.PdfPageSelector.ResolveSelection(int pageCount) -> OfficeIMO.Pdf.PdfPageSelection!
 OfficeIMO.Pdf.PdfPageSize
-OfficeIMO.Pdf.PdfPageSize.Height.get -> double
+OfficeIMO.Pdf.PdfPageSize.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageSize.Landscape() -> OfficeIMO.Pdf.PdfPageSize
 OfficeIMO.Pdf.PdfPageSize.PdfPageSize() -> void
-OfficeIMO.Pdf.PdfPageSize.PdfPageSize(double width, double height) -> void
+OfficeIMO.Pdf.PdfPageSize.PdfPageSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
 OfficeIMO.Pdf.PdfPageSize.Portrait() -> OfficeIMO.Pdf.PdfPageSize
-OfficeIMO.Pdf.PdfPageSize.Width.get -> double
+OfficeIMO.Pdf.PdfPageSize.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageSize.WithOrientation(OfficeIMO.OfficePageOrientation orientation) -> OfficeIMO.Pdf.PdfPageSize
 OfficeIMO.Pdf.PdfPageSizes
 OfficeIMO.Pdf.PdfPageTabOrder
@@ -7982,7 +7982,7 @@ OfficeIMO.Pdf.PdfTextImportOptions.PdfTextImportOptions() -> void
 OfficeIMO.Pdf.PdfTextImportOptions.TabSize.get -> int
 OfficeIMO.Pdf.PdfTextImportOptions.TabSize.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions
-OfficeIMO.Pdf.PdfTextLayoutOptions.BinWidth.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.BinWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.BinWidth.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.ForceSingleColumn.get -> bool
 OfficeIMO.Pdf.PdfTextLayoutOptions.ForceSingleColumn.set -> void
@@ -7990,21 +7990,21 @@ OfficeIMO.Pdf.PdfTextLayoutOptions.GapGlyphFactor.get -> double
 OfficeIMO.Pdf.PdfTextLayoutOptions.GapGlyphFactor.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.GapSpaceThresholdEm.get -> double
 OfficeIMO.Pdf.PdfTextLayoutOptions.GapSpaceThresholdEm.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreFooterHeight.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreFooterHeight.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreFooterHeight.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreHeaderHeight.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreHeaderHeight.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.IgnoreHeaderHeight.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.JoinSoftHyphensAcrossLines.get -> bool
 OfficeIMO.Pdf.PdfTextLayoutOptions.JoinSoftHyphensAcrossLines.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMaxPoints.get -> double
-OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMaxPoints.set -> void
+OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMax.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMax.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeToleranceEm.get -> double
 OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeToleranceEm.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.MarginLeft.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.MarginLeft.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.MarginLeft.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.MarginRight.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.MarginRight.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.MarginRight.set -> void
-OfficeIMO.Pdf.PdfTextLayoutOptions.MinGutterWidth.get -> double
+OfficeIMO.Pdf.PdfTextLayoutOptions.MinGutterWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTextLayoutOptions.MinGutterWidth.set -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.PdfTextLayoutOptions() -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.ReadingDirection.get -> OfficeIMO.Pdf.PdfReadingDirection
@@ -8819,16 +8819,12 @@ static OfficeIMO.Pdf.PdfPageInteractionMap.Create(byte[]! pdf, int pageNumber, O
 static OfficeIMO.Pdf.PdfPageInteractionMap.GetTextBreak(OfficeIMO.Pdf.PdfPageInteractionRegion! previous, OfficeIMO.Pdf.PdfPageInteractionRegion! next) -> OfficeIMO.Pdf.PdfTextBreak
 static OfficeIMO.Pdf.PdfPageInterleaver.Interleave(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfInterleaveSource!>! sources, OfficeIMO.Pdf.PdfInterleaveOptions? options = null) -> OfficeIMO.Pdf.PdfInterleaveResult!
 static OfficeIMO.Pdf.PdfPageInterleaver.Interleave(params byte[]![]! pdfs) -> OfficeIMO.Pdf.PdfInterleaveResult!
-static OfficeIMO.Pdf.PdfPageMargins.FromCentimeters(double left, double top, double right, double bottom) -> OfficeIMO.Pdf.PdfPageMargins
-static OfficeIMO.Pdf.PdfPageMargins.FromInches(double left, double top, double right, double bottom) -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Mirrored.get -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Moderate.get -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Narrow.get -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Normal.get -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Office2003Default.get -> OfficeIMO.Pdf.PdfPageMargins
-static OfficeIMO.Pdf.PdfPageMargins.Uniform(double points) -> OfficeIMO.Pdf.PdfPageMargins
-static OfficeIMO.Pdf.PdfPageMargins.UniformCentimeters(double centimeters) -> OfficeIMO.Pdf.PdfPageMargins
-static OfficeIMO.Pdf.PdfPageMargins.UniformInches(double inches) -> OfficeIMO.Pdf.PdfPageMargins
+static OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength length) -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageMargins.Wide.get -> OfficeIMO.Pdf.PdfPageMargins
 static OfficeIMO.Pdf.PdfPageRange.From(int firstPage, int lastPage) -> OfficeIMO.Pdf.PdfPageRange
 static OfficeIMO.Pdf.PdfPageRange.Parse(string! pageRange) -> OfficeIMO.Pdf.PdfPageRange
@@ -8846,8 +8842,6 @@ static OfficeIMO.Pdf.PdfPageSelection.Parse(string! pageRanges) -> OfficeIMO.Pdf
 static OfficeIMO.Pdf.PdfPageSelection.TryParse(string? pageRanges, out OfficeIMO.Pdf.PdfPageSelection? selection) -> bool
 static OfficeIMO.Pdf.PdfPageSelector.Parse(string! expression) -> OfficeIMO.Pdf.PdfPageSelector!
 static OfficeIMO.Pdf.PdfPageSelector.TryParse(string? expression, out OfficeIMO.Pdf.PdfPageSelector? selector) -> bool
-static OfficeIMO.Pdf.PdfPageSize.FromCentimeters(double width, double height) -> OfficeIMO.Pdf.PdfPageSize
-static OfficeIMO.Pdf.PdfPageSize.FromInches(double width, double height) -> OfficeIMO.Pdf.PdfPageSize
 static OfficeIMO.Pdf.PdfPageSizes.A0.get -> OfficeIMO.Pdf.PdfPageSize
 static OfficeIMO.Pdf.PdfPageSizes.A1.get -> OfficeIMO.Pdf.PdfPageSize
 static OfficeIMO.Pdf.PdfPageSizes.A10.get -> OfficeIMO.Pdf.PdfPageSize

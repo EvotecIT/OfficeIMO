@@ -68,7 +68,7 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -125,7 +125,7 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -177,7 +177,7 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -216,7 +216,7 @@ public partial class Word {
             main.DocumentSettingsPart?.Settings?.OuterXml;
         string original = SourceXml();
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfPageSize(400D, 500D), Margins = PdfPageMargins.Uniform(30D),
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());

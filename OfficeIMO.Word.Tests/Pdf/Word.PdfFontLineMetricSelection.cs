@@ -60,7 +60,7 @@ public partial class Word {
             CreateSelectionMetricFont(4, useTypo, 78, 1100, 400, 700, -250, 50), "OfficeIMO-Portable-Regular");
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages());
         var letters = pdf.GetPage(1).Letters;

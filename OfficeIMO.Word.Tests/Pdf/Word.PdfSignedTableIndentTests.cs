@@ -28,7 +28,7 @@ public partial class Word {
         Assert.Equal((short)-108, reopened.Tables[1].StyleDetails!.TableIndentationWidth);
         byte[] bytes = reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 400), Margins = PdfPageMargins.Uniform(40)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var words = pdf.GetPage(1).GetWords().ToArray();

@@ -105,8 +105,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -155,8 +155,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 

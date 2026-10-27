@@ -17,7 +17,7 @@ public sealed class PdfLogicalTableContinuationOptions {
     public int MaximumSegmentsPerTable { get; init; } = 64;
 
     /// <summary>Maximum per-column geometry difference in visual PDF points. Default: 4.</summary>
-    public double GeometryTolerancePoints { get; init; } = 4D;
+    public OfficeLength GeometryTolerance { get; init; } = OfficeIMO.OfficeLength.Points(4D);
 
     /// <summary>Minimum normalized continuation confidence required for a merge. Default: 0.75.</summary>
     public double MinimumConfidence { get; init; } = 0.75D;
@@ -27,10 +27,8 @@ public sealed class PdfLogicalTableContinuationOptions {
         if (effective.MaximumSegmentsPerTable < 1) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaximumSegmentsPerTable, "Maximum table segments must be positive.");
         }
-        if (double.IsNaN(effective.GeometryTolerancePoints) ||
-            double.IsInfinity(effective.GeometryTolerancePoints) ||
-            effective.GeometryTolerancePoints < 0D) {
-            throw new ArgumentOutOfRangeException(nameof(options), effective.GeometryTolerancePoints, "Table geometry tolerance must be finite and nonnegative.");
+        if (effective.GeometryTolerance.ToEmus() < 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), effective.GeometryTolerance.ToPoints(), "Table geometry tolerance must be finite and nonnegative.");
         }
         if (double.IsNaN(effective.MinimumConfidence) ||
             double.IsInfinity(effective.MinimumConfidence) ||
@@ -110,7 +108,7 @@ internal static class PdfLogicalTableContinuations {
             MergePageContinuations = mergePageContinuations,
             SuppressRepeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows,
             MaximumSegmentsPerTable = maximumSegmentsPerTable,
-            GeometryTolerancePoints = geometryTolerancePoints,
+            GeometryTolerance = OfficeIMO.OfficeLength.Points(geometryTolerancePoints),
             MinimumConfidence = 0D
         }, cancellationToken);
     }
@@ -153,7 +151,7 @@ internal static class PdfLogicalTableContinuations {
                         document,
                         segments[segments.Count - 1],
                         current,
-                        effective.GeometryTolerancePoints,
+                        effective.GeometryTolerance.ToPoints(),
                         cancellationToken,
                         out boundary) &&
                     boundary.Confidence >= effective.MinimumConfidence;

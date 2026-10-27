@@ -26,7 +26,7 @@ public static class PdfPrintRenderer {
         long retainedBytes = 0;
         foreach (PdfPrintSheet sheet in plan.Sheets) {
             cancellationToken.ThrowIfCancellationRequested();
-            var drawing = new OfficeDrawing(sheet.PaperSize.Width, sheet.PaperSize.Height);
+            var drawing = new OfficeDrawing(sheet.PaperSize.Width.ToPoints(), sheet.PaperSize.Height.ToPoints());
             foreach (PdfPrintPlacement placement in sheet.Placements) {
                 PdfPageRenderResult page = document.Render.PrintPage(placement.PageNumber,
                     new PdfPagePrintOptions { Dpi = dpi, PageScale = placement.Scale, MaximumPixels = maximumPixels, MaximumOutputBytes = maximumOutputBytes }, cancellationToken);

@@ -48,8 +48,8 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
             string authoredDocument = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
             string authoredStyles = document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml;
             byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-                IncludePageNumbers = false, PageSize = new PdfPageSize(300D, 300D),
-                Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica"
+                IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D)),
+                Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica"
             }).ToBytes();
             Assert.Equal(authoredDocument, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
             Assert.Equal(authoredStyles, document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
@@ -109,7 +109,7 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
         byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
-            PageSize = new PdfPageSize(300D, 300D), Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         RetainEvidence(bytes, "heading-policy-" + scenario + "-" + (heading ? "heading" : "body") + "-" + (left ? "left" : "source"));
         using var pdf = PdfPigDocument.Open(bytes);

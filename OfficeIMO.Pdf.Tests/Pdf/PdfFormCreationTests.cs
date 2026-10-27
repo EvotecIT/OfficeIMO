@@ -166,8 +166,8 @@ public class PdfFormCreationTests {
     public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
         var runs = new[] { new PdfTextRun("Table approval") };
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageSize = new PdfPageSize(300, 180),
-                Margins = PdfPageMargins.Uniform(24)
+                PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             })
             .Table(new[] {
                 new[] {

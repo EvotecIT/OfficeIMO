@@ -60,7 +60,7 @@ public sealed class WordNativeCompressionAdmissionTests {
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
         byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
-            PageSize = new PdfPageSize(owner == "table" ? 300D : width + 60D, 300D), Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(owner == "table" ? 300D : width + 60D),OfficeIMO.OfficeLength.Points(300D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         Assert.Empty(document.ValidateDocument());
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
