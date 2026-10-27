@@ -340,7 +340,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                 break;
             case OfficeMarkupHeaderFooterBlock headerFooter:
                 var headerFooterKind = NormalizeHeaderFooterKind(headerFooter.HeaderFooterKind);
-                sb.AppendLine($"{documentVariable}.AddHeadersAndFooters()");
+                sb.AppendLine($"$null = {documentVariable}.AddHeadersAndFooters()");
                 sb.AppendLine($"$null = {documentVariable}.{headerFooterKind}.Default.AddParagraph({PsString(headerFooter.Text)})");
                 break;
             case OfficeMarkupTableOfContentsBlock:
