@@ -16,7 +16,7 @@ public sealed class WordChartExplodedSlicesTests {
             new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
         using var document = WordDocument.Create();
-        document.AddChart(kind, authored);
+        document.AddChart(kind,authored);
         using var bytes = new MemoryStream();
         document.Save(bytes);
         bytes.Position = 0;
@@ -44,7 +44,7 @@ public sealed class WordChartExplodedSlicesTests {
     [Fact]
     public void NativeSeriesExplosion_IsInheritedUnlessPointOverridesIt() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie, new OfficeChartData(
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(
             new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
                     .WithPointExplosions(new[] { 25, 0 })
@@ -60,7 +60,7 @@ public sealed class WordChartExplodedSlicesTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
         }));
         chart.SetData(kind, new OfficeChartData(new[] { "A" }, new[] {
@@ -74,7 +74,7 @@ public sealed class WordChartExplodedSlicesTests {
     [Fact]
     public void UnsupportedNativeExplosion_PreservesEditableChartButRejectsProjection() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie, new OfficeChartData(
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(
             new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }));
         C.PieChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single();
         native.AddChild(new C.Explosion { Val = 401U }, true);

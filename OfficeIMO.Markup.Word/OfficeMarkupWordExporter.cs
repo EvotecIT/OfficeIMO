@@ -279,10 +279,7 @@ internal sealed class OfficeMarkupWordExporter {
 
         var data = ParseChartData(chart);
         var wordChart = context.Document.AddChart(
-            chart.Title ?? string.Empty,
-            roundedCorners: false,
-            width: GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels,
-            height: GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels);
+            chart.Title ?? string.Empty,            roundedCorners: false,            width: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels),            height: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels));
 
         switch (Normalize(chart.ChartType)) {
             case "line":

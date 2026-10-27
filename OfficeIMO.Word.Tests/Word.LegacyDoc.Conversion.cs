@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests {
             string visualPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Executive scorecard");
-                WordChart chart = document.AddChart("Delivery status", false, 420, 240);
+                WordChart chart = document.AddChart("Delivery status",false,OfficeIMO.OfficeLength.Pixels(420),OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddPie("Complete", 72);
                 chart.AddPie("Remaining", 28);
                 WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Recoverable source");
-                WordChart chart = document.AddChart("Preserved chart", false, 360, 200);
+                WordChart chart = document.AddChart("Preserved chart",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(200));
                 chart.AddPie("Yes", 3);
                 chart.AddPie("No", 1);
                 document.Save();

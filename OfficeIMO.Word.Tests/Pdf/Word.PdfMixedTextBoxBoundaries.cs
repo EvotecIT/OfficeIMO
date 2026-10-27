@@ -61,7 +61,7 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph;
         if (chart) {
-            WordChart drawing = document.AddChart("MIXEDCHART", false, 240, 150);
+            WordChart drawing = document.AddChart("MIXEDCHART",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(150));
             drawing.AddPie("FIRST", 4D); drawing.AddPie("SECOND", 2D);
             paragraph = document.Paragraphs.Last();
         } else {

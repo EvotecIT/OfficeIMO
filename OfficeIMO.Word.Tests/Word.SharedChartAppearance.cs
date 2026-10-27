@@ -12,7 +12,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Scatter)]
     public void SharedAppearance_AddsPropertiesBeforePreservedTrendlineAndErrorBars(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var series = Series(chart);
         series.RemoveAllChildren<C.ChartShapeProperties>();
         series.RemoveAllChildren<C.Marker>();
@@ -31,7 +31,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void SharedAppearance_RadialOverrideHidesEveryLegendCategory(OfficeChartType renderKind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" },
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" },
             new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true,
                 showInLegend: false, renderKind: renderKind) }));
         Assert.Equal(new uint[] { 0, 1, 2 }, chart.ChartPart!.ChartSpace!.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
@@ -48,7 +48,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Scatter)]
     public void SharedAppearance_ReconnectsLineWithoutExplicitColorOrWidth(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind, connect: false));
+        var chart = document.AddChart(kind,Data(kind, connect: false));
         Assert.NotNull(Series(chart).GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.NoFill>());
         chart.SetData(kind, Data(kind, connect: true));
         Assert.Null(Series(chart).GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.NoFill>());
@@ -61,7 +61,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Scatter)]
     public void SharedAppearance_ReplacesImportedMarkerFillAndKeepsOutlineSchemaOrder(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var marker = Series(chart).GetFirstChild<C.Marker>()!;
         marker.AddChild(new C.ChartShapeProperties(new A.Transform2D(), new A.NoFill(), new A.Outline(new A.NoFill(),
             new A.PresetDash { Val = A.PresetLineDashValues.Dash })), true);
@@ -84,7 +84,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Scatter)]
     public void SharedAppearance_DataUpdatePreservesExplicitMarkerFillWhenColorIsUnspecified(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var series = Series(chart);
         var shape = series.GetFirstChild<C.ChartShapeProperties>()!;
         shape.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.SolidFill>();
@@ -105,7 +105,7 @@ public sealed class WordSharedChartAppearanceTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void SharedAppearance_HiddenRadialSeriesHidesEveryCategoryAndUpdatesVisibility(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind, legend: false));
+        var chart = document.AddChart(kind,Data(kind, legend: false));
         var legend = chart.ChartPart!.ChartSpace!.Descendants<C.Legend>().Single();
         Assert.Equal(new uint[] { 0, 1, 2 }, legend.Elements<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
         chart.SetData(kind, Data(kind, legend: true));
@@ -119,7 +119,7 @@ public sealed class WordSharedChartAppearanceTests {
     public void SharedAppearance_NativeMarkerSizeClampsAtBothBounds() {
         using WordDocument document = WordDocument.Create();
         foreach (int size in new[] { 1, 100 }) {
-            var chart = document.AddChart(OfficeChartType.Line, Data(OfficeChartType.Line, markerSize: size));
+            var chart = document.AddChart(OfficeChartType.Line,Data(OfficeChartType.Line, markerSize: size));
             Assert.Equal((byte)(size == 1 ? 2 : 72), Series(chart).GetFirstChild<C.Marker>()!.Size!.Val!.Value);
         }
         Assert.Empty(document.ValidateDocument());

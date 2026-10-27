@@ -88,7 +88,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             string assets = Path.Combine(directory, "assets"); Directory.CreateDirectory(assets);
             string sidecar = Path.Combine(assets, "01-chart.svg");
             using (var source = WordDocument.Create(input)) {
-                var chart = source.AddChart("Chart", width: 400, height: 240);
+                var chart = source.AddChart("Chart",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddCategories(new List<string> { "Q1", "Q2" });
                 chart.AddBar("Series", new List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
                 source.Save();

@@ -271,7 +271,7 @@ namespace OfficeIMO.Word.Html {
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
                             WordParagraph.DrawingOwnsChart(chartDrawing)
-                            ? new WordChart(run._document, run, chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
+                            ? new WordChart(run._document,run,chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
                         IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
                         if (chartImage != null) target.Add(chartImage);
                         return true;

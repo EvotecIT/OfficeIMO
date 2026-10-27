@@ -59,10 +59,10 @@ public sealed class WordChartLayoutQualificationTests {
     public void Snapshot_UsesPlottedStackPositionForSuppressedLabels(
         OfficeChartType kind, double first, double second, double maximum, bool projectable) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("First", new[] { first, first }),
             new OfficeSeries("Second", new[] { second, second })
-        }), title: "Chart");
+        }),title: "Chart");
         C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         C.ValueAxis axis = native.PlotArea!.Elements<C.ValueAxis>().Single();
         axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
@@ -149,7 +149,7 @@ public sealed class WordChartLayoutQualificationTests {
     }
 
     private static WordChart Create(WordDocument document, OfficeChartType kind) =>
-        document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+        document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null)
-        }), title: "Chart");
+        }),title: "Chart");
 }

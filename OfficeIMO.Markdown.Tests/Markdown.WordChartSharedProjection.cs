@@ -11,9 +11,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackKeepsSmallAuthoredChartSize() {
             using var document = WordDocument.Create();
-            var chart = document.AddChart(OfficeChartType.Pie,
-                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Share", new[] { 3d, 1d }) }));
-            chart.SetSize(200, 100);
+            var chart = document.AddChart(OfficeChartType.Pie,                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Share", new[] { 3d, 1d }) }));
+            chart.SetSize(OfficeIMO.OfficeLength.Pixels(200),OfficeIMO.OfficeLength.Pixels(100));
             Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
             string markdown = document.ToMarkdown(new WordMarkdownExportOptions { VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri }).ToMarkdown();
             const string prefix = "data:image/svg+xml;base64,";
@@ -35,7 +34,7 @@ namespace OfficeIMO.Tests {
                 new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Columns", new[] { 100d, 200d }),
                     new OfficeSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
                         renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-            document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data, "Shared chart");
+            document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered,data,"Shared chart");
             string markdown = document.ToMarkdown(new WordMarkdownExportOptions { VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri }).ToMarkdown();
             const string prefix = "data:image/svg+xml;base64,";
             int start = markdown.IndexOf(prefix, StringComparison.Ordinal);

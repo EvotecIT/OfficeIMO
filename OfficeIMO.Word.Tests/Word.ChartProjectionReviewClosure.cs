@@ -19,7 +19,7 @@ public sealed class WordChartProjectionReviewClosureTests {
             bubble ? OfficeSeries.CreateBubble("Values", new[] { 1D, 2D }, new[] { 3D, 4D }, new[] { 5D, 6D }) :
                 new OfficeSeries("Values", new[] { 3D, 4D })
         });
-        var chart = document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data);
+        var chart = document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered,data);
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         var series = chart.ChartPart!.ChartSpace!.Descendants<OpenXmlCompositeElement>()
             .First(item => item.LocalName == "ser");
@@ -39,8 +39,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     [InlineData(false)]
     public void Snapshot_RejectsNondefaultScatterAxisSides(bool xAxis) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Scatter,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        var chart = document.AddChart(OfficeChartType.Scatter,            new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Values", new[] { 3D, 4D }, new[] { 1D, 2D })
             }));
         var axes = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().ToArray();
@@ -52,8 +51,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     [Fact]
     public void Snapshot_PreservesIndependentSecondaryTickSettings() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.ColumnClustered,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Primary", new[] { 3D, 4D }),
                 new OfficeSeries("Secondary", new[] { 5D, 6D }, null, null, null, true,
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
@@ -74,8 +72,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     [Fact]
     public void Snapshot_RejectsOverlaidAxisTitle() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
+        var chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
         chart.SetXAxisTitle("Categories");
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.Title>()!
@@ -90,8 +87,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     [InlineData("grid")]
     public void Snapshot_RejectsUnrepresentedSurfaceLineJoins(string surface) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
+        var chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
         var native = chart.ChartPart!.ChartSpace!;
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         OpenXmlCompositeElement owner = surface switch {

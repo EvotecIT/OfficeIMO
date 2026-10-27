@@ -10,10 +10,10 @@ public sealed class WordChartStoryPartTests {
     [InlineData(true)]
     public void NativeChart_IsOwnedByItsHeaderOrFooterAndSurvivesReopen(bool footer) {
         using var document = WordDocument.Create();
-        var bodyChart = document.AddChart(OfficeChartType.ColumnClustered, Data(1));
+        var bodyChart = document.AddChart(OfficeChartType.ColumnClustered,Data(1));
         WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
         var paragraph = region.AddParagraph();
-        var chart = paragraph.AddChart(OfficeChartType.ColumnClustered, Data(9));
+        var chart = paragraph.AddChart(OfficeChartType.ColumnClustered,Data(9));
         var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
         Assert.Single(owner.Parts, part => part.OpenXmlPart is DocumentFormat.OpenXml.Packaging.ChartPart);
         const string collisionId = "rIdChartCollision";

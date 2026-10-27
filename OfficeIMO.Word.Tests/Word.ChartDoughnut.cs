@@ -14,7 +14,7 @@ public sealed class WordChartDoughnutTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
         try {
             using (WordDocument document = WordDocument.Create(path)) {
-                WordChart chart = document.AddChart("Status", false, 360, 180);
+                WordChart chart = document.AddChart("Status",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
                 chart.AddDoughnut("Pass", 8).AddDoughnut("Unknown", 2);
                 chart.SetDataPointStyle(0, 0, new(fillColor: OfficeColor.Parse("#168A56")));
                 chart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2));

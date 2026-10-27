@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.TrySetCategories(new[] { "North", "South", "West" }));
                 Assert.True(imported.TrySetSeriesName(0, "After"));
                 Assert.True(imported.TrySetSeriesValues(0, new[] { 10.5, 20.25, 30.75 }));
-                imported.SetSize(320, 180);
+                imported.SetSize(OfficeIMO.OfficeLength.Pixels(320),OfficeIMO.OfficeLength.Pixels(180));
 
                 Assert.True(imported.TryGetSnapshot(out WordChartInfo snapshot));
                 Assert.Equal("Imported mutation", snapshot.Title);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(36D, layout.HorizontalOffsetPoints!.Value, 6);
                 Assert.Equal(72D, layout.VerticalOffsetPoints!.Value, 6);
                 Assert.Equal(WordDrawingWrapKind.Square, layout.Wrap);
-                chart.SetSize(400, 200);
+                chart.SetSize(OfficeIMO.OfficeLength.Pixels(400),OfficeIMO.OfficeLength.Pixels(200));
                 Assert.Null(anchor.GetFirstChild<WP14.RelativeWidth>());
                 Assert.Null(anchor.GetFirstChild<WP14.RelativeHeight>());
                 document.Save();

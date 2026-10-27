@@ -13,7 +13,7 @@ public sealed class WordChartThemePaletteTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void UnstyledRadialChartProjectsThemeAccentColors(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 2d })
         }));
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -29,8 +29,7 @@ public sealed class WordChartThemePaletteTests {
     [Fact]
     public void RadialPaletteWithNonIdentityWordColorSchemeMappingFailsClosed() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        WordChart chart = document.AddChart(OfficeChartType.Pie,            new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Values", new[] { 3d, 2d })
             }));
         W.ColorSchemeMapping map = document.MainDocumentPartRoot.DocumentSettingsPart!

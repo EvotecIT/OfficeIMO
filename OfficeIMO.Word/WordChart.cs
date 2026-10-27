@@ -57,13 +57,17 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph where the chart will be placed.</param>
         /// <param name="title">Optional chart title.</param>
         /// <param name="roundedCorners">Specifies whether the chart frame should have rounded corners.</param>
-        /// <param name="width">Initial chart width in pixels.</param>
-        /// <param name="height">Initial chart height in pixels.</param>
-        public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        /// <param name="width">Initial chart width; defaults to 600 pixels.</param>
+        /// <param name="height">Initial chart height; defaults to 600 pixels.</param>
+        public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             _document = document;
             _paragraph = paragraph;
             SetTitle(title);
-            InsertChart(document, paragraph, roundedCorners, width, height);
+            var frameWidth = width ?? OfficeLength.Pixels(600);
+            var frameHeight = height ?? OfficeLength.Pixels(600);
+            if (frameWidth.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (frameHeight.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            InsertChart(document, paragraph, roundedCorners, frameWidth, frameHeight);
         }
 
 
@@ -195,7 +199,7 @@ namespace OfficeIMO.Word {
             return dataLabels1;
         }
 
-        private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
+        private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, OfficeLength width, OfficeLength height) {
             OpenXmlPart owner = WordPartOwnership.Resolve(wordDocument, paragraph._paragraph);
             ChartPart part = CreateChartPart(owner, roundedCorners);
             // _chartPart = part;
@@ -457,12 +461,12 @@ namespace OfficeIMO.Word {
             return stringReference1;
         }
 
-        internal WordDrawing CreateChartDrawing(string id, int width = 600, int height = 600) {
+        internal WordDrawing CreateChartDrawing(string id, OfficeLength width, OfficeLength height) {
             WordDrawing drawing1 = new WordDrawing();
 
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline inline1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline();
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = (long)width * EnglishMetricUnitsPerInch / PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = width.ToEmus(), Cy = height.ToEmus() };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = WordDrawingIdAllocator.Reserve(_document), Name = "chart" };
 

@@ -47,7 +47,7 @@ internal static class RichWordPdfCorpusGenerator {
                 }
 
                 if (page == 1) {
-                    WordChart chart = document.AddChart("Quarterly delivery", false, 400, 180);
+                    WordChart chart = document.AddChart("Quarterly delivery",false,OfficeIMO.OfficeLength.Pixels(400),OfficeIMO.OfficeLength.Pixels(180));
                     chart.AddCategories(new List<string> { "Q1", "Q2", "Q3", "Q4" });
                     chart.AddBar("Completed", new List<int> { 12, 19, 26, 31 }, OfficeColor.Blue);
                     chart.AddBar("Pending", new List<int> { 6, 5, 4, 3 }, OfficeColor.Orange);

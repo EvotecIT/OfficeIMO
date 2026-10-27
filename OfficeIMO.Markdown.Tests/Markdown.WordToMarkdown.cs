@@ -998,7 +998,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Reads_Cached_Chart_Data() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
@@ -1017,7 +1017,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Uses_Max_Value_Count_For_Fallback_Categories() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             chart.AddBar("Forecast", new System.Collections.Generic.List<int> { 11, 21, 31 }, OfficeColor.SeaGreen);
@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Reads_Final_Palette_Series_Colors() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Regional Pipeline", width: 400, height: 240);
+            var chart = doc.AddChart("Regional Pipeline",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("EMEA", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             chart.AddBar("APAC", new System.Collections.Generic.List<int> { 8, 14 }, OfficeColor.SeaGreen);
@@ -1053,7 +1053,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Prefers_Later_Real_Categories_Over_Early_Fallback() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Regional Pipeline", width: 400, height: 240);
+            var chart = doc.AddChart("Regional Pipeline",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("No categories", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             chart.AddBar("Real categories", new System.Collections.Generic.List<int> { 8, 14 }, OfficeColor.SeaGreen);
@@ -1077,7 +1077,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Rejects_Inflated_Cache_PointCounts() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Inflated cache", width: 400, height: 240);
+            var chart = doc.AddChart("Inflated cache",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
@@ -1098,7 +1098,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordChart_TryGetSnapshot_Rejects_Mixed_Unsupported_Chart_Plots() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Mixed plots", width: 400, height: 240);
+            var chart = doc.AddChart("Mixed plots",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
@@ -1116,7 +1116,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Resolves_Theme_Series_Colors() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Theme Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Theme Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
 
@@ -1161,7 +1161,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Resolves_Theme_Alias_Series_Colors() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Theme Alias Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Theme Alias Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
 
@@ -1200,7 +1200,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Uses_Line_Outline_Color() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Trend", width: 400, height: 240);
+            var chart = doc.AddChart("Trend",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2", "Q3" });
             chart.AddLine("Actual", new System.Collections.Generic.List<int> { 10, 20, 15 }, OfficeColor.Black);
 
@@ -1240,7 +1240,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Uses_Pie_Point_Colors() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Rules outcome", width: 400, height: 240);
+            var chart = doc.AddChart("Rules outcome",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddPie("Passed", 42);
             chart.AddPie("Failed", 30);
             chart.AddPie("Skipped", 5);
@@ -1273,7 +1273,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Renders_Charts_As_Svg_DataUri_Images() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             var warnings = new System.Collections.Generic.List<string>();
@@ -1304,7 +1304,7 @@ namespace OfficeIMO.Tests {
             try {
                 string markdownPath = Path.Combine(tempDir, "Report.md");
                 using var doc = WordDocument.Create();
-                var chart = doc.AddChart("Regional Pipeline", width: 400, height: 240);
+                var chart = doc.AddChart("Regional Pipeline",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
                 chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
@@ -1331,7 +1331,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(tempDir);
             try {
                 using var doc = WordDocument.Create();
-                var chart = doc.AddChart("Reusable Options", width: 400, height: 240);
+                var chart = doc.AddChart("Reusable Options",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
                 chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 
@@ -1358,7 +1358,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Default_Does_Not_Render_Charts() {
             using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Revenue", width: 400, height: 240);
+            var chart = doc.AddChart("Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
 

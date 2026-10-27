@@ -15,14 +15,14 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordSharedChartAuthoringTests {
     public static IEnumerable<object[]> SupportedKinds() =>
-        Enum.GetValues(typeof(OfficeChartType)).Cast<OfficeChartType>().Select(kind => new object[] { kind });
+        WordSharedChartCases.Kinds.Select(kind => new object[] { kind });
 
     [Fact]
     public void ScatterUpdateEnablesRequestedLinesAndMarkersOnImportedLayer() {
         foreach (C.ScatterStyleValues importedStyle in new[] { C.ScatterStyleValues.Marker, C.ScatterStyleValues.Line }) {
             using WordDocument document = WordDocument.Create();
             var data = Data(OfficeChartType.Scatter, 0);
-            WordChart chart = document.AddChart(OfficeChartType.Scatter, data);
+            WordChart chart = document.AddChart(OfficeChartType.Scatter,data);
             C.ScatterChart layer = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChart>().Single();
             layer.ScatterStyle!.Val = importedStyle;
 
@@ -37,7 +37,7 @@ public sealed class WordSharedChartAuthoringTests {
     [MemberData(nameof(SupportedKinds))]
     public void SharedChart_AuthorsReopensAndUpdatesNativeCachesAndEmbeddedWorkbook(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, Data(kind, 0), "Results", roundedCorners: true, width: 360, height: 180);
+        WordChart chart = document.AddChart(kind,Data(kind, 0),"Results",roundedCorners: true,width: OfficeIMO.OfficeLength.Pixels(360),height: OfficeIMO.OfficeLength.Pixels(180));
         chart.Name = "Status chart";
         chart.AltText = "Status distribution";
         Assert.Empty(document.ValidateDocument());
@@ -75,7 +75,7 @@ public sealed class WordSharedChartAuthoringTests {
     [Fact]
     public void SharedChart_ScatterUpdatesReplaceLiteralTitlesAndMissingSourcesInSchemaOrder() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Scatter, Data(OfficeChartType.Scatter, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Scatter,Data(OfficeChartType.Scatter, 0));
         C.ScatterChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
         series.GetFirstChild<C.SeriesText>()!.Remove();
         series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Imported title" }), true);
@@ -104,7 +104,7 @@ public sealed class WordSharedChartAuthoringTests {
     [InlineData(2)]
     public void SharedChart_ScatterUpdatesReplaceAllStringXSourceChoices(int sourceKind) {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Scatter, Data(OfficeChartType.Scatter, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Scatter,Data(OfficeChartType.Scatter, 0));
         C.ScatterChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
         DocumentFormat.OpenXml.OpenXmlElement source = sourceKind == 0
             ? new C.StringLiteral(new C.PointCount { Val = 1 }, new C.StringPoint { Index = 0, NumericValue = new C.NumericValue { Text = "1" } })
@@ -121,7 +121,7 @@ public sealed class WordSharedChartAuthoringTests {
     [Fact]
     public void SharedChart_RejectsIncompatibleWorkbookBeforeChangingCachesOrPackage() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         ChartPart part = chart.ChartPart!;
         part.DeletePart(part.GetPartsOfType<EmbeddedPackagePart>().Single());
         EmbeddedPackagePart legacy = part.AddEmbeddedPackagePart("application/vnd.ms-excel");
@@ -140,7 +140,7 @@ public sealed class WordSharedChartAuthoringTests {
     [Fact]
     public void SharedChart_ClearingNamePreservesRequiredDrawingAttribute() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         chart.Name = null;
         Assert.Equal(string.Empty, chart.Name);
         Assert.Empty(document.ValidateDocument());
@@ -157,9 +157,9 @@ public sealed class WordSharedChartAuthoringTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Introduction");
         int count = document.Paragraphs.Count;
-        Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0), width: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0),width: OfficeIMO.OfficeLength.Pixels(0)));
         Assert.Equal(count, document.Paragraphs.Count);
-        paragraph.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0));
+        paragraph.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         Assert.Single(document.Charts);
         Assert.Equal("Introduction", paragraph.Text);
         Assert.Empty(document.ValidateDocument());
@@ -168,7 +168,7 @@ public sealed class WordSharedChartAuthoringTests {
     [Fact]
     public void SharedChart_ChangesFamiliesWithoutLeavingOldPlotLayers() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         foreach (OfficeChartType kind in new[] { OfficeChartType.Scatter, OfficeChartType.Bubble, OfficeChartType.Doughnut }) {
             chart.SetData(kind, Data(kind, 10));
             C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
@@ -188,7 +188,7 @@ public sealed class WordSharedChartAuthoringTests {
             new OfficeSeries("Rate", new[] { 10d + offset, 20d + offset, 30d + offset }, null, null, null, true,
                 renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         });
-        WordChart combo = document.AddChart(OfficeChartType.ColumnClustered, Combo(0));
+        WordChart combo = document.AddChart(OfficeChartType.ColumnClustered,Combo(0));
         combo.SetData(OfficeChartType.ColumnClustered, Combo(10));
         C.PlotArea plot = combo.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         Assert.Single(plot.Elements<C.BarChart>());
@@ -202,7 +202,7 @@ public sealed class WordSharedChartAuthoringTests {
             new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
             new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Black)
         });
-        WordChart pie = document.AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B", "C" }, new[] { styled }));
+        WordChart pie = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A", "B", "C" }, new[] { styled }));
         Assert.Single(pie.ChartPart!.ChartSpace!.Descendants<A.NoFill>(), fill => fill.Parent is C.ChartShapeProperties);
         Assert.Single(pie.ChartPart.ChartSpace.Descendants<A.PatternFill>());
         pie.SetData(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
@@ -216,9 +216,9 @@ public sealed class WordSharedChartAuthoringTests {
     [Fact]
     public void SharedChart_InvalidInputDoesNotAddADrawingOrChangeExistingNativeData() {
         using WordDocument document = WordDocument.Create();
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddChart((OfficeChartType)999, Data(OfficeChartType.Pie, 0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddChart((OfficeChartType)999,Data(OfficeChartType.Pie, 0)));
         Assert.Empty(document.Charts);
-        WordChart chart = document.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         string before = chart.ChartPart!.ChartSpace!.OuterXml;
         Assert.Throws<NotSupportedException>(() => chart.SetData(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] {
@@ -232,11 +232,9 @@ public sealed class WordSharedChartAuthoringTests {
     public void SharedChart_RejectsEmbeddedWorkbookTextBeyondExcelCellLimitBeforeInsertion() {
         using WordDocument document = WordDocument.Create();
         string longCategory = new string('A', 32768);
-        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartType.Pie,
-            new OfficeChartData(new[] { longCategory }, new[] { new OfficeSeries("Status", new[] { 1d }) })));
+        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartType.Pie,            new OfficeChartData(new[] { longCategory }, new[] { new OfficeSeries("Status", new[] { 1d }) })));
         string bubbleName = new string('B', 32763);
-        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartType.Bubble,
-            new OfficeChartData(new[] { "1" }, new[] {
+        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartType.Bubble,            new OfficeChartData(new[] { "1" }, new[] {
                 OfficeSeries.CreateBubble(bubbleName, new[] { 1d }, new[] { 2d }, new[] { 3d })
             })));
         Assert.Empty(document.Charts);

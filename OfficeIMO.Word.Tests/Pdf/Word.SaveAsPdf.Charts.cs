@@ -24,7 +24,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 0;
-            WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            WordChart chart = document.AddChart("ChartSpacingProbe",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
             document.Paragraphs.Last().LineSpacingAfterPoints = 0;
             chart.AddPie("Passed", 4);
             chart.AddPie("Failed", 2);
@@ -45,7 +45,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 0;
-            WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            WordChart chart = document.AddChart("ChartSpacingProbe",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
             document.Paragraphs.Last().LineSpacingAfterPoints = 24;
             chart.AddPie("Passed", 4);
             chart.AddPie("Failed", 2);
@@ -61,7 +61,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 12;
-            WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            WordChart chart = document.AddChart("ChartSpacingProbe",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
             document.Paragraphs.Last().LineSpacingBeforePoints = 24;
             document.Paragraphs.Last().LineSpacingAfterPoints = 0;
             chart.AddPie("Passed", 4);

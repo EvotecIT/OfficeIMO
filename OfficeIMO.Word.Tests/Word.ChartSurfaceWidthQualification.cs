@@ -16,8 +16,7 @@ public sealed class WordChartSurfaceWidthQualificationTests {
     [InlineData("grid")]
     public void VisibleZeroWidthSurface_ProjectsAsHairlineWithoutChangingNativeChart(string target) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        WordChart chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
             }));
         C.ChartSpace space = chart.ChartPart!.ChartSpace!;
@@ -50,8 +49,7 @@ public sealed class WordChartSurfaceWidthQualificationTests {
     [Fact]
     public void NoFillZeroWidthOutline_RemainsProjectable() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        WordChart chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
             }));
         chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!

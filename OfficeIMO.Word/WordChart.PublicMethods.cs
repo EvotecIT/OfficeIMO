@@ -5,43 +5,29 @@ using System.Collections.Generic;
 namespace OfficeIMO.Word {
     // Partial class containing public methods for building chart content.
     public partial class WordChart {
-        /// <summary>
-        /// Sets the chart frame size. Values are in pixels.
-        /// </summary>
-        public WordChart SetSize(int widthPx, int? heightPx = null) {
-            if (widthPx <= 0) throw new ArgumentOutOfRangeException(nameof(widthPx), "Chart width must be positive.");
-            if (heightPx <= 0) throw new ArgumentOutOfRangeException(nameof(heightPx), "Chart height must be positive.");
-            if (_drawing != null) {
-                long widthEmu = checked((long)widthPx * EnglishMetricUnitsPerInch / PixelsPerInch);
-                long? heightEmu = heightPx.HasValue
-                    ? checked((long)heightPx.Value * EnglishMetricUnitsPerInch / PixelsPerInch)
-                    : null;
-                WordDrawingLayoutReader.SetExtent(_drawing, widthEmu, heightEmu);
-            }
+        /// <summary>Sets the chart frame width and, when supplied, its height.</summary>
+        public WordChart SetSize(OfficeLength width, OfficeLength? height = null) {
+            long widthEmus = width.ToEmus();
+            long? heightEmus = height?.ToEmus();
+            if (widthEmus <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (heightEmus <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            if (_drawing != null) WordDrawingLayoutReader.SetExtent(_drawing, widthEmus, heightEmus);
             return this;
         }
 
         /// <summary>Reads persisted inline or anchored package geometry for this chart.</summary>
-        /// <param name="snapshot">The package-geometry snapshot when the chart has a supported drawing frame.</param>
-        /// <returns><see langword="true"/> when persisted layout evidence was available.</returns>
         public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo snapshot) =>
             WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
-
-        /// <summary>
-        /// Sets chart width to its paragraph's estimated content width, including the owning section or cell.
-        /// Optionally scales by <paramref name="fraction"/> and adjusts height in pixels.
-        /// </summary>
-        public WordChart SetWidthToPageContent(double fraction = 1.0, int? heightPx = null) {
+        /// <summary>Fits chart width to its owning section or cell, optionally adjusting its height.</summary>
+        public WordChart SetWidthToPageContent(double fraction = 1.0, OfficeLength? height = null) {
             if (_paragraph == null) return this;
             try {
-                var widthPoints = _paragraph.GetContentWidthPoints();
-                var px = (int)System.Math.Round(widthPoints * PixelsPerInch / 72D * System.Math.Max(0.05, System.Math.Min(1.0, fraction)));
-                return SetSize(px, heightPx);
+                var width = OfficeLength.Points(_paragraph.GetContentWidthPoints()
+                    * System.Math.Max(0.05, System.Math.Min(1.0, fraction)));
+                return SetSize(width, height);
             } catch { return this; }
         }
-
-        
 
         /// <summary>
         /// Sets the category labels used by subsequent chart series.

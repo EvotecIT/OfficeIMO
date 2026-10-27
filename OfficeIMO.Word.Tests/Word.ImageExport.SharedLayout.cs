@@ -97,7 +97,7 @@ public sealed class WordSharedPageLayoutTests {
     public void SharedConversionReportsOmissionsAndStrictImagesRejectThem() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Visible text before the unsupported chart.");
-        var chart = document.AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A" },
+        var chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A" },
             new[] { new OfficeSeries("Values", new[] { 1D }) }));
         chart.ChartPart!.ChartSpace!.RemoveAllChildren();
         var conversion = document.ConvertToPdfWithEvidence();

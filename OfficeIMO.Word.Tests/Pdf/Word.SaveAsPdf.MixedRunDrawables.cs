@@ -21,7 +21,7 @@ public partial class Word {
         W.Run sourceRun = paragraph._run!;
         W.Run drawableRun;
         if (kind == "chart") {
-            WordChart chart = document.AddChart("MixedRunChart", false, 240, 160);
+            WordChart chart = document.AddChart("MixedRunChart",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(160));
             chart.AddPie("One", 3);
             chart.AddPie("Two", 4);
             drawableRun = chart.Drawing!.Ancestors<W.Run>().Single();

@@ -1074,13 +1074,13 @@
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "authoring",
-      "notes": "int width/height are pixels. The untyped overload creates an empty chart filled through AddBar/AddLine...; fold into the typed overload.",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1091,13 +1091,13 @@
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordDocument.SharedCharts.cs",
       "category": "authoring",
-      "notes": "int width/height are pixels. OfficeChartKind becomes OfficeChartType (Core M1).",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1108,13 +1108,13 @@
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
       "category": "authoring",
-      "notes": "int width/height are pixels. The untyped overload creates an empty chart filled through AddBar/AddLine...; fold into the typed overload.",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1142,13 +1142,13 @@
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordParagraph.SharedCharts.cs",
       "category": "authoring",
-      "notes": "int width/height are pixels. OfficeChartKind becomes OfficeChartType (Core M1).",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1883,34 +1883,34 @@
       "old": "OfficeIMO.Word.WordChart.SetSize(int widthPx, int? heightPx = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.SetSize(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordChart.SetSize(OfficeLength dimensions, ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: heightPx, widthPx",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Word.WordChart.SetWidthToPageContent(double fraction = 1, int? heightPx = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordChart.SetWidthToPageContent(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordChart.SetWidthToPageContent(OfficeLength dimensions, ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: heightPx",
+      "notes": "Chart geometry uses OfficeLength, including nullable dimensions with the original 600-pixel defaults. Creation and resizing write exact EMU extents without an intermediate integer pixel conversion; typed AddChart overloads use the shared OfficeChartType/OfficeSeries data model.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -5898,6 +5898,17 @@
         "OfficeIMO.Word/WordDocument.Macros.cs",
         "OfficeIMO.Word/WordDocument.PackagePayloads.cs",
         "OfficeIMO.Word/WordMacro.cs"
+      ]
+    },
+    {
+      "change": "Word AddComboChart dimensions and the WordChart attachment constructor use OfficeLength; native chart insertion stores exact EMUs.",
+      "reason": "Every public chart-creation and sizing path shares the same geometry contract. Private insertion no longer rounds lengths to integer pixels.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordChart.cs",
+        "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+        "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+        "OfficeIMO.Word/WordChart.PublicMethods.cs"
       ]
     }
   ],

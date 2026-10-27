@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "Chart.Pie.SemanticPalette.docx");
 
             using (var doc = WordDocument.Create(filePath)) {
-                var pie = doc.AddChart("Rules outcome", false, 600, 320);
+                var pie = doc.AddChart("Rules outcome",false,OfficeIMO.OfficeLength.Pixels(600),OfficeIMO.OfficeLength.Pixels(320));
                 pie.AddPie("Passed", 42);
                 pie.AddPie("Failed", 30);
                 pie.AddPie("Skipped", 5);
                 pie.AddLegend(OfficeChartLegendPosition.Right);
 
                 pie.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false)
-                   .SetWidthToPageContent(1.0, 320);
+                   .SetWidthToPageContent(1.0,OfficeIMO.OfficeLength.Pixels(320));
 
                 doc.Save();
             }
@@ -58,14 +58,14 @@ namespace OfficeIMO.Tests {
 
             using (var doc = WordDocument.Create(filePath)) {
                 var categories = new[] { "Q1", "Q2", "Q3", "Q4" }.ToList();
-                var bar = doc.AddChart("Quarterly", false, 600, 320);
+                var bar = doc.AddChart("Quarterly",false,OfficeIMO.OfficeLength.Pixels(600),OfficeIMO.OfficeLength.Pixels(320));
                 bar.AddCategories(categories);
                 bar.AddBar("EMEA", new[] { 10, 12, 14, 18 }, Color.Black);
                 bar.AddBar("APAC", new[] { 9, 11, 15, 20 }, Color.Black);
                 bar.AddBar("AMER", new[] { 8, 10, 16, 19 }, Color.Black);
 
                 bar.ApplyPalette(WordChart.WordChartPalette.ColorBlindSafe)
-                   .SetWidthToPageContent(1.0, 320);
+                   .SetWidthToPageContent(1.0,OfficeIMO.OfficeLength.Pixels(320));
 
                 doc.Save();
             }
@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "Chart.FitWidth.docx");
 
             using (var doc = WordDocument.Create(filePath)) {
-                var ch = doc.AddChart("Full width", false, 400, 240);
-                ch.SetWidthToPageContent(1.0, 240);
+                var ch = doc.AddChart("Full width",false,OfficeIMO.OfficeLength.Pixels(400),OfficeIMO.OfficeLength.Pixels(240));
+                ch.SetWidthToPageContent(1.0,OfficeIMO.OfficeLength.Pixels(240));
                 doc.Save();
             }
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = WordDocument.Create(filePath)) {
                 var categories = new[] { "A", "B", "C" }.ToList();
-                var line = doc.AddChart("KPIs", false, 600, 320);
+                var line = doc.AddChart("KPIs",false,OfficeIMO.OfficeLength.Pixels(600),OfficeIMO.OfficeLength.Pixels(320));
                 line.AddChartAxisX(categories);
                 line.AddLine("Throughput", new[] { 1, 2, 3 }.ToList(), Color.Black);
                 line.AddLine("Latency", new[] { 3, 2, 1 }.ToList(), Color.Black);

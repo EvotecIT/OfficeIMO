@@ -23,8 +23,8 @@ public sealed class OfficeTypedChartAuthoringTests {
         switch (format) {
             case "Word":
                 using (var document = WordDocument.Create()) {
-                    if (named) document.AddChart(OfficeChartType.Column, rows, nameof(Trend.Week), nameof(Trend.Revenue));
-                    else document.AddChart(OfficeChartType.Column, rows, row => row.Week, OfficeSeries.From(rows, row => row.Revenue));
+                    if (named) document.AddChart(OfficeChartType.Column,rows,nameof(Trend.Week),nameof(Trend.Revenue));
+                    else document.AddChart(OfficeChartType.Column,rows,row => row.Week,OfficeSeries.From(rows, row => row.Revenue));
                     document.Save(output);
                 }
                 break;

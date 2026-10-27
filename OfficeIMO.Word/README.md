@@ -823,7 +823,7 @@ var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, n
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
     })
 });
-WordChart chart = document.AddChart(OfficeChartType.Doughnut, data, "Status", width: 360, height: 240);
+WordChart chart = document.AddChart(OfficeChartType.Doughnut, data, "Status", width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(240));
 chart.Name = "Status distribution";
 chart.SetRadialLayout(new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70));
 chart.AltText = "Eight passed, two could not be evaluated, and one failed.";
@@ -898,7 +898,7 @@ labels. Numeric category literals accept finite invariant numeric category strin
 and multi-ring imported doughnuts use the existing cached-data mutation APIs instead.
 
 ```csharp
-WordChart chart = document.AddChart("Status", roundedCorners: false, width: 360, height: 180);
+WordChart chart = document.AddChart("Status", roundedCorners: false, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(180));
 chart.AddDoughnut("Pass", 8).AddDoughnut("Could not evaluate", 2).AddDoughnut("Fail", 1);
 chart.SetDataPointStyle(0, 1,
     new OfficeIMO.Drawing.OfficeChartPointStyle(noFill: true,

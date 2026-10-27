@@ -18,7 +18,7 @@ public sealed class WordChartWorkbookBindingsTests {
         var original = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 1d, 2d },
                 kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null) });
-        WordChart chart = document.AddChart(kind, original);
+        WordChart chart = document.AddChart(kind,original);
         var series = chart.ChartPart!.ChartSpace!.Descendants()
             .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser");
         C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>()!;
@@ -45,8 +45,8 @@ public sealed class WordChartWorkbookBindingsTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }),
             new OfficeSeries("Second", new[] { 3d, 4d }) });
-        Assert.Throws<System.NotSupportedException>(() => document.AddChart(OfficeChartType.Pie, data));
-        var doughnut = document.AddChart(OfficeChartType.Doughnut, data);
+        Assert.Throws<System.NotSupportedException>(() => document.AddChart(OfficeChartType.Pie,data));
+        var doughnut = document.AddChart(OfficeChartType.Doughnut,data);
         Assert.Equal(2, doughnut.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Count());
     }
 
@@ -71,7 +71,7 @@ public sealed class WordChartWorkbookBindingsTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Columns", new[] { 3d, 4d }),
             new OfficeSeries("Line", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.Line) });
-        var chart = document.AddChart(OfficeChartType.ColumnClustered, data);
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var line = plot.GetFirstChild<C.LineChart>()!;
         line.Remove(); plot.InsertBefore(line, plot.GetFirstChild<C.BarChart>());
@@ -86,7 +86,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [InlineData(2)]
     public void SharedUpdate_RejectsIncompleteErrorBarCachesBeforeMutation(int missing) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         var cache = new C.NumberingCache(new C.PointCount { Val = 2 },
             new C.NumericPoint { Index = 0, NumericValue = new C.NumericValue { Text = "0.5" } },
             new C.NumericPoint { Index = 1, NumericValue = new C.NumericValue { Text = "1.5" } });
@@ -108,7 +108,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [InlineData(3)]
     public void SharedUpdate_RejectsErrorBarCachesWithDifferentReplacementLengthBeforeMutation(int replacementCount) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.ErrorBars(
             new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
             new C.Plus(new C.NumberReference(new C.Formula { Text = "Sheet1!$Z$2:$Z$3" },
@@ -128,7 +128,7 @@ public sealed class WordChartWorkbookBindingsTests {
     public void ScatterGrowth_PreservesExistingPointMetadataWithoutCopyingItToNewSeries() {
         using var document = WordDocument.Create();
         var styled = Data().Series.Single().WithPointStyles(new OfficeChartPointStyle?[] { new(OfficeColor.White), null });
-        var chart = document.AddChart(OfficeChartType.Scatter, new OfficeChartData(Data().Categories, new[] { styled }));
+        var chart = document.AddChart(OfficeChartType.Scatter,new OfficeChartData(Data().Categories, new[] { styled }));
         var source = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
         source.AddChild(new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 },
             (C.ChartText)Title("Original point").GetFirstChild<C.ChartText>()!.CloneNode(true)), new C.ShowValue { Val = false }), true);
@@ -146,7 +146,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [Fact]
     public void ScatterGrowth_PreservesExistingErrorBarsWithoutCopyingMagnitudeDataToNewSeries() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Scatter, Data());
+        var chart = document.AddChart(OfficeChartType.Scatter,Data());
         var source = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
         source.AddChild(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
             new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
@@ -167,7 +167,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [Fact]
     public void SharedUpdate_RejectsUnqualifiedWorkbookExtensionBeforeChangingChartOrWorkbook() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         var extension = new C.ChartSpaceExtension { Uri = "urn:producer:label-range" };
         var range = new DocumentFormat.OpenXml.OpenXmlUnknownElement("p", "labelRange", "urn:producer:labels");
         range.InnerXml = "<p:f xmlns:p=\"urn:producer:labels\">Sheet1!$Z$1:$Z$2</p:f>";
@@ -183,7 +183,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [Fact]
     public void SharedUpdate_MaterializesWorkbookLinkedCustomLabelsAndErrorBars() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         series.AddChild(new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 }, Title("Custom label").ChartText!.CloneNode(true))), true);
         series.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
@@ -204,7 +204,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [Fact]
     public void SharedUpdate_RejectsUncachedLinkedTextBeforeChangingChartOrWorkbook() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         native.AddChild(Title("Cached title"), true);
         native.PlotArea!.Elements<C.ValueAxis>().Single().AddChild(new C.Title(new C.ChartText(new C.StringReference(
@@ -223,15 +223,15 @@ public sealed class WordChartWorkbookBindingsTests {
         using WordDocument document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d },
             new[] { 1d, 2d }, null, null, true, renderKind: renderKind) });
-        Assert.Throws<System.NotSupportedException>(() => document.AddChart(defaultKind, data));
+        Assert.Throws<System.NotSupportedException>(() => document.AddChart(defaultKind,data));
         Assert.Empty(document.Charts);
     }
 
     [Fact]
     public void SharedUpdate_RebuildsScatterWhenAnUnsupportedNativeLayerIsPresent() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Scatter, Data());
-        var pie = document.AddChart(OfficeChartType.Pie, Data());
+        var chart = document.AddChart(OfficeChartType.Scatter,Data());
+        var pie = document.AddChart(OfficeChartType.Pie,Data());
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var sourcePie = pie.ChartPart!.ChartSpace!.Descendants<C.PieChart>().Single();
         var extra = new C.Pie3DChart(sourcePie.Elements<C.PieChartSeries>().Single().CloneNode(true));
@@ -247,7 +247,7 @@ public sealed class WordChartWorkbookBindingsTests {
     [Fact]
     public void SharedUpdate_MaterializesCachedWorkbookLinkedChartAndAxisTitles() {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line,Data());
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         native.AddChild(Title("Original title"), true);
         native.PlotArea!.Elements<C.ValueAxis>().Single().AddChild(Title("Original axis"), true);

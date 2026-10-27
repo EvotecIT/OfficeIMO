@@ -168,7 +168,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -181,7 +181,7 @@ namespace OfficeIMO.Word {
         /// <see cref="WordChart.AddLine"/> to add data. The call to <c>AddChartAxisX</c> must be performed
         /// before adding any series so both chart types share the same axes.
         /// </summary>
-        public WordChart AddComboChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddComboChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             return AddChart(title, roundedCorners, width, height);
         }
 

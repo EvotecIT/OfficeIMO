@@ -11,7 +11,7 @@ public sealed class WordChartCacheBoundsTests {
     [InlineData(true)]
     public void Snapshot_DiscoversLaterCategoriesAndRetainsLongerSeries(bool laterHasLabels) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeSeries("Short", new[] { 1d, 2d, 3d }), new OfficeSeries("Long", new[] { 4d, 5d, 6d }) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().ToArray();
         series[0].GetFirstChild<C.CategoryAxisData>()!.Remove();
@@ -32,7 +32,7 @@ public sealed class WordChartCacheBoundsTests {
     [InlineData(true, uint.MaxValue)]
     public void Snapshot_RejectsOversizedCacheInsteadOfTruncatingOrReindexing(bool changeIndex, uint value) {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" },
+        WordChart chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Status", new[] { 1d, 2d }) }));
         C.NumberingCache cache = chart.ChartPart!.ChartSpace!.Descendants<C.NumberingCache>().Single();
         if (changeIndex) cache.Elements<C.NumericPoint>().Last().Index = value;
@@ -43,7 +43,7 @@ public sealed class WordChartCacheBoundsTests {
     [Fact]
     public void Snapshot_PreservesSparseCachePositionsWithinTheSupportedBound() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" },
+        WordChart chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" },
             new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d }) }));
         C.NumberingCache cache = chart.ChartPart!.ChartSpace!.Descendants<C.NumberingCache>().Single();
         cache.Elements<C.NumericPoint>().ElementAt(1).Remove();

@@ -77,7 +77,7 @@ public sealed class WordMarkdownOutputAcceptanceTests {
         Directory.CreateDirectory(directory);
         try {
             using var word = WordDocument.Create();
-            var chart = word.AddChart("Chart", width: 400, height: 240);
+            var chart = word.AddChart("Chart",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new List<string> { "Q1", "Q2" });
             chart.AddBar("Series", new List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             string output = Path.Combine(directory, "report.md"), assets = Path.Combine(directory, "report.assets");

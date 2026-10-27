@@ -29,7 +29,7 @@ public sealed class WordChartSeriesPaintTests {
             .WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green, showOutline: false), null });
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
-        var chart = document.AddChart(OfficeChartType.ColumnClustered, data);
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,data);
         chart.SetData(OfficeChartType.ColumnClustered, data);
         Assert.Empty(document.ValidateDocument());
         using var stream = new MemoryStream();
@@ -57,7 +57,7 @@ public sealed class WordChartSeriesPaintTests {
             hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Green,
             outlineColor: OfficeColor.Red, outlineWidth: 3, outlineJoin: OfficeStrokeLineJoin.Round));
         using var document = WordDocument.Create();
-        document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
+        document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         using var stream = new MemoryStream();
         document.Save(stream);
         stream.Position = 0;
@@ -93,7 +93,7 @@ public sealed class WordChartSeriesPaintTests {
         series = series.WithSeriesStyle(new OfficeChartPointStyle(noFill: true,
             outlineColor: OfficeColor.Red, outlineWidth: 3, showOutline: true));
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         chart.SetSeriesColor(0, OfficeColor.Green);
         Assert.Empty(document.ValidateDocument());
         using var stream = new MemoryStream(); document.Save(stream); stream.Position = 0;
@@ -111,7 +111,7 @@ public sealed class WordChartSeriesPaintTests {
         var series = new OfficeSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue, null,
             showMarkers: false, strokeWidth: 3, strokeDashStyle: OfficeStrokeDashStyle.Dash);
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         var outline = chart.ChartPart!.ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().First();
         outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
         outline.AddChild(new DocumentFormat.OpenXml.Drawing.GradientFill(
@@ -140,7 +140,7 @@ public sealed class WordChartSeriesPaintTests {
             .First(part => part.ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Line3DChart>().Any())
             .ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.PlotArea>().Single();
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" },
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Paint", new[] { 2d, 4d }) }));
         var part = chart.ChartPart!;
         var nativeChart = part.ChartSpace!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()!;

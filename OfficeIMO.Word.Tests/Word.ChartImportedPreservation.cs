@@ -14,8 +14,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdateKeepsNewAreaBehindRetainedLine() {
         using var document = WordDocument.Create();
         var categories = new[] { "A", "B" };
-        WordChart chart = document.AddChart(OfficeChartType.Line,
-            new OfficeChartData(categories, new[] {
+        WordChart chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(categories, new[] {
                 new OfficeSeries("Trend", new[] { 3d, 4d })
             }));
         chart.SetData(OfficeChartType.Line, new OfficeChartData(categories, new[] {
@@ -35,7 +34,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdate_ReversedCategoryReferencesPreserveAxisFormatting() {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var ids = plot.GetFirstChild<C.LineChart>()!.Elements<C.AxisId>().ToArray();
         uint first = ids[0].Val!.Value; ids[0].Val = ids[1].Val; ids[1].Val = first;
@@ -57,7 +56,7 @@ public sealed class WordChartImportedPreservationTests {
         var position = top ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         plot.GetFirstChild<C.LineChart>()!.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
         plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val = position;
@@ -75,7 +74,7 @@ public sealed class WordChartImportedPreservationTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }), new OfficeSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Scatter, data);
+        var chart = document.AddChart(OfficeChartType.Scatter,data);
         var part = chart.ChartPart!;
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var first = plot.GetFirstChild<C.ScatterChart>()!;
@@ -105,7 +104,7 @@ public sealed class WordChartImportedPreservationTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }), new OfficeSeries("Second", new[] { 3d, 4d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var part = chart.ChartPart!;
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var first = plot.GetFirstChild<C.LineChart>()!;
@@ -140,7 +139,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdate_PreservesBubbleLayerAndReferencedTopRightAxes() {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { OfficeSeries.CreateBubble("Bubbles", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d }) });
-        var chart = document.AddChart(OfficeChartType.Bubble, data);
+        var chart = document.AddChart(OfficeChartType.Bubble,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var bubble = plot.GetFirstChild<C.BubbleChart>()!;
         bubble.GetFirstChild<C.BubbleScale>()!.Val = 150;
@@ -161,7 +160,7 @@ public sealed class WordChartImportedPreservationTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, Enumerable.Range(0, 4).Select(index =>
             new OfficeSeries("Series " + index, new[] { index + 1d, index + 2d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null)));
-        var chart = document.AddChart(kind, data);
+        var chart = document.AddChart(kind,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var first = (DocumentFormat.OpenXml.OpenXmlCompositeElement)plot.ChildElements.Single(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal));
         var second = (DocumentFormat.OpenXml.OpenXmlCompositeElement)first.CloneNode(true);
@@ -186,7 +185,7 @@ public sealed class WordChartImportedPreservationTests {
     [Fact]
     public void SharedUpdate_PreservesAxesByTheirChartReferencesWhenXmlOrderChanges() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.ColumnClustered, Combo());
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,Combo());
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var primary = plot.Elements<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Left);
         var secondary = plot.Elements<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
@@ -210,7 +209,7 @@ public sealed class WordChartImportedPreservationTests {
     [Fact]
     public void SharedUpdate_PreservesSecondaryLayerWhenItsCategoryAxisIsVisible() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.ColumnClustered, Combo());
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,Combo());
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         plot.Elements<C.CategoryAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Top).Delete!.Val = false;
         plot.GetFirstChild<C.LineChart>()!.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
@@ -227,7 +226,7 @@ public sealed class WordChartImportedPreservationTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }), new OfficeSeries("Second", new[] { 3d, 4d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var first = plot.GetFirstChild<C.LineChart>()!;
         var second = (C.LineChart)first.CloneNode(true);
@@ -260,7 +259,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdate_PreservesImportedRadarStyle(string style) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Series", new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Radar, data);
+        var chart = document.AddChart(OfficeChartType.Radar,data);
         chart.ChartPart!.ChartSpace!.Descendants<C.RadarStyle>().Single().Val = style == "filled" ? C.RadarStyleValues.Filled : C.RadarStyleValues.Standard;
         chart.SetData(OfficeChartType.Radar, data);
         Assert.Equal(style, chart.ChartPart.ChartSpace.Descendants<C.RadarStyle>().Single().Val!.InnerText);
@@ -271,7 +270,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdate_RejectsAnExternallyLinkedWorkbookBeforeChangingNativeData() {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Series", new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var part = chart.ChartPart!;
         part.DeletePart(part.GetPartsOfType<EmbeddedPackagePart>().Single());
         var link = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/package", new Uri("https://example.test/data.xlsx"));
@@ -287,7 +286,7 @@ public sealed class WordChartImportedPreservationTests {
     public void SharedUpdate_PreservesFormattedLegendEntriesWhileUpdatingDeletion() {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Series", new[] { 1d, 2d }) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var legend = chart.ChartPart!.ChartSpace!.Descendants<C.Legend>().Single();
         var text = new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 1800 })));
         legend.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, text), true);
@@ -306,7 +305,7 @@ public sealed class WordChartImportedPreservationTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Series", new[] { 1d, 2d }) });
-        WordChart chart = document.AddChart(originalKind, data);
+        WordChart chart = document.AddChart(originalKind,data);
         C.Legend legend = chart.ChartPart!.ChartSpace!.Descendants<C.Legend>().Single();
         var text = new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
             new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 1800 })));

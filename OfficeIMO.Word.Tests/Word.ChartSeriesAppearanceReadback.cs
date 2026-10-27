@@ -15,7 +15,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(OfficeChartType.Scatter)]
     public void Snapshot_RejectsPictureMarkersInsteadOfDrawingCircles(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("Values", new[] { 1d, 2d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null) }));
         var marker = chart.ChartPart!.ChartSpace!.Descendants<C.Marker>().Single();
         marker.Symbol!.Val = C.MarkerStyleValues.Picture;
@@ -25,7 +25,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [Fact]
     public void Snapshot_UsesThePointOverrideBoundForStaleAndDuplicateRecords() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
+        var chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single();
         for (int index = 0; index < 10001; index++) series.InsertBefore(new C.DataPoint(new C.Index { Val = 99 }), series.GetFirstChild<C.Values>());
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 0 }, new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }))), series.GetFirstChild<C.Values>());
@@ -40,7 +40,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(2, false)]
     public void Snapshot_InheritsRadarMarkerVisibilityFromItsNativeStyle(int style, bool visible) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Radar, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) }));
+        var chart = document.AddChart(OfficeChartType.Radar,new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) }));
         var layer = chart.ChartPart!.ChartSpace!.Descendants<C.RadarChart>().Single();
         layer.RadarStyle!.Val = style == 0 ? C.RadarStyleValues.Standard : style == 1 ? C.RadarStyleValues.Marker : C.RadarStyleValues.Filled;
         layer.Elements<C.RadarChartSeries>().Single().GetFirstChild<C.Marker>()!.Remove();
@@ -60,7 +60,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(OfficeChartType.Scatter, 3)]
     public void Snapshot_SeparatesMarkerFillFromInheritedLineColour(OfficeChartType kind, int appearance) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("Values", new[] { 1d, 2d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null,
                 OfficeColor.Parse("#224466"), null, true, connectLine: appearance != 2) }));
         var native = chart.ChartPart!.ChartSpace!.Descendants<C.Marker>().Single();
@@ -83,7 +83,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(true, true)]
     public void Snapshot_QualifiesEffectiveGroupSmoothingWithSeriesOverride(bool overrideWithStraightLine, bool explicitGroupValue) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" },
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Line", new[] { 1d, 2d }) }));
         var layer = chart.ChartPart!.ChartSpace!.Descendants<C.LineChart>().Single();
         layer.AddChild(explicitGroupValue ? new C.Smooth { Val = true } : new C.Smooth(), true);
@@ -99,8 +99,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(true)]
     public void Snapshot_InheritsNativeGroupMarkerAndConnectionVisibility(bool scatter) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(scatter ? OfficeChartType.Scatter : OfficeChartType.Line,
-            new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, scatter ? new[] { 1d, 2d } : null) }));
+        var chart = document.AddChart(scatter ? OfficeChartType.Scatter : OfficeChartType.Line,            new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, scatter ? new[] { 1d, 2d } : null) }));
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         if (scatter) {
             var layer = plot.GetFirstChild<C.ScatterChart>()!;
@@ -128,7 +127,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, null,
             OfficeColor.Parse("#224466"), null, true, markerSize: 9, strokeWidth: 2) });
-        var chart = document.AddChart(OfficeChartType.Line, data);
+        var chart = document.AddChart(OfficeChartType.Line,data);
         var native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         if (appearance == 0) native.AddChild(new C.Smooth { Val = true }, true);
         else {
@@ -146,8 +145,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [InlineData(true)]
     public void Snapshot_RejectsAggregateSparseCacheBudgetBeforeProjection(bool scatter) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(scatter ? OfficeChartType.Scatter : OfficeChartType.Line,
-            new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, scatter ? new[] { 1d, 2d } : null) }));
+        var chart = document.AddChart(scatter ? OfficeChartType.Scatter : OfficeChartType.Line,            new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, scatter ? new[] { 1d, 2d } : null) }));
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var layer = (DocumentFormat.OpenXml.OpenXmlCompositeElement)plot.ChildElements.First(element => element.LocalName.EndsWith("Chart"));
         var original = (DocumentFormat.OpenXml.OpenXmlCompositeElement)layer.ChildElements.First(element => element.LocalName == "ser");
@@ -174,7 +172,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         var expected = new OfficeSeries("Styled", new[] { 1d, 2d }, new[] { 1d, 2d }, OfficeColor.Parse("#224466"), null, true,
             connectLine: false, markerSize: 9, markerShape: OfficeChartMarkerShape.Diamond,
             markerOutlineColor: OfficeColor.Parse("#FF0000"), markerOutlineWidth: 2, strokeWidth: 3, strokeDashStyle: OfficeStrokeDashStyle.Dash);
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] { expected }));
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] { expected }));
         using var bytes = new MemoryStream(); document.Save(bytes); bytes.Position = 0;
         using var reopened = WordDocument.Load(bytes);
         Assert.True(reopened.Charts.Single().TryGetSnapshot(out var snapshot));
@@ -193,7 +191,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     [Fact]
     public void Snapshot_RejectsAnUnqualifiedNativeDashInsteadOfFlatteningItsAppearance() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" },
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Status", new[] { 1d, 2d }, null, null, null, true, strokeWidth: 2) }));
         chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().ChartShapeProperties!
             .GetFirstChild<A.Outline>()!.AddChild(new A.PresetDash { Val = A.PresetLineDashValues.LargeDash }, true);
