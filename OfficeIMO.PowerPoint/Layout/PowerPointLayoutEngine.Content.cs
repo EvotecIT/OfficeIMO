@@ -539,11 +539,33 @@ namespace OfficeIMO.PowerPoint {
                     AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
                     IncludeDataSummaryInAlternativeText = true
                 });
+            // The slide title carries the message; a chart keeps at most a short label-sized title.
             if (!string.IsNullOrWhiteSpace(chart.Title)) {
                 result.SetTitle(chart.Title!);
-                result.SetTitleTextStyle(fontSizePoints: context.Style(PowerPointTextRole.Caption).Size + 3D, bold: true);
+                result.SetTitleTextStyle(fontSizePoints: context.Style(PowerPointTextRole.Caption).Size + 3D, bold: true, color: context.Theme.Text);
             } else {
                 result.ClearTitle();
+            }
+
+            // The chart sits on the slide surface: no chart-area fill or frame.
+            result.SetChartAreaStyle(noFill: true, noLine: true);
+            if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) ContrastSliceLabels(context, result, chart);
+        }
+
+        /// <summary>
+        ///     Pie and doughnut labels sit on their slice: each takes white or the theme text colour, whichever reads
+        ///     on that slice's accent fill.
+        /// </summary>
+        private static void ContrastSliceLabels(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
+            bool labelled = result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabels>().Any(labels =>
+                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowValue>()?.Val?.Value == true ||
+                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>()?.Val?.Value == true);
+            if (!labelled || chart.Data.Series.Count == 0) return;
+            int points = chart.Data.Categories.Count;
+            for (int i = 0; i < points; i++) {
+                string fill = context.Theme.Accent(i % 6 + 1);
+                string color = PowerPointLayoutTheme.Contrast("FFFFFF", fill) >= 4.5D ? "FFFFFF" : context.Theme.Text;
+                result.SetSeriesDataLabelTextStyleForPoint(0, i, color: color);
             }
         }
 

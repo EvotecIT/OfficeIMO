@@ -355,5 +355,33 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(presentation.ValidateDocument());
         }
+    
+        [Fact]
+        public void LayoutCharts_DropTheFrameAndKeepSliceLabelsReadable() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            var slide = new PowerPointLayoutSlide { Title = "Ticket mix by channel" };
+            var data = new OfficeChartData(new[] { "Email", "Phone", "Chat", "Walk-up" },
+                new[] { new OfficeChartSeries("Tickets", new double[] { 42, 28, 18, 12 }) });
+            slide.Blocks.Add(new PowerPointLayoutChart(OfficeChartKind.Doughnut, data));
+            PowerPointSlide added = PowerPointLayoutEngine.AddSlides(presentation, slide).Single();
+            PowerPointChart chart = added.Charts.Single();
+            DocumentFormat.OpenXml.Drawing.Charts.ChartSpace space = chart.GetChart().Parent as DocumentFormat.OpenXml.Drawing.Charts.ChartSpace
+                ?? throw new InvalidOperationException("Chart space missing.");
+            Assert.NotNull(space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>()?.GetFirstChild<A.NoFill>());
+
+            var labels = chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabel>().ToList();
+            if (chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>().Any(p => p.Val?.Value == true) ||
+                chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.ShowValue>().Any(v => v.Val?.Value == true)) {
+                Assert.Equal(4, labels.Count);
+                foreach (var label in labels) {
+                    int index = (int)label.Index!.Val!.Value;
+                    string fill = presentation.LayoutTheme.Accent(index % 6 + 1);
+                    string color = label.Descendants<A.RgbColorModelHex>().Last().Val!.Value!;
+                    Assert.True(PowerPointLayoutTheme.Contrast(color, fill) >= 4.5D || color == presentation.LayoutTheme.Text);
+                }
+            }
+
+            Assert.Empty(presentation.ValidateDocument());
+        }
     }
 }
