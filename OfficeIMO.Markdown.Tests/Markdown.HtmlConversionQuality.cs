@@ -89,6 +89,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlThemeTokensRetainAuthoredSurfacesAndLinkColor() {
+            var color = global::OfficeIMO.OfficeColor.Parse("#123456");
+            OfficeTheme theme = OfficeTheme.Modern.WithSurfaces(OfficeTheme.Modern.Surfaces.With(
+                surface: color, rule: color, accent1Tint: color, successFill: color, warningFill: color, dangerFill: color))
+                .WithTextStyle(OfficeTheme.Modern.TextStyle.With(linkColor: color));
+
+            string css = global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(theme, ":root");
+
+            foreach (string token in new[] { "surface", "rule", "accent-1-tint", "success-fill", "warning-fill", "danger-fill", "link" })
+                Assert.Contains("--office-" + token + ": #123456;", css, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MarkdownHtml_DefaultStyleUsesThemeTokensAndAlignsNumbers() {
             string html = Omd.MarkdownDocument.Parse("| Region | Revenue | Share |\n|---|---|---|\n| EMEA | 1,250 | 12.5% |\n| APAC | 980 | 9% |\n")
                 .ToHtml(new Omd.MarkdownHtmlExportOptions { Kind = Omd.MarkdownHtmlKind.Document });

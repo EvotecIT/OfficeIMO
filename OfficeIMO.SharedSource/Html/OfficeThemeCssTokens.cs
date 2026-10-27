@@ -9,8 +9,7 @@ namespace OfficeIMO.Internal;
 /// Turns an <see cref="OfficeTheme"/> into the CSS custom properties that HTML writers share:
 /// <c>--office-bg</c>, <c>--office-text</c>, <c>--office-muted</c>, <c>--office-accent-1</c> to <c>-6</c>,
 /// the status colours and their <c>-fill</c> tints, font stacks, the type scale in points and table tokens.
-/// Every value comes from the theme; status fills are the status colour at 12 % over the background
-/// (18 % for dark backgrounds), as the visual design derives them.
+/// Every value comes from the theme, including authored surface and status fills.
 /// </summary>
 internal static class OfficeThemeCssTokens {
     internal const string MonospaceStack = "ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
@@ -38,22 +37,26 @@ internal static class OfficeThemeCssTokens {
     internal static IReadOnlyList<KeyValuePair<string, string>> GetTokens(OfficeTheme theme) {
         if (theme == null) throw new ArgumentNullException(nameof(theme));
         OfficeThemePalette palette = theme.Palette;
-        bool dark = IsDark(palette.Background);
         var tokens = new List<KeyValuePair<string, string>>();
         void Append(string name, string value) => tokens.Add(new KeyValuePair<string, string>(name, value));
         Append("--office-bg", Hex(palette.Background, theme));
         Append("--office-text", Hex(palette.Text, theme));
         Append("--office-muted", Hex(palette.TextMuted, theme));
+        Append("--office-surface", Hex(theme.Surfaces.Surface, theme));
+        Append("--office-rule", Hex(theme.Surfaces.Rule, theme));
+        Append("--office-link", Hex(theme.TextStyle.LinkColor, theme));
         OfficeColor[] accents = { palette.Accent1, palette.Accent2, palette.Accent3, palette.Accent4, palette.Accent5, palette.Accent6 };
         // Longer names first so a reference to --office-accent-1-tint is never cut short by --office-accent-1.
-        Append("--office-accent-1-tint", Mix(palette.Accent1, palette.Background, 0.1D, theme));
+        Append("--office-accent-1-tint", Hex(theme.Surfaces.Accent1Tint, theme));
         for (int index = 0; index < accents.Length; index++) {
             Append("--office-accent-" + (index + 1).ToString(CultureInfo.InvariantCulture), Hex(accents[index], theme));
         }
 
-        double tint = dark ? 0.18D : 0.12D;
-        foreach ((string name, OfficeColor color) in new[] { ("success", palette.Success), ("warning", palette.Warning), ("danger", palette.Danger) }) {
-            Append("--office-" + name + "-fill", Mix(color, palette.Background, tint, theme));
+        foreach ((string name, OfficeColor color, OfficeColor fill) in new[] {
+            ("success", palette.Success, theme.Surfaces.SuccessFill),
+            ("warning", palette.Warning, theme.Surfaces.WarningFill),
+            ("danger", palette.Danger, theme.Surfaces.DangerFill) }) {
+            Append("--office-" + name + "-fill", Hex(fill, theme));
             Append("--office-" + name, Hex(color, theme));
         }
 
@@ -114,13 +117,6 @@ internal static class OfficeThemeCssTokens {
     private static string Hex(OfficeColor color, OfficeTheme theme) {
         OfficeColor resolved = color.IsThemeRole ? color.Resolve(theme) : color;
         return resolved.A == 0 ? "transparent" : "#" + resolved.ToRgbHex();
-    }
-
-    private static string Mix(OfficeColor color, OfficeColor background, double amount, OfficeTheme theme) {
-        OfficeColor top = color.IsThemeRole ? color.Resolve(theme) : color;
-        OfficeColor bottom = background.IsThemeRole ? background.Resolve(theme) : background;
-        byte Channel(byte front, byte back) => (byte)Math.Round(front * amount + back * (1D - amount), MidpointRounding.AwayFromZero);
-        return "#" + OfficeColor.FromRgb(Channel(top.R, bottom.R), Channel(top.G, bottom.G), Channel(top.B, bottom.B)).ToRgbHex();
     }
 
     private static bool IsDark(OfficeColor background) {

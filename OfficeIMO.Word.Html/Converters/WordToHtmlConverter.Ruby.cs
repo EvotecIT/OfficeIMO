@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Html {
                     styles.Add($"font-size:{(halfPoints / 2D).ToString("0.###", CultureInfo.InvariantCulture)}pt");
                 }
                 string? font = properties.RunFonts?.Ascii?.Value ?? properties.RunFonts?.HighAnsi?.Value;
-                if (options.IncludeFontStyles && !string.IsNullOrWhiteSpace(font)) styles.Add($"font-family:{QuoteCssString(font!)}");
+                if (options.IncludeFontStyles && !string.IsNullOrWhiteSpace(font)) styles.Add($"font-family:{FontFamilyCss(font!)}");
                 if (IsEnabled(properties.SmallCaps)) styles.Add("font-variant:small-caps");
                 if (IsEnabled(properties.Caps)) styles.Add("text-transform:uppercase");
                 if (properties.Spacing?.Val?.Value is int twentiethPoints) {

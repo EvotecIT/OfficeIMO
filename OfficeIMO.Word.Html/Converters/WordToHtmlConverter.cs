@@ -668,7 +668,7 @@ namespace OfficeIMO.Word.Html {
                                 htmlDoc,
                                 span,
                                 "style",
-                                $"font-family:{QuoteCssString(font!)}",
+                                $"font-family:{FontFamilyCss(font!)}",
                                 "RunFontStyle");
                             span.AppendChild(node);
                             node = span;

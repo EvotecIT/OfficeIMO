@@ -150,7 +150,7 @@ namespace OfficeIMO.Word.Html {
                         htmlDocument,
                         span,
                         "style",
-                        $"font-family:{QuoteCssString(font!)}",
+                        $"font-family:{FontFamilyCss(font!)}",
                         "EquationRunFontStyle");
                     span.AppendChild(node);
                     node = span;

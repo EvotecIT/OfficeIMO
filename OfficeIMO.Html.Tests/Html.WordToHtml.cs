@@ -163,17 +163,21 @@ namespace OfficeIMO.Tests {
             Assert.True(exception.Actual > imageDataUriCharacters * 2L);
         }
 
-        [Fact]
-        public void Test_WordToHtml_PlainParagraphHonorsRequestedRunFontStyles() {
+        [Theory]
+        [InlineData("OfficeIMO Contract Font", "sans-serif")]
+        [InlineData("Times New Roman", "serif")]
+        [InlineData("Consolas", "monospace")]
+        public void Test_WordToHtml_PlainParagraphHonorsRequestedRunFontStyles(string family, string generic) {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Plain font contract");
 
             string html = doc.ToHtml(new WordHtmlExportOptions {
-                FontFamily = "OfficeIMO Contract Font",
+                FontFamily = family,
                 IncludeFontStyles = true
             });
 
-            Assert.Contains("<span style=\"font-family:&quot;OfficeIMO Contract Font&quot;\">Plain font contract</span>", html, StringComparison.Ordinal);
+            Assert.Contains("font-family:&quot;" + family + "&quot;, " + generic, html, StringComparison.Ordinal);
+            Assert.Contains("Plain font contract", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -1422,9 +1426,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<h1 class=\"Heading1\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<span class=\"Heading1Char\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(".Heading1 {", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("font-size:16pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("font-size:" + OfficeTheme.Default.TypeScale.Heading1.ToPoints()
+                .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "pt", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(".Heading1Char {", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("color:#2f5496", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("color:#" + OfficeTheme.Default.TextStyle.HeadingColor.Resolve(OfficeTheme.Default).ToRgbHex(), html, StringComparison.OrdinalIgnoreCase);
 
             string htmlNoClasses = doc.ToHtml(new WordHtmlExportOptions());
             Assert.DoesNotContain("class=\"Heading1\"", htmlNoClasses, StringComparison.OrdinalIgnoreCase);

@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         var font = rPr.RunFonts?.Ascii?.Value;
                         if (!string.IsNullOrEmpty(font)) {
-                            props["font-family"] = QuoteCssString(font!);
+                            props["font-family"] = FontFamilyCss(font!);
                         }
                     }
                 }
@@ -255,6 +255,12 @@ namespace OfficeIMO.Word.Html {
 
             string normalized = value!.Trim().TrimStart('#');
             return IsSixDigitHexColor(normalized) ? normalized.ToLowerInvariant() : null;
+        }
+
+        private static string FontFamilyCss(string value) {
+            string generic = global::OfficeIMO.Drawing.OfficeDocumentFontSubstitutions.ClassifyGenericFamily(value);
+            return string.Equals(value.Trim(), generic, StringComparison.OrdinalIgnoreCase)
+                ? generic : QuoteCssString(value) + ", " + generic;
         }
 
         private static string QuoteCssString(string value) {
