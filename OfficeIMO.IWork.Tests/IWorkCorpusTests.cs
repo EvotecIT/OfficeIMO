@@ -121,7 +121,7 @@ public sealed class IWorkCorpusTests {
             using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: options);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             Assert.Equal(result.Projection.Slides.Count, reopened.Slides.Count);
             Assert.Empty(reopened.ValidateDocument());
         }
@@ -261,7 +261,7 @@ public sealed class IWorkCorpusTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Equal(2, reopened.Slides.Count);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("hello keynote", StringComparison.Ordinal));
@@ -543,7 +543,7 @@ public sealed class IWorkCorpusTests {
         powerPointBytes.Position = 0;
         using WordDocument word = WordDocument.Load(wordBytes);
         using ExcelDocument excel = ExcelDocument.Load(excelBytes);
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Load(powerPointBytes);
+        using PowerPointDocument powerPoint = PowerPointDocument.Load(powerPointBytes);
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());

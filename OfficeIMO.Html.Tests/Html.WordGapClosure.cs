@@ -578,7 +578,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         using (var imageStream = new MemoryStream(Convert.FromBase64String(ValidPng))) {
-            cell.Paragraphs[0].AddImage(imageStream, "existing.png", 10, 10);
+            cell.Paragraphs[0].AddImage(imageStream, "existing.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         }
 
         cell.AddHtml(HtmlConversionDocument.Parse("""<span>Appended</span>"""));

@@ -11,14 +11,14 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "DirectEditingPowerPoint.pptx");
             string sourcePath = Path.Combine(folderPath, "DirectEditingPowerPoint-Source.pptx");
 
-            using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+            using (PowerPointDocument source = PowerPointDocument.Create(sourcePath)) {
                 PowerPointSlide sourceSlide = source.AddSlide();
                 sourceSlide.AddTitleCm("Imported slide", 1.5, 1.5, 22.0, 1.5);
                 sourceSlide.AddTextBoxCm("This slide remains fully editable after import.", 1.5, 3.5, 22.0, 1.2);
                 source.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(1.5);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox title = slide.AddTitle("Direct presentation editing",
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .Stroke("007ACC", 2);
                 slide.Notes.Text = "Concrete objects can be edited immediately or after reopening the deck.";
 
-                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
+                using (PowerPointDocument source = PowerPointDocument.Load(sourcePath,
                            new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     PowerPointSlide imported = presentation.ImportSlide(source, 0);
                     imported.AddTextBoxCm("Imported through the same presentation model.", 1.5, 5.0, 22.0, 0.8);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation edited = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument edited = PowerPointDocument.Load(filePath)) {
                 edited.ReplaceText("One lifecycle owner", "One consistent lifecycle owner");
                 edited.Save();
             }

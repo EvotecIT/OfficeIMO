@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
 
             var newRun = new Run();
             var paragraph = new WordParagraph(_document, _paragraph, newRun);
-            paragraph.AddImage(filePath, width, height);
+            paragraph.AddImage(filePath, width.HasValue ? OfficeLength.Pixels(width.Value) : null, height.HasValue ? OfficeLength.Pixels(height.Value) : null);
 
             ReplaceContent(newRun);
         }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word {
 
             var newRun = new Run();
             var paragraph = new WordParagraph(_document, _paragraph, newRun);
-            paragraph.AddImage(imageStream, fileName, width, height);
+            paragraph.AddImage(imageStream, fileName, width.HasValue ? OfficeLength.Pixels(width.Value) : null, height.HasValue ? OfficeLength.Pixels(height.Value) : null);
 
             ReplaceContent(newRun);
         }

@@ -33,11 +33,11 @@ public sealed class IWorkKeynoteImageResizeTests {
         string name = "keynote-preserved-resized" + (edited ? "-edited" : "") + "-v15.4.key";
         var source = IWorkSourceDocument.Open(Fixture(name)); var projection = source.ReadKeynote();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
-        using var conversion = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var native = PowerPointPresentation.Load(Fixture("keynote-preserved-resized-edited-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var native = PowerPointDocument.Load(Fixture("keynote-preserved-resized-edited-v15.4.pptx"));
         Assert.Empty(saved.ValidateDocument()); Assert.Equal(3, saved.Slides.Count);
         for (int index = 0; index < 3; index++) {
             var expected = Assert.Single(original.Slides[index].Images);

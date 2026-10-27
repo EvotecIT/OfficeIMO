@@ -7,7 +7,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds an editable native chart with hero or insight-rail narrative composition.</summary>
-        public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointChartStoryContent content,
             PowerPointDesignTheme? theme = null, PowerPointChartStorySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Adds an editable side-by-side or decision-matrix comparison.</summary>
-        public static PowerPointSlide AddDesignerComparisonSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerComparisonSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointComparisonItem> items,
             PowerPointDesignTheme? theme = null, PowerPointComparisonSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Adds a native appendix table with full-width or notes-rail composition.</summary>
-        public static PowerPointSlide AddDesignerAppendixTableSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerAppendixTableSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointTableData data, PowerPointDesignTheme? theme = null,
             PowerPointAppendixTableSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

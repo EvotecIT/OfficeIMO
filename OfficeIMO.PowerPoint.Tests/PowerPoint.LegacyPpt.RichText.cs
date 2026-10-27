@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             "Documents", "LegacyPptCorpus", "RichTextPowerPoint.ppt");
         [Fact]
         public void NeutralReader_DecodesMicrosoftCharacterRuns() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(RichTextFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(RichTextFixturePath);
             LegacyPptShape shape = Assert.Single(Assert.Single(legacy.Slides).Shapes,
                 item => item.Text.Contains("Bold red", StringComparison.Ordinal));
             LegacyPptTextBody textBody = shape.TextBody;
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NormalLoad_ProjectsMicrosoftCharacterRunsAndPreservesBinaryExactly() {
             byte[] source = File.ReadAllBytes(RichTextFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 Assert.Single(presentation.Slides).TextBoxes).Element);
             A.Paragraph[] paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToArray();
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsShapeRichTextParagraphsBulletsAndFonts() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
                 bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape binaryShape = Assert.Single(
                 Assert.Single(binary.Slides).Shapes,
                 candidate => candidate.Text.StartsWith("Bold red",
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                     font => font.Typeface == typeface));
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             P.Shape projected = Assert.IsType<P.Shape>(Assert.Single(
                 reopened.Slides[0].TextBoxes).Element);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ReportsOutOfRangeRichTextLevelBeforeBuildingRuler() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide(PowerPointSlideLayoutType.Blank)
                 .AddTextBoxPoints("Unsafe level", 30, 30, 240, 120);
             P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsTextFrameMarginsWrappingAnchorDirectionAndAutoFit() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
                 bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape binaryShape = Assert.Single(
                 Assert.Single(binary.Slides).Shapes,
                 shape => shape.Text == "Text frame");
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(true, frame.FitShapeToText);
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedTextFrameEdit_UsesIncrementalOfficeArtRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -391,13 +391,13 @@ namespace OfficeIMO.Tests {
                 body.AnchorCenter = true;
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox textBox = Assert.Single(
                     imported.Slides[0].TextBoxes,
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape savedShape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
@@ -450,7 +450,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
@@ -476,18 +476,18 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPresentation_AppendedSlideAuthorsRichTextAndFonts() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Existing slide");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox textBox = imported.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape savedShape = Assert.Single(saved.Slides[1].Shapes,
                 shape => shape.Text == "Appended rich text");
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             P.Shape reopenedShape = Assert.IsType<P.Shape>(Assert.Single(
                 reopened.Slides[1].TextBoxes,
@@ -563,16 +563,16 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedRichTextGeometryEdit_PreservesCharacterRuns() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(RichTextFixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(RichTextFixturePath);
             LegacyPptShape originalShape = Assert.Single(Assert.Single(original.Slides).Shapes,
                 shape => shape.Text.Contains("Bold red", StringComparison.Ordinal));
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             PowerPointTextBox textBox = Assert.Single(presentation.Slides[0].TextBoxes);
 
             textBox.Left += 15875;
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(Assert.Single(saved.Slides).Shapes,
                 shape => shape.Text.Contains("Bold red", StringComparison.Ordinal));
@@ -584,9 +584,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedRichTextFormattingAndLengthEdit_UsesIncrementalStyleRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 RichTextFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 presentation.Slides[0].TextBoxes).Element);
             A.Run first = shape.TextBody!.Descendants<A.Run>().First();
@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
@@ -635,10 +635,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedMasterTextStyleEdit_UsesIncrementalRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 RichTextFixturePath);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(RichTextFixturePath);
             P.SlideMaster slideMaster = presentation.Slides[0].SlidePart.SlideLayoutPart!
                 .SlideMasterPart!.SlideMaster!;
             A.Level1ParagraphProperties title = Assert.IsType<A.Level1ParagraphProperties>(
@@ -649,7 +649,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptTextMasterStyle savedTitle = Assert.Single(
                 Assert.Single(saved.Masters).TextMasterStyles,
@@ -665,13 +665,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedTextRulerEdit_UsesIncrementalRulerRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 FixturePath);
             LegacyPptShape originalTitle = Assert.Single(
                 Assert.Single(original.Slides).Shapes,
                 candidate => candidate.Text
                     == "OfficeIMO PowerPoint Basics");
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             P.Shape title = Assert.IsType<P.Shape>(presentation.Slides[0].TextBoxes.Single(textBox =>
                 textBox.Text == "OfficeIMO PowerPoint Basics").Element);
             A.TabStop tab = title.TextBody!.Descendants<A.TabStop>().First();
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedTitle = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,

@@ -10,12 +10,12 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     /// <summary>Converts the source document to a PDF model.</summary>
-    public static PdfDocument ToPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions? options = null,
+    public static PdfDocument ToPdf(this PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) =>
         presentation.ToPdf(options, out _, cancellationToken);
 
     /// <summary>Converts the source document and returns its completed conversion findings.</summary>
-    public static PdfDocument ToPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions? options,
+    public static PdfDocument ToPdf(this PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = presentation.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -24,7 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Converts the source document, returning the model and report together.</summary>
-    public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this PptCore.PowerPointPresentation presentation,
+    public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this PptCore.PowerPointDocument presentation,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
         return await Task.Run(() => {
@@ -36,7 +36,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Writes a PDF file and returns the complete conversion report.</summary>
-    public static OfficeConversionReport SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path,
+    public static OfficeConversionReport SaveAsPdf(this PptCore.PowerPointDocument presentation, string path,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
@@ -49,7 +49,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Writes PDF to a caller-owned stream and returns the complete conversion report.</summary>
-    public static OfficeConversionReport SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream,
+    public static OfficeConversionReport SaveAsPdf(this PptCore.PowerPointDocument presentation, Stream stream,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         var timer = Stopwatch.StartNew();
@@ -61,7 +61,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
-    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointPresentation presentation, string path,
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointDocument presentation, string path,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
@@ -75,7 +75,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns its conversion report.</summary>
-    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointPresentation presentation, Stream stream,
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointDocument presentation, Stream stream,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         options = (options ?? new PowerPointPdfExportOptions()).Clone();

@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests {
     public sealed class PowerPointMutationLifecycleTests {
         [Fact]
         public void RemovingOnlyCustomShowSlideRemovesShowAndActions() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointAutoShape actionShape = source.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DuplicatingMutuallyLinkedSlideSharesExistingTargets() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide first = presentation.AddSlide();
             PowerPointTextRun firstRun = first.AddTextBox("Second")
                 .Paragraphs.Single().Runs.Single();
@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportingMutuallyLinkedSlidesImportsListedTargetsOnce() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide first = source.AddSlide();
             PowerPointTextRun firstRun = first.AddTextBox("Second")
                 .Paragraphs.Single().Runs.Single();
@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests {
                 .Paragraphs.Single().Runs.Single();
             firstRun.SetHyperlink(second);
             secondRun.SetHyperlink(first);
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide importedFirst = target.ImportSlide(source, 0);
 
@@ -111,16 +111,16 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportAndExportPreserveNotesAlongsideAudioRelationships() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide sourceSlide = source.AddSlide();
             using (var audio = new MemoryStream(CreateWave(),
                        writable: false)) {
                 sourceSlide.AddAudio(audio, "audio/wav", ".wav");
             }
             sourceSlide.Notes.Text = "Media notes";
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide imported = target.ImportSlide(source, 0);
 
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
             using var exportedStream = new MemoryStream();
             source.ExportSlide(0, exportedStream);
             exportedStream.Position = 0;
-            using PowerPointPresentation exported =
-                PowerPointPresentation.Load(exportedStream);
+            using PowerPointDocument exported =
+                PowerPointDocument.Load(exportedStream);
             PowerPointSlide exportedSlide = Assert.Single(exported.Slides);
             Assert.Equal("Media notes", exportedSlide.Notes.Text);
             Assert.Single(exportedSlide.Media);
@@ -141,8 +141,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingSlideCleansLayoutAndSoundedInboundLinks() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide(
                 PowerPointSlideLayoutType.Title);
             PowerPointSlide target = presentation.AddSlide();
@@ -178,8 +178,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DuplicatedNotesBacklinkTargetsDuplicateSlide() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             source.Notes.Text = "Duplicated notes";
             source.SlidePart.NotesSlidePart!.AddPart(source.SlidePart);
@@ -205,8 +205,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ShapeRemovalCleansClassicAnimationAndSound() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -231,8 +231,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ShapeRemovalCleansActionSoundMedia() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -250,8 +250,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ShapeRemovalIgnoresOrdinaryAttributesMatchingLayoutId() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
             string layoutRelationshipId = slide.SlidePart.GetIdOfPart(layout);
@@ -273,8 +273,8 @@ namespace OfficeIMO.Tests {
             byte[] original = CreateWave();
             byte[] replacement = (byte[])original.Clone();
             replacement[replacement.Length - 1] ^= 0x11;
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             using var input = new MemoryStream(original, writable: false);
             PowerPointMedia first = slide.AddAudio(input, "audio/wav",
@@ -304,8 +304,8 @@ namespace OfficeIMO.Tests {
             byte[] original = CreateWave();
             byte[] replacement = (byte[])original.Clone();
             replacement[replacement.Length - 1] ^= 0x22;
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             using var input = new MemoryStream(original, writable: false);
             PowerPointMedia media = slide.AddAudio(input, "audio/wav",
@@ -341,8 +341,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportSlideClonesSharedMasterAndLayoutActionSound() {
             byte[] wave = CreateWave();
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide sourceSlide = source.AddSlide();
             SlideLayoutPart sourceLayout = sourceSlide.SlidePart
                 .SlideLayoutPart!;
@@ -366,8 +366,8 @@ namespace OfficeIMO.Tests {
                     layoutRelationship.Id, "Shared layout sound"));
             sourceMaster.SlideMaster.Save();
             sourceLayout.SlideLayout.Save();
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide imported = target.ImportSlide(source, 0);
 
@@ -400,8 +400,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FailedLinkedSlideImportLeavesDestinationUnchanged() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide first = source.AddSlide();
             PowerPointTextRun link = first.AddTextBox("Broken target")
                 .Paragraphs.Single().Runs.Single();
@@ -409,8 +409,8 @@ namespace OfficeIMO.Tests {
             link.SetHyperlink(brokenTarget);
             brokenTarget.SlidePart.DeletePart(
                 brokenTarget.SlidePart.SlideLayoutPart!);
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
             int originalPartCount = target.OpenXmlDocument
                 .PresentationPart!.Parts.Count();
             string originalPresentationXml = target.OpenXmlDocument
@@ -429,8 +429,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingClassicAnimationRejectsForeignShapeWithSameId() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide first = presentation.AddSlide();
             PowerPointAutoShape local = first.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -450,8 +450,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingClassicAnimationsPreservesMediaTiming() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             using var audio = new MemoryStream(CreateWave(), writable: false);
             slide.AddAudio(audio, "audio/wav", ".wav");
@@ -467,8 +467,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingClassicAnimationsRemovesOnlyClassicMixedTiming() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -489,8 +489,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingOneClassicAnimationPreservesMixedMediaTiming() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape first = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -519,8 +519,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingClassicAnimationPreservesMatchingAdvancedEffect() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -569,8 +569,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ReplacingRunHyperlinkPreservesSoundAndCleansOldTarget() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextRun run = source.AddTextBox("Target")
@@ -611,8 +611,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingRunHyperlinkIgnoresShapeNameMatchingRelationshipId() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextRun run = slide.AddTextBox("Link")
                 .Paragraphs.Single().Runs.Single();
@@ -630,8 +630,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingShapeSoundIgnoresShapeNameMatchingRelationshipId() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape sounded = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -653,8 +653,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FailedSoundIngestionDoesNotLeaveMediaParts() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -681,8 +681,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void InvalidClassicAnimationSoundTargetDoesNotCreateMediaPart() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1000000, 500000);
@@ -698,8 +698,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FailedMediaReplacementPreservesExistingPayload() {
             byte[] original = CreateWave();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             using var initial = new MemoryStream(original, writable: false);
             PowerPointMedia media = slide.AddAudio(initial, "audio/wav",

@@ -64,7 +64,7 @@ public static partial class PowerPointIWorkConverter {
 
         if (!editable) settings.ValidateVisualPreview(preview);
 
-        PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointDocument presentation = PowerPointDocument.Create();
         try {
             IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
             bool useSourceSlideSize = sourceSlideSize != null
@@ -133,7 +133,7 @@ public static partial class PowerPointIWorkConverter {
                     : OfficeImageFormat.Jpeg;
                 (double left, double top, double width, double height) = PreviewLayout(preview,
                     canvasWidth / 72d, canvasHeight / 72d);
-                PowerPointPicture picture = slide.AddPictureInches(image, format, left, top, width, height);
+                PowerPointPicture picture = slide.AddImageInches(image, format, left, top, width, height);
                 picture.AltText = "Visual fallback from the source Keynote package";
             }
 
@@ -181,7 +181,7 @@ public static partial class PowerPointIWorkConverter {
         width = QuantizePositiveEmuPoints(width);
         height = QuantizePositiveEmuPoints(height);
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
-        PowerPointPicture picture = slide.AddPicturePoints(stream,
+        PowerPointPicture picture = slide.AddImagePoints(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
             left, top, width, height);
         picture.Rotation = source.Geometry?.RotationDegrees;

@@ -103,7 +103,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             document.Save();
         }
         string powerPoint = Path.Combine(scope.Path, "deck.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPoint)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(powerPoint)) {
             presentation.AddSlide().AddTextBoxPoints("workflow provenance", 20, 20, 300, 60);
             presentation.Save();
         }

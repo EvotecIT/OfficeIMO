@@ -6,12 +6,12 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointPresentationSizes {
+    public class PowerPointDocumentSizes {
         [Fact]
         public void SlideAndNotesSizesAreSet() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.AddSlide();
                 presentation.Save();
             }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         public void CanSetSlideSizeUsingCentimeters() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.SlideSize.WidthCm = 25.4;
                 presentation.SlideSize.HeightCm = 14.0;
                 presentation.Save();
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         public void SlideSizeRejectsValuesOutsideIntRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.WidthEmus = (long)int.MaxValue + 1);
                 Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.HeightEmus = (long)int.MinValue - 1);
             }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         public void CanCreateLayoutBoxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(1.0);
                 PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm: 1.0, gutterCm: 1.0);
                 PowerPointLayoutBox[] rows = presentation.SlideSize.GetRowsCm(2, marginCm: 1.0, gutterCm: 1.0);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void CanSetSlideSizePreset() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3);
                 presentation.Save();
             }
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3);
 
                     PowerPointSlide slide1 = presentation.AddSlide();

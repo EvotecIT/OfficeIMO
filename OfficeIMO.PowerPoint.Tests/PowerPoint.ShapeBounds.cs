@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ShapeBounds_GetSet_Works() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 4000);
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         public void ShapeBounds_RightBottomSetters_MoveEdges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 1000, 500, 600);
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void ShapeBounds_CenterSetters_MoveCenter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(0, 0, 1000, 2000);
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         public void Slide_GetShapesInBounds_SelectsExpectedShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);

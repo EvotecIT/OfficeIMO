@@ -13,7 +13,7 @@ public partial class Word {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         using WordDocument source = WordDocument.Create();
         using var imageStream = new MemoryStream(png);
-        source.AddParagraph("Inline picture").AddImage(imageStream, "picture.png", 40, 20);
+        source.AddParagraph("Inline picture").AddImage(imageStream, "picture.png", OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(20));
         source.Images[0].CropLeft = 25000;
         byte[] original = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         using WordDocument control = WordDocument.Load(new MemoryStream(original));

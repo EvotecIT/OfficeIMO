@@ -51,13 +51,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         document.AddParagraph("Polished previews with predictable output.")
             .SetFontFamily(PortableFontFamily);
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            document.AddParagraph().AddImage(
-                image,
-                "delivery-status.png",
-                120,
-                40,
-                WordImageTextWrapping.InLineWithText,
-                "Delivery status visualization");
+            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Delivery status visualization" });
         }
         return document.ToImage()
             .WithFont(PortableFontFamily, PortableRegularFont.Value)
@@ -70,7 +64,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
 
     private static byte[] RenderPowerPoint() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSizePoints(480, 270);
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "F8FAFC";
@@ -93,7 +87,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
             .Fill("DBEAFE")
             .Stroke("2563EB", 1D);
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            slide.AddPicture(
+            slide.AddImage(
                 image,
                 OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(260),

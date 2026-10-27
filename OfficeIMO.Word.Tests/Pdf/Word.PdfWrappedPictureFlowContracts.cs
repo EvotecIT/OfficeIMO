@@ -205,7 +205,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         double distance = Distance, double verticalOffset = 0D) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(2, 2, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(png);
-        var image = paragraph.AddText(string.Empty).AddImage(stream, "picture.png", ImageWidth / .75D, ImageHeight / .75D, wrapping);
+        var image = paragraph.AddText(string.Empty).AddImage(stream, "picture.png", OfficeIMO.OfficeLength.Pixels(ImageWidth / .75D), OfficeIMO.OfficeLength.Pixels(ImageHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.HorizontalPositionOffset = 30L * 12700L;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;

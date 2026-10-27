@@ -13,18 +13,18 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
 
             var table = document.AddTable(2, 2);
-            table.Rows[0].Cells[0].Paragraphs[0].AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
+            table.Rows[0].Cells[0].Paragraphs[0].AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             // not really nessessary to add new paragraph since one is already there by default
             var paragraph = table.Rows[0].Cells[1].AddParagraph();
-            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
+            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             var tableInHeader = document.HeaderDefaultOrCreate.AddTable(2, 2);
-            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
+            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             // not really nessessary to add new paragraph since one is already there by default
             var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
-            paragraphInHeader.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
+            paragraphInHeader.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             document.Save();
             if (openWord) document.OpenInApplication();

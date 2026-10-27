@@ -17,7 +17,7 @@ order: 30
 
 | Type | Purpose |
 |------|---------|
-| `PowerPointPresentation` | Root document for creating, loading, saving, and organizing slides |
+| `PowerPointDocument` | Root document for creating, loading, saving, and organizing slides |
 | `PowerPointSlide` | Individual slide surface for titles, text boxes, tables, charts, images, and notes |
 | `PowerPointTextBox` | Rich text container with bullets, formatted runs, margins, and auto-fit |
 | `PowerPointTable` | Strongly typed table surface with styles, column widths, row heights, and merged cells |
@@ -53,7 +53,7 @@ var best = brief.DescribeDeckPlanAlternatives(plan, 3)
     .OrderByDescending(alternative => alternative.ContentFitScore)
     .First();
 
-using var presentation = PowerPointPresentation.Create("proposal.pptx");
+using var presentation = PowerPointDocument.Create("proposal.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
 composition.SelectBestAlternative = false;
@@ -69,7 +69,7 @@ presentation.Save();
 ```csharp
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointPresentation.Create("status-update.pptx");
+using var presentation = PowerPointDocument.Create("status-update.pptx");
 const double marginCm = 1.5;
 
 var content = presentation.SlideSize.GetContentBoxCm(marginCm);
@@ -123,7 +123,7 @@ blocks known loss by default:
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
+using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
 presentation.ReplaceText("Draft", "Approved");
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();

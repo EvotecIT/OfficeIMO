@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetCombinesEarlyImageAndLaterElements() {
             using WordDocument document = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
-            document.AddParagraph().AddImage(assetPath, 20, 20);
+            document.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             for (int index = 0; index < 800; index++) {
                 document.AddParagraph();
             }
@@ -449,10 +449,7 @@ namespace OfficeIMO.Tests {
         [InlineData("svg")]
         public void Test_WordToHtml_OutputBudgetReservesExternalImageSource(string extension) {
             using WordDocument document = WordDocument.Create();
-            document.AddParagraph().AddImage(
-                new Uri("https://example.test/" + new string('a', 8192) + "/image." + extension),
-                10,
-                10);
+            document.AddParagraph().AddImage(new Uri("https://example.test/" + new string ('a', 8192) + "/image." + extension), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
                 document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {

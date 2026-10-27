@@ -67,11 +67,11 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
 
             string presentationPath = Path.Combine(folder, "repeated.pptx");
-            using (var presentation = PowerPointPresentation.Create(presentationPath)) {
+            using (var presentation = PowerPointDocument.Create(presentationPath)) {
                 foreach (var visual in expected) presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
                 presentation.Save();
             }
-            using (var presentation = PowerPointPresentation.Load(presentationPath)) {
+            using (var presentation = PowerPointDocument.Load(presentationPath)) {
                 Assert.Equal(expected.Length, presentation.Slides.Count);
                 for (int index = 0; index < expected.Length; index++) {
                     var image = Assert.Single(presentation.Slides[index].Pictures);

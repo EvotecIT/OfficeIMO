@@ -70,13 +70,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(columns == 2 ? "medium" : "thin", borders.Right!.Style);
             Assert.Equal(rows == 3 ? "medium" : "thin", borders.Bottom!.Style);
         } else {
-            using var result = source.ToPowerPointPresentationResult(); result.Report.RequireCompleteEditableReconstruction();
+            using var result = source.ToPowerPointDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
             for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeightPoints(row, 60D);
             authoredTable.HeightPoints = authoredTable.Rows * 60D;
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             var pdf = reopened.ToPdf();
             var rendered = pdf.Render.Pages("1", new PdfCore.PdfPageRenderOptions {
                 Format = PdfCore.PdfPageRenderFormat.Svg, ContinueOnError = false
@@ -122,13 +122,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains("merged", Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordDocumentResult(strict); }
             else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelDocumentResult(strict); }
-            else { using var result = source.ToPowerPointPresentationResult(strict); }
+            else { using var result = source.ToPowerPointDocumentResult(strict); }
         }).Message, StringComparison.OrdinalIgnoreCase);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordDocumentResult(policy); report = result.Report; }
         else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelDocumentResult(policy); report = result.Report; }
-        else { using var result = source.ToPowerPointPresentationResult(policy); report = result.Report; }
+        else { using var result = source.ToPowerPointDocumentResult(policy); report = result.Report; }
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code.EndsWith("MERGED_TABLE_BORDERS_APPROXIMATED", StringComparison.Ordinal)
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }

@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Options controlling dependency-free PowerPoint presentation image export.
     /// </summary>
-    public sealed class PowerPointPresentationImageExportOptions : PowerPointImageExportOptions {
+    public sealed class PowerPointDocumentImageExportOptions : PowerPointImageExportOptions {
         /// <summary>
         /// Gets or sets a value indicating whether hidden slides should be included in presentation-level exports.
         /// </summary>
@@ -105,9 +105,9 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<int>? SlideNumbers { get; set; }
 
         /// <summary>Creates an independent presentation options snapshot.</summary>
-        public PowerPointPresentationImageExportOptions ClonePresentation() {
-            PowerPointPresentationImageExportOptions clone =
-                CopyPowerPointOptionsTo(new PowerPointPresentationImageExportOptions());
+        public PowerPointDocumentImageExportOptions CloneDocument() {
+            PowerPointDocumentImageExportOptions clone =
+                CopyPowerPointOptionsTo(new PowerPointDocumentImageExportOptions());
             clone.IncludeHiddenSlides = IncludeHiddenSlides;
             clone.SlideNumbers = SlideNumbers?.ToArray();
             return clone;

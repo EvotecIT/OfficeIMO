@@ -16,7 +16,7 @@ public sealed class OfficeVbaProjectTests {
         excel.AddWorksheet("Data");
         Assert.Throws<ArgumentException>(() => excel.SetVbaProject(wordProject));
         Assert.Null(excel.ReadVbaProject());
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         Assert.Throws<ArgumentException>(() => presentation.SetVbaProject(wordProject));
         Assert.Null(presentation.ReadVbaProject());
         var excelProject = OfficeVbaProject.Create();
@@ -273,8 +273,8 @@ public sealed class OfficeVbaProjectTests {
                     using (WordDocument loaded = WordDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
                 case "pptm":
-                    using (PowerPointPresentation document = PowerPointPresentation.Create(path)) { document.SetVbaProject(project); document.Save(); }
-                    using (PowerPointPresentation loaded = PowerPointPresentation.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
+                    using (PowerPointDocument document = PowerPointDocument.Create(path)) { document.SetVbaProject(project); document.Save(); }
+                    using (PowerPointDocument loaded = PowerPointDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
             }
         } finally {

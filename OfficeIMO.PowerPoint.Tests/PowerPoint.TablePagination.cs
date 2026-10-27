@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 };
                 var configuredPages = new List<int>();
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetSizePoints(400, 225);
                     PowerPointPaginatedTableResult result = presentation.AddTableSlides(source, columns,
                         new PowerPointTablePaginationOptions {
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 Assert.Equal(4, reopened.Slides.Count);
                 Assert.All(reopened.Slides, slide => Assert.Single(slide.Tables));
             } finally {
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddTableSlides_RejectsBoundsThatCannotFitHeaderAndData() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             var rows = new[] { new TableRow(1, "Only") };
             var columns = new[] { PowerPointTableColumn<TableRow>.Create("Name", row => row.Name) };
 

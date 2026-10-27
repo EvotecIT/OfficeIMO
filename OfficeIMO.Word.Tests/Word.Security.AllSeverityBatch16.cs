@@ -124,15 +124,15 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
 
-        paragraph.AddImage(new Uri("https://example.test/image.png"), 10, 10);
-        paragraph.AddImage(new Uri("ftp://example.test/image.png"), 10, 10);
-        paragraph.AddImage(new Uri("cid:linked-image@example.test"), 10, 10);
+        paragraph.AddImage(new Uri("https://example.test/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        paragraph.AddImage(new Uri("ftp://example.test/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        paragraph.AddImage(new Uri("cid:linked-image@example.test"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         Assert.Null(Record.Exception(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Throws<ArgumentException>(() =>
-            paragraph.AddImage(new Uri("file:///private/secret.png"), 10, 10));
+            paragraph.AddImage(new Uri("file:///private/secret.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
         Assert.Throws<ArgumentException>(() =>
-            paragraph.AddImage(new Uri("smb://server/share/image.png"), 10, 10));
-        Assert.Throws<ArgumentNullException>(() => paragraph.AddImage(null!, 10, 10));
+            paragraph.AddImage(new Uri("smb://server/share/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
+        Assert.Throws<ArgumentNullException>(() => paragraph.AddImage(null !, OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
     }
 
     [Fact]

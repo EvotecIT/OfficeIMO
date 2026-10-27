@@ -209,20 +209,14 @@ namespace OfficeIMO.Pdf.Word {
                                 ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
                             });
                     }
-                    embeddedImage = imageParagraph.InsertImage(
-                        stream,
-                        fileName,
-                        width,
-                        height,
-                        wrapping,
-                        description);
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = description });
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = PdfPointsToEmu(visual.Left);
                     embeddedImage.VerticalPositionOffset = PdfPointsToEmu(visual.Top);
                     embeddedImage.ZOrder = imageContext.GetZOrder(placement);
                 } else {
-                    embeddedImage = imageParagraph.InsertImage(stream, fileName, width, height, description: description);
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = description });
                     if (placement != null && page.RotationDegrees != 0) {
                         embeddedImage.Rotation = page.RotationDegrees;
                     }

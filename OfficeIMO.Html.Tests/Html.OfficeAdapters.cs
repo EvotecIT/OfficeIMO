@@ -875,7 +875,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
             new OfficeSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
@@ -889,8 +889,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         OfficeSeries series = Assert.Single(snapshot.Data.Series);
@@ -900,8 +900,8 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsBubbleChartSizesInSemanticChartData() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
         OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
@@ -957,8 +957,8 @@ public partial class HtmlOfficeAdapters {
             StringComparison.Ordinal);
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
@@ -1000,8 +1000,8 @@ public partial class HtmlOfficeAdapters {
             """;
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart chart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1018,8 +1018,8 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
             OfficeSeries.CreateBubble("Portfolio",
@@ -1034,8 +1034,8 @@ public partial class HtmlOfficeAdapters {
           .Replace(" data-officeimo-x=\"2.5\"", string.Empty);
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Empty(imported.Slides[0].Charts);
         Assert.Contains(result.Report.Diagnostics,
@@ -1045,7 +1045,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Actual", new[] { 10D, 20D })
@@ -1058,8 +1058,8 @@ public partial class HtmlOfficeAdapters {
         html = html.Replace("<td>10</td>", "<td data-officeimo-x=\"1\">10</td>")
             .Replace("<td>20</td>", string.Empty);
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1072,7 +1072,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
             new OfficeSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
@@ -1086,8 +1086,8 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
@@ -1098,13 +1098,13 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roadmap");
         slide.AddTextBox("HTML end to end");
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 140, 72, 72);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 140, 72, 72);
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1135,11 +1135,11 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_ExportsPositionedReviewSlides() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Positioned", 72, 96, 240, 60);
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
             picture.AltText = "Positioned image";
         }
 
@@ -1166,13 +1166,13 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_SemanticSlidesSkipHiddenShapesByDefault() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Visible briefing");
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture hiddenPicture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture hiddenPicture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
             hiddenPicture.Name = "Hidden image marker";
             hiddenPicture.Hidden = true;
         }
@@ -1205,7 +1205,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewIncludesInheritedLayoutShapes() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox layoutText = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
         P.Shape slideShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
@@ -1227,7 +1227,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesPositionedTextBoxLineBreaks() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Agenda\n  Owner", 72, 96, 240, 60);
 
@@ -1241,7 +1241,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesShapeFlipTransforms() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox textBox = slide.AddTextBoxPoints("Flipped", 72, 96, 240, 60);
         textBox.Rotation = 12.5D;
@@ -1257,13 +1257,13 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_CapabilityGalleryWritesSharedManifestForRichPresentation() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Gallery Roadmap");
         slide.AddTextBoxPoints("Positioned proof", 72, 96, 240, 60);
         slide.Notes.Text = "Gallery notes";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
             picture.AltText = "Gallery picture";
         }
 
@@ -1338,13 +1338,13 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_LoadsSemanticRichPresentationBackToNativePresentation() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roundtrip Roadmap");
         slide.AddTextBoxPoints("HTML end to end", 72, 96, 240, 60);
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1367,8 +1367,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("Position: 72pt, 180pt", html, StringComparison.Ordinal);
         Assert.Contains("Position: 180pt, 130pt", html, StringComparison.Ordinal);
         Assert.Contains("Size: 260pt x 150pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
         Assert.Equal(1, result.Slides);
@@ -1415,10 +1415,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsOffSlidePicturePosition() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, -18, -12, 72, 72);
+            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, -18, -12, 72, 72);
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1426,8 +1426,8 @@ public partial class HtmlOfficeAdapters {
         });
 
         Assert.Contains("Position: -18pt, -12pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
         Assert.Equal(-18D, picture.LeftPoints, 3);
@@ -1436,10 +1436,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsPictureTransforms() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
             picture.Name = "Transformed picture";
             picture.AltText = "Transformed alt";
             picture.Rotation = 23.5D;
@@ -1456,8 +1456,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-flip-horizontal=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-flip-vertical=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-crop-left=\"0.10000000000000001\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
         Assert.Equal("Transformed alt", importedPicture.AltText);
@@ -1476,10 +1476,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RejectsCropPairsThatConsumeTheWholePicture() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 40, 80, 60)
+            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 40, 80, 60)
                 .Crop(10D, 0D, 10D, 0D);
         }
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1490,8 +1490,8 @@ public partial class HtmlOfficeAdapters {
         html = System.Text.RegularExpressions.Regex.Replace(
             html, "data-officeimo-crop-right=\"[^\"]*\"", "data-officeimo-crop-right=\"0.75\"");
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
 
         Assert.Equal(0D, picture.CropLeftRatio);
@@ -1502,7 +1502,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsChartTransformsAndMixedDrawingOrder() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
@@ -1513,7 +1513,7 @@ public partial class HtmlOfficeAdapters {
         chart.HorizontalFlip = true;
         chart.VerticalFlip = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 96, 100, 80, 64);
+            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 96, 100, 80, 64);
             picture.Name = "Top picture";
         }
 
@@ -1524,8 +1524,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-layer-kind=\"picture\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rotation=\"18.75\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
         Assert.Equal(1, result.Charts);
@@ -1541,10 +1541,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewStretchesPositionedPicturesToAuthoredShape() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 50, 180, 60);
+            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 50, 180, 60);
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1565,8 +1565,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Equal(2, result.Slides);
         Assert.Equal(2, imported.Slides.Count);
@@ -1576,7 +1576,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsHiddenSlideStateWhenIncluded() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Hidden briefing");
         slide.Hidden = true;
@@ -1588,8 +1588,8 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-hidden=\"true\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         Assert.True(importedSlide.Hidden);
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Hidden briefing", StringComparison.Ordinal));
@@ -1608,8 +1608,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide slide = imported.Slides[0];
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes);
         PowerPointTable table = Assert.Single(slide.Tables);
@@ -1621,7 +1621,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_LoadPreservesChartKindFromSemanticInventory() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
@@ -1632,8 +1632,8 @@ public partial class HtmlOfficeAdapters {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1661,8 +1661,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1696,8 +1696,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1730,8 +1730,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.Equal(1, result.Charts);
@@ -1759,8 +1759,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Equal(1, result.Notes);
         Assert.DoesNotContain("This is regular slide content", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
@@ -1785,8 +1785,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         string expected = string.Join(Environment.NewLine, "First line", string.Empty, "    Indented line", "Third line");
         Assert.Equal(1, result.Notes);
@@ -1812,8 +1812,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
 
         Assert.Equal(1, result.Pictures);

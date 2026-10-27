@@ -292,7 +292,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         byte[] tiffBytes = OfficeTiffCodec.Encode(new OfficeRasterImage(
             1, 1, OfficeColor.FromRgb(12, 34, 56)));
         using var tiff = new MemoryStream(tiffBytes, writable: false);
-        source.AddParagraph().AddImage(tiff, "unsupported.tiff", 10, 10);
+        source.AddParagraph().AddImage(tiff, "unsupported.tiff", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         OdtDocument target = conversion.Value;
@@ -316,7 +316,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         using WordDocument word = WordDocument.Create();
         using (var image = new MemoryStream(png, writable: false)) {
-            word.AddParagraph().AddImage(image, "imported.png", 10, 10);
+            word.AddParagraph().AddImage(image, "imported.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         }
         using (var image = new MemoryStream(webp, writable: false)) {
             word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
@@ -326,10 +326,10 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.Contains(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
 
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         using (var image = new MemoryStream(png, writable: false)) {
-            presentation.AddSlide().AddPicture(image, OfficeImageFormat.Png);
+            presentation.AddSlide().AddImage(image, OfficeImageFormat.Png);
         }
         using (var image = new MemoryStream(webp, writable: false)) {
             presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
@@ -348,7 +348,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         using WordDocument word = WordDocument.Create();
         using (var image = new MemoryStream(png, writable: false)) {
-            word.AddParagraph().AddImage(image, "imported.png", 10, 10);
+            word.AddParagraph().AddImage(image, "imported.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         }
         using (var image = new MemoryStream(webp, writable: false)) {
             word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
@@ -358,10 +358,10 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.DoesNotContain(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         using (var image = new MemoryStream(png, writable: false)) {
-            presentation.AddSlide().AddPicture(image, OfficeImageFormat.Png);
+            presentation.AddSlide().AddImage(image, OfficeImageFormat.Png);
         }
         using (var image = new MemoryStream(webp, writable: false)) {
             presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
@@ -417,8 +417,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         presentationSource.AddSlide("Broken").AddImage(png, "missing.png", OdfRect.FromCentimeters(1, 1, 2, 2));
         OdpPresentation brokenPresentation = OpenBrokenFlat(presentationSource.ToFlatXml(), draw, xlink, office,
             stream => OdpPresentation.LoadFlatXml(stream));
-        OdfConversionResult<PowerPointPresentation> powerPointConversion = brokenPresentation.ToPowerPointPresentationResult();
-        using PowerPointPresentation powerPoint = powerPointConversion.Value;
+        OdfConversionResult<PowerPointDocument> powerPointConversion = brokenPresentation.ToPowerPointDocumentResult();
+        using PowerPointDocument powerPoint = powerPointConversion.Value;
 
         Assert.Contains(powerPointConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -426,10 +426,10 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void IncompletePowerPointTiffImagesAreReportedWithoutAbortingConversion() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
-        slide.AddPicture(tiff, OfficeImageFormat.Tiff);
+        slide.AddImage(tiff, OfficeImageFormat.Tiff);
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         OdpPresentation target = conversion.Value;
@@ -458,8 +458,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdpRectangle shape = slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 2, 2));
         slide.AddFadeInAnimation(shape, TimeSpan.FromSeconds(1));
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
 
         Assert.True(conversion.Report.HasLoss);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-presentation-animations" && mapping.Status == OdfConversionMappingStatus.Unsupported);

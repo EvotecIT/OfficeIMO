@@ -30,7 +30,7 @@ public class AddOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
     /// <summary>Presentation to update (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index to use.</summary>
     [Parameter]
@@ -60,11 +60,11 @@ public class AddOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PowerPointPresentation? presentation = Presentation;
+        PowerPointDocument? presentation = Presentation;
         try {
             var context = PowerPointDslContext.Current;
             if (presentation == null) {
-                presentation = (context ?? PowerPointDslContext.Require(this)).Presentation;
+                presentation = (context ?? PowerPointDslContext.Require(this)).Document;
             }
 
             PowerPointSlide slide;

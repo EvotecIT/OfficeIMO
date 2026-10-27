@@ -81,7 +81,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointAndOdpPreserveNativeDecorationScriptAndCapsSemantics() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
             .Paragraphs[0].Runs[0];
         run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
@@ -98,7 +98,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.Equal(OdfTextPosition.Subscript, odpRun.TextPosition);
         Assert.True(odpRun.SmallCaps);
 
-        using PowerPointPresentation roundTrip = persisted.ToPowerPointPresentation();
+        using PowerPointDocument roundTrip = persisted.ToPowerPointDocument();
         PowerPointTextRun converted = roundTrip.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
         Assert.Equal(PowerPointUnderlineStyle.WavyDouble, converted.UnderlineStyle);
         Assert.Equal(PowerPointStrikeStyle.Double, converted.StrikeStyle);
@@ -250,7 +250,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddRun("he").Bold = true;
         paragraph.AddRun("llo world").Italic = true;
 
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
 
         Assert.Equal("Hello World", converted.Text);
@@ -270,7 +270,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddRun("Ο").Bold = true;
         paragraph.AddRun("Σ").Italic = true;
 
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
 
         Assert.Equal("ος", converted.Text);
@@ -295,7 +295,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             OdpParagraph lowercase = textBox.AddParagraph("I");
             lowercase.TextTransform = OdfTextTransform.Lowercase;
 
-            using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+            using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
 
             Assert.Equal(new[] { "İstanbul", "ı" },
                 powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
@@ -325,7 +325,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
             .AddParagraph().AddRun("iPhone eBOOK");
         odpRun.TextTransform = OdfTextTransform.Capitalize;
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         Assert.Equal("IPhone EBOOK", powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Text);
     }
 }

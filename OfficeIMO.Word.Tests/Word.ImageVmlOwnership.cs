@@ -39,7 +39,7 @@ public sealed class WordImageVmlOwnershipTests {
         using var sourceDocument = WordDocument.Create();
         using var destination = WordDocument.Create();
         byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
-        var source = sourceDocument.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", 20, 20)!;
+        var source = sourceDocument.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20))!;
         var targetDocument = otherDocument ? destination : sourceDocument;
         var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
         var clone = source.Clone(target);
@@ -83,7 +83,7 @@ public sealed class WordImageVmlOwnershipTests {
     public void ImageRemoval_PreservesClonedDrawingMlOccurrence() {
         using var document = WordDocument.Create();
         byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
-        var source = document.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", 20, 20)!;
+        var source = document.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20))!;
         var clone = source.Clone(document.AddParagraph());
         source.Remove();
         Assert.Equal(expected, clone.ToBytes());
@@ -95,7 +95,7 @@ public sealed class WordImageVmlOwnershipTests {
     public void ImageRemoval_PreservesPartReferencedByVmlFill() {
         using var document = WordDocument.Create();
         byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
-        var image = document.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", 20, 20)!;
+        var image = document.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20))!;
         var owner = document.MainDocumentPartRoot;
         string id = image.RelationshipId!;
         var fill = new V.Fill();

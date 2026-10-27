@@ -22,7 +22,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static bool TryImportGenericTextBlock(
         HtmlSemanticBlock block,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         ref PptCore.PowerPointSlide slide,

@@ -74,7 +74,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
     public void PowerPointRetainsReviewAndHiddenSourceStateEvenWhenHiddenShapesAreExcludedFromText() {
         using var stream = new MemoryStream();
         byte[] bytes;
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide(); slide.Hidden = true;
             slide.AddTextBox("Hidden author text").Hidden = true;
             presentation.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer", "R"), "Review evidence");

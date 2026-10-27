@@ -39,7 +39,7 @@ public sealed class OfficeOcrConversionTests {
         Assert.Equal("Product", header);
         Assert.True(excel.Sheets[0].TryGetCellText(3, 1, out string cell));
         Assert.Equal("Alpha", cell);
-        using var presentation = PowerPointPresentation.Load(new MemoryStream(slideStream.ToArray()));
+        using var presentation = PowerPointDocument.Load(new MemoryStream(slideStream.ToArray()));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.Tables), table => table.Rows > 1 && table.GetCell(1, 0).Text == "Alpha");
         Assert.Same(bounds, table.VisualBounds);
         Assert.Equal(rows.Length, table.Rows.Count);

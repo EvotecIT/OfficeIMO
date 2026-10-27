@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             byte[] projectBytes = CreateVbaTestProject("FreshModule",
                 "Sub Fresh()\nEnd Sub");
             byte[] binary;
-            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
                 created.AddSlide().AddTitle("VBA");
                 SetVbaProject(created, projectBytes);
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument neutral = LegacyPptDocument.Load(binary);
             LegacyPptVbaProject vba = Assert.IsType<LegacyPptVbaProject>(
                 neutral.VbaProject);
             Assert.False(vba.WasCompressed);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code.StartsWith("ppt-vba-", StringComparison.Ordinal));
 
             using var input = new MemoryStream(binary);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
                 projected.OpenXmlDocument.DocumentType);
             Assert.Equal(projectBytes, ReadVbaProject(projected));
@@ -66,16 +66,16 @@ namespace OfficeIMO.Tests {
             byte[] projectBytes = CreateVbaTestProject("PptxModule",
                 "Sub PptxExport()\nEnd Sub");
             byte[] binary;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 created.AddSlide().AddTitle("Macro source");
                 SetVbaProject(created, projectBytes);
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(binary);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             byte[] pptx = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx });
 
             using (var package = new MemoryStream(pptx, writable: false))
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             Assert.Equal(projectBytes, Assert.IsType<LegacyPptVbaProject>(
-                LegacyPptPresentation.Load(binaryAfterPptxExport)
+                LegacyPptDocument.Load(binaryAfterPptxExport)
                     .VbaProject).GetBytes());
         }
 
@@ -99,16 +99,16 @@ namespace OfficeIMO.Tests {
             byte[] projectBytes = CreateVbaTestProject("StreamModule",
                 "Sub StreamExport()\nEnd Sub");
             byte[] binary;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 created.AddSlide().AddTitle("Macro source");
                 SetVbaProject(created, projectBytes);
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(binary);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             using var syncDestination = new MemoryStream();
             imported.Save(syncDestination);
             AssertMacroFreeBytes(syncDestination.ToArray());
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
             string encryptedPath = Path.Combine(Path.GetTempPath(),
                 $"officeimo-{Guid.NewGuid():N}.pptm");
             try {
-                using (PowerPointPresentation created =
-                       PowerPointPresentation.Create()) {
+                using (PowerPointDocument created =
+                       PowerPointDocument.Create()) {
                     created.AddSlide().AddTitle("PPTM source");
                     SetVbaProject(created, projectBytes);
                     created.SaveCopy(sourcePath);
@@ -140,8 +140,8 @@ namespace OfficeIMO.Tests {
                         "OfficeIMO-pptm-pass");
                 }
                 AssertMacroEnabledPackage(sourcePath, projectBytes);
-                using (PowerPointPresentation encrypted =
-                       PowerPointPresentation.LoadEncrypted(encryptedPath,
+                using (PowerPointDocument encrypted =
+                       PowerPointDocument.LoadEncrypted(encryptedPath,
                            "OfficeIMO-pptm-pass")) {
                     Assert.Equal(
                         PresentationDocumentType.MacroEnabledPresentation,
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(projectBytes, ReadVbaProject(encrypted));
                 }
 
-                using (PowerPointPresentation loaded =
-                       PowerPointPresentation.Load(sourcePath)) {
+                using (PowerPointDocument loaded =
+                       PowerPointDocument.Load(sourcePath)) {
                     Assert.Equal(projectBytes, ReadVbaProject(loaded));
                     loaded.Slides[0].TextBoxes.Single().Text =
                         "PPTM saved";
@@ -174,16 +174,16 @@ namespace OfficeIMO.Tests {
             byte[] replacementProject = CreateVbaTestProject(
                 "ReplacementModule", "Sub Replacement()\nEnd Sub");
             byte[] sourceBytes;
-            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
                 created.AddSlide().AddTitle("Replace VBA");
                 SetVbaProject(created, originalProject);
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(sourceBytes);
 
             byte[] replacedBytes;
             using (var sourceStream = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(
+            using (PowerPointDocument imported = PowerPointDocument.Load(
                        sourceStream)) {
                 SetVbaProject(imported, replacementProject);
                 LegacyPptWritePreflightReport preflight = imported
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
                 replacedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation replaced = LegacyPptPresentation.Load(
+            LegacyPptDocument replaced = LegacyPptDocument.Load(
                 replacedBytes);
             Assert.Equal(replacementProject,
                 Assert.IsType<LegacyPptVbaProject>(replaced.VbaProject)
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
 
             byte[] removedBytes;
             using (var replacedStream = new MemoryStream(replacedBytes))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(
+            using (PowerPointDocument imported = PowerPointDocument.Load(
                        replacedStream)) {
                 PresentationPart presentationPart = imported.OpenXmlDocument
                     .PresentationPart!;
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+            LegacyPptDocument removed = LegacyPptDocument.Load(
                 removedBytes);
             Assert.Null(removed.VbaProject);
             Assert.True(removed.Package.DocumentStream.AsSpan(0,
@@ -227,13 +227,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPresentation_CanAddVbaProjectWithoutRebuildingSourceGraph() {
             byte[] sourceBytes = File.ReadAllBytes(FixturePath);
-            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(sourceBytes);
             byte[] projectBytes = CreateVbaTestProject("AddedModule",
                 "Sub Added()\nEnd Sub");
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 SetVbaProject(imported, projectBytes);
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.Equal(projectBytes,
                 Assert.IsType<LegacyPptVbaProject>(saved.VbaProject)
                     .GetBytes());
@@ -266,13 +266,13 @@ namespace OfficeIMO.Tests {
             byte[] projectBytes = CreateVbaTestProject("BoundedModule",
                 "Sub Main(): End Sub");
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Bounded VBA import");
                 SetVbaProject(source, projectBytes);
                 binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 binary);
             LegacyPptVbaProject vba = Assert.IsType<LegacyPptVbaProject>(
                 original.VbaProject);
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests {
                 });
 
             OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                LegacyPptPresentation.Load(malicious));
+                LegacyPptDocument.Load(malicious));
             Assert.Equal("powerpoint", error.Owner);
             Assert.Equal("MaxTotalStreamBytes", error.LimitName);
             Assert.Equal((long)expandedStorage.Length, error.Maximum);
@@ -312,14 +312,14 @@ namespace OfficeIMO.Tests {
             byte[] projectBytes = CreateVbaTestProject("CompressedModule",
                 "Sub Compressed()\nEnd Sub");
             byte[] uncompressedBytes;
-            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+            using (PowerPointDocument created = PowerPointDocument.Create()) {
                 created.AddSlide().AddTitle("Compressed VBA");
                 SetVbaProject(created, projectBytes);
                 uncompressedBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] sourceBytes = ConvertVbaStorageToCompressed(
                 uncompressedBytes);
-            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(sourceBytes);
             LegacyPptVbaProject sourceVba = Assert.IsType<LegacyPptVbaProject>(
                 source.VbaProject);
             Assert.True(sourceVba.WasCompressed);
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 Assert.Equal(projectBytes, ReadVbaProject(imported));
                 LegacyPptWritePreflightReport exactPreflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptVbaProject savedVba = Assert.IsType<LegacyPptVbaProject>(
                 saved.VbaProject);
             Assert.True(savedVba.WasCompressed);
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
                 corruptModule, out _));
         }
 
-        private static void SetVbaProject(PowerPointPresentation presentation,
+        private static void SetVbaProject(PowerPointDocument presentation,
             byte[] bytes) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
@@ -419,7 +419,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] ReadVbaProject(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             using Stream stream = presentation.OpenXmlDocument
                 .PresentationPart!.VbaProjectPart!.GetStream(
                     FileMode.Open, FileAccess.Read);
@@ -584,7 +584,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] ConvertVbaStorageToCompressed(byte[] sourceBytes) {
-            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(sourceBytes);
             LegacyPptVbaProject vba = Assert.IsType<LegacyPptVbaProject>(
                 source.VbaProject);
             var persist = source.Package.PersistObjects[vba.PersistId];

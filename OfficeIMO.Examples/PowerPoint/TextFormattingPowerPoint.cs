@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_TextFormattingPowerPoint(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Text formatting");
             string filePath = Path.Combine(folderPath, "Text Formatting PowerPoint.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);

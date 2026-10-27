@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             const string MacroName = "Module1.RunReport";
             var programUri = new Uri("file:///Applications/Calculator.app");
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape macroShape = slide.AddRectangle(
                     100000, 100000, 1000000, 500000);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptInteraction macro = Assert.Single(legacy.Slides[0].Shapes
                 .SelectMany(shape => shape.Interactions));
             Assert.Equal(LegacyPptInteractionAction.Macro, macro.Action);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             Assert.True(program.StopsSound);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             A.HyperlinkOnClick projectedMacro = projected.Slides[0].SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>().Single(link =>
                     link.Action?.Value?.StartsWith("ppaction://macro?name=",
@@ -93,16 +93,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedNamedAction_AddEditAndRemoveAppendsPreservingRecords() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] addedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
                     .Append(new A.HyperlinkOnClick {
                         Id = string.Empty,
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, report.Findings));
                 addedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation added = LegacyPptPresentation.Load(addedBytes);
+            LegacyPptDocument added = LegacyPptDocument.Load(addedBytes);
             LegacyPptInteraction addedAction = Assert.Single(added.Slides[0].Shapes
                 .SelectMany(shape => shape.Interactions));
             Assert.Equal(LegacyPptInteractionAction.Macro, addedAction.Action);
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
             var programUri = new Uri("file:///Applications/Preview.app");
             byte[] editedBytes;
             using (var input = new MemoryStream(addedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 P.NonVisualDrawingProperties properties = GetDrawingProperties(
                     Assert.Single(slide.Shapes));
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
+            LegacyPptDocument edited = LegacyPptDocument.Load(editedBytes);
             LegacyPptInteraction editedAction = Assert.Single(edited.Slides[0].Shapes
                 .SelectMany(shape => shape.Interactions));
             Assert.Equal(LegacyPptInteractionAction.RunProgram,
@@ -155,13 +155,13 @@ namespace OfficeIMO.Tests {
 
             byte[] removedBytes;
             using (var input = new MemoryStream(editedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
                     .RemoveAllChildren<A.HyperlinkOnClick>();
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
+            LegacyPptDocument removed = LegacyPptDocument.Load(removedBytes);
             Assert.Empty(removed.Slides[0].Shapes
                 .SelectMany(shape => shape.Interactions));
             Assert.True(removed.Package.DocumentStream.AsSpan(0,
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksNamedActionDataWithoutBinarySemantics() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                 100000, 100000, 1000000, 500000);
             GetDrawingProperties(shape).Append(new A.HyperlinkOnClick {

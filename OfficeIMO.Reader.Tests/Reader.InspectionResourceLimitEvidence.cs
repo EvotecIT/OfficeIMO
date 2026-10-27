@@ -94,7 +94,7 @@ public sealed class ReaderInspectionResourceLimitEvidenceTests {
             }
             bytes = memory.ToArray();
         } else if (extension == "pptx") {
-            using var memory = new MemoryStream(); using PowerPointPresentation document = PowerPointPresentation.Create(memory);
+            using var memory = new MemoryStream(); using PowerPointDocument document = PowerPointDocument.Create(memory);
             PowerPointSlide slide = document.AddSlide(); for (int index = 1; index <= 4; index++) slide.AddTextBox("Hidden source " + index).Hidden = true;
             bytes = document.ToBytes();
         } else if (extension == "odp") {

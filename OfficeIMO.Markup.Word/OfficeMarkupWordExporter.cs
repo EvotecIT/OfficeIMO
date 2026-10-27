@@ -182,10 +182,9 @@ internal sealed class OfficeMarkupWordExporter {
                 width = info.Width * scale;
                 height = info.Height * scale;
             }
-            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format),
-                width, height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format), (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = image.Alt ?? image.Title ?? string.Empty });
         } else if (TryResolveImagePath(context.Options, image.Source, out var path) && File.Exists(path)) {
-            context.AddParagraph().AddImage(path, image.Width, image.Height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(path, (image.Width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (image.Height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = image.Alt ?? image.Title ?? string.Empty });
         } else {
             if (context.Options.IncludeUnsupportedBlocksAsText) {
                 context.AddParagraph("Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)

@@ -291,15 +291,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a VML image to the section.
+        /// Adds an image to the section.
         /// </summary>
-        /// <param name="filePathImage">Path to the image file to embed.</param>
-        /// <param name="width">Optional image width in points.</param>
-        /// <param name="height">Optional image height in points.</param>
-        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var paragraph = AddParagraph(newRun: true);
-            paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Failed to create VML image.");
+        /// <param name="path">Path to the image file to embed.</param>
+        /// <param name="width">Optional displayed image width.</param>
+        /// <param name="height">Optional displayed image height.</param>
+        /// <param name="options">Image markup, wrapping and metadata options.</param>
+        public WordImage AddImage(string path, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions? options = null) {
+            return AddParagraph(newRun: true).AddImage(path, width, height, options);
         }
 
         /// <summary>

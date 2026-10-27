@@ -274,7 +274,7 @@ namespace OfficeIMO.Word {
             var content = new SdtContentRun();
             var imageRun = new Run();
             var imageParagraph = new WordParagraph(this._document, this._paragraph, imageRun);
-            imageParagraph.AddImage(filePath, width, height);
+            imageParagraph.AddImage(filePath, width.HasValue ? OfficeLength.Pixels(width.Value) : null, height.HasValue ? OfficeLength.Pixels(height.Value) : null);
             content.Append(imageRun);
 
             sdtRun.Append(props);

@@ -24,12 +24,12 @@ namespace OfficeIMO.PowerPoint {
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
         private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
 
-        internal PowerPointSlide(SlidePart slidePart, PowerPointPresentation? presentation = null) {
-            OwnerPresentation = presentation;
+        internal PowerPointSlide(SlidePart slidePart, PowerPointDocument? presentation = null) {
+            OwnerDocument = presentation;
             _slidePart = slidePart;
         }
 
-        internal PowerPointPresentation? OwnerPresentation { get; }
+        internal PowerPointDocument? OwnerDocument { get; }
 
         internal SlidePart SlidePart => _slidePart;
 

@@ -2,14 +2,14 @@
   "package": "OfficeIMO.PowerPoint",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 559,
+    "changes": 560,
     "byAction": {
       "change": 179,
       "internalize": 1,
       "merge": 364,
       "move": 1,
       "remove": 7,
-      "rename": 7
+      "rename": 8
     },
     "byCategory": {
       "authoring": 34,
@@ -18,7 +18,8 @@
       "options": 4,
       "package": 1,
       "units": 451,
-      "visibility": 1
+      "visibility": 1,
+      "naming": 1
     },
     "packageMoves": 3
   },
@@ -311,7 +312,8 @@
       "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4).",
       "applied": "applied",
       "note": "Native conversion and analysis are reached through OfficeConverter. Format-specific kernels/options/reports/exceptions are internal; the front door freezes their findings into OfficeConversionReport.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.Analysis.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AnalyzeConversionAsync(string sourcePath, string destinationPath, PowerPointPresentationConversionOptions options = null, CancellationToken cancellationToken = null)",
@@ -324,7 +326,8 @@
       "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4).",
       "applied": "applied",
       "note": "Native conversion and analysis are reached through OfficeConverter. Format-specific kernels/options/reports/exceptions are internal; the front door freezes their findings into OfficeConversionReport.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.Analysis.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.Convert(string sourcePath, string destinationPath, PowerPointPresentationConversionOptions options = null)",
@@ -337,7 +340,8 @@
       "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code.",
       "applied": "applied",
       "note": "Native conversion and analysis are reached through OfficeConverter. Format-specific kernels/options/reports/exceptions are internal; the front door freezes their findings into OfficeConversionReport.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ConvertAsync(string sourcePath, string destinationPath, PowerPointPresentationConversionOptions options = null, CancellationToken cancellationToken = null)",
@@ -350,194 +354,211 @@
       "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code.",
       "applied": "applied",
       "note": "Native conversion and analysis are reached through OfficeConverter. Format-specific kernels/options/reports/exceptions are internal; the front door freezes their findings into OfficeConversionReport.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadLegacyPpt(string path, LegacyPptImportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions options)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions options)",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.LegacyPpt.cs",
       "category": "lifecycle",
       "notes": "Load detects PPT by content.",
       "applied": "applied",
       "note": "Public calls use Load/LoadAsync with the format load options and the shared out-report overload. Native projection kernels remain internal for preservation and decoder tests.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.LegacyPpt.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadLegacyPpt(Stream stream, LegacyPptImportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions options)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions options)",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.LegacyPpt.cs",
       "category": "lifecycle",
       "notes": "Load detects PPT by content.",
       "applied": "applied",
       "note": "Public calls use Load/LoadAsync with the format load options and the shared out-report overload. Native projection kernels remain internal for preservation and decoder tests.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.LegacyPpt.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadLegacyPptWithReport(string path, LegacyPptImportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions options, out OfficeConversionReport report)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions options, out OfficeConversionReport report)",
       "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.LegacyPpt.cs",
       "category": "lifecycle",
       "applied": "applied",
       "note": "Public calls use Load/LoadAsync with the format load options and the shared out-report overload. Native projection kernels remain internal for preservation and decoder tests.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.LegacyPpt.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadLegacyPptWithReport(Stream stream, LegacyPptImportOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions options, out OfficeConversionReport report)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions options, out OfficeConversionReport report)",
       "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.LegacyPpt.cs",
       "category": "lifecycle",
       "applied": "applied",
       "note": "Public calls use Load/LoadAsync with the format load options and the shared out-report overload. Native projection kernels remain internal for preservation and decoder tests.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.LegacyPpt.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.Create()",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Create(PowerPointCreateOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Create(PowerPointCreateOptions options = null)",
       "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "notes": "The in-memory Create has no options overload, unlike Word and Excel.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncrypted(string filePath, string password, PowerPointLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncrypted(string filePath, string password, PowerPointLoadOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncryptedAsync(string filePath, string password, PowerPointLoadOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadAsync(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.LoadAsync(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncryptedAsync(Stream stream, string password, PowerPointLoadOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadAsync(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.LoadAsync(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncrypted(Stream stream, string password, PowerPointLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncrypted(Stream stream, string password, PowerPointLoadOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Load(path or stream, PowerPointLoadOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Load(path or stream, PowerPointLoadOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Lifecycle.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(Stream destination)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(Stream destination, PowerPointSaveOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(Stream destination, PowerPointSaveOptions options = null)",
       "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "No options overload for streams without a format today.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveCopy(string filePath)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveCopy(string filePath, PowerPointSaveOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SaveCopy(string filePath, PowerPointSaveOptions options = null)",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Word and Excel use one overload with a default.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveCopyAsync(string filePath, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveCopyAsync(string filePath, PowerPointSaveOptions options = null, CancellationToken cancellationToken = default)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SaveCopyAsync(string filePath, PowerPointSaveOptions options = null, CancellationToken cancellationToken = default)",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes()",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes(PowerPointSaveOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(PowerPointSaveOptions options = null)",
       "replacement": "Use Save(Stream) or ToBytes().",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes(PowerPointFileFormat format, PowerPointSaveOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes(PowerPointSaveOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(PowerPointSaveOptions options = null)",
       "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Format moves into PowerPointSaveOptions.Format.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToStream()",
@@ -549,7 +570,8 @@
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToStream(PowerPointFileFormat format, PowerPointSaveOptions options = null)",
@@ -561,90 +583,98 @@
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(Stream destination, PowerPointSaveOptions options = null)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(Stream destination, PowerPointSaveOptions options = null)",
       "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "The PowerPointFileFormat parameter moves into PowerPointSaveOptions.Format.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveAsync(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveAsync(Stream destination, PowerPointSaveOptions options = null, CancellationToken cancellationToken = default)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SaveAsync(Stream destination, PowerPointSaveOptions options = null, CancellationToken cancellationToken = default)",
       "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "The PowerPointFileFormat parameter moves into PowerPointSaveOptions.Format.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveEncrypted(string filePath, string password)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(path or stream, PowerPointSaveOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(path or stream, PowerPointSaveOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveEncrypted(string filePath, string password, PowerPointSaveOptions options)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(path or stream, PowerPointSaveOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(path or stream, PowerPointSaveOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveEncrypted(Stream destination, string password)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(path or stream, PowerPointSaveOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(path or stream, PowerPointSaveOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SaveEncrypted(Stream destination, string password, PowerPointFileFormat format, PowerPointSaveOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.Save(path or stream, PowerPointSaveOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Save(path or stream, PowerPointSaveOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF.",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToEncryptedBytes(string password, PowerPointFileFormat format = Pptx, PowerPointSaveOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes(PowerPointSaveOptions { Password = ... })",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(PowerPointSaveOptions { Password = ... })",
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.ValidationAndSave.cs",
       "category": "lifecycle",
       "phase": "A",
-      "applied": "applied"
+      "applied": "applied",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.ValidationAndSave.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(string imagePath, long left = 0, long top = 0, long width = 914400, long height = 914400)",
@@ -660,8 +690,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(Stream image, OfficeImageFormat imageType, long left = 0, long top = 0, long width = 914400, long height = 914400)",
@@ -677,8 +707,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(string imagePath, PowerPointLayoutBox layout)",
@@ -693,8 +723,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(Stream image, OfficeImageFormat imageType, PowerPointLayoutBox layout)",
@@ -709,8 +739,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(string imagePath, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -726,8 +756,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(Stream image, OfficeImageFormat imageType, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -743,8 +773,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(string imagePath, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -760,8 +790,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(Stream image, OfficeImageFormat imageType, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -777,8 +807,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(string imagePath, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -794,8 +824,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(Stream image, OfficeImageFormat imageType, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -811,8 +841,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(PowerPointImageAsset asset, PowerPointLayoutBox bounds)",
@@ -827,8 +857,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-image-rename-applied-geometry-pending",
+      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartKind chartKind, OfficeChartData data, long left = 0, long top = 0, long width = 5486400, long height = 3200400, PowerPointChartAccessibilityOptions accessibility = null)",
@@ -883,52 +913,55 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(PowerPointGuideOrientation orientation, long positionEmus)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(...) : PowerPointGuide",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(...) : PowerPointGuide",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(... OfficeLength ...)",
+      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(...) : IReadOnlyList<PowerPointGuide>",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(...) : IReadOnlyList<PowerPointGuide>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(... OfficeLength ...)",
+      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(...) : IReadOnlyList<PowerPointGuide>",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(...) : IReadOnlyList<PowerPointGuide>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(... OfficeLength ...)",
+      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddTitle(string title, string subtitle = null)",
@@ -1752,188 +1785,199 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuidesCm(int columnCount, double marginCm, double gutterCm, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuidesCm(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuidesCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuideCm(PowerPointGuideOrientation orientation, double positionCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddGuideCm(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuideCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuideInches(PowerPointGuideOrientation orientation, double positionInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddGuideInches(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuideInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuidePoints(PowerPointGuideOrientation orientation, double positionPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddGuidePoints(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuidePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuidesCm(int rowCount, double marginCm, double gutterCm, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuidesCm(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuidesCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingCm(double xCm, double yCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacing(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingCm(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingInches(double xInches, double yInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacing(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingInches(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingPoints(double xPoints, double yPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacing(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacingPoints(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType, double leftCm, double topCm, double rightCm, double bottomCm, uint? index = null, bool createIfMissing = False)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Layouts.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsCm(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType, double leftInches, double topInches, double rightInches, double bottomInches, uint? index = null, bool createIfMissing = False)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Layouts.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsInches(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType, double leftPoints, double topPoints, double rightPoints, double bottomPoints, uint? index = null, bool createIfMissing = False)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMargins(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.Layouts.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointPresentation.SetLayoutPlaceholderTextMarginsPoints(... OfficeLength ...)",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.DuplicateCm(double offsetXCm, double offsetYCm)",
@@ -4304,7 +4348,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddClassicComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, long x = 0, long y = 0, DateTime? created = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddClassicComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddClassicComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointReviewComments.cs",
       "category": "units",
@@ -4321,7 +4365,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddModernComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, PowerPointModernCommentStatus status = Active, long x = 0, long y = 0, DateTime? created = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.AddModernComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddModernComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointReviewComments.cs",
       "category": "units",
@@ -5614,7 +5658,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(long xEmus, long yEmus)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacing(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
@@ -5625,7 +5669,8 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetBlur(double radiusPoints, bool grow = False)",
@@ -7510,7 +7555,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingXEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingX : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.GridSpacingX : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
@@ -7520,13 +7565,14 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingYEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingY : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.GridSpacingY : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
@@ -7536,7 +7582,8 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.BottomCm",
@@ -8743,7 +8790,8 @@
       "notes": "PPT/PPTX conversion moves to OfficeConverter.",
       "applied": "applied",
       "note": "Native conversion and analysis are reached through OfficeConverter. Format-specific kernels/options/reports/exceptions are internal; the front door freezes their findings into OfficeConversionReport.",
-      "phase": "A"
+      "phase": "A",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.Models.cs"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentationImageExportOptions",
@@ -8762,7 +8810,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocument(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "PowerPointPresentation.ToPdf(PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "new": "PowerPointDocument.ToPdf(PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8773,7 +8821,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PowerPointPresentation.ToPdf(PowerPointPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
+      "new": "PowerPointDocument.ToPdf(PowerPointPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8797,7 +8845,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "PowerPointPresentation.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "new": "PowerPointDocument.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8809,7 +8857,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResult(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PowerPointPresentation.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "new": "PowerPointDocument.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8821,7 +8869,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "PowerPointPresentation.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "new": "PowerPointDocument.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8833,7 +8881,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResult(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PowerPointPresentation.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "new": "PowerPointDocument.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8845,7 +8893,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "new": "PowerPointDocument.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8856,7 +8904,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "new": "PowerPointDocument.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8867,7 +8915,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "new": "PowerPointDocument.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -8878,7 +8926,7 @@
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "new": "PowerPointDocument.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
@@ -9330,7 +9378,7 @@
       "kind": "namespace",
       "action": "internalize",
       "new": null,
-      "replacement": "Reach PPT through PowerPointPresentation.Load.",
+      "replacement": "Reach PPT through PowerPointDocument.Load.",
       "reason": "Legacy binary model exposed publicly without the PowerPoint prefix.",
       "file": "OfficeIMO.PowerPoint/LegacyPpt/",
       "category": "visibility",
@@ -9342,6 +9390,19 @@
       "phase": "B",
       "applied": "phase-b-pending",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointPresentation",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument",
+      "reason": "The document type follows WordDocument, ExcelDocument and PdfDocument. Document-specific conversion, image export and mutation types use Document in their names as well.",
+      "file": "OfficeIMO.PowerPoint/PowerPointPresentation.cs",
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.cs",
+      "category": "naming",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "All partial files and in-repo consumers use PowerPointDocument, without an alias, obsolete wrapper or type forward. Open XML PresentationDocument/PresentationPart schema names and the PowerShell Ppt alias prefix retain their meanings."
     }
   ],
   "packageMoves": [
@@ -9458,6 +9519,21 @@
       "change": "Typed table authoring on PowerPoint",
       "applied": "phase-b-applied",
       "note": "The shared declared-schema projection handles public properties, fields and string-keyed dictionaries without arbitrary object graph reflection. Word also retains rectangular text/matrix input and an explicit dynamic-object overload; PowerPoint retains configurable object flattening with an explicit configure argument; Excel retains DataTable values and returns native ExcelTable wrappers. Focused authoring tests: 10/10 per modern target; final table signature check: 4/4 per target."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerPointPresentationImageExportOptions/Builder and internal conversion routing/models now use PowerPointDocument; PowerPointSignedPresentationMutationException becomes PowerPointSignedDocumentMutationException. Slide ownership plumbing uses OwnerDocument. PowerShell command names and Ppt aliases are unchanged."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "LegacyPptPresentation and its partial files become LegacyPptDocument. Document-owned input, content-safety and image-option clone methods use Document. Open XML schema identifiers and SmartArt presentation graph terminology retain their native names."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-implemented-validation-pending",
+      "note": "Document-owned properties use Document on PowerPointDeckComposer and GoogleSlidesImportResult; the legacy load result calls its binary model SourceDocument to distinguish the editable Document. Template/utility document creation and internal read/write/mutation helpers use Document in their names. PSWriteOffice service/context members follow those names mechanically. Existing PowerShell parameter names and Ppt aliases retain their behavior for M5; Google Slides PresentationId and native Open XML schema/property identifiers retain their external contract."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

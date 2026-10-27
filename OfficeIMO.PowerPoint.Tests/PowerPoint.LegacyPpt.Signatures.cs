@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes = CreateLegacySignatureFixture();
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             PowerPointSignatureReport report = presentation.InspectSignatures();
 
             Assert.True(report.HasSignatureMetadata);
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes = CreateLegacySignatureFixture();
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             Assert.Single(presentation.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Signed deck").Text = "Edited signed deck";
 
-            PowerPointSignedPresentationMutationException blocked =
-                Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
+            PowerPointSignedDocumentMutationException blocked =
+                Assert.Throws<PowerPointSignedDocumentMutationException>(() =>
                     presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
             Assert.True(blocked.Report.HasLegacyBinarySignatureStream);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 OfficeSignatureMutationPolicy.PreserveSignatureMarkup;
             byte[] preservedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
-            LegacyPptPresentation preserved = LegacyPptPresentation.Load(preservedBytes);
+            LegacyPptDocument preserved = LegacyPptDocument.Load(preservedBytes);
             IReadOnlyDictionary<string, byte[]> streams = preserved.Package.CopyCompoundStreams();
             Assert.Equal("binary-signature"u8.ToArray(), streams["_signatures"]);
             Assert.Equal("xml-signature"u8.ToArray(), streams["_xmlsignatures/sig1"]);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes = CreateLegacySignatureFixture();
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             Assert.Single(presentation.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Signed deck").Text = "Unsigned edited deck";
             presentation.SignatureMutationPolicy =
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
 
             byte[] unsignedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
-            LegacyPptPresentation unsigned = LegacyPptPresentation.Load(unsignedBytes);
+            LegacyPptDocument unsigned = LegacyPptDocument.Load(unsignedBytes);
             Assert.DoesNotContain(unsigned.Package.CopyCompoundStreams().Keys, path =>
                 path.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase)
@@ -73,12 +73,12 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateLegacySignatureFixture() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Signed deck");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(sourceBytes);
             return legacy.Package.RewriteCompoundStreams(
                 new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
                     ["_signatures"] = "binary-signature"u8.ToArray(),

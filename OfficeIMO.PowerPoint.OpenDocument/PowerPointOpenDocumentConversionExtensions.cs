@@ -11,11 +11,11 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private const int MaximumOdpSlideNameLength = 128;
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
-    public static OdpPresentation ToOpenDocument(this PowerPointPresentation source,
+    public static OdpPresentation ToOpenDocument(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
 
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointPresentation source,
+    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
@@ -284,7 +284,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Authored handout-master content is not transferred to ODP.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
             "PowerPoint slide-show playback settings are not transferred to ODP.");
-        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointPresentationProperties(sourcePresentation),
+        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointDocumentProperties(sourcePresentation),
             "PowerPoint print, web, publishing, and other presentation properties were not transferred to ODP.");
         AddUnsupported(report, "presentation-settings", CountUnmappedPowerPointRootSettings(sourcePresentation),
             "PowerPoint root presentation settings and custom notes size were not transferred to ODP.");
@@ -297,15 +297,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
-    public static PowerPointPresentation ToPowerPointPresentation(this OdpPresentation source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointPresentationResult(options).Value;
+    public static PowerPointDocument ToPowerPointDocument(this OdpPresentation source,
+        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointDocumentResult(options).Value;
 
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
-    public static OdfConversionResult<PowerPointPresentation> ToPowerPointPresentationResult(this OdpPresentation source,
+    public static OdfConversionResult<PowerPointDocument> ToPowerPointDocumentResult(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
-        PowerPointPresentation target = PowerPointPresentation.Create();
+        PowerPointDocument target = PowerPointDocument.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         CopyOdpMetadata(source, target, report);
@@ -409,7 +409,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             continue;
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageInfo.Format, imageBounds);
+                        PowerPointPicture converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
                         unsupportedImageCrop += ApplyOdpCrop(image, imageInfo, converted);
@@ -621,7 +621,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP named custom slide shows were not transferred to PowerPoint.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedOdpSlideShowSettings(source),
             "ODP slide-show playback settings were not transferred to PowerPoint.");
-        return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
+        return new OdfConversionResult<PowerPointDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
     private static bool TryResolveSlideFragment(

@@ -28,12 +28,12 @@ public partial class HtmlOfficeAdapters {
     [InlineData(OfficeChartType.Pie)]
     [InlineData(OfficeChartType.Doughnut)]
     public void PowerPointHtml_RoundTripsRadialGeometry(OfficeChartType kind) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddChartPoints(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), 10, 10, 300, 200)
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         string html = presentation.ToHtml();
-        using PowerPointPresentation restored = HtmlConversionDocument.Parse(html).ToPowerPointPresentation();
+        using PowerPointDocument restored = HtmlConversionDocument.Parse(html).ToPowerPointDocument();
         var chart = restored.Slides.SelectMany(s => s.Charts).Single();
         Assert.Equal(135, chart.RadialLayout.FirstSliceAngleDegrees);
         Assert.Equal(kind == OfficeChartType.Doughnut ? 75 : 50, chart.RadialLayout.DoughnutHolePercent);
@@ -45,14 +45,14 @@ public partial class HtmlOfficeAdapters {
     [InlineData("90", "9")]
     [InlineData("invalid", "50")]
     public void PowerPointHtml_InvalidRadialMetadataOmitsChartWithDiagnostic(string angle, string hole) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddChartPoints(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }), 10, 10, 300, 200)
             .SetRadialLayout(new OfficeChartRadialLayout(90, 75));
         string html = presentation.ToHtml().Replace("data-officeimo-first-slice-angle=\"90\"", "data-officeimo-first-slice-angle=\"" + angle + "\"")
             .Replace("data-officeimo-doughnut-hole=\"75\"", "data-officeimo-doughnut-hole=\"" + hole + "\"");
-        var result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation restored = result.Value;
+        var result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument restored = result.Value;
         Assert.Empty(restored.Slides.SelectMany(s => s.Charts));
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("invalid radial geometry"));
     }

@@ -64,7 +64,7 @@ internal static class DocumentDelivery {
     }
 
     private static void WritePowerPoint(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        using var presentation = PowerPointPresentation.Create(path);
+        using var presentation = PowerPointDocument.Create(path);
         presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
         double slideWidth = presentation.SlideSize.WidthPoints, slideHeight = presentation.SlideSize.HeightPoints;
         foreach (var specimen in specimens) {

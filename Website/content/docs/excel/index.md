@@ -4,7 +4,7 @@ description: Overview of the OfficeIMO.Excel package for creating and manipulati
 order: 20
 ---
 
-The `OfficeIMO.Excel` package provides a higher-level API for creating, reading, and modifying Excel workbooks (`.xlsx`) without requiring Microsoft Office. It is built on the Open XML SDK and exposes both imperative and fluent patterns, with additional examples and tests in the repo covering larger reporting scenarios.
+The `OfficeIMO.Excel` package provides a higher-level API for creating, reading, and modifying Excel workbooks (`.xlsx`) without requiring Microsoft Office. It uses the Open XML SDK, an editable object model, a report builder, and a streaming writer for large exports.
 
 ## Key Classes
 
@@ -12,10 +12,9 @@ The `OfficeIMO.Excel` package provides a higher-level API for creating, reading,
 |-------|-------------|
 | `ExcelDocument` | Root class for creating and loading workbooks. Implements `IDisposable` and `IAsyncDisposable`. |
 | `ExcelSheet` | Represents a single worksheet with cells, rows, columns, tables, and conditional formatting. |
-| `ExcelFluentWorkbook` | Fluent builder for composing workbooks with chained method calls. |
-| `SheetBuilder` | Fluent builder for configuring individual sheets. |
-| `TableBuilder` | Fluent builder for defining Excel tables within a sheet. |
-| `StyleBuilder` | Fluent builder for cell and range styling. |
+| `ExcelTable` | An editable structured table with filters and styles. |
+| `ExcelReportBuilder` | Sections, KPI rows, tables, and other report elements, reached through `sheet.Report()`. |
+| `ExcelWorkbookWriter` | A bounded writer for forward-only exports, created by `ExcelDocument.CreateWriter()`. |
 
 ## Creating a Workbook
 
@@ -26,10 +25,10 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("report.xlsx");
 var sheet = workbook.AddWorksheet("Sales");
 
-sheet.Cells["A1"].Value = "Product";
-sheet.Cells["B1"].Value = "Revenue";
-sheet.Cells["A2"].Value = "Widget A";
-sheet.Cells["B2"].Value = 15000;
+sheet.CellAt("A1").SetValue("Product");
+sheet.CellAt("B1").SetValue("Revenue");
+sheet.CellAt("A2").SetValue("Widget A");
+sheet.CellAt("B2").SetValue(15000);
 
 workbook.Save();
 ```
@@ -61,26 +60,21 @@ foreach (var sheet in workbook.Sheets) {
 }
 ```
 
-## Fluent API
-
-The fluent API provides a declarative way to compose workbooks:
+## Add typed data
 
 ```csharp
 using OfficeIMO.Excel;
 
-using var workbook = ExcelFluentWorkbook.Create("fluent.xlsx")
-    .Info(i => i.Title("Monthly Report").Author("OfficeIMO"))
-    .Sheet("Summary", s => s
-        .Row(r => r.Cell("Metric").Cell("Value"))
-        .Row(r => r.Cell("Users").Cell(1250))
-        .Row(r => r.Cell("Revenue").Cell(45000))
-    )
-    .Sheet("Details", s => s
-        .Row(r => r.Cell("Item").Cell("Qty").Cell("Price"))
-        .Row(r => r.Cell("Widget A").Cell(100).Cell(15.99))
-    )
-    .Build();
-
+using var workbook = ExcelDocument.Create("monthly.xlsx");
+workbook.BuiltinDocumentProperties.Title = "Monthly Report";
+workbook.BuiltinDocumentProperties.Creator = "OfficeIMO";
+var summary = workbook.AddWorksheet("Summary");
+summary.AddTable(new[] {
+    new { Metric = "Users", Value = 1250 },
+    new { Metric = "Revenue", Value = 45000 }
+}, new ExcelTableOptions { Name = "Metrics" });
+var details = workbook.AddWorksheet("Details");
+details.AddTable(new[] { new { Item = "Widget A", Quantity = 100, Price = 15.99m } });
 workbook.Save();
 ```
 

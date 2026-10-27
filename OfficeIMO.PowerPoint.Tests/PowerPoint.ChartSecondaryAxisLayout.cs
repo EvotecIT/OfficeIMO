@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Fact]
     public void PrimarySourceLinkedAxisUsesGeneralWorkbookFormatInsteadOfCachedCode() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
@@ -27,7 +27,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void CacheOnlySourceLinkedPrimaryFormatMustBeRenderable() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
@@ -46,7 +46,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PrimarySourceLinkedAxisRejectsInheritedWorkbookStyles(bool columnStyle) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
@@ -88,7 +88,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void UpdateDataPreservesUnsupportedPrimaryAxisDisplayFormat() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
@@ -114,7 +114,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("eastAsianFont")]
     [InlineData("complexScriptFont")]
     public void SecondaryTitle_RejectsUnprojectedAppearance(string appearance) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Count", new[] { 100d }),
@@ -145,7 +145,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryAxisTitleDoesNotReplacePrimaryTitleWhenAxisElementsAreReordered() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Volume", new[] { 100d }),
@@ -168,7 +168,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UnsupportedNumericAxisFormatIsNotProjected(bool secondaryAxis) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
                 new OfficeSeries("Count", new[] { 100D }),
@@ -188,7 +188,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(OfficeChartType.Line)]
     [InlineData(OfficeChartType.Area)]
     public void ExplicitPrimaryBoundsClipCachedGeometry(OfficeChartType kind) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Values", new[] { 0D, 20D })
@@ -209,7 +209,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("paragraphs")]
     [InlineData("break")]
     public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(string placement) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Count", new[] { 100d }),
@@ -236,7 +236,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Count", new[] { 100d }),
@@ -267,7 +267,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryValueAxis_CacheOnlySourceLinkedFormatUsesCachedCode() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Count", new[] { 100d, 150d }),
@@ -288,7 +288,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PrimaryValueAxis_RejectsNonlinearOrReversedStaticProjection(bool reversed) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Values", new[] { 1d, 10d }) });
@@ -306,7 +306,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void ScatterSnapshot_UsesBothReferencedNumericAxisScales() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Scatter,
             new OfficeChartData(new[] { "1", "3" }, new[] {
@@ -334,7 +334,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryValueAxis_SourceLinkedGeneralWorkbookUsesResolvedFormat() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Count", new[] { 100d, 150d }),
@@ -357,7 +357,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ScatterSnapshot_RejectsNonlinearOrReversedAxes(bool verticalAxis, bool reversed) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Scatter,
             new OfficeChartData(new[] { "1", "3" }, new[] {
@@ -374,7 +374,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Fact]
     public void SecondaryValueAxis_PersistsThroughUpdatesAndSnapshots() {
         using var bytes = new MemoryStream();
-        using var presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions());
+        using var presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions());
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Volume", new[] { 100d, 150d }),
@@ -398,7 +398,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal("Secondary ratio", snapshot.Layout.SecondaryValueAxis.Title);
         Assert.Empty(presentation.ValidateDocument());
         using var persistedBytes = new MemoryStream(presentation.ToBytes());
-        using var reopened = PowerPointPresentation.Load(persistedBytes);
+        using var reopened = PowerPointDocument.Load(persistedBytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out var persisted));
         Assert.Equal(0.5, persisted.Layout.SecondaryValueAxis!.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, persisted.Layout.SecondaryValueAxis.MajorTickMark);

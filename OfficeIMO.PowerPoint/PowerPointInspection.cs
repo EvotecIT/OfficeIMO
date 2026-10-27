@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint {
             (Visuals == null || Visuals.IsSuccessful);
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>
         ///     Runs a coherent set of inspections over the current presentation without changing it.
         /// </summary>

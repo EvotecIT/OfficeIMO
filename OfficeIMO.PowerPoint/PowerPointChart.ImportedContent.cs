@@ -236,7 +236,7 @@ namespace OfficeIMO.PowerPoint {
                 diagnostic = "has no single referenced embedded workbook that can be updated consistently; package markup is preserved unchanged.";
                 return false;
             }
-            if (!PowerPointPresentation.IsSafeChartWorkbookPart(chartPart,
+            if (!PowerPointDocument.IsSafeChartWorkbookPart(chartPart,
                     embedded)) {
                 workbook = null;
                 diagnostic = "uses a richer or producer-specific workbook; editing is rejected so sheets, formulas, formatting, macros, and related package content remain unchanged.";

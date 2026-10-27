@@ -12,7 +12,7 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void FormattingAndActionsRemainValidInEitherOrder(bool tableCell, bool actionsFirst) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextRun run;
         if (tableCell) {
@@ -34,7 +34,7 @@ public class PowerPointRunFormattingActionOrderTests {
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         PowerPointSlide actualSlide = reopened.Slides.Single();
         PowerPointTextRun actual = tableCell
@@ -53,7 +53,7 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CellAndTextBoxFormattingPreservesLinkedRuns(bool tableCell) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTableCell? cell = null;
         PowerPointTextBox? textBox = null;
@@ -79,7 +79,7 @@ public class PowerPointRunFormattingActionOrderTests {
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         PowerPointSlide actualSlide = reopened.Slides.Single();
         PowerPointTextRun actual = tableCell
@@ -96,7 +96,7 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ExplicitColorReplacesImportedFillWithoutChangingScriptFonts(bool gradient) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Imported label")
             .Paragraphs.Single().Runs.Single();
         run.SetHyperlink("https://example.test/imported-label");
@@ -116,12 +116,12 @@ public class PowerPointRunFormattingActionOrderTests {
         using var source = new MemoryStream();
         presentation.Save(source);
         source.Position = 0;
-        using var imported = PowerPointPresentation.Load(source);
+        using var imported = PowerPointDocument.Load(source);
         imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single().Color = "FFFFFF";
         using var output = new MemoryStream();
         imported.Save(output);
         output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         A.RunProperties actual = reopened.OpenXmlDocument.PresentationPart!.SlideParts
             .Single().Slide.Descendants<A.RunProperties>().Single();

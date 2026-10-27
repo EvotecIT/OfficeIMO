@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointTableCellFormatting {
         [Fact]
         public void Hidden_borders_can_be_restored_without_conflicting_fills_or_changing_other_edges() {
-            using var presentation = PowerPointPresentation.Create();
+            using var presentation = PowerPointDocument.Create();
             var cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
             cell.Text = "Preserved"; cell.FillColor = "ABCDEF";
             cell.SetBorders(PowerPointTableCellBorders.All, "123456", 1);
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, "00FF00", 1584.25));
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.HideBorders((PowerPointTableCellBorders)128));
             using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-            using (var reopened = PowerPointPresentation.Load(saved)) {
+            using (var reopened = PowerPointDocument.Load(saved)) {
                 Assert.Empty(reopened.ValidateDocument());
                 var output = reopened.Slides.Single().Tables.Single().GetCell(0, 0);
                 Assert.Equal("Preserved", output.Text); Assert.Equal("ABCDEF", output.FillColor);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void CanSetTableCellBordersAndPadding() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(2, 2);
                 PowerPointTableCell cell = table.GetCell(0, 0);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                 Assert.Equal("FF0000", cell.BorderColor);
                 Assert.Equal(4, cell.PaddingLeftPoints ?? 0, 2);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(1, 1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     Assert.Equal(new[] { "First bold", "Second" }, cell.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
                     Assert.Equal(18D, cell.Paragraphs[0].LineSpacingPoints);
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(1, 1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     PowerPointParagraph[] paragraphs = cell.Paragraphs.ToArray();
 

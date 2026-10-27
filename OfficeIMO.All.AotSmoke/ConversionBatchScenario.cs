@@ -21,7 +21,7 @@ internal static class ConversionBatchScenario {
         using (var excel = OfficeIMO.Excel.ExcelDocument.Create(Path.Combine(input, "page.xlsx"))) {
             excel.AddWorksheet("Data").Cell(1, 1, "Native checkpoint Excel"); excel.Save();
         }
-        using (var slides = OfficeIMO.PowerPoint.PowerPointPresentation.Create(Path.Combine(input, "page.pptx"))) {
+        using (var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create(Path.Combine(input, "page.pptx"))) {
             slides.AddSlide().AddTextBoxPoints("Native checkpoint slide", 40, 40, 500, 60); slides.Save();
         }
         const string password = "Native smoke output password";

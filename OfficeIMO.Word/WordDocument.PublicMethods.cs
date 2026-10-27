@@ -149,57 +149,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Downloads an image from the specified URL and inserts it into the document.
-        /// </summary>
-        /// <param name="url">URL of the image to download.</param>
-        /// <param name="width">Optional width for the image.</param>
-        /// <param name="height">Optional height for the image.</param>
-        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
-        /// <returns>The created <see cref="WordImage"/>.</returns>
-        public async Task<WordImage> AddImageFromUrlAsync(
-            string url,
-            double? width = null,
-            double? height = null,
-            CancellationToken cancellationToken = default) {
-            return await AddImageFromUrlCoreAsync(url, width, height, null, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Downloads an image with explicit remote-network policy and inserts it into the document.
-        /// </summary>
-        public Task<WordImage> AddImageFromUrlAsync(
-            string url,
-            double? width,
-            double? height,
-            OfficeRemoteImageLoadOptions remoteImageOptions,
-            CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return AddImageFromUrlCoreAsync(url, width, height, remoteImageOptions, cancellationToken);
-        }
-
-        private async Task<WordImage> AddImageFromUrlCoreAsync(
-            string url,
-            double? width,
-            double? height,
-            OfficeRemoteImageLoadOptions? remoteImageOptions,
-            CancellationToken cancellationToken) {
-            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
-            using var ms = new System.IO.MemoryStream(image.ToBytes());
-            var paragraph = AddParagraph();
-            paragraph.AddImage(ms, image.FileName, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
-        }
-
-        /// <summary>
-        /// Inserts a VML image into the document.
-        /// </summary>
-        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var paragraph = AddParagraph();
-            paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
-        }
-
-        /// <summary>
         /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
         /// You can use multiple:
         /// .AddBar() to add a bar chart

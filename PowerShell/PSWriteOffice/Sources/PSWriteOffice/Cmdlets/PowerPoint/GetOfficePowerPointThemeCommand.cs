@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointThemeCommand : PSCmdlet {
     /// <summary>Presentation to inspect (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index to inspect.</summary>
     [Parameter]
@@ -32,7 +32,7 @@ public sealed class GetOfficePowerPointThemeCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            var presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             var info = new PowerPointThemeInfo(
                 Master,
                 presentation.ThemeName,

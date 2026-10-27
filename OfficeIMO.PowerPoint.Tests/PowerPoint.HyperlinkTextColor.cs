@@ -13,7 +13,7 @@ public class PowerPointHyperlinkTextColorTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ExplicitTextColorRemainsEffectiveAfterLinkCreationAndReplacement(bool tableCell, bool linkFirst) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextRun run;
         if (tableCell) {
@@ -29,7 +29,7 @@ public class PowerPointHyperlinkTextColorTests {
         using var output = new MemoryStream();
         presentation.Save(output);
         output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         A.HyperlinkOnClick hyperlink = reopened.OpenXmlDocument.PresentationPart!.SlideParts
             .Single().Slide.Descendants<A.HyperlinkOnClick>().Single();
@@ -45,7 +45,7 @@ public class PowerPointHyperlinkTextColorTests {
 
     [Fact]
     public void UncoloredLinksKeepThemeHyperlinkColor() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var run = presentation.AddSlide().AddTextBox("Ordinary link").Paragraphs.Single().Runs.Single();
         run.SetHyperlink("https://example.test/source");
         Assert.Empty(presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide
@@ -53,7 +53,7 @@ public class PowerPointHyperlinkTextColorTests {
     }
     [Fact]
     public void InheritedTextColorPolicyAndThemeOverrideSurviveTargetReplacement() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var run = presentation.AddSlide().AddTextBox("Styled link").Paragraphs.Single().Runs.Single();
         run.SetHyperlink("https://example.test/source");
         run.HyperlinkUsesTextColor = true;
@@ -71,7 +71,7 @@ public class PowerPointHyperlinkTextColorTests {
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         var actual = reopened.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.False(actual.HyperlinkUsesTextColor);
@@ -81,7 +81,7 @@ public class PowerPointHyperlinkTextColorTests {
 
     [Fact]
     public void NativeColorExtensionRetainsOtherExtensionsAndSoundSchemaOrder() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var run = presentation.AddSlide().AddTextBox("Sound link").Paragraphs.Single().Runs.Single();
         run.SetHyperlink("https://example.test/source");
         A.HyperlinkOnClick hyperlink = presentation.OpenXmlDocument.PresentationPart!.SlideParts

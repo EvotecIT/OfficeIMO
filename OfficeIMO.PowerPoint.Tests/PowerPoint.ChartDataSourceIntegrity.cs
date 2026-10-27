@@ -14,7 +14,7 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
     [InlineData(1)]
     [InlineData(2)]
     public void Update_RejectsIncompatibleWorkbookBeforeChangingChartOrPackage(int updatePath) {
-        using PowerPointPresentation document = PowerPointPresentation.Create();
+        using PowerPointDocument document = PowerPointDocument.Create();
         OfficeChartType kind = updatePath == 2 ? OfficeChartType.Scatter : OfficeChartType.Line;
         var data = new OfficeChartData(new[] { "1", "2" },
             new[] { new OfficeSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) });
@@ -42,7 +42,7 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
 
     [Fact]
     public void LegacyScatterUpdate_UsesSharedSchemaSafeSourceReplacement() {
-        using PowerPointPresentation document = PowerPointPresentation.Create();
+        using PowerPointDocument document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(OfficeChartType.Scatter, new OfficeChartData(new[] { "1", "2" },
             new[] { new OfficeSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) }));
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
@@ -60,7 +60,7 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
         Assert.Equal("extLst", series.LastChild!.LocalName);
         Assert.Empty(document.ValidateDocument());
         using var bytes = new MemoryStream(document.ToBytes());
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -70,7 +70,7 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
     [InlineData(OfficeChartType.Area)]
     [InlineData(OfficeChartType.Pie)]
     public void LegacyCategoryUpdate_ReplacesLiteralTitleAndNumericCategoryChoice(OfficeChartType kind) {
-        using PowerPointPresentation document = PowerPointPresentation.Create();
+        using PowerPointDocument document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "1", "2" },
             new[] { new OfficeSeries("Old", new[] { 3d, 4d }) }));
         var part = document.Slides.Single().SlidePart.ChartParts.Single();

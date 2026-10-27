@@ -92,7 +92,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         AssertFontSelection(wordResult.ToBytes(), wordResult.Report, portable);
 
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointTextBox text = presentation.AddSlide().AddTextBoxPoints("Arial proof", 20, 20, 300, 60);
         text.FontName = "Arial";
         text.FontSize = 16;

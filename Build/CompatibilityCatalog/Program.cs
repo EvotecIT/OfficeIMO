@@ -192,7 +192,7 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
     if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
 
-    using PowerPointPresentation presentation = PowerPointPresentation.Create(outputPath);
+    using PowerPointDocument presentation = PowerPointDocument.Create(outputPath);
     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
     PowerPointSlide overview = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -258,7 +258,7 @@ static bool VerifyConverterPowerPointSample(string inputPath, out string error) 
 
     try {
         using var stream = File.OpenRead(inputPath);
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream);
         if (presentation.Slides.Count != 2) {
             error = $"expected 2 slides, found {presentation.Slides.Count}";
             return false;

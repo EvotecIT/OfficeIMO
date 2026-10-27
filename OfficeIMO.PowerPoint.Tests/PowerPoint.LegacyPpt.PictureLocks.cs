@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(AppContext.BaseDirectory,
                 "Documents", "LegacyPptCorpus",
                 "CroppedPicturePowerPoint.ppt");
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourcePath);
             byte[] originalPictures = original.Package.CopyCompoundStreams()[
                 "Pictures"];
 
             byte[] editedBytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Load(sourcePath)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Load(sourcePath)) {
                 foreach (PowerPointPicture model in presentation.Slides[0]
                              .Pictures) {
                     P.Picture picture = (P.Picture)model.Element;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 editedBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 editedBytes);
             LegacyPptShape[] editedPictures = Assert.Single(edited.Slides)
                 .Shapes.Where(shape =>
@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
 
             using var editedInput = new MemoryStream(editedBytes,
                 writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(editedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(editedInput);
             Assert.All(reopened.Slides[0].Pictures, model => {
                 P.NonVisualPictureDrawingProperties projected =
                     ((P.Picture)model.Element).NonVisualPictureProperties!

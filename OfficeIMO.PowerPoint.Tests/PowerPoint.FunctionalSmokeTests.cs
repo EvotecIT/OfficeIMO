@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
         public void CanBuildRichDeckAndValidate() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent1, "4472C4");
 
                     PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                     rect.OutlineColor = "007ACC";
 
                     using (var imageStream = new MemoryStream(OnePixelPng)) {
-                        slide.AddPicture(imageStream, PptImagePartType.Png,
+                        slide.AddImage(imageStream, PptImagePartType.Png,
                             PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(1),
                             PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2));
                     }
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(slidePart.Slide.Descendants<A.Table>().Any());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.First();
                     Assert.True(slide.Pictures.Any());
                     Assert.True(slide.Tables.Any());
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllBytes(backgroundPath, OnePixelPng);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     presentation.ThemeName = "OfficeIMO Modern Smoke";
                     presentation.SetThemeColorsForAllMasters(new Dictionary<PowerPointThemeColor, string> {

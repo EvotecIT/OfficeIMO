@@ -6,7 +6,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static void ReportOmittedSpeakerNotes(PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+    private static void ReportOmittedSpeakerNotes(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         if (options.PageLayout != PowerPointPdfPageLayout.Slides && options.IncludeSpeakerNotes) return;
         for (int index = 0; index < presentation.Slides.Count; index++) {
             options.CancellationToken.ThrowIfCancellationRequested();

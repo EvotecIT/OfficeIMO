@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfAsyncSavesPerformIoAndDoNotTurnCancellationIntoFailureResults() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBoxPoints("Async PowerPoint PDF", 36, 36, 240, 48);
         using var output = new MemoryStream();
 

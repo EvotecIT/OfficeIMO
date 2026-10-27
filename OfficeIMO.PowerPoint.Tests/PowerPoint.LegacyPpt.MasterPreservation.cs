@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptMasterTests {
         [Fact]
         public void ImportedMainMasterShapeMove_AppendsPreservingIncrementalRecord() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(FixturePath);
             LegacyPptMaster[] mainMasters = original.Masters
                 .Where(master => master.IsMainMaster).ToArray();
             int masterIndex = Array.FindIndex(mainMasters,
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             Assert.True(masterIndex >= 0);
             LegacyPptMaster originalMaster = mainMasters[masterIndex];
 
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 FixturePath);
             SlideMasterPart masterPart = imported.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.ElementAt(masterIndex);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters,
                 master => master.MasterId == originalMaster.MasterId);
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
                 originalMaster.PersistId);
 
             using var stream = new MemoryStream(saved.Package.CopyOriginalBytes());
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(stream);
             SlideMasterPart reopenedMaster = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.ElementAt(masterIndex);
             PowerPointShape reopenedShape = LegacyPptWriter
@@ -74,12 +74,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedMainMasterTextAndPlaceholderEdits_AppendPreservingRecords() {
             byte[] sourceBytes = CreateBinaryWithEditableMasterText();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             LegacyPptMaster originalMaster = Assert.Single(original.Masters);
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             SlideMasterPart masterPart = imported.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             PowerPointTextBox textBox = Assert.IsType<PowerPointTextBox>(
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters);
 
             Assert.Equal("Edited label", Assert.Single(savedMaster.Shapes).Text);
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
                 originalMaster.PersistId, 0x03EF);
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             SlideMasterPart reopenedMaster = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             PowerPointTextBox reopenedText = Assert.IsType<PowerPointTextBox>(
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
             Assert.False(reopenedText.IsPlaceholder);
             Assert.True(reopened.AnalyzeLegacyPptWrite().CanWrite);
             byte[] removedBytes = reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+            LegacyPptDocument removed = LegacyPptDocument.Load(
                 removedBytes);
             LegacyPptMaster removedMaster = Assert.Single(removed.Masters);
 
@@ -207,8 +207,8 @@ namespace OfficeIMO.Tests {
                 .SequenceEqual(saved.Package.DocumentStream));
 
             using var removedInput = new MemoryStream(removedBytes);
-            using PowerPointPresentation removedProjection =
-                PowerPointPresentation.Load(removedInput);
+            using PowerPointDocument removedProjection =
+                PowerPointDocument.Load(removedInput);
             PowerPointTextBox removedText = Assert.IsType<PowerPointTextBox>(
                 Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
                     removedProjection.OpenXmlDocument.PresentationPart!
@@ -219,9 +219,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedMainMasterTransformEdit_PreservesRichStyle() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 FixturePath);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 FixturePath);
             P.Shape shape = imported.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.SelectMany(master => master.SlideMaster!
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = saved.Masters
                 .SelectMany(master => master.Shapes)
@@ -252,11 +252,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedNotesMasterShapeMove_AppendsPreservingIncrementalRecord() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(FixturePath);
             LegacyPptSpecialMaster originalMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(original.NotesMaster);
             Assert.NotEmpty(originalMaster.Shapes);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 FixturePath);
             NotesMasterPart notesPart = imported.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!;
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptSpecialMaster savedMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(saved.NotesMaster);
 
@@ -286,8 +286,8 @@ namespace OfficeIMO.Tests {
                 originalMaster.PersistId, 0x040E, 0x040F);
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             PowerPointShape reopenedShape = LegacyPptWriter
                 .ReadMasterShapesForWrite(reopened.OpenXmlDocument
                     .PresentationPart!.NotesMasterPart!, out _)[0];
@@ -302,8 +302,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedHandoutMasterShapeAndThemeEdit_AppendsPreservingRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 HandoutMasterPart handoutPart = CreateHandoutMaster(created);
                 handoutPart.HandoutMaster!.CommonSlideData!.ShapeTree!.Append(
                     CreateNotesMasterShape(2U, "Handout marker",
@@ -313,13 +313,13 @@ namespace OfficeIMO.Tests {
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             LegacyPptSpecialMaster originalMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(original.HandoutMaster);
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             HandoutMasterPart handoutMasterPart = imported.OpenXmlDocument
                 .PresentationPart!.HandoutMasterPart!;
             PowerPointShape shape = Assert.Single(LegacyPptWriter
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptSpecialMaster savedMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(saved.HandoutMaster);
 
@@ -349,8 +349,8 @@ namespace OfficeIMO.Tests {
                 .SequenceEqual(original.Package.DocumentStream));
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             HandoutMasterPart reopenedPart = reopened.OpenXmlDocument
                 .PresentationPart!.HandoutMasterPart!;
             Assert.Equal(shape.Left, Assert.Single(LegacyPptWriter
@@ -368,7 +368,7 @@ namespace OfficeIMO.Tests {
         public void ImportedTitleMasterShapeThemeAndBackgroundEdit_AppendsPreservingRecord() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(33, 99, 165);
             byte[] sourceBytes = CreateBinaryWithEditableTitleMaster();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             LegacyPptMaster mainMaster = Assert.Single(original.Masters,
                 master => master.IsMainMaster);
             LegacyPptMaster originalTitleMaster = Assert.Single(original.Masters,
@@ -377,8 +377,8 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(originalTitleMaster.Shapes);
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             string titleName =
                 $"Binary Title Master {originalTitleMaster.MasterId:X8}";
             SlideLayoutPart titlePart = imported.OpenXmlDocument.PresentationPart!
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptMaster savedTitleMaster = Assert.Single(saved.Masters,
                 master => master.MasterId == originalTitleMaster.MasterId);
 
@@ -440,8 +440,8 @@ namespace OfficeIMO.Tests {
                 originalTitleMaster.PersistId, 0x03EF, 0x040E, 0x040F);
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             SlideLayoutPart reopenedTitlePart = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts
                 .SelectMany(master => master.SlideLayoutParts)
@@ -472,14 +472,14 @@ namespace OfficeIMO.Tests {
         public void ImportedTitleMasterSlidePictureBackgroundEdit_RemainsSlideSpecific() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(85, 145, 205);
             byte[] sourceBytes = CreateBinaryWithEditableTitleMaster();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMaster titleMaster = Assert.Single(original.Masters,
                 master => !master.IsMainMaster);
 
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             string titleName = $"Binary Title Master {titleMaster.MasterId:X8}";
             SlideLayoutPart titlePart = imported.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.SelectMany(master => master.SlideLayoutParts)
@@ -500,7 +500,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptSlide savedTitleSlide = Assert.Single(saved.Slides,
                 slide => slide.MasterId == titleMaster.MasterId);
 
@@ -520,8 +520,8 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             PowerPointSlide reopenedTitleSlide = Assert.Single(reopened.Slides,
                 slide => slide.SlidePart.SlideLayoutPart?.SlideLayout?
                     .CommonSlideData?.Name?.Value == titleName);
@@ -534,8 +534,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateBinaryWithEditableMasterText() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!
@@ -566,11 +566,11 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateBinaryWithEditableTitleMaster() {
-            using PowerPointPresentation target = PowerPointPresentation.Create();
+            using PowerPointDocument target = PowerPointDocument.Create();
             target.SetThemeColor(PowerPointThemeColor.Accent1, "102030");
             target.AddSlide();
 
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             source.SetThemeColor(PowerPointThemeColor.Accent1, "A0B0C0");
             SlideMasterPart sourceMaster = source.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests {
             source.AddSlide();
             target.ImportSlide(source, 0);
 
-            LegacyPptPresentation generated = LegacyPptPresentation.Load(
+            LegacyPptDocument generated = LegacyPptDocument.Load(
                 target.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster[] generatedMasters = generated.Masters.ToArray();
             Assert.Equal(2, generatedMasters.Length);
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
                 new A.SolidFill(new A.RgbColorModelHex { Val = color })));
 
         private static void AssertUnrelatedMasterChildrenEqual(
-            LegacyPptPresentation original, LegacyPptPresentation saved,
+            LegacyPptDocument original, LegacyPptDocument saved,
             uint persistId, params ushort[] additionallyExcludedTypes) {
             IReadOnlyList<byte[]> originalChildren = ReadMasterChildrenExceptDrawing(
                 original, persistId, additionallyExcludedTypes);
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static IReadOnlyList<byte[]> ReadMasterChildrenExceptDrawing(
-            LegacyPptPresentation presentation, uint persistId,
+            LegacyPptDocument presentation, uint persistId,
             IReadOnlyCollection<ushort> additionallyExcludedTypes) {
             LegacyPptPersistObject persistObject =
                 presentation.Package.PersistObjects[persistId];

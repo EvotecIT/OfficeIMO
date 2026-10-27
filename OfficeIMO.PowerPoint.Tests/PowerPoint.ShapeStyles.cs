@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void CanApplyShapeStylesAndTransforms() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape rect = slide.AddRectangle(1000000, 1000000, 2000000, 1000000, "Styled Rect");
                 rect.FillColor = "E7F7FF";
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 var shapes = slide.Shapes.OfType<PowerPointAutoShape>().ToList();
                 Assert.Equal("Accent", shapes.First().Name);

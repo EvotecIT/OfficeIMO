@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
         public void FreshEmbeddedOleObject_WritesNativeStorageAndProjectsToEditableModel() {
             byte[] storageBytes = CreateOleTestStorage("Fresh OLE payload");
             byte[] binary;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument neutral = LegacyPptDocument.Load(binary);
             LegacyPptEmbeddedOleObject embedded = Assert.Single(
                 neutral.OleObjects);
             Assert.False(embedded.WasCompressed);
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
                     StringComparison.Ordinal));
 
             using var input = new MemoryStream(binary);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointOleObject projectedOle = Assert.IsType<
                 PowerPointOleObject>(Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal("Package", projectedOle.ProgId);
@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             byte[] storageBytes = CreateOleTestStorage("OLE preview");
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(23, 91, 177);
             byte[] binary;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument neutral = LegacyPptDocument.Load(binary);
             LegacyPptShape shape = Assert.Single(neutral.Slides[0].Shapes);
             Assert.Equal(LegacyPptShapeKind.OleObject, shape.Kind);
             Assert.Equal(imageBytes, Assert.IsType<OfficeArtBlipStoreEntry>(
@@ -144,8 +144,8 @@ namespace OfficeIMO.Tests {
                 .ReferenceCount);
 
             using var input = new MemoryStream(binary, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointOleObject projectedOle = Assert.IsType<
                 PowerPointOleObject>(Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal(storageBytes, projectedOle.GetData());
@@ -188,8 +188,8 @@ namespace OfficeIMO.Tests {
         public void RemovingOleObjectRemovesUnreferencedPreviewImage() {
             byte[] storageBytes = CreateOleTestStorage("Removed OLE preview");
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(12, 34, 56);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
@@ -220,8 +220,8 @@ namespace OfficeIMO.Tests {
         public void RemovingGroupCleansDescendantOlePreviewAnimationAndSound() {
             byte[] storageBytes = CreateOleTestStorage("Grouped removal");
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(91, 82, 73);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
@@ -268,8 +268,8 @@ namespace OfficeIMO.Tests {
             byte[] vbaProject = CreateVbaTestProject("OleVbaModule",
                 "Sub OleVba()\nEnd Sub");
             byte[] binary;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(oleStorage,
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument neutral = LegacyPptDocument.Load(binary);
             LegacyPptEmbeddedOleObject ole = Assert.Single(neutral.OleObjects);
             LegacyPptVbaProject vba = Assert.IsType<LegacyPptVbaProject>(
                 neutral.VbaProject);
@@ -289,8 +289,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(vbaProject, vba.GetBytes());
 
             using var input = new MemoryStream(binary);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             Assert.Equal(oleStorage, Assert.IsType<PowerPointOleObject>(
                 Assert.Single(projected.Slides[0].Shapes)).GetData());
             Assert.Equal(vbaProject, ReadVbaProject(projected));
@@ -303,8 +303,8 @@ namespace OfficeIMO.Tests {
             byte[] replacementStorage = CreateOleTestStorage(
                 "Replacement OLE");
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(originalStorage,
@@ -313,13 +313,13 @@ namespace OfficeIMO.Tests {
                     "Package", 12700L, 25400L, 2743200L, 1828800L);
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 PowerPointOleObject ole = Assert.IsType<PowerPointOleObject>(
                     Assert.Single(imported.Slides[0].Shapes));
                 using var replacement = new MemoryStream(replacementStorage,
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptEmbeddedOleObject embedded = Assert.Single(
                 saved.OleObjects);
@@ -359,8 +359,8 @@ namespace OfficeIMO.Tests {
                 .SequenceEqual(source.Package.DocumentStream));
 
             using var savedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(savedInput);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(savedInput);
             PowerPointOleObject projectedOle = Assert.IsType<
                 PowerPointOleObject>(Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal(replacementStorage, projectedOle.GetData());
@@ -374,8 +374,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void EmbeddedOleObject_RejectsInvalidReplacementWithoutChangingPart() {
             byte[] storageBytes = CreateOleTestStorage("Valid OLE");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
@@ -400,8 +400,8 @@ namespace OfficeIMO.Tests {
                 WriteCompoundUInt64(oversizedLogical, entry + 120,
                     StreamSize);
             }
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
 
@@ -429,8 +429,8 @@ namespace OfficeIMO.Tests {
             byte[] storageBytes = CreateOleTestStorage(
                 "Bounded binary import OLE");
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
@@ -438,7 +438,7 @@ namespace OfficeIMO.Tests {
                 slide.AddOleObject(storage, "Package");
                 binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 binary);
             LegacyPptEmbeddedOleObject ole = Assert.Single(
                 original.OleObjects);
@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
                 });
 
             OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                LegacyPptPresentation.Load(malicious));
+                LegacyPptDocument.Load(malicious));
             Assert.Equal("powerpoint", error.Owner);
             Assert.Equal("MaxTotalStreamBytes", error.LimitName);
             Assert.Equal((long)expandedStorage.Length, error.Maximum);
@@ -477,8 +477,8 @@ namespace OfficeIMO.Tests {
         public void EmbeddedOleObject_DuplicateOwnsIndependentStorageAndRemovalCleansPart() {
             byte[] originalStorage = CreateOleTestStorage("Original part");
             byte[] duplicateStorage = CreateOleTestStorage("Duplicate part");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var source = new MemoryStream(originalStorage,
@@ -513,8 +513,8 @@ namespace OfficeIMO.Tests {
         public void EmbeddedOleObject_UpdateDetachesSharedPart() {
             byte[] originalStorage = CreateOleTestStorage("Shared OLE");
             byte[] replacementStorage = CreateOleTestStorage("Detached OLE");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var source = new MemoryStream(originalStorage,
@@ -552,8 +552,8 @@ namespace OfficeIMO.Tests {
                 "Cross-slide shared OLE");
             byte[] replacementStorage = CreateOleTestStorage(
                 "Cross-slide detached OLE");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide firstSlide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             PowerPointSlide secondSlide = presentation.AddSlide(
@@ -596,8 +596,8 @@ namespace OfficeIMO.Tests {
         public void CompressedEmbeddedOleObject_ImportsAndRemainsExactAcrossUnrelatedEdit() {
             byte[] storageBytes = CreateOleTestStorage("Compressed OLE");
             byte[] uncompressedBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var storage = new MemoryStream(storageBytes,
@@ -607,7 +607,7 @@ namespace OfficeIMO.Tests {
             }
             byte[] sourceBytes = ConvertOleStorageToCompressed(
                 uncompressedBytes);
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptEmbeddedOleObject sourceOle = Assert.Single(
                 source.OleObjects);
@@ -618,8 +618,8 @@ namespace OfficeIMO.Tests {
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 LegacyPptWritePreflightReport exactPreflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.False(exactPreflight.CanWrite);
@@ -638,7 +638,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptEmbeddedOleObject savedOle = Assert.Single(
                 saved.OleObjects);
@@ -656,8 +656,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FeatureReport_ReportsReferencedEmbeddedOleAsEditable() {
             byte[] storageBytes = CreateOleTestStorage("Feature report");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var storage = new MemoryStream(storageBytes,
@@ -694,8 +694,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesktopReferenceLaneTreatsSkippedVisibleOleObjectAsExpectedContent() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.SlideSize.SetSizePoints(640, 360);
             PowerPointSlide slide = presentation.AddSlide();
             using var storage = new MemoryStream(
@@ -736,7 +736,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] ConvertOleStorageToCompressed(
             byte[] sourceBytes) {
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptEmbeddedOleObject ole = Assert.Single(
                 source.OleObjects);

@@ -205,11 +205,11 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CELL_FILL_OMITTED");
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var table = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal("42", table.GetCell(0, 0).Text);
             Assert.Equal(string.Empty, table.GetCell(0, 1).Text);
@@ -256,7 +256,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal("A1:B1", Assert.Single(result.Value.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal((1, 2), Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).Merge);
         }

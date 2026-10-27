@@ -6,7 +6,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds a screenshot story with semantic crop, alternative text, caption, provenance, and annotations.</summary>
-        public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointImageAsset image, IEnumerable<string>? narrative = null,
             PowerPointDesignTheme? theme = null, PowerPointScreenshotStorySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Adds an editable architecture story using native shapes and connectors.</summary>
-        public static PowerPointSlide AddDesignerArchitectureSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerArchitectureSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointArchitectureContent content,
             PowerPointDesignTheme? theme = null, PowerPointArchitectureSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
-            PowerPointPicture picture = slide.AddPicture(image, bounds);
+            PowerPointPicture picture = slide.AddImage(image, bounds);
             AddImageAnnotations(slide, theme, image, picture, compact: true);
             AddStoryCaption(slide, theme, image.Caption, image.Provenance, 1.55, height - 1.65, width - 3.1);
         }
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             double imageWidth = body.WidthCm * 0.69;
             PowerPointLayoutBox imageBounds = PowerPointLayoutBox.FromCentimeters(body.LeftCm, body.TopCm,
                 imageWidth, body.HeightCm);
-            PowerPointPicture picture = slide.AddPicture(image, imageBounds);
+            PowerPointPicture picture = slide.AddImage(image, imageBounds);
             AddImageAnnotations(slide, theme, image, picture, compact: false);
 
             double railLeft = imageBounds.RightCm + 0.7;

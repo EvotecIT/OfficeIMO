@@ -106,7 +106,7 @@
       "catalogCode": "accessibility-chart-color-only-meaning",
       "member": "AccessibilityChartColorOnlyMeaning",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:198"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:198"
       ]
     },
     {
@@ -114,8 +114,8 @@
       "catalogCode": "accessibility-low-contrast",
       "member": "AccessibilityLowContrast",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:166",
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:185"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:166",
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:185"
       ]
     },
     {
@@ -123,7 +123,7 @@
       "catalogCode": "accessibility-missing-alternative-text",
       "member": "AccessibilityMissingAlternativeText",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:81"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:81"
       ]
     },
     {
@@ -131,7 +131,7 @@
       "catalogCode": "accessibility-missing-document-title",
       "member": "AccessibilityMissingDocumentTitle",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:20"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:20"
       ]
     },
     {
@@ -139,7 +139,7 @@
       "catalogCode": "accessibility-missing-language",
       "member": "AccessibilityMissingLanguage",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:87"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:87"
       ]
     },
     {
@@ -147,7 +147,7 @@
       "catalogCode": "accessibility-missing-link-tooltip",
       "member": "AccessibilityMissingLinkTooltip",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:132"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:132"
       ]
     },
     {
@@ -155,7 +155,7 @@
       "catalogCode": "accessibility-missing-shape-title",
       "member": "AccessibilityMissingShapeTitle",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:77"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:77"
       ]
     },
     {
@@ -163,7 +163,7 @@
       "catalogCode": "accessibility-missing-slide-title",
       "member": "AccessibilityMissingSlideTitle",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:34"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:34"
       ]
     },
     {
@@ -171,7 +171,7 @@
       "catalogCode": "accessibility-missing-table-header",
       "member": "AccessibilityMissingTableHeader",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:91"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:91"
       ]
     },
     {
@@ -179,7 +179,7 @@
       "catalogCode": "accessibility-unclear-link-label",
       "member": "AccessibilityUnclearLinkLabel",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:123"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:123"
       ]
     },
     {
@@ -275,7 +275,7 @@
       "catalogCode": "asset-broken-image-relationship",
       "member": "AssetBrokenImageRelationship",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:217"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:217"
       ]
     },
     {
@@ -283,7 +283,7 @@
       "catalogCode": "asset-missing-image-part",
       "member": "AssetMissingImagePart",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:210"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:210"
       ]
     },
     {
@@ -2395,7 +2395,7 @@
       "catalogCode": "layout-invalid-bounds",
       "member": "LayoutInvalidBounds",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:104"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:104"
       ]
     },
     {
@@ -2403,7 +2403,7 @@
       "catalogCode": "layout-shape-collision",
       "member": "LayoutShapeCollision",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:260"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:260"
       ]
     },
     {
@@ -2411,7 +2411,7 @@
       "catalogCode": "layout-shape-off-slide",
       "member": "LayoutShapeOffSlide",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:121"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:121"
       ]
     },
     {
@@ -3312,7 +3312,7 @@
       "catalogCode": "ppt-action-atom",
       "member": "PptActionAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:252"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:252"
       ]
     },
     {
@@ -3320,7 +3320,7 @@
       "catalogCode": "ppt-action-container",
       "member": "PptActionContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:243"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:243"
       ]
     },
     {
@@ -3328,7 +3328,7 @@
       "catalogCode": "ppt-action-duplicate",
       "member": "PptActionDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:366"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:366"
       ]
     },
     {
@@ -3336,7 +3336,7 @@
       "catalogCode": "ppt-action-enum",
       "member": "PptActionEnum",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:264"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:264"
       ]
     },
     {
@@ -3344,7 +3344,7 @@
       "catalogCode": "ppt-action-hyperlink-missing",
       "member": "PptActionHyperlinkMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:279"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:279"
       ]
     },
     {
@@ -3352,7 +3352,7 @@
       "catalogCode": "ppt-action-name",
       "member": "PptActionName",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:291"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:291"
       ]
     },
     {
@@ -3360,7 +3360,7 @@
       "catalogCode": "ppt-action-preserve-only",
       "member": "PptActionPreserveOnly",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:307"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:307"
       ]
     },
     {
@@ -3368,7 +3368,7 @@
       "catalogCode": "ppt-action-reserved",
       "member": "PptActionReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:271"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:271"
       ]
     },
     {
@@ -3376,7 +3376,7 @@
       "catalogCode": "ppt-activex-atom",
       "member": "PptActivexAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:70"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:70"
       ]
     },
     {
@@ -3384,7 +3384,7 @@
       "catalogCode": "ppt-activex-container",
       "member": "PptActivexContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:51"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:51"
       ]
     },
     {
@@ -3392,7 +3392,7 @@
       "catalogCode": "ppt-activex-id-duplicate",
       "member": "PptActivexIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:35"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:35"
       ]
     },
     {
@@ -3400,7 +3400,7 @@
       "catalogCode": "ppt-activex-identity",
       "member": "PptActivexIdentity",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:85"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:85"
       ]
     },
     {
@@ -3408,7 +3408,7 @@
       "catalogCode": "ppt-activex-preserved",
       "member": "PptActivexPreserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:641"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:641"
       ]
     },
     {
@@ -3416,7 +3416,7 @@
       "catalogCode": "ppt-activex-slide",
       "member": "PptActivexSlide",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:224"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:224"
       ]
     },
     {
@@ -3424,7 +3424,7 @@
       "catalogCode": "ppt-activex-storage",
       "member": "PptActivexStorage",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:101"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:101"
       ]
     },
     {
@@ -3432,7 +3432,7 @@
       "catalogCode": "ppt-activex-string",
       "member": "PptActivexString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.ActiveX.cs:95"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs:95"
       ]
     },
     {
@@ -3440,7 +3440,7 @@
       "catalogCode": "ppt-animation-atom",
       "member": "PptAnimationAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:43"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:43"
       ]
     },
     {
@@ -3448,7 +3448,7 @@
       "catalogCode": "ppt-animation-duplicate",
       "member": "PptAnimationDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:20"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:20"
       ]
     },
     {
@@ -3456,7 +3456,7 @@
       "catalogCode": "ppt-animation-flags",
       "member": "PptAnimationFlags",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:53"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:53"
       ]
     },
     {
@@ -3464,7 +3464,7 @@
       "catalogCode": "ppt-animation-reserved",
       "member": "PptAnimationReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:60"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:60"
       ]
     },
     {
@@ -3472,7 +3472,7 @@
       "catalogCode": "ppt-animation-sound-override",
       "member": "PptAnimationSoundOverride",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:31"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:31"
       ]
     },
     {
@@ -3480,7 +3480,7 @@
       "catalogCode": "ppt-animation-unused",
       "member": "PptAnimationUnused",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:75"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:75"
       ]
     },
     {
@@ -3488,7 +3488,7 @@
       "catalogCode": "ppt-animation-value",
       "member": "PptAnimationValue",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Animations.cs:86"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs:86"
       ]
     },
     {
@@ -3496,7 +3496,7 @@
       "catalogCode": "ppt-background-partial",
       "member": "PptBackgroundPartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Backgrounds.cs:43"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Backgrounds.cs:43"
       ]
     },
     {
@@ -3504,7 +3504,7 @@
       "catalogCode": "ppt-comment-atom",
       "member": "PptCommentAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:82"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:82"
       ]
     },
     {
@@ -3512,7 +3512,7 @@
       "catalogCode": "ppt-comment-container",
       "member": "PptCommentContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:72"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:72"
       ]
     },
     {
@@ -3520,7 +3520,7 @@
       "catalogCode": "ppt-comment-data-truncated",
       "member": "PptCommentDataTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:48"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:48"
       ]
     },
     {
@@ -3528,7 +3528,7 @@
       "catalogCode": "ppt-comment-datetime",
       "member": "PptCommentDatetime",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:97"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:97"
       ]
     },
     {
@@ -3536,7 +3536,7 @@
       "catalogCode": "ppt-comment-extension",
       "member": "PptCommentExtension",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:116"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:116"
       ]
     },
     {
@@ -3544,7 +3544,7 @@
       "catalogCode": "ppt-comment-index",
       "member": "PptCommentIndex",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:90"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:90"
       ]
     },
     {
@@ -3552,7 +3552,7 @@
       "catalogCode": "ppt-comment-string",
       "member": "PptCommentString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:109"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:109"
       ]
     },
     {
@@ -3560,7 +3560,7 @@
       "catalogCode": "ppt-comment-tag-data",
       "member": "PptCommentTagData",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Comments.cs:30"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs:30"
       ]
     },
     {
@@ -3568,7 +3568,7 @@
       "catalogCode": "ppt-connector-rule-truncated",
       "member": "PptConnectorRuleTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:451"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:451"
       ]
     },
     {
@@ -3576,7 +3576,7 @@
       "catalogCode": "ppt-custom-show",
       "member": "PptCustomShow",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:89"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:89"
       ]
     },
     {
@@ -3584,7 +3584,7 @@
       "catalogCode": "ppt-custom-show-child",
       "member": "PptCustomShowChild",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:46"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:46"
       ]
     },
     {
@@ -3592,8 +3592,8 @@
       "catalogCode": "ppt-custom-show-list",
       "member": "PptCustomShowList",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:29",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:37"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:29",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:37"
       ]
     },
     {
@@ -3601,9 +3601,9 @@
       "catalogCode": "ppt-custom-show-name",
       "member": "PptCustomShowName",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:106",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:114",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:70"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:106",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:114",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:70"
       ]
     },
     {
@@ -3611,7 +3611,7 @@
       "catalogCode": "ppt-custom-show-preserve-only",
       "member": "PptCustomShowPreserveOnly",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:143"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:143"
       ]
     },
     {
@@ -3619,7 +3619,7 @@
       "catalogCode": "ppt-custom-show-slide-missing",
       "member": "PptCustomShowSlideMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:160"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:160"
       ]
     },
     {
@@ -3627,8 +3627,8 @@
       "catalogCode": "ppt-custom-show-slides",
       "member": "PptCustomShowSlides",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:126",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.CustomShows.cs:137"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:126",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs:137"
       ]
     },
     {
@@ -3636,7 +3636,7 @@
       "catalogCode": "ppt-document-atom-boolean",
       "member": "PptDocumentAtomBoolean",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.DocumentSettings.cs:36"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.DocumentSettings.cs:36"
       ]
     },
     {
@@ -3644,7 +3644,7 @@
       "catalogCode": "ppt-document-atom-length",
       "member": "PptDocumentAtomLength",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.DocumentSettings.cs:18"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.DocumentSettings.cs:18"
       ]
     },
     {
@@ -3652,7 +3652,7 @@
       "catalogCode": "ppt-document-atom-value",
       "member": "PptDocumentAtomValue",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.DocumentSettings.cs:30"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.DocumentSettings.cs:30"
       ]
     },
     {
@@ -3660,7 +3660,7 @@
       "catalogCode": "ppt-encryption-decrypted",
       "member": "PptEncryptionDecrypted",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:176"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:176"
       ]
     },
     {
@@ -3668,7 +3668,7 @@
       "catalogCode": "ppt-external-object-id-seed",
       "member": "PptExternalObjectIdSeed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:249"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:249"
       ]
     },
     {
@@ -3676,7 +3676,7 @@
       "catalogCode": "ppt-font-embedded-preserve-only",
       "member": "PptFontEmbeddedPreserveOnly",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Fonts.cs:54"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs:54"
       ]
     },
     {
@@ -3684,7 +3684,7 @@
       "catalogCode": "ppt-font-entity-truncated",
       "member": "PptFontEntityTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Fonts.cs:16"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs:16"
       ]
     },
     {
@@ -3692,7 +3692,7 @@
       "catalogCode": "ppt-font-index-duplicate",
       "member": "PptFontIndexDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Fonts.cs:23"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs:23"
       ]
     },
     {
@@ -3700,7 +3700,7 @@
       "catalogCode": "ppt-font-name-empty",
       "member": "PptFontNameEmpty",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Fonts.cs:33"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs:33"
       ]
     },
     {
@@ -3708,7 +3708,7 @@
       "catalogCode": "ppt-group-anchor",
       "member": "PptGroupAnchor",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:696"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:696"
       ]
     },
     {
@@ -3716,7 +3716,7 @@
       "catalogCode": "ppt-group-truncated",
       "member": "PptGroupTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:682"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:682"
       ]
     },
     {
@@ -3724,7 +3724,7 @@
       "catalogCode": "ppt-header-footer-atom",
       "member": "PptHeaderFooterAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HeadersFooters.cs:35"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs:35"
       ]
     },
     {
@@ -3732,7 +3732,7 @@
       "catalogCode": "ppt-header-footer-format",
       "member": "PptHeaderFooterFormat",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HeadersFooters.cs:45"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs:45"
       ]
     },
     {
@@ -3740,7 +3740,7 @@
       "catalogCode": "ppt-header-footer-reserved",
       "member": "PptHeaderFooterReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HeadersFooters.cs:51"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs:51"
       ]
     },
     {
@@ -3748,7 +3748,7 @@
       "catalogCode": "ppt-hyperlink-atom",
       "member": "PptHyperlinkAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:129"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:129"
       ]
     },
     {
@@ -3756,7 +3756,7 @@
       "catalogCode": "ppt-hyperlink-container",
       "member": "PptHyperlinkContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:120"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:120"
       ]
     },
     {
@@ -3764,7 +3764,7 @@
       "catalogCode": "ppt-hyperlink-id",
       "member": "PptHyperlinkId",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:136"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:136"
       ]
     },
     {
@@ -3772,7 +3772,7 @@
       "catalogCode": "ppt-hyperlink-id-duplicate",
       "member": "PptHyperlinkIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:73"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:73"
       ]
     },
     {
@@ -3780,7 +3780,7 @@
       "catalogCode": "ppt-hyperlink-id-seed",
       "member": "PptHyperlinkIdSeed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:85"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:85"
       ]
     },
     {
@@ -3788,7 +3788,7 @@
       "catalogCode": "ppt-hyperlink-list",
       "member": "PptHyperlinkList",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:51"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:51"
       ]
     },
     {
@@ -3796,7 +3796,7 @@
       "catalogCode": "ppt-hyperlink-list-atom",
       "member": "PptHyperlinkListAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:60"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:60"
       ]
     },
     {
@@ -3804,7 +3804,7 @@
       "catalogCode": "ppt-hyperlink-lists",
       "member": "PptHyperlinkLists",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:32"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:32"
       ]
     },
     {
@@ -3812,7 +3812,7 @@
       "catalogCode": "ppt-hyperlink-string",
       "member": "PptHyperlinkString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:143"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:143"
       ]
     },
     {
@@ -3820,7 +3820,7 @@
       "catalogCode": "ppt-hyperlink-target",
       "member": "PptHyperlinkTarget",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:149"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:149"
       ]
     },
     {
@@ -3828,7 +3828,7 @@
       "catalogCode": "ppt-hyperlink9-container",
       "member": "PptHyperlink9Container",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:74"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:74"
       ]
     },
     {
@@ -3836,7 +3836,7 @@
       "catalogCode": "ppt-hyperlink9-data",
       "member": "PptHyperlink9Data",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:35"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:35"
       ]
     },
     {
@@ -3844,7 +3844,7 @@
       "catalogCode": "ppt-hyperlink9-docinfo",
       "member": "PptHyperlink9Docinfo",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:17"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:17"
       ]
     },
     {
@@ -3852,7 +3852,7 @@
       "catalogCode": "ppt-hyperlink9-duplicate",
       "member": "PptHyperlink9Duplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:101"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:101"
       ]
     },
     {
@@ -3860,7 +3860,7 @@
       "catalogCode": "ppt-hyperlink9-flags",
       "member": "PptHyperlink9Flags",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:126"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:126"
       ]
     },
     {
@@ -3868,7 +3868,7 @@
       "catalogCode": "ppt-hyperlink9-missing",
       "member": "PptHyperlink9Missing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:108"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:108"
       ]
     },
     {
@@ -3876,7 +3876,7 @@
       "catalogCode": "ppt-hyperlink9-reserved",
       "member": "PptHyperlink9Reserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:120"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:120"
       ]
     },
     {
@@ -3884,7 +3884,7 @@
       "catalogCode": "ppt-hyperlink9-shape",
       "member": "PptHyperlink9Shape",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:93"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:93"
       ]
     },
     {
@@ -3892,7 +3892,7 @@
       "catalogCode": "ppt-hyperlink9-truncated",
       "member": "PptHyperlink9Truncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HyperlinkExtensions.cs:48"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs:48"
       ]
     },
     {
@@ -3900,7 +3900,7 @@
       "catalogCode": "ppt-master-persist-missing",
       "member": "PptMasterPersistMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:328"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:328"
       ]
     },
     {
@@ -3908,7 +3908,7 @@
       "catalogCode": "ppt-master-persist-truncated",
       "member": "PptMasterPersistTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:321"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:321"
       ]
     },
     {
@@ -3916,7 +3916,7 @@
       "catalogCode": "ppt-master-slide-atom-truncated",
       "member": "PptMasterSlideAtomTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:25"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:25"
       ]
     },
     {
@@ -3924,7 +3924,7 @@
       "catalogCode": "ppt-master-type",
       "member": "PptMasterType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:338"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:338"
       ]
     },
     {
@@ -3932,7 +3932,7 @@
       "catalogCode": "ppt-media-flags-reserved",
       "member": "PptMediaFlagsReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:213"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:213"
       ]
     },
     {
@@ -3940,7 +3940,7 @@
       "catalogCode": "ppt-media-id-duplicate",
       "member": "PptMediaIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:58"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:58"
       ]
     },
     {
@@ -3948,7 +3948,7 @@
       "catalogCode": "ppt-media-malformed",
       "member": "PptMediaMalformed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:260"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:260"
       ]
     },
     {
@@ -3956,7 +3956,7 @@
       "catalogCode": "ppt-media-preserved",
       "member": "PptMediaPreserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:648"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:648"
       ]
     },
     {
@@ -3964,7 +3964,7 @@
       "catalogCode": "ppt-media-sound-format",
       "member": "PptMediaSoundFormat",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:178"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:178"
       ]
     },
     {
@@ -3972,7 +3972,7 @@
       "catalogCode": "ppt-media-sound-missing",
       "member": "PptMediaSoundMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:172"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:172"
       ]
     },
     {
@@ -3980,7 +3980,7 @@
       "catalogCode": "ppt-media-unknown",
       "member": "PptMediaUnknown",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:253"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:253"
       ]
     },
     {
@@ -3988,7 +3988,7 @@
       "catalogCode": "ppt-media-video-narration",
       "member": "PptMediaVideoNarration",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Media.cs:221"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs:221"
       ]
     },
     {
@@ -3996,7 +3996,7 @@
       "catalogCode": "ppt-notes-atom-length",
       "member": "PptNotesAtomLength",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:80"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:80"
       ]
     },
     {
@@ -4004,7 +4004,7 @@
       "catalogCode": "ppt-notes-atom-reserved",
       "member": "PptNotesAtomReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:104"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:104"
       ]
     },
     {
@@ -4012,7 +4012,7 @@
       "catalogCode": "ppt-notes-id-missing",
       "member": "PptNotesIdMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:54"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:54"
       ]
     },
     {
@@ -4020,7 +4020,7 @@
       "catalogCode": "ppt-notes-master-atom",
       "member": "PptNotesMasterAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.SpecialMasters.cs:77"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs:77"
       ]
     },
     {
@@ -4028,7 +4028,7 @@
       "catalogCode": "ppt-notes-master-atom-invalid",
       "member": "PptNotesMasterAtomInvalid",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.SpecialMasters.cs:84"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs:84"
       ]
     },
     {
@@ -4036,7 +4036,7 @@
       "catalogCode": "ppt-notes-persist-length",
       "member": "PptNotesPersistLength",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:17"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:17"
       ]
     },
     {
@@ -4044,7 +4044,7 @@
       "catalogCode": "ppt-notes-persist-missing",
       "member": "PptNotesPersistMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:60"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:60"
       ]
     },
     {
@@ -4052,7 +4052,7 @@
       "catalogCode": "ppt-notes-persist-reference",
       "member": "PptNotesPersistReference",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:27"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:27"
       ]
     },
     {
@@ -4060,7 +4060,7 @@
       "catalogCode": "ppt-notes-persist-reserved",
       "member": "PptNotesPersistReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:36"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:36"
       ]
     },
     {
@@ -4068,7 +4068,7 @@
       "catalogCode": "ppt-notes-read",
       "member": "PptNotesRead",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:121"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:121"
       ]
     },
     {
@@ -4076,7 +4076,7 @@
       "catalogCode": "ppt-notes-slide-mismatch",
       "member": "PptNotesSlideMismatch",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:97"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:97"
       ]
     },
     {
@@ -4084,7 +4084,7 @@
       "catalogCode": "ppt-notes-type",
       "member": "PptNotesType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Notes.cs:71"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs:71"
       ]
     },
     {
@@ -4092,7 +4092,7 @@
       "catalogCode": "ppt-ole-atom",
       "member": "PptOleAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:69"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:69"
       ]
     },
     {
@@ -4100,7 +4100,7 @@
       "catalogCode": "ppt-ole-container",
       "member": "PptOleContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:55"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:55"
       ]
     },
     {
@@ -4108,7 +4108,7 @@
       "catalogCode": "ppt-ole-id-duplicate",
       "member": "PptOleIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:36"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:36"
       ]
     },
     {
@@ -4116,7 +4116,7 @@
       "catalogCode": "ppt-ole-identity",
       "member": "PptOleIdentity",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:86"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:86"
       ]
     },
     {
@@ -4124,7 +4124,7 @@
       "catalogCode": "ppt-ole-link-atom",
       "member": "PptOleLinkAtom",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:68"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:68"
       ]
     },
     {
@@ -4132,7 +4132,7 @@
       "catalogCode": "ppt-ole-link-container",
       "member": "PptOleLinkContainer",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:50"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:50"
       ]
     },
     {
@@ -4140,7 +4140,7 @@
       "catalogCode": "ppt-ole-link-id-duplicate",
       "member": "PptOleLinkIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:34"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:34"
       ]
     },
     {
@@ -4148,7 +4148,7 @@
       "catalogCode": "ppt-ole-link-identity",
       "member": "PptOleLinkIdentity",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:85"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:85"
       ]
     },
     {
@@ -4156,7 +4156,7 @@
       "catalogCode": "ppt-ole-link-preserved",
       "member": "PptOleLinkPreserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:635"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:635"
       ]
     },
     {
@@ -4164,7 +4164,7 @@
       "catalogCode": "ppt-ole-link-slide",
       "member": "PptOleLinkSlide",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:215"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:215"
       ]
     },
     {
@@ -4172,7 +4172,7 @@
       "catalogCode": "ppt-ole-link-storage",
       "member": "PptOleLinkStorage",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:101"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:101"
       ]
     },
     {
@@ -4180,7 +4180,7 @@
       "catalogCode": "ppt-ole-link-string",
       "member": "PptOleLinkString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.LinkedOleObjects.cs:95"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs:95"
       ]
     },
     {
@@ -4188,7 +4188,7 @@
       "catalogCode": "ppt-ole-preserve-only",
       "member": "PptOlePreserveOnly",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:911"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:911"
       ]
     },
     {
@@ -4196,7 +4196,7 @@
       "catalogCode": "ppt-ole-shape-duplicate",
       "member": "PptOleShapeDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:168"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:168"
       ]
     },
     {
@@ -4204,7 +4204,7 @@
       "catalogCode": "ppt-ole-shape-reference",
       "member": "PptOleShapeReference",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:147"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:147"
       ]
     },
     {
@@ -4212,7 +4212,7 @@
       "catalogCode": "ppt-ole-shape-target",
       "member": "PptOleShapeTarget",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:160"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:160"
       ]
     },
     {
@@ -4220,7 +4220,7 @@
       "catalogCode": "ppt-ole-storage",
       "member": "PptOleStorage",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:101"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:101"
       ]
     },
     {
@@ -4228,7 +4228,7 @@
       "catalogCode": "ppt-ole-string",
       "member": "PptOleString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:95"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:95"
       ]
     },
     {
@@ -4236,7 +4236,7 @@
       "catalogCode": "ppt-picture-blip-missing",
       "member": "PptPictureBlipMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:787"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:787"
       ]
     },
     {
@@ -4244,7 +4244,7 @@
       "catalogCode": "ppt-picture-blip-truncated",
       "member": "PptPictureBlipTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:792"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:792"
       ]
     },
     {
@@ -4252,7 +4252,7 @@
       "catalogCode": "ppt-picture-bullet-blip",
       "member": "PptPictureBulletBlip",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:119"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:119"
       ]
     },
     {
@@ -4260,7 +4260,7 @@
       "catalogCode": "ppt-picture-bullet-blip-truncated",
       "member": "PptPictureBulletBlipTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:139"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:139"
       ]
     },
     {
@@ -4268,7 +4268,7 @@
       "catalogCode": "ppt-picture-bullet-collection",
       "member": "PptPictureBulletCollection",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:64"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:64"
       ]
     },
     {
@@ -4276,7 +4276,7 @@
       "catalogCode": "ppt-picture-bullet-collection-duplicate",
       "member": "PptPictureBulletCollectionDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:55"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:55"
       ]
     },
     {
@@ -4284,7 +4284,7 @@
       "catalogCode": "ppt-picture-bullet-data",
       "member": "PptPictureBulletData",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:32"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:32"
       ]
     },
     {
@@ -4292,7 +4292,7 @@
       "catalogCode": "ppt-picture-bullet-data-truncated",
       "member": "PptPictureBulletDataTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:46"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:46"
       ]
     },
     {
@@ -4300,7 +4300,7 @@
       "catalogCode": "ppt-picture-bullet-entity",
       "member": "PptPictureBulletEntity",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:100"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:100"
       ]
     },
     {
@@ -4308,7 +4308,7 @@
       "catalogCode": "ppt-picture-bullet-image",
       "member": "PptPictureBulletImage",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:145"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:145"
       ]
     },
     {
@@ -4316,7 +4316,7 @@
       "catalogCode": "ppt-picture-bullet-index-duplicate",
       "member": "PptPictureBulletIndexDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:75"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:75"
       ]
     },
     {
@@ -4324,7 +4324,7 @@
       "catalogCode": "ppt-picture-bullet-tag-duplicate",
       "member": "PptPictureBulletTagDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.PictureBullets.cs:21"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs:21"
       ]
     },
     {
@@ -4332,7 +4332,7 @@
       "catalogCode": "ppt-picture-fbse-truncated",
       "member": "PptPictureFbseTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:763"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:763"
       ]
     },
     {
@@ -4340,7 +4340,7 @@
       "catalogCode": "ppt-picture-format-unsupported",
       "member": "PptPictureFormatUnsupported",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:796"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:796"
       ]
     },
     {
@@ -4348,7 +4348,7 @@
       "catalogCode": "ppt-placeholder-invalid",
       "member": "PptPlaceholderInvalid",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:85"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:85"
       ]
     },
     {
@@ -4364,8 +4364,8 @@
       "catalogCode": "ppt-roundtrip-color-map-invalid",
       "member": "PptRoundtripColorMapInvalid",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.RoundTripThemes.cs:50",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.RoundTripThemes.cs:57"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs:50",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs:57"
       ]
     },
     {
@@ -4373,8 +4373,8 @@
       "catalogCode": "ppt-roundtrip-theme-invalid",
       "member": "PptRoundtripThemeInvalid",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.RoundTripThemes.cs:35",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.RoundTripThemes.cs:42"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs:35",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs:42"
       ]
     },
     {
@@ -4382,7 +4382,7 @@
       "catalogCode": "ppt-shape-anchor",
       "member": "PptShapeAnchor",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:479"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:479"
       ]
     },
     {
@@ -4390,7 +4390,7 @@
       "catalogCode": "ppt-shape-geometry-approximated",
       "member": "PptShapeGeometryApproximated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:659"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:659"
       ]
     },
     {
@@ -4398,7 +4398,7 @@
       "catalogCode": "ppt-shape-style-partial",
       "member": "PptShapeStylePartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:622"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:622"
       ]
     },
     {
@@ -4406,7 +4406,7 @@
       "catalogCode": "ppt-shape-style-truncated",
       "member": "PptShapeStyleTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:619"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:619"
       ]
     },
     {
@@ -4414,7 +4414,7 @@
       "catalogCode": "ppt-shape-unsupported",
       "member": "PptShapeUnsupported",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:655"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:655"
       ]
     },
     {
@@ -4422,7 +4422,7 @@
       "catalogCode": "ppt-slide-atom-length",
       "member": "PptSlideAtomLength",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:55"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:55"
       ]
     },
     {
@@ -4430,7 +4430,7 @@
       "catalogCode": "ppt-slide-atom-truncated",
       "member": "PptSlideAtomTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:12"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:12"
       ]
     },
     {
@@ -4438,7 +4438,7 @@
       "catalogCode": "ppt-slide-flags-reserved",
       "member": "PptSlideFlagsReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:71"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:71"
       ]
     },
     {
@@ -4446,7 +4446,7 @@
       "catalogCode": "ppt-slide-header-ignored",
       "member": "PptSlideHeaderIgnored",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.HeadersFooters.cs:57"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs:57"
       ]
     },
     {
@@ -4454,7 +4454,7 @@
       "catalogCode": "ppt-slide-layout-placeholder",
       "member": "PptSlideLayoutPlaceholder",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:65"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:65"
       ]
     },
     {
@@ -4462,7 +4462,7 @@
       "catalogCode": "ppt-slide-layout-type",
       "member": "PptSlideLayoutType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Layouts.cs:60"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs:60"
       ]
     },
     {
@@ -4470,7 +4470,7 @@
       "catalogCode": "ppt-slide-persist-missing",
       "member": "PptSlidePersistMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:261"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:261"
       ]
     },
     {
@@ -4478,7 +4478,7 @@
       "catalogCode": "ppt-slide-persist-truncated",
       "member": "PptSlidePersistTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:254"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:254"
       ]
     },
     {
@@ -4486,7 +4486,7 @@
       "catalogCode": "ppt-slide-type",
       "member": "PptSlideType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:270"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:270"
       ]
     },
     {
@@ -4494,7 +4494,7 @@
       "catalogCode": "ppt-slides-missing",
       "member": "PptSlidesMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:233"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:233"
       ]
     },
     {
@@ -4502,7 +4502,7 @@
       "catalogCode": "ppt-sound-builtin-id",
       "member": "PptSoundBuiltinId",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:119"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:119"
       ]
     },
     {
@@ -4510,7 +4510,7 @@
       "catalogCode": "ppt-sound-collection-duplicate",
       "member": "PptSoundCollectionDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:14"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:14"
       ]
     },
     {
@@ -4518,7 +4518,7 @@
       "catalogCode": "ppt-sound-collection-header",
       "member": "PptSoundCollectionHeader",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:21"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:21"
       ]
     },
     {
@@ -4526,7 +4526,7 @@
       "catalogCode": "ppt-sound-collection-unknown",
       "member": "PptSoundCollectionUnknown",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:50"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:50"
       ]
     },
     {
@@ -4534,7 +4534,7 @@
       "catalogCode": "ppt-sound-data-duplicate",
       "member": "PptSoundDataDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:129"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:129"
       ]
     },
     {
@@ -4542,7 +4542,7 @@
       "catalogCode": "ppt-sound-data-missing",
       "member": "PptSoundDataMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:140"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:140"
       ]
     },
     {
@@ -4550,7 +4550,7 @@
       "catalogCode": "ppt-sound-extension",
       "member": "PptSoundExtension",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:102"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:102"
       ]
     },
     {
@@ -4558,7 +4558,7 @@
       "catalogCode": "ppt-sound-format",
       "member": "PptSoundFormat",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:145"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:145"
       ]
     },
     {
@@ -4566,7 +4566,7 @@
       "catalogCode": "ppt-sound-header",
       "member": "PptSoundHeader",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:68"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:68"
       ]
     },
     {
@@ -4574,7 +4574,7 @@
       "catalogCode": "ppt-sound-id",
       "member": "PptSoundId",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:84"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:84"
       ]
     },
     {
@@ -4582,7 +4582,7 @@
       "catalogCode": "ppt-sound-id-duplicate",
       "member": "PptSoundIdDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:91"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:91"
       ]
     },
     {
@@ -4590,7 +4590,7 @@
       "catalogCode": "ppt-sound-reference-missing",
       "member": "PptSoundReferenceMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:250"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:250"
       ]
     },
     {
@@ -4598,7 +4598,7 @@
       "catalogCode": "ppt-sound-reference-null",
       "member": "PptSoundReferenceNull",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:245"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:245"
       ]
     },
     {
@@ -4606,8 +4606,8 @@
       "catalogCode": "ppt-sound-seed",
       "member": "PptSoundSeed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:33",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:37"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:33",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:37"
       ]
     },
     {
@@ -4615,7 +4615,7 @@
       "catalogCode": "ppt-sound-seed-range",
       "member": "PptSoundSeedRange",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:58"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:58"
       ]
     },
     {
@@ -4623,7 +4623,7 @@
       "catalogCode": "ppt-sound-string",
       "member": "PptSoundString",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:169"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:169"
       ]
     },
     {
@@ -4631,7 +4631,7 @@
       "catalogCode": "ppt-sound-unknown",
       "member": "PptSoundUnknown",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Sounds.cs:153"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs:153"
       ]
     },
     {
@@ -4639,7 +4639,7 @@
       "catalogCode": "ppt-special-master-persist-missing",
       "member": "PptSpecialMasterPersistMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.SpecialMasters.cs:35"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs:35"
       ]
     },
     {
@@ -4647,7 +4647,7 @@
       "catalogCode": "ppt-special-master-read",
       "member": "PptSpecialMasterRead",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.SpecialMasters.cs:49"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs:49"
       ]
     },
     {
@@ -4655,7 +4655,7 @@
       "catalogCode": "ppt-special-master-type",
       "member": "PptSpecialMasterType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.SpecialMasters.cs:55"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs:55"
       ]
     },
     {
@@ -4663,7 +4663,7 @@
       "catalogCode": "ppt-table-style-tag-data",
       "member": "PptTableStyleTagData",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Tables.cs:34"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Tables.cs:34"
       ]
     },
     {
@@ -4671,7 +4671,7 @@
       "catalogCode": "ppt-table-style-tag-duplicate",
       "member": "PptTableStyleTagDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Tables.cs:20"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Tables.cs:20"
       ]
     },
     {
@@ -4679,7 +4679,7 @@
       "catalogCode": "ppt-text-action-bounds",
       "member": "PptTextActionBounds",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:225"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:225"
       ]
     },
     {
@@ -4687,7 +4687,7 @@
       "catalogCode": "ppt-text-action-overlap",
       "member": "PptTextActionOverlap",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:379"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:379"
       ]
     },
     {
@@ -4695,7 +4695,7 @@
       "catalogCode": "ppt-text-action-range",
       "member": "PptTextActionRange",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:215"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:215"
       ]
     },
     {
@@ -4703,7 +4703,7 @@
       "catalogCode": "ppt-text-action-range-missing",
       "member": "PptTextActionRangeMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Interactions.cs:204"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs:204"
       ]
     },
     {
@@ -4711,7 +4711,7 @@
       "catalogCode": "ppt-text-character-partial",
       "member": "PptTextCharacterPartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:608"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:608"
       ]
     },
     {
@@ -4719,7 +4719,7 @@
       "catalogCode": "ppt-text-field-malformed",
       "member": "PptTextFieldMalformed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.TextFields.cs:31"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextFields.cs:31"
       ]
     },
     {
@@ -4727,7 +4727,7 @@
       "catalogCode": "ppt-text-master-style-partial",
       "member": "PptTextMasterStylePartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:399"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:399"
       ]
     },
     {
@@ -4735,7 +4735,7 @@
       "catalogCode": "ppt-text-master-style-truncated",
       "member": "PptTextMasterStyleTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:394"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:394"
       ]
     },
     {
@@ -4743,7 +4743,7 @@
       "catalogCode": "ppt-text-master-style-type",
       "member": "PptTextMasterStyleType",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:379"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:379"
       ]
     },
     {
@@ -4751,7 +4751,7 @@
       "catalogCode": "ppt-text-master-style9-data",
       "member": "PptTextMasterStyle9Data",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.MasterTextStyle9.cs:28"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs:28"
       ]
     },
     {
@@ -4759,7 +4759,7 @@
       "catalogCode": "ppt-text-master-style9-duplicate",
       "member": "PptTextMasterStyle9Duplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.MasterTextStyle9.cs:17"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs:17"
       ]
     },
     {
@@ -4767,7 +4767,7 @@
       "catalogCode": "ppt-text-master-style9-orphan",
       "member": "PptTextMasterStyle9Orphan",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:407"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:407"
       ]
     },
     {
@@ -4775,7 +4775,7 @@
       "catalogCode": "ppt-text-master-style9-truncated",
       "member": "PptTextMasterStyle9Truncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.MasterTextStyle9.cs:55"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs:55"
       ]
     },
     {
@@ -4783,7 +4783,7 @@
       "catalogCode": "ppt-text-master-style9-type-duplicate",
       "member": "PptTextMasterStyle9TypeDuplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.MasterTextStyle9.cs:44"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs:44"
       ]
     },
     {
@@ -4791,7 +4791,7 @@
       "catalogCode": "ppt-text-paragraph-partial",
       "member": "PptTextParagraphPartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:603"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:603"
       ]
     },
     {
@@ -4799,7 +4799,7 @@
       "catalogCode": "ppt-text-ruler-truncated",
       "member": "PptTextRulerTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:614"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:614"
       ]
     },
     {
@@ -4807,7 +4807,7 @@
       "catalogCode": "ppt-text-special-info-partial",
       "member": "PptTextSpecialInfoPartial",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:539"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:539"
       ]
     },
     {
@@ -4815,7 +4815,7 @@
       "catalogCode": "ppt-text-special-info-truncated",
       "member": "PptTextSpecialInfoTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:533"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:533"
       ]
     },
     {
@@ -4823,7 +4823,7 @@
       "catalogCode": "ppt-text-style-truncated",
       "member": "PptTextStyleTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:591"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:591"
       ]
     },
     {
@@ -4831,7 +4831,7 @@
       "catalogCode": "ppt-text-style9-content",
       "member": "PptTextStyle9Content",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.TextStyle9.cs:50"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs:50"
       ]
     },
     {
@@ -4839,7 +4839,7 @@
       "catalogCode": "ppt-text-style9-data",
       "member": "PptTextStyle9Data",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.TextStyle9.cs:35"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs:35"
       ]
     },
     {
@@ -4847,7 +4847,7 @@
       "catalogCode": "ppt-text-style9-duplicate",
       "member": "PptTextStyle9Duplicate",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.TextStyle9.cs:23"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs:23"
       ]
     },
     {
@@ -4855,8 +4855,8 @@
       "catalogCode": "ppt-text-style9-truncated",
       "member": "PptTextStyle9Truncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.TextStyle9.cs:61",
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:597"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs:61",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:597"
       ]
     },
     {
@@ -4864,7 +4864,7 @@
       "catalogCode": "ppt-text-type-invalid",
       "member": "PptTextTypeInvalid",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:496"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:496"
       ]
     },
     {
@@ -4872,7 +4872,7 @@
       "catalogCode": "ppt-transition-reserved",
       "member": "PptTransitionReserved",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Transitions.cs:40"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs:40"
       ]
     },
     {
@@ -4880,7 +4880,7 @@
       "catalogCode": "ppt-transition-sound-flags",
       "member": "PptTransitionSoundFlags",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Transitions.cs:47"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs:47"
       ]
     },
     {
@@ -4888,7 +4888,7 @@
       "catalogCode": "ppt-transition-speed",
       "member": "PptTransitionSpeed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Transitions.cs:33"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs:33"
       ]
     },
     {
@@ -4896,7 +4896,7 @@
       "catalogCode": "ppt-transition-time",
       "member": "PptTransitionTime",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Transitions.cs:27"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs:27"
       ]
     },
     {
@@ -4904,7 +4904,7 @@
       "catalogCode": "ppt-transition-truncated",
       "member": "PptTransitionTruncated",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Transitions.cs:13"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs:13"
       ]
     },
     {
@@ -4928,7 +4928,7 @@
       "catalogCode": "ppt-vba-info-malformed",
       "member": "PptVbaInfoMalformed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Vba.cs:25"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Vba.cs:25"
       ]
     },
     {
@@ -4936,7 +4936,7 @@
       "catalogCode": "ppt-vba-storage-malformed",
       "member": "PptVbaStorageMalformed",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Vba.cs:70"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Vba.cs:70"
       ]
     },
     {
@@ -4944,7 +4944,7 @@
       "catalogCode": "ppt-vba-storage-missing",
       "member": "PptVbaStorageMissing",
       "origins": [
-        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.Vba.cs:43"
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Vba.cs:43"
       ]
     },
     {
@@ -6153,7 +6153,7 @@
       "catalogCode": "power-point-destination-feature-unsupported",
       "member": "PowerPointDestinationFeatureUnsupported",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:124"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:124"
       ]
     },
     {
@@ -6161,7 +6161,7 @@
       "catalogCode": "power-point-digital-signature-invalidated",
       "member": "PowerPointDigitalSignatureInvalidated",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:299"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:299"
       ]
     },
     {
@@ -6169,7 +6169,7 @@
       "catalogCode": "power-point-legacy-destination-not-writable",
       "member": "PowerPointLegacyDestinationNotWritable",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:317"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:317"
       ]
     },
     {
@@ -6177,7 +6177,7 @@
       "catalogCode": "power-point-source-carrier-embedded",
       "member": "PowerPointSourceCarrierEmbedded",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:478"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:478"
       ]
     },
     {
@@ -6185,7 +6185,7 @@
       "catalogCode": "power-point-source-carrier-not-embedded",
       "member": "PowerPointSourceCarrierNotEmbedded",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:478"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:478"
       ]
     },
     {
@@ -6193,7 +6193,7 @@
       "catalogCode": "power-point-source-extension-mismatch",
       "member": "PowerPointSourceExtensionMismatch",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:201"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:201"
       ]
     },
     {
@@ -6201,7 +6201,7 @@
       "catalogCode": "power-point-vba-project-removed",
       "member": "PowerPointVbaProjectRemoved",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:277"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:277"
       ]
     },
     {
@@ -7090,7 +7090,7 @@
       "catalogCode": "text-clipped",
       "member": "TextClipped",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:167"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:167"
       ]
     },
     {
@@ -7098,7 +7098,7 @@
       "catalogCode": "text-unreadable-font-reduction",
       "member": "TextUnreadableFontReduction",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:173"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:173"
       ]
     },
     {
@@ -7304,7 +7304,7 @@
       "catalogCode": "visual-snapshot-failed",
       "member": "VisualSnapshotFailed",
       "origins": [
-        "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:294"
+        "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:294"
       ]
     },
     {
@@ -10781,18 +10781,18 @@
     "OfficeIMO.PowerPoint/Layout/PowerPointPdfExportWarning.cs:54 PdfConversionWarning(Code)",
     "OfficeIMO.PowerPoint/LegacyPpt/Internal/LegacyPptProjectionFingerprint.cs:56 Merge(_editableImages)",
     "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportReport.cs:142 OfficeConversionFidelityDiagnostic(diagnostic.Code)",
-    "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.cs:924 LegacyPptImportDiagnostic(code)",
-    "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptPresentation.OleObjects.cs:199 AddDiagnostic(diagnosticCode)",
+    "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs:924 LegacyPptImportDiagnostic(code)",
+    "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs:199 AddDiagnostic(diagnosticCode)",
     "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptWritePreflightReport.cs:42 OfficeConversionFidelityDiagnostic(finding.Code)",
     "OfficeIMO.PowerPoint/LegacyPpt/Write/LegacyPptPreservingWriter.ChangePlan.cs:412 Remap(currentInteractions)",
     "OfficeIMO.PowerPoint/LegacyPpt/Write/LegacyPptPreservingWriter.Interactions.cs:422 Remap(item.Interaction)",
     "OfficeIMO.PowerPoint/LegacyPpt/Write/LegacyPptPreservingWriter.Interactions.cs:432 Remap(interactions)",
     "OfficeIMO.PowerPoint/PowerPointDeckPlan.Slides.cs:83 PowerPointDeckPlanDiagnostic(code)",
-    "OfficeIMO.PowerPoint/PowerPointPresentation.Accessibility.cs:225 PowerPointAccessibilityFinding(code)",
-    "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:224 OfficeConversionDiagnostic(diagnostic.Code)",
-    "OfficeIMO.PowerPoint/PowerPointPresentation.Conversion.cs:258 OfficeConversionDiagnostic(finding.Code)",
-    "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:287 PowerPointDeckPreflightFinding(\"VisualSnapshot.\" + diagnostic.Code)",
-    "OfficeIMO.PowerPoint/PowerPointPresentation.Preflight.cs:302 PowerPointDeckPreflightFinding(code)",
+    "OfficeIMO.PowerPoint/PowerPointDocument.Accessibility.cs:225 PowerPointAccessibilityFinding(code)",
+    "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:224 OfficeConversionDiagnostic(diagnostic.Code)",
+    "OfficeIMO.PowerPoint/PowerPointDocument.Conversion.cs:258 OfficeConversionDiagnostic(finding.Code)",
+    "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:287 PowerPointDeckPreflightFinding(\"VisualSnapshot.\" + diagnostic.Code)",
+    "OfficeIMO.PowerPoint/PowerPointDocument.Preflight.cs:302 PowerPointDeckPreflightFinding(code)",
     "OfficeIMO.PowerPoint/PowerPointTemplateInventory.cs:194 PowerPointTemplateResolutionException(notFoundCode)",
     "OfficeIMO.PowerPoint/PowerPointTemplateInventory.cs:198 PowerPointTemplateResolutionException(ambiguousCode)",
     "OfficeIMO.Word.Html/Converters/HtmlToWordConverter.Accessibility.cs:22 AddDiagnostic(code)",

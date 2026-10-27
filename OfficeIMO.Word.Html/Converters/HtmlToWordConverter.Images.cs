@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(uri.LocalPath, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(uri.LocalPath, null, null, wrap, description: alt);
+                    paragraph.AddImage(uri.LocalPath, null, null, options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrap, Description = alt });
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(src, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(src, null, null, wrap, description: alt);
+                    paragraph.AddImage(src, null, null, options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrap, Description = alt });
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.Html {
                     using var ms = new MemoryStream(data);
                     string fileName = GetFileNameFromUri(src);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(ms, fileName, null, null, wrap, description: alt);
+                    paragraph.AddImage(ms, fileName, null, null, options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrap, Description = alt });
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -431,7 +431,7 @@ namespace OfficeIMO.Word.Html {
                 if (uri.IsFile) {
                     paragraph.AddTrustedExternalImage(uri, width.Value, height.Value, wrap, description: alt);
                 } else {
-                    paragraph.AddImage(uri, width.Value, height.Value, wrap, description: alt);
+                    paragraph.AddImage(uri, OfficeIMO.OfficeLength.Pixels(width.Value), OfficeIMO.OfficeLength.Pixels(height.Value), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrap, Description = alt });
                 }
                 image = paragraph.Image!;
                 return true;
@@ -483,7 +483,7 @@ namespace OfficeIMO.Word.Html {
                     reservedBytes = bytes.LongLength;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     using var imageStream = new MemoryStream(bytes);
-                    paragraph.AddImage(imageStream, "image." + ext, null, null, wrap, description: alt);
+                    paragraph.AddImage(imageStream, "image." + ext, null, null, options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrap, Description = alt });
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         AddDiagnostic(options, "image-data-uri-unsupported", "Non-base64 data URI image was skipped because only SVG text data URIs are supported.", src);

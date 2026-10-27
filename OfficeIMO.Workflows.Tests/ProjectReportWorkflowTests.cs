@@ -54,7 +54,7 @@ public sealed class ProjectReportWorkflowTests {
             Kind = ProjectViewKind.Table, Columns = new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }, PageHeight = 400
         });
         using var report = ProjectReportWorkflow.CreatePowerPoint(view);
-        using var copy = PowerPointPresentation.Load(new MemoryStream(report.ToBytes()));
+        using var copy = PowerPointDocument.Load(new MemoryStream(report.ToBytes()));
         var tables = copy.Slides.SelectMany(s => s.Shapes.OfType<PowerPointTable>()).ToArray();
         Assert.True(tables.Length > 3);
         var names = tables.SelectMany(t => t.RowItems.Skip(1)).Select(r => r.Cells[1].Text).ToArray();
@@ -117,7 +117,7 @@ public sealed class ProjectReportWorkflowTests {
         Assert.Contains(wordCopy.Tables.SelectMany(t => t.Rows).SelectMany(r => r.Cells).SelectMany(c => c.Paragraphs), p => p.Text.Contains("Task 0"));
         using var presentation = ProjectReportWorkflow.CreatePowerPoint(view);
         Assert.Empty(presentation.ValidateDocument());
-        using var presentationCopy = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
+        using var presentationCopy = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
         Assert.True(presentationCopy.Slides.Count > 1);
         Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes, shape => shape is PowerPointTable || shape is PowerPointPicture));
         using var workbook = ProjectReportWorkflow.CreateExcel(view);

@@ -11,17 +11,18 @@ OfficeIMO provides multiple ways to insert images into Word documents. Images ca
 The simplest way to add an image is from a local file path:
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("images.docx");
 
 var paragraph = document.AddParagraph();
-paragraph.AddImage("photo.jpg", width: 300, height: 200);
+paragraph.AddImage("photo.jpg", width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(200));
 
 document.Save();
 ```
 
-The `width` and `height` parameters are in pixels. If omitted, OfficeIMO uses the image's native dimensions.
+The `width` and `height` parameters take `OfficeLength`, so each value states its unit. If omitted, OfficeIMO uses the image's native dimensions.
 
 ## Adding an Image from a Stream
 
@@ -29,7 +30,7 @@ The `width` and `height` parameters are in pixels. If omitted, OfficeIMO uses th
 using var imageStream = File.OpenRead("logo.png");
 
 var paragraph = document.AddParagraph();
-paragraph.AddImage(imageStream, "logo.png", width: 150, height: 50);
+paragraph.AddImage(imageStream, "logo.png", width: OfficeLength.Pixels(150), height: OfficeLength.Pixels(50));
 ```
 
 ## Adding an Image from Base64
@@ -38,7 +39,8 @@ paragraph.AddImage(imageStream, "logo.png", width: 150, height: 50);
 string base64 = Convert.ToBase64String(File.ReadAllBytes("icon.png"));
 
 var paragraph = document.AddParagraph();
-paragraph.AddImageFromBase64(base64, "icon.png", width: 64, height: 64);
+using var decoded = new MemoryStream(Convert.FromBase64String(base64));
+paragraph.AddImage(decoded, "icon.png", width: OfficeLength.Pixels(64), height: OfficeLength.Pixels(64));
 ```
 
 ## Adding an Image from a URL
@@ -46,10 +48,10 @@ paragraph.AddImageFromBase64(base64, "icon.png", width: 64, height: 64);
 Download and embed an image directly from a URL:
 
 ```csharp
-var image = document.AddImageFromUrl(
-    "https://example.com/banner.jpg",
-    width: 600,
-    height: 200
+var image = await document.AddImageAsync(
+    new Uri("https://example.com/banner.jpg"),
+    width: OfficeLength.Pixels(600),
+    height: OfficeLength.Pixels(200)
 );
 ```
 
@@ -57,12 +59,9 @@ var image = document.AddImageFromUrl(
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImageFromResource(
-    typeof(MyClass).Assembly,
-    "MyNamespace.Resources.logo.png",
-    width: 200,
-    height: 60
-);
+using var resource = typeof(MyClass).Assembly.GetManifestResourceStream("MyNamespace.Resources.logo.png")
+    ?? throw new InvalidOperationException("The embedded logo was not found.");
+paragraph.AddImage(resource, "logo.png", OfficeLength.Pixels(200), OfficeLength.Pixels(60));
 ```
 
 ## Wrapping Modes
@@ -71,8 +70,8 @@ Control how text wraps around the image using the `WordImageTextWrapping` enum:
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImage("photo.jpg", 300, 200,
-    wrapImageText: WordImageTextWrapping.InLineWithText);
+paragraph.AddImage("photo.jpg", OfficeLength.Pixels(300), OfficeLength.Pixels(200),
+    new WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText });
 ```
 
 Available wrapping modes:
@@ -106,7 +105,7 @@ For legacy compatibility, OfficeIMO supports VML (Vector Markup Language) images
 
 ```csharp
 // Add VML image to the document body
-document.AddImageVml("watermark.png", width: 200, height: 100);
+document.AddImageVml("watermark.png", width: OfficeLength.Pixels(200), height: OfficeLength.Pixels(100));
 
 // Add VML image to a header
 document.Sections[0].Header.Default.AddImageVml("header-logo.png", 150, 40);

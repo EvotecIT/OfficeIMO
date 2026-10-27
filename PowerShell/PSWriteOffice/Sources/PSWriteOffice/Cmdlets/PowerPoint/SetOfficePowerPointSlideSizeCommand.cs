@@ -37,7 +37,7 @@ public sealed class SetOfficePowerPointSlideSizeCommand : PSWriteOffice.Cmdlets.
 
     /// <summary>Presentation to update (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Preset slide size to apply.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetPreset)]
@@ -82,7 +82,7 @@ public sealed class SetOfficePowerPointSlideSizeCommand : PSWriteOffice.Cmdlets.
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+            var presentation = Presentation ?? PowerPointDslContext.Current?.Document
                 ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             var slideSize = presentation.SlideSize;

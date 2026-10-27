@@ -17,7 +17,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(sourcePath);
         WordParagraph paragraph = document.AddParagraph(leadingText ? "BeforeDrawable" : string.Empty);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Run sourceRun = paragraph._run!;
         W.Run drawableRun;
         if (kind == "chart") {

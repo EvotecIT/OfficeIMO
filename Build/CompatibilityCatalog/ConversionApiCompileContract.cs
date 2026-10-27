@@ -66,7 +66,7 @@ internal static class ConversionApiCompileContract {
         OdpPresentation odp,
         OdgDocument odg,
         PdfDocument pdf,
-        PowerPointPresentation powerPoint,
+        PowerPointDocument powerPoint,
         PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
@@ -125,9 +125,9 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(word);
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWord(html);
         _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentationResult(html);
+        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocumentResult(html);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToOpenDocumentResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointPresentationResult(odp);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointDocumentResult(odp);
         _ = OfficeIMO.OneNote.Markdown.OneNoteMarkdownConverterExtensions.ToMarkdownDocumentResult(oneNote);
         _ = OfficeIMO.OneNote.Html.OneNoteHtmlConverterExtensions.ToHtmlDocumentResult(oneNote);
         _ = OfficeIMO.OneNote.Html.HtmlOneNoteConverterExtensions.ToOneNoteSectionResult(html);
@@ -204,7 +204,7 @@ internal static class ConversionApiCompileContract {
         }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
-        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);
+        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointDocumentResult(officeMarkup);
 
         // Every cataloged image source compiles against the same five-format owner
         // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.

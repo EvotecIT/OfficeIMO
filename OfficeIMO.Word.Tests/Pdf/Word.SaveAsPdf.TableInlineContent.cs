@@ -20,7 +20,7 @@ public partial class Word {
             document.AddParagraph("Body");
         } else paragraph = document.AddParagraph("Before");
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         paragraph.AddText("After");
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -41,7 +41,7 @@ public partial class Word {
         paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", 16, 32, description: "Inline marker");
+        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Inline marker" });
         paragraph.AddText("After");
         document.Save();
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -68,7 +68,7 @@ public partial class Word {
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         if (nested) cell = cell.AddTable(1, 1).Rows[0].Cells[0];
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        cell.Paragraphs[0].AddImage(image, "inline.png", 16, 32);
+        cell.Paragraphs[0].AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var picture = Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Equal(12D, picture.BoundingBox.Width, 3);
@@ -83,7 +83,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Run resultRun = paragraph._run!;
         W.Drawing drawing = resultRun.GetFirstChild<W.Drawing>()!;
         var instructionDrawing = (W.Drawing)drawing.CloneNode(true);
@@ -125,7 +125,7 @@ public partial class Word {
         paragraph.FontSize = 12;
         paragraph.Bold = true;
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Drawing second = (W.Drawing)paragraph._run!.GetFirstChild<W.Drawing>()!.CloneNode(true);
         second.Inline!.DocProperties!.Id = 2;
         paragraph._run.Append(new W.Text("Middle"), second, new W.Text("After"));
@@ -177,7 +177,7 @@ public partial class Word {
             pictureRun.RunProperties.Vanish = new W.Vanish();
         } else {
             using var image = new MemoryStream(bytes);
-            paragraph.AddImage(image, "hidden.png", 16, 32);
+            paragraph.AddImage(image, "hidden.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
             paragraph._run!.Append(new W.Text("HiddenAfter"));
         }
         paragraph._run!.RunProperties ??= new W.RunProperties();

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_DeduplicatesAndProjectsTransitionAndActionSound() {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 slide.Transition = PowerPointSlideTransition.Fade;
                 MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptSound sound = Assert.Single(legacy.Sounds);
             Assert.Equal(1U, sound.Id);
             Assert.Equal("OfficeIMO Chime", sound.Name);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code.StartsWith("ppt-sound-", StringComparison.Ordinal));
 
             using var inputStream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(inputStream);
+            using PowerPointDocument projected = PowerPointDocument.Load(inputStream);
             PowerPointSlide projectedSlide = Assert.Single(projected.Slides);
             P.StartSoundAction projectedTransitionSound = Assert.Single(
                 projectedSlide.SlidePart.Slide!.Transition!
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsAndProjectsStopSoundTransition() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 slide.Transition = PowerPointSlideTransition.Cut;
                 slide.SlidePart.Slide!.Transition!.Append(
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptTransition transition = Assert.IsType<LegacyPptTransition>(
                 Assert.Single(legacy.Slides).Transition);
             Assert.True(transition.StopSound);
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(legacy.Sounds);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             Assert.Single(projected.Slides[0].SlidePart.Slide!.Transition!
                 .Descendants<P.EndSoundAction>());
             Assert.Empty(projected.ValidateDocument());
@@ -128,8 +128,8 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ReadsConsistentAlternateContentTransitionSound() {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.Transition = PowerPointSlideTransition.Fade;
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptTransition transition = Assert.IsType<
                 LegacyPptTransition>(Assert.Single(binary.Slides)
                 .Transition);
@@ -187,8 +187,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsAlternateContentBuiltInSoundMismatch() {
             byte[] wave = CreateWavePayload();
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -236,8 +236,8 @@ namespace OfficeIMO.Tests {
                     System.Reflection.BindingFlags.Instance
                     | System.Reflection.BindingFlags.NonPublic)!
                 .SetValue(catalog, LegacyPptWriter.MaximumTotalSoundBytes);
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
@@ -261,8 +261,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsInconsistentAlternateContentTransitionSounds() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             var choice = new AlternateContentChoice { Requires = "p14" };
@@ -296,8 +296,8 @@ namespace OfficeIMO.Tests {
         [InlineData("missing")]
         public void NativeWriter_RejectsInconsistentAlternateContentTransitionSettings(
             string difference) {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             var choiceTransition = new P.Transition(
@@ -349,11 +349,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedSoundPresentation_UnrelatedEditPreservesSoundSemantics() {
             byte[] sourceBytes = CreateBinarySoundPresentation();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 imported.Slides[0].Shapes[0].Left += 1588;
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptSound sound = Assert.Single(saved.Sounds);
             LegacyPptSlide slide = Assert.Single(saved.Slides);
             Assert.Equal(sound.Id, Assert.IsType<LegacyPptTransition>(
@@ -380,14 +380,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedTransitionSoundEdit_AppendsSoundAndPatchesReference() {
             byte[] sourceBytes = CreateBinarySoundPresentation();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             byte[] replacement = CreateWavePayload().Concat(new byte[] {
                 0x81, 0x82
             }).ToArray();
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 MediaDataPart media = imported.OpenXmlDocument.CreateMediaDataPart(
                     "audio/wav", ".wav");
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.True(saved.Sounds.Count == 2,
                 string.Join(" | ", saved.Sounds.Select(sound =>
                     $"{sound.Id}:{sound.Name}:{sound.DataBytes.Length}")));
@@ -433,14 +433,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedShapeActionSoundEdit_AppendsSoundAndPatchesReference() {
             byte[] sourceBytes = CreateBinarySoundPresentation();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             byte[] replacement = CreateWavePayload().Concat(new byte[] {
                 0x91, 0x92, 0x93
             }).ToArray();
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointShape shape = imported.Slides[0].Shapes.Single(item =>
                     item.ClickSoundName == "OfficeIMO Chime");
                 using var audio = new MemoryStream(replacement, writable: false);
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.Equal(2, saved.Sounds.Count);
             LegacyPptSound originalSound = saved.Sounds.Single(sound =>
                 sound.Name == "OfficeIMO Chime");
@@ -478,8 +478,8 @@ namespace OfficeIMO.Tests {
             byte[] first = CreateWavePayload();
             byte[] second = first.Concat(new byte[] { 0x31, 0x32 })
                 .ToArray();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000L, 100000L, 800000L, 500000L);
@@ -512,8 +512,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TextContainerReplacementsReleaseDiscardedRunSounds() {
             byte[] wave = CreateWavePayload();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox cleared = slide.AddTextBox("Clear sound");
             using (var audio = new MemoryStream(wave, writable: false)) {
@@ -553,8 +553,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RemovingTransitionReleasesItsMediaPart() {
             byte[] wave = CreateWavePayload();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Transition = PowerPointSlideTransition.Fade;
             using (var audio = new MemoryStream(wave, writable: false)) {
@@ -581,8 +581,8 @@ namespace OfficeIMO.Tests {
         public void TransitionSoundMutationsReleaseAllFallbackMedia(
             string mutation) {
             byte[] wave = CreateWavePayload();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Transition = PowerPointSlideTransition.Morph;
             using (var audio = new MemoryStream(wave, writable: false)) {
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
         public void PublicApis_AuthorSoundOnlyTransitionShapeAndTextActions() {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     slide.SetTransitionSound(audio, "Shared Sound", loop: true);
@@ -684,7 +684,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptSound sound = Assert.Single(legacy.Sounds);
             LegacyPptSlide binarySlide = Assert.Single(legacy.Slides);
             Assert.Equal(sound.Id, Assert.IsType<LegacyPptTransition>(
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(interactions, interaction => interaction.StopsSound);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             PowerPointSlide projectedSlide = Assert.Single(projected.Slides);
             Assert.Equal("Shared Sound", projectedSlide.TransitionSoundName);
             Assert.True(projectedSlide.TransitionSoundLoops);
@@ -722,7 +722,7 @@ namespace OfficeIMO.Tests {
         public void PptxConversion_BlocksUnrepresentableTransitionSound(
             string contentType, string extension, bool builtIn,
             string expectedReason) {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             slide.Transition = PowerPointSlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
@@ -748,7 +748,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateBinarySoundPresentation() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             slide.Transition = PowerPointSlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(

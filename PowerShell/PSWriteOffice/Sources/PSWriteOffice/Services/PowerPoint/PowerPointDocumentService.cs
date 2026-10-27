@@ -24,10 +24,10 @@ public static class PowerPointDocumentService
         internal bool Encrypted { get; }
     }
 
-    private static readonly ConditionalWeakTable<PowerPointPresentation, PresentationAssociation> Presentations = new();
+    private static readonly ConditionalWeakTable<PowerPointDocument, PresentationAssociation> Presentations = new();
 
     /// <summary>Creates a new presentation at the specified path.</summary>
-    public static PowerPointPresentation CreatePresentation(string filePath)
+    public static PowerPointDocument CreateDocument(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -35,7 +35,7 @@ public static class PowerPointDocumentService
         }
 
         var resolvedPath = Path.GetFullPath(filePath);
-        var presentation = PowerPointPresentation.Create(resolvedPath, new PowerPointCreateOptions
+        var presentation = PowerPointDocument.Create(resolvedPath, new PowerPointCreateOptions
         {
             PersistenceMode = DocumentPersistenceMode.Explicit
         });
@@ -44,15 +44,15 @@ public static class PowerPointDocumentService
     }
 
     /// <summary>Loads an existing presentation.</summary>
-    public static PowerPointPresentation LoadPresentation(string filePath, string? password = null) =>
-        LoadPresentation(filePath, password, readOnly: false);
+    public static PowerPointDocument LoadDocument(string filePath, string? password = null) =>
+        LoadDocument(filePath, password, readOnly: false);
 
     /// <summary>Loads an existing presentation with an explicit access mode.</summary>
-    public static PowerPointPresentation LoadPresentation(string filePath, bool readOnly) =>
-        LoadPresentation(filePath, password: null, readOnly);
+    public static PowerPointDocument LoadDocument(string filePath, bool readOnly) =>
+        LoadDocument(filePath, password: null, readOnly);
 
     /// <summary>Loads an existing presentation with password and access-mode options.</summary>
-    public static PowerPointPresentation LoadPresentation(string filePath, string? password, bool readOnly)
+    public static PowerPointDocument LoadDocument(string filePath, string? password, bool readOnly)
     {
         var resolvedPath = Path.GetFullPath(filePath);
         if (!File.Exists(resolvedPath))
@@ -62,7 +62,7 @@ public static class PowerPointDocumentService
 
         var presentation = !string.IsNullOrEmpty(password)
             ? OfficeEncryptedPackageService.OpenPowerPoint(resolvedPath, password!, readOnly)
-            : PowerPointPresentation.Load(resolvedPath, new PowerPointLoadOptions
+            : PowerPointDocument.Load(resolvedPath, new PowerPointLoadOptions
             {
                 AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
                 PersistenceMode = DocumentPersistenceMode.Explicit
@@ -72,7 +72,7 @@ public static class PowerPointDocumentService
     }
 
     /// <summary>Returns the associated path for a presentation, including externally created OfficeIMO instances.</summary>
-    public static string? GetAssociatedPath(PowerPointPresentation presentation)
+    public static string? GetAssociatedPath(PowerPointDocument presentation)
     {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         return Presentations.TryGetValue(presentation, out var association)
@@ -81,11 +81,11 @@ public static class PowerPointDocumentService
     }
 
     /// <summary>Saves without closing and optionally opens the persisted presentation.</summary>
-    public static void SavePresentation(PowerPointPresentation presentation, bool show, string? password = null) =>
-        SavePresentation(presentation, show, password, filePath: null);
+    public static void SaveDocument(PowerPointDocument presentation, bool show, string? password = null) =>
+        SaveDocument(presentation, show, password, filePath: null);
 
     /// <summary>Saves without closing, optionally to a new path, and returns the associated destination.</summary>
-    public static string SavePresentation(PowerPointPresentation presentation, bool show, string? password = null, string? filePath = null)
+    public static string SaveDocument(PowerPointDocument presentation, bool show, string? password = null, string? filePath = null)
     {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         EnsureExternalPresentationUsesExplicitPersistence(presentation);
@@ -129,18 +129,18 @@ public static class PowerPointDocumentService
     }
 
     /// <summary>Closes a presentation, optionally saving and opening it first.</summary>
-    public static void ClosePresentation(PowerPointPresentation presentation, bool save, bool show, string? password = null) =>
-        ClosePresentation(presentation, save, show, password, filePath: null);
+    public static void CloseDocument(PowerPointDocument presentation, bool save, bool show, string? password = null) =>
+        CloseDocument(presentation, save, show, password, filePath: null);
 
     /// <summary>Closes a presentation, optionally saving to a new path and opening it first.</summary>
-    public static void ClosePresentation(PowerPointPresentation presentation, bool save, bool show, string? password, string? filePath)
+    public static void CloseDocument(PowerPointDocument presentation, bool save, bool show, string? password, string? filePath)
     {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         EnsureExternalPresentationUsesExplicitPersistence(presentation);
         string? savedPath = null;
         if (save || show)
         {
-            savedPath = SavePresentation(presentation, show: false, password, filePath);
+            savedPath = SaveDocument(presentation, show: false, password, filePath);
         }
 
         try
@@ -176,7 +176,7 @@ public static class PowerPointDocumentService
     }
 
     private static void EnsureExternalPresentationUsesExplicitPersistence(
-        PowerPointPresentation presentation)
+        PowerPointDocument presentation)
     {
         if (!Presentations.TryGetValue(presentation, out _) &&
             presentation.PersistenceMode == DocumentPersistenceMode.SaveOnDispose)
@@ -196,7 +196,7 @@ public static class PowerPointDocumentService
         return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
     }
 
-    private static void Track(PowerPointPresentation presentation, string path, bool encrypted)
+    private static void Track(PowerPointDocument presentation, string path, bool encrypted)
     {
         Presentations.Remove(presentation);
         Presentations.Add(presentation, new PresentationAssociation(path, encrypted));

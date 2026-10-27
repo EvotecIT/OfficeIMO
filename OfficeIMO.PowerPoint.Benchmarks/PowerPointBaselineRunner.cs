@@ -169,7 +169,7 @@ internal static class PowerPointBaselineRunner {
         long afterInput = GC.GetTotalAllocatedBytes(precise: true);
         if (string.Equals(operation, "OpenEditSave", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             long afterLoad = GC.GetTotalAllocatedBytes(precise: true);
             for (int index = 0; index < presentation.Slides.Count; index += 10) {
                 PowerPointTextBox edit = presentation.Slides[index].AddTextBoxPoints(
@@ -190,7 +190,7 @@ internal static class PowerPointBaselineRunner {
         }
         if (string.Equals(operation, "OpenImageExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             IReadOnlyList<OfficeImageExportResult> images = presentation.ExportImages(
                 OfficeImageExportFormat.Png);
             return PowerPointOperationResult.ImageSet(images,
@@ -198,7 +198,7 @@ internal static class PowerPointBaselineRunner {
         }
         if (string.Equals(operation, "OpenPdfExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             return PowerPointOperationResult.Pdf(pdf,
                 presentation.Slides.Sum(slide => slide.Shapes.Count));
@@ -212,7 +212,7 @@ internal static class PowerPointBaselineRunner {
             throw new InvalidOperationException(operation + " produced no output.");
         }
         if (result.PackageBytes != null) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 new MemoryStream(result.PackageBytes, writable: false));
             if (presentation.Slides.Count != fixture.SlideCount) {
                 throw new InvalidOperationException(

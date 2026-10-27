@@ -57,7 +57,7 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
 static void CreatePowerPointArtifact(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-powerpoint-source.pptx");
     string destination = Path.Combine(outputDirectory, "officeimo-powerpoint-generated.ppt");
-    using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+    using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
         presentation.AddSlide().AddTextBox("OfficeIMO PowerPoint modern-to-binary interoperability artifact");
         presentation.Save();
     }

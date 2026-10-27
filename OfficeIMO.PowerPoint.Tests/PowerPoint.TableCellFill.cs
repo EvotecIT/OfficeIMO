@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointTableCellFillTests {
         [Fact]
         public void ExplicitCellFillTransitionsPreserveBordersPaddingAndSchema() {
-            using var source = PowerPointPresentation.Create();
+            using var source = PowerPointDocument.Create();
             var table = source.AddSlide().AddTablePoints(1, 1, 20, 20, 120, 48);
             var cell = table.GetCell(0, 0);
             cell.BorderColor = "008000";

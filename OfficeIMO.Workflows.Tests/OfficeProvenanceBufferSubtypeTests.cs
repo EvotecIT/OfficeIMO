@@ -41,7 +41,7 @@ public sealed class OfficeProvenanceBufferSubtypeTests {
                 package.AddPresentationPart().Presentation = new DocumentFormat.OpenXml.Presentation.Presentation();
             bool supported = type == PresentationDocumentType.Presentation;
             Verify(stream.ToArray(), "renamed.pptx", supported, supported,
-                (bytes, options) => PowerPointPresentation.InspectProvenance(bytes, "owner.pptx", options));
+                (bytes, options) => PowerPointDocument.InspectProvenance(bytes, "owner.pptx", options));
         }
     }
 

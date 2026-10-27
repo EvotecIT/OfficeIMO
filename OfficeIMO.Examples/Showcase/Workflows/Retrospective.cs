@@ -4,7 +4,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates a retrospective board and a follow-through slide with owners and observable checks.</summary>
     internal static class Retrospective {
         internal static void Create(string folder) {
-            using var deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+            using var deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
             var board = deck.AddSlide();
             Text(board, "Pilot retrospective", 1.5, 1, 30, 2, 31, "17365D");
             Text(board, "Turn observations into two changes the team can verify.", 1.5, 3, 30, 1.5, 19, "526179");

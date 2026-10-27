@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptMasterTests {
         [Fact]
         public void NativeWriter_WritesNotesMasterDrawingsAndPlaceholders() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             NotesMasterPart notesMasterPart = presentation.OpenXmlDocument
                 .PresentationPart!.NotesMasterPart!;
             P.ShapeTree tree = notesMasterPart.NotesMaster!.CommonSlideData!
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSpecialMaster notesMaster = Assert.IsType<
-                LegacyPptSpecialMaster>(LegacyPptPresentation.Load(bytes)
+                LegacyPptSpecialMaster>(LegacyPptDocument.Load(bytes)
                 .NotesMaster);
 
             Assert.NotNull(notesMaster.RoundTripTheme?.ThemeXml);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 slideImage.ShapeId >> 10, shape.ShapeId >> 10));
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             P.Shape[] projected = reopened.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!.NotesMaster!.CommonSlideData!.ShapeTree!
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsUnsupportedNotesMasterDrawing() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.OpenXmlDocument.PresentationPart!.NotesMasterPart!
                 .NotesMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_WritesHandoutMasterTopologyDrawingsAndBackground() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             HandoutMasterPart handoutMasterPart = CreateHandoutMaster(presentation);
             P.CommonSlideData commonSlideData = handoutMasterPart.HandoutMaster!
                 .CommonSlideData!;
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             Assert.Equal(16U, binary.DocumentSettings!.HandoutMasterPersistId);
             LegacyPptSpecialMaster handoutMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(binary.HandoutMaster);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
                 date.ShapeId >> 10, shape.ShapeId >> 10));
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             HandoutMasterPart projectedPart = Assert.IsType<HandoutMasterPart>(
                 reopened.OpenXmlDocument.PresentationPart!.HandoutMasterPart);
@@ -190,8 +190,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_WritesSpecialMasterAndNotesPagePictureBackgrounds() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(25, 135, 84);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
             NotesMasterPart notesMasterPart = presentationPart
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             LegacyPptBackground notesMasterBackground = Assert.IsType<
                 LegacyPptBackground>(Assert.IsType<LegacyPptSpecialMaster>(
@@ -238,8 +238,8 @@ namespace OfficeIMO.Tests {
                 .ReferenceCount);
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(stream);
             Assert.NotNull(reopened.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!.NotesMaster!.CommonSlideData!.Background!
                 .BackgroundProperties!.GetFirstChild<A.BlipFill>());
@@ -256,8 +256,8 @@ namespace OfficeIMO.Tests {
         public void ImportedMasterPictureBackgroundEdits_AppendOneDeduplicatedBlip() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(74, 34, 194);
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PresentationPart presentationPart = created.OpenXmlDocument
                     .PresentationPart!;
                 SlideMasterPart mainMaster = presentationPart.SlideMasterParts
@@ -277,11 +277,11 @@ namespace OfficeIMO.Tests {
                     .Background = CreateSolidBackground("445566");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 input);
             PresentationPart importedPart = imported.OpenXmlDocument
                 .PresentationPart!;
@@ -300,7 +300,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
                     .Background).Picture!.ImageBytes);
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 reopenedInput);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(savedBytes,
@@ -330,8 +330,8 @@ namespace OfficeIMO.Tests {
         public void ImportedNotesPagePictureBackgroundEdit_AppendsPreservingBlip() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(91, 61, 31);
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.Notes.Text = "Notes page picture";
@@ -339,11 +339,11 @@ namespace OfficeIMO.Tests {
                     .Background = CreateSolidBackground("123456");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 input);
             NotesSlidePart notesPart = imported.Slides[0].SlidePart
                 .NotesSlidePart!;
@@ -356,7 +356,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsUnsupportedHandoutMasterDrawing() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             HandoutMasterPart handoutMasterPart = CreateHandoutMaster(presentation);
             handoutMasterPart.HandoutMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static HandoutMasterPart CreateHandoutMaster(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
             HandoutMasterPart handoutMasterPart = presentationPart

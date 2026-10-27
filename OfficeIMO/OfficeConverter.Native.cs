@@ -41,8 +41,8 @@ public static partial class OfficeConverter {
                         break;
                     case OfficeDocumentFormat.PowerPoint:
                         diagnostics = analyzeOnly
-                            ? (await PowerPointPresentation.AnalyzeConversionAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Diagnostics
-                            : (await PowerPointPresentation.ConvertAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Report.Diagnostics;
+                            ? (await PowerPointDocument.AnalyzeConversionAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Diagnostics
+                            : (await PowerPointDocument.ConvertAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Report.Diagnostics;
                         break;
                     default: throw new NotSupportedException("Choose a supported native Office format pair.");
                 }
@@ -50,7 +50,7 @@ public static partial class OfficeConverter {
                 throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
             } catch (ExcelDocumentConversionException error) {
                 throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
-            } catch (PowerPointPresentationConversionException error) {
+            } catch (PowerPointDocumentConversionException error) {
                 throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
             }
             var report = NativeReport(options, diagnostics, timer.Elapsed, itemsWritten: analyzeOnly ? 0 : 1);
@@ -86,7 +86,7 @@ public static partial class OfficeConverter {
         VisualFallbackMaxColumns = settings.VisualFallbackMaxColumns, VisualFallbackMaxRows = settings.VisualFallbackMaxRows
     };
 
-    private static PowerPointPresentationConversionOptions PowerPointNativeOptions(OfficeConversionOptions settings) => new() {
+    private static PowerPointDocumentConversionOptions PowerPointNativeOptions(OfficeConversionOptions settings) => new() {
         LoadOptions = PowerPointInputOptions(settings), SaveOptions = settings.PowerPointSave,
         CompatibilityMode = settings.CompatibilityMode, EmbedSourceWhenLossy = settings.EmbedSourceWhenLossy,
         LossPolicy = settings.FailOnLoss ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CanSetAndClearShapeShadow() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape shadow = slide.AddRectangle(0, 0, 4000, 2000, "ShadowRect");
                     shadow.SetShadow("000000", blurPoints: 6, distancePoints: 5, angleDegrees: 270, transparencyPercent: 40);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         public void CanSetGlowAndSoftEdges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape glowShape = slide.AddRectangle(0, 0, 4000, 2000, "GlowRect");
                     glowShape.SetGlow("FF00FF", radiusPoints: 5, transparencyPercent: 25);
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
         public void CanSetBlurAndReflection() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape blurShape = slide.AddRectangle(0, 0, 4000, 2000, "BlurRect");
                     blurShape.SetBlur(5, grow: true);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         public void ShapePropertiesStayInSchemaOrderWhenStylingAfterEffects() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape shape = slide.AddRectangle(0, 0, 4000, 2000, "StyledAfterEffects");
 

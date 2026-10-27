@@ -85,7 +85,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             return PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
-                    if (part is PresentationPart) NormalizePresentationTopology(root);
+                    if (part is PresentationPart) NormalizeDocumentTopology(root);
                     if (part is ExtendedFilePropertiesPart) {
                         NormalizeProjectedExtendedProperties(root);
                     }
@@ -430,7 +430,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 string relationshipId) => owner.Uri + "|" + relationshipId;
         }
 
-        private static void NormalizePresentationTopology(OpenXmlElement root) {
+        private static void NormalizeDocumentTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation) return;
             presentation.SlideIdList?.RemoveAllChildren<P.SlideId>();
             presentation.RemoveAllChildren<P.CustomShowList>();

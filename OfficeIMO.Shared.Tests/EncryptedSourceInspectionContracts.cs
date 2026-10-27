@@ -68,11 +68,11 @@ public sealed class EncryptedSourceInspectionContracts {
                     Password = Password, AccessMode = DocumentAccessMode.ReadOnly, CaptureSourcePackageSecurity = true,
                     PackageSecurity = policy, OpenSettings = settings, MaxCommentCount = 123
                 };
-                using PowerPointPresentation loaded = route switch {
-                    "path" => PowerPointPresentation.Load(path, options),
-                    "stream" => PowerPointPresentation.Load(stream, options),
-                    "path-async" => await PowerPointPresentation.LoadAsync(path, options),
-                    _ => await PowerPointPresentation.LoadAsync(stream, options)
+                using PowerPointDocument loaded = route switch {
+                    "path" => PowerPointDocument.Load(path, options),
+                    "stream" => PowerPointDocument.Load(stream, options),
+                    "path-async" => await PowerPointDocument.LoadAsync(path, options),
+                    _ => await PowerPointDocument.LoadAsync(stream, options)
                 };
                 AssertSource(loaded.SourcePackageSecurityReport, loaded.SourcePackageSecurityScope, source);
                 AssertOptions(options, policy);
@@ -102,7 +102,7 @@ public sealed class EncryptedSourceInspectionContracts {
             using ExcelDocument loaded = ExcelDocument.Load(source,new OfficeIMO.Excel.ExcelLoadOptions{Password=Password});
             Assert.Null(loaded.SourcePackageSecurityReport);
         } else {
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(source,new OfficeIMO.PowerPoint.PowerPointLoadOptions{Password=Password});
+            using PowerPointDocument loaded = PowerPointDocument.Load(source,new OfficeIMO.PowerPoint.PowerPointLoadOptions{Password=Password});
             Assert.Null(loaded.SourcePackageSecurityReport);
         }
         Assert.True(source.CanRead);
@@ -145,7 +145,7 @@ public sealed class EncryptedSourceInspectionContracts {
             document.AddWorksheet("Ordinary");
             bytes = document.ToBytes();
         } else {
-            using PowerPointPresentation document = PowerPointPresentation.Create();
+            using PowerPointDocument document = PowerPointDocument.Create();
             document.AddSlide().AddTextBox("Ordinary source", 100000, 100000, 2200000, 600000);
             bytes = document.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Format=format == "legacy-powerpoint" ? PowerPointFileFormat.Ppt : PowerPointFileFormat.Pptx});
         }
@@ -161,7 +161,7 @@ public sealed class EncryptedSourceInspectionContracts {
             report = loaded.SourcePackageSecurityReport;
             scope = loaded.SourcePackageSecurityScope;
         } else {
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(input, new PowerPointLoadOptions { CaptureSourcePackageSecurity = true });
+            using PowerPointDocument loaded = PowerPointDocument.Load(input, new PowerPointLoadOptions { CaptureSourcePackageSecurity = true });
             report = loaded.SourcePackageSecurityReport;
             scope = loaded.SourcePackageSecurityScope;
         }
@@ -183,7 +183,7 @@ public sealed class EncryptedSourceInspectionContracts {
             source.AddWorksheet("Evidence").CellValue(1, 1, "Source evidence");
             source.Save(output,new OfficeIMO.Excel.ExcelSaveOptions{Password=Password});
         } else {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             source.AddSlide().AddTextBox("Source evidence", 100000, 100000, 2200000, 600000);
             return source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=Password,Format=format == "legacy-powerpoint" ? PowerPointFileFormat.Ppt : PowerPointFileFormat.Pptx});
         }

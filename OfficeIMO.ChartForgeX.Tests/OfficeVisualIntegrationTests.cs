@@ -272,7 +272,7 @@ public sealed partial class OfficeVisualIntegrationTests {
                 workbook.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPointPath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(powerPointPath)) {
                 presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
                 presentation.Save();
             }
@@ -286,7 +286,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             using (ExcelDocument workbook = ExcelDocument.Load(excelPath)) {
                 Assert.Single(workbook.Sheets[0].Images);
             }
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(powerPointPath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(powerPointPath)) {
                 Assert.Single(presentation.Slides[0].Pictures);
             }
             byte[] pdf = File.ReadAllBytes(pdfPath);
@@ -346,7 +346,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-decorative-" + Guid.NewGuid().ToString("N") + ".pptx");
         string wordPath = Path.ChangeExtension(path, ".docx");
         try {
-            using var presentation = PowerPointPresentation.Create(path);
+            using var presentation = PowerPointDocument.Create(path);
             PowerPointPicture picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
 
             Assert.True(picture.Decorative);
@@ -368,7 +368,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-placement-" + Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointPicture first = slide.AddVisualArtifact(visual, -24D, -12D);
                 PowerPointPicture second = slide.AddVisualArtifact(visual, 36D, 54D);
@@ -378,7 +378,7 @@ public sealed partial class OfficeVisualIntegrationTests {
                 presentation.Save();
             }
 
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(path);
+            using PowerPointDocument loaded = PowerPointDocument.Load(path);
             PowerPointPicture[] pictures = loaded.Slides[0].Pictures.ToArray();
             Assert.Equal(2, pictures.Length);
             Assert.Equal(-24D, pictures[0].LeftPoints, 6);

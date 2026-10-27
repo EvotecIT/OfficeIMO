@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_TransitionsThemes(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Transitions and themes");
             string filePath = Path.Combine(folderPath, "Transitions and Themes.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double titleHeightCm = 1.4;
             const double bodyGapCm = 0.8;

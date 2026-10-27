@@ -29,11 +29,8 @@ namespace OfficeIMO.Tests {
             });
 
             using (var document = WordDocument.Create(filePath)) {
-                var img = await document.AddImageFromUrlAsync(
-                    $"http://localhost:{port}/",
-                    40,
-                    40,
-                    new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
+                var img = await document.AddImageAsync(
+                    new Uri($"http://localhost:{port}/"),                    OfficeIMO.OfficeLength.Pixels(40),                    OfficeIMO.OfficeLength.Pixels(40),remoteImageOptions:                    new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                 Assert.NotNull(img);
                 document.Save();
             }

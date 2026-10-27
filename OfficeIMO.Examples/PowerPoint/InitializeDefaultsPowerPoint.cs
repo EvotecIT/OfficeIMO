@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointInitializeDefaults(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Initialize defaults presentation");
             string filePath = Path.Combine(folderPath, "InitializeDefaults.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
 

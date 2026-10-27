@@ -121,7 +121,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
         if (format == "word") {
             WordDocument document = WordDocument.Create();
             using var picture = new MemoryStream(Pixel, writable: false);
-            document.AddParagraph("Current model evidence").AddImage(picture, "pixel.png", 1, 1);
+            document.AddParagraph("Current model evidence").AddImage(picture, "pixel.png", OfficeIMO.OfficeLength.Pixels(1), OfficeIMO.OfficeLength.Pixels(1));
             AddPayload(document.OpenXmlDocument.MainDocumentPart!);
             return new Fixture(document, (options, token) => document.ReadDocument("archive!/current-model", options, cancellationToken: token), () => document.InspectEmbeddedPayloads());
         }
@@ -133,9 +133,9 @@ public sealed class ReaderLoadedNativeProjectionTests {
             AddPayload(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
             return new Fixture(document, (options, token) => document.ReadDocument("archive!/current-model", options, cancellationToken: token), () => document.InspectEmbeddedPayloads());
         }
-        PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointDocument presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide(); slide.AddTextBox("Current model evidence", 100000, 100000, 2000000, 500000);
-        using (var picture = new MemoryStream(Pixel, writable: false)) slide.AddPicture(picture, OfficeImageFormat.Png);
+        using (var picture = new MemoryStream(Pixel, writable: false)) slide.AddImage(picture, OfficeImageFormat.Png);
         AddPayload(presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single());
         return new Fixture(presentation, (options, token) => presentation.ReadDocument("archive!/current-model", options, cancellationToken: token), () => presentation.InspectEmbeddedPayloads());
     }

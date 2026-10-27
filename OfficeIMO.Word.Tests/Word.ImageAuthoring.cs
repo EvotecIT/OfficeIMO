@@ -13,7 +13,7 @@ public sealed class WordImageAuthoringTests {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Before");
         using var source = new MemoryStream(Gif);
-        var image = paragraph.AddImage(source, "sample.gif", 32, 32);
+        var image = paragraph.AddImage(source, "sample.gif", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         paragraph.AddText("After");
         image.Hyperlink = new Uri("https://example.com/image");
         image.SetMaximumWidth(OfficeLength.Pixels(16));

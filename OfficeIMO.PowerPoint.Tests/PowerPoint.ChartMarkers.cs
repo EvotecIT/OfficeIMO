@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CanSetSeriesMarkers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.AddChart();
                     presentation.Save();
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                     chartPart.ChartSpace?.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointChart chart = presentation.Slides.First().Charts.First();
                     chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: 8, fillColor: "FF0000", lineColor: "00FF00", lineWidthPoints: 1);
                     presentation.Save();

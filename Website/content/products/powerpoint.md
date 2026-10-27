@@ -58,7 +58,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
-using var presentation = PowerPointPresentation.Create("Overview.pptx");
+using var presentation = PowerPointDocument.Create("Overview.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
 var intro = presentation.AddSlide();
@@ -91,13 +91,13 @@ presentation.Save();
 ```csharp
 using OfficeIMO.PowerPoint;
 
-var analysis = PowerPointPresentation.AnalyzeConversion(
+var analysis = PowerPointDocument.AnalyzeConversion(
     "archive-deck.ppt",
     "archive-deck.pptx");
 
 if (!analysis.Compatibility.HasBlockedFeatures)
 {
-    PowerPointPresentation.Convert(
+    PowerPointDocument.Convert(
         "archive-deck.ppt",
         "archive-deck.pptx");
 }

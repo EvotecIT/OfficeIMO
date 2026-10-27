@@ -6,7 +6,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Html;
 
 public static partial class PowerPointHtmlConverterExtensions {
-    private static void AppendMasterInventory(StringBuilder body, PptCore.PowerPointPresentation presentation,
+    private static void AppendMasterInventory(StringBuilder body, PptCore.PowerPointDocument presentation,
         IList<HtmlDiagnostic> diagnostics) {
         try {
             PptCore.PowerPointTemplateInventory inventory = PptCore.PowerPointTemplate.Inspect(presentation);

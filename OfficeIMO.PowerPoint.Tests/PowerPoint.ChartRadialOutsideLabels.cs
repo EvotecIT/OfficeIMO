@@ -14,7 +14,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
     [InlineData(OfficeChartType.Pie)]
     [InlineData(OfficeChartType.Doughnut)]
     public void OutsideLabelsRejectNamesThatCannotFitWithoutTruncation(OfficeChartType kind) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A category name that cannot fit the outside gutter", "B" },
                 new[] { new OfficeSeries("Status", new[] { 3d, 4d }) }));
@@ -27,7 +27,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
 
     [Fact]
     public void AuthoredEmptyLeaderLinesContainerProjectsOutsideLabels() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         PowerPointChart chart = slide.AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -47,7 +47,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NativeOutsideLabelsRetainLeaderLineSetting(bool showLeaderLines) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
@@ -74,7 +74,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
 
     [Fact]
     public void NativeOutsideLabelsUseChartDefaultFontSize() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -94,7 +94,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
 
     [Fact]
     public void NativeDataLabelsPreserveExplicitTypeface() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -122,7 +122,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
 
     [Fact]
     public void DataUpdatePreservesUnprojectedRadialPointLabels() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Status", new[] { 3d, 4d })

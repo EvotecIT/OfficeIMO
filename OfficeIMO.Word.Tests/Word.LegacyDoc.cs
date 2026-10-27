@@ -10951,7 +10951,7 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Picture ");
-                paragraph.AddImage(jpegPath, 24, 18);
+                paragraph.AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(18));
                 Run sourceRun = paragraph._paragraph.Elements<Run>().Last(run => run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
                 DocumentFormat.OpenXml.Wordprocessing.Drawing drawing = sourceRun.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
                 drawing.Remove();
@@ -11141,14 +11141,14 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph jpegParagraph = document.AddParagraph("Before JPEG ");
-                    jpegParagraph.AddImage(jpegPath, 50, 40);
+                    jpegParagraph.AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(40));
                     jpegParagraph.AddText(" after JPEG");
-                    document.AddParagraph("PNG").AddImage(pngPath, 32, 24);
+                    document.AddParagraph("PNG").AddImage(pngPath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(24));
                     WordParagraph tableParagraph = document.AddTable(1, 1)
                         .Rows[0]
                         .Cells[0]
                         .AddParagraph("Cell ", removeExistingParagraphs: true);
-                    tableParagraph.AddImage(jpegPath, 20, 18);
+                    tableParagraph.AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(18));
                     tableParagraph.AddText(" after picture");
                     document.AddParagraph("Picture control ")
                         .AddPictureControl(jpegPath, 22, 17, alias: "Legacy picture", tag: "legacy-picture");
@@ -11212,11 +11212,7 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.Create();
                 document.AddParagraph("Floating picture")
-                    .AddImage(
-                        Path.Combine(_directoryWithImages, "Kulek.jpg"),
-                        50,
-                        50,
-                        WordImageTextWrapping.Square);
+                    .AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
@@ -11238,8 +11234,8 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Body");
                     document.AddHeadersAndFooters();
-                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddImage(jpegPath, 50, 40);
-                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddImage(pngPath, 32, 24);
+                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(40));
+                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddImage(pngPath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(24));
 
                     document.Save(docPath);
                 }
@@ -11286,11 +11282,11 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Pictures in stories");
                     WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
-                    footnoteReference.FootNote!.Paragraphs![1].AddImage(jpegPath, 20, 18);
+                    footnoteReference.FootNote!.Paragraphs![1].AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(18));
                     WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
-                    endnoteReference.EndNote!.Paragraphs![1].AddImage(pngPath, 24, 16);
+                    endnoteReference.EndNote!.Paragraphs![1].AddImage(pngPath, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
                     paragraph.AddComment("OfficeIMO", "OI", "Comment ");
-                    Assert.Single(document.Comments).Paragraphs[0].AddImage(jpegPath, 18, 14);
+                    Assert.Single(document.Comments).Paragraphs[0].AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(14));
 
                     document.Save(docPath);
                 }

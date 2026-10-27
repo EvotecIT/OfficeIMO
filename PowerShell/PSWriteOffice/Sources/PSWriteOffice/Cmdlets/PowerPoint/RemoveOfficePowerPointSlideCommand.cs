@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public class RemoveOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Presentation to modify.</summary>
     [Parameter(Mandatory = true)]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Zero-based slide index.</summary>
     [Parameter(Mandatory = true)]

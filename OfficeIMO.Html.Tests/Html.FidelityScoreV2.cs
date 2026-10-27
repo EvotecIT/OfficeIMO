@@ -105,11 +105,11 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualPptxReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<section><h1>Reload</h1><p>Plain <strong>bold</strong></p></section>");
-        using PowerPointPresentation presentation = source.ToPowerPointPresentationResult(
+        using PowerPointDocument presentation = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         string initialExport = presentation.ToHtml();
         using MemoryStream artifact = new System.IO.MemoryStream(presentation.ToBytes());
-        using PowerPointPresentation reloaded = PowerPointPresentation.Load(
+        using PowerPointDocument reloaded = PowerPointDocument.Load(
             new MemoryStream(artifact.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 

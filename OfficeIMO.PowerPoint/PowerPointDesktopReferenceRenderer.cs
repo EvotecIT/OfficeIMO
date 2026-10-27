@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             int expectedSlideCount;
             bool[] slidesWithVisibleContent;
             try {
-                using PowerPointPresentation source = PowerPointPresentation.Load(
+                using PowerPointDocument source = PowerPointDocument.Load(
                     fullPath, new PowerPointLoadOptions {
                         AccessMode = DocumentAccessMode.ReadOnly,
                         PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
                 return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
                     "PowerPoint Desktop reference rendering failed: " + GetRootMessage(ex));
             } finally {
-                TryClosePresentation(presentation);
+                TryCloseDocument(presentation);
                 TryQuitApplication(application);
                 ReleaseComObject(presentation);
                 ReleaseComObject(presentations);
@@ -309,7 +309,7 @@ namespace OfficeIMO.PowerPoint {
                    int.TryParse(name.Substring(5), out number) && number > 0;
         }
 
-        private static void TryClosePresentation(object? presentation) {
+        private static void TryCloseDocument(object? presentation) {
             if (presentation == null) return;
             try { InvokeMethod(presentation, "Close"); } catch { }
         }

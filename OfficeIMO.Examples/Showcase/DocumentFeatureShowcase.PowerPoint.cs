@@ -17,7 +17,7 @@ internal static partial class DocumentFeatureShowcase {
         Action<string, bool> generate, int previewSlide = 0) {
         string folder = CreateExampleFolder(output, id);
         generate(folder, false);
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(folder, fileName));
+        using PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(folder, fileName));
         var errors = presentation.ValidateDocument();
         if (errors.Count > 0) {
             throw new InvalidOperationException(id + ": " + errors[0].Description);
@@ -29,7 +29,7 @@ internal static partial class DocumentFeatureShowcase {
         presentation.SaveAsPdf(Path.Combine(folder, "slides.pdf"));
     }
 
-    private static PowerPointSlide AddFeatureSlide(PowerPointPresentation presentation, string title, string subtitle) {
+    private static PowerPointSlide AddFeatureSlide(PowerPointDocument presentation, string title, string subtitle) {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox heading = slide.AddTitleCm(title, 1.5, 1.2, 29, 1.6);
         heading.FontSize = 32;
@@ -41,7 +41,7 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static void CreateSlideTable(string folder, bool open) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.Combine(folder, "sales-table.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Create(Path.Combine(folder, "sales-table.pptx"));
         PowerPointSlide slide = AddFeatureSlide(presentation, "A table that stays editable", "Generate slide cells from application data, then style the rows and columns.");
         PowerPointTable table = slide.AddTableCm(5, 4, 1.5, 5, 30, 9);
         string[,] values = {
@@ -68,7 +68,7 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static void CreateSlideShapes(string folder, bool open) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.Combine(folder, "workflow-shapes.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Create(Path.Combine(folder, "workflow-shapes.pptx"));
         PowerPointSlide slide = AddFeatureSlide(presentation, "Build the workflow from shapes", "Named rectangles, text boxes, and layers remain editable in the PPTX.");
         string[] titles = { "01 / Capture", "02 / Validate", "03 / Deliver" };
         string[] bodies = { "Collect the source\nand define the inputs.", "Check the document\nand inspect its output.", "Share an editable file\nand a review copy." };
@@ -87,7 +87,7 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static void CreateSlideText(string folder, bool open) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.Combine(folder, "formatted-text.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Create(Path.Combine(folder, "formatted-text.pptx"));
         PowerPointSlide slide = AddFeatureSlide(presentation, "Rich text without a screenshot", "Mix emphasis, color, and list paragraphs in native PowerPoint text boxes.");
         PowerPointTextBox text = slide.AddTextBoxCm(string.Empty, 1.5, 5, 19, 10);
         text.FontSize = 22;

@@ -842,8 +842,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.InsertImage(string filePathImage, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -859,8 +859,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddImage(Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -876,8 +876,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.InsertImage(Stream imageStream, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -893,14 +893,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddImage(..., OfficeLength? width = null, OfficeLength? height = null, ...) : WordImage",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(Uri uri, OfficeLength width, OfficeLength height, WordImageOptions options = null) : WordImage",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
       "category": "authoring",
@@ -910,8 +910,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.InsertImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -927,8 +927,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -944,8 +944,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.InsertImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -961,8 +961,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -978,8 +978,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddTableFromObjects(IEnumerable<object> items, WordTableStyle style = TableGrid, bool includeHeader = True, WordTableLayoutMode? layout = null)",
@@ -1001,7 +1001,7 @@
       "old": "OfficeIMO.Word.WordDocument.AddImageFromUrlAsync(string url, double? width = null, double? height = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, OfficeRemoteImageLoadOptions options = null, CancellationToken cancellationToken = default) : Task<WordImage>",
+      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions options = null, OfficeRemoteImageLoadOptions remoteImageOptions = null, CancellationToken cancellationToken = default) : Task<WordImage>",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "authoring",
@@ -1010,14 +1010,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddImageFromUrlAsync(string url, double? width, double? height, OfficeRemoteImageLoadOptions remoteImageOptions, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, OfficeRemoteImageLoadOptions options = null, CancellationToken cancellationToken = default) : Task<WordImage>",
+      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions options = null, OfficeRemoteImageLoadOptions remoteImageOptions = null, CancellationToken cancellationToken = default) : Task<WordImage>",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "authoring",
@@ -1026,8 +1026,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddImageVml(string filePathImage, double? width = null, double? height = null)",
@@ -1043,8 +1043,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddChart(string title = , bool roundedCorners = False, int width = 600, int height = 600)",
@@ -1111,8 +1111,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = , bool roundedCorners = False, int width = 600, int height = 600)",
@@ -1145,8 +1145,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image authoring returns WordImage and accepts OfficeLength plus WordImageOptions. VML uses Vml = true and preserves point-based dimensions and omitted native style declarations. Base64 and resources use caller-owned streams. Remote embedding is AddImageAsync(Uri, ..., WordImageOptions, OfficeRemoteImageLoadOptions, CancellationToken); linked Uri images remain external relationships. Native net10 compilation is clean; 334 image-related cases pass across the initial run and a targeted rerun against the rebuilt PDF import adapter. Focused native authoring proof also passes 27/27 on net10."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddMacro(string filePath)",
@@ -5666,6 +5666,16 @@
       "change": "Preserve native Word authoring after fluent removal",
       "applied": "phase-b-applied",
       "note": "OfficeCalloutKind is shared in Core. Word has document-local code styles, optional TOC title/top placement, task/link list items, a NumberFormat list-level property, and zero-based logical table insertion. AddImage returns WordImage and its Paragraph identifies the containing run; WordImageOptions carries metadata, placement, hyperlink and maximum width. The existing embedded image reading methods remain. Image geometry, VML/resource/base64/URL consolidation and the remaining Add returns are separate pending map entries. Twelve builder-only test files and two duplicate builder-specific methods are removed; meaningful mutation, crop, regex, and conversion proof uses native objects."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-implemented-validation-pending",
+      "note": "WordImageOptions adds Vml. Header and section AddImage delegate to the paragraph owner; paragraph, document, header and section VML entry points merge into AddImage options. Async insertion snapshots image metadata before awaiting the shared bounded HTTP loader. The async overload also accepts image metadata options in addition to the shared network policy, preserving the capabilities of the removed image builder."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Package README and maintained website examples now use native document/table authoring and caller-owned image streams. The obsolete reflection test that pinned the removed Word image builder is removed; image relationship, resource, remote-load, VML and conversion artifact tests retain the behavior coverage. All changed in-repo image consumers use OfficeLength and WordImageOptions, including mechanical PSWriteOffice argument conversion without changing PowerShell parameters."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

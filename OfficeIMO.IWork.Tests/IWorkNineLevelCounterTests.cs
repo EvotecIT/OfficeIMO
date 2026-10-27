@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Saved_PPTX_retains_all_nine_levels_and_deep_counters_through_the_existing_drawing_owner() {
         using var package = NineLevelCounterPackage(IWorkDocumentKind.Keynote);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(new() {
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         table.WidthPoints = 500; table.HeightPoints = 500;
         table.SetColumnWidthPoints(0, 500); table.SetRowHeightPoints(0, 500);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var paragraphs = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Paragraphs;
         Assert.Equal(NineLevelSourceLevels.Select(level => (int?)level), paragraphs.Select(p => p.Level));

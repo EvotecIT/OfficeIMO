@@ -16,7 +16,7 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void NonBodyNotesPlaceholderTextIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Body note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .NotesSlidePart!.NotesSlide!;
@@ -36,7 +36,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("outline")]
     [InlineData("geometry")]
     public void AuthoredNotesBodyPlaceholderAppearanceIsExplicitLoss(string kind) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Body note";
         Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("notes-slide-appearance"),
             mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -66,7 +66,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("bold")]
     [InlineData("alignment")]
     public void AuthoredNotesBodyTextFormattingIsExplicitLoss(string kind) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Body note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .NotesSlidePart!.NotesSlide!;
@@ -88,7 +88,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("history", "0")]
     [InlineData("highlightClick", "1")]
     public void AuthoredRunHyperlinkFlagsAreExplicitLoss(string name, string value) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBoxPoints("Link", 20, 20, 100, 50);
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
@@ -103,7 +103,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("prompt")]
     [InlineData("extension")]
     public void AuthoredTextPlaceholderMetadataIsExplicitLoss(string kind) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
@@ -120,7 +120,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void AuthoredPresentationThumbnailIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("presentation-thumbnail"),
             mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
         ThumbnailPart thumbnail = source.OpenXmlDocument.ThumbnailPart!;
@@ -133,7 +133,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void OversizedPresentationThumbnailIsReportedWithoutExpansion() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         ThumbnailPart thumbnail = source.OpenXmlDocument.ThumbnailPart!;
         using (Stream stream = thumbnail.GetStream(FileMode.Create, FileAccess.Write)) {
             stream.Write(new byte[2 * 1024 * 1024], 0, 2 * 1024 * 1024);
@@ -152,8 +152,8 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         table.SetAttributeValue(OdfNamespaces.Table + "use-first-row-styles", "true");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("table-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
@@ -166,8 +166,8 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         line.FillColor = null;
         line.StrokeColor = OdfColor.Parse("#336699");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.DoesNotContain(conversion.Report.ForFeature("shape-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
@@ -185,8 +185,8 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         PowerPointTable result = target.Slides[0].Tables.Single();
         Assert.Equal("Repeated", result.GetCell(0, 0).Paragraphs[0].Runs[0].Text);
         Assert.Equal("Repeated", result.GetCell(1, 2).Paragraphs[0].Runs[0].Text);
@@ -202,7 +202,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.MarkXmlDirty("content.xml");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            source.ToPowerPointPresentationResult(new PowerPointOpenDocumentConversionOptions {
+            source.ToPowerPointDocumentResult(new PowerPointOpenDocumentConversionOptions {
                 MaxTableRows = 2
             }));
         Assert.Contains("configured conversion limit", exception.Message);
@@ -210,7 +210,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void PowerPointShapeHoverIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBox("Hover", 0, 0, 100000, 100000);
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
@@ -222,7 +222,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void ActionOnlyPowerPointShapeClickIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBox("Next", 0, 0, 100000, 100000);
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
@@ -234,7 +234,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void PowerPointShapeBlackWhiteModeIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
         ShapeProperties properties = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single().ShapeProperties!;
@@ -245,7 +245,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void PowerPointShapeUseBackgroundFillIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
@@ -258,7 +258,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData(80000)]
     [InlineData(-10000)]
     public void PowerPointRunBaselineMagnitudeIsExplicitLoss(int baseline) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBoxPoints("Shifted", 20, 20, 100, 50);
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
@@ -310,7 +310,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void InternalPowerPointTextLinkUsesPreservedOdpSlideName() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = "Agenda";
         PowerPointTextBox box = source.Slides[0].AddTextBoxPoints("Open agenda", 20, 20, 200, 40);
@@ -321,13 +321,13 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .Descendants(OdfNamespaces.Text + "a").Single();
         Assert.Equal("#Agenda", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
 
-        using PowerPointPresentation reopened = target.ToPowerPointPresentationResult().Value;
+        using PowerPointDocument reopened = target.ToPowerPointDocumentResult().Value;
         Assert.Equal("#slide-2", reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].Hyperlink?.OriginalString);
     }
 
     [Fact]
     public void InternalPowerPointTextLinkUsesCollisionAdjustedOdpSlideName() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Agenda";
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = "Agenda";
@@ -343,7 +343,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void LongSlideNameUsesBoundedAliasForInternalLinks() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = new string('A', 2048);
         source.Slides[0].AddTextBoxPoints("Open slide", 20, 20, 200, 40)
@@ -370,8 +370,8 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         box.AddParagraph("One").StyleName = style.Name;
         box.AddParagraph("Two").StyleName = style.Name;
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("paragraph-layout"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
@@ -390,7 +390,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void PowerPointTableExtensionIdentityIsExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTable(1, 1);
         A.Table table = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Table>().Single();
@@ -449,8 +449,8 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.AddSlide();
         source.Metadata.Generator = "External editor";
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "document-metadata" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
@@ -461,7 +461,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("PresentationFormat")]
     [InlineData("TotalTime")]
     public void AuthoredPowerPointExtendedMetadataIsLoss(string property) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         switch (property) {
             case "Application": source.ApplicationProperties.Application = "External editor"; break;
             case "ApplicationVersion": source.ApplicationProperties.ApplicationVersion = "2.0"; break;
@@ -474,7 +474,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void AuthoredPowerPointHyperlinkBaseIsMetadataLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.OpenXmlDocument.ExtendedFilePropertiesPart!.Properties!
             .AppendChild(new DocumentFormat.OpenXml.ExtendedProperties.HyperlinkBase("https://example.test/slides/"));
 
@@ -487,7 +487,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("TitlePlaceholder")]
     [InlineData("NotesSize")]
     public void AuthoredPowerPointRootSettingsAreLoss(string setting) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         Presentation root = source.OpenXmlDocument.PresentationPart!.Presentation!;
         switch (setting) {
             case "FirstSlide": root.FirstSlideNum = 4; break;
@@ -501,7 +501,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void StockPowerPointRootAndApplicationMetadataAreNotLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             (mapping.Feature == "presentation-settings" || mapping.Feature == "document-metadata") &&
@@ -510,7 +510,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void ExplicitDefaultPowerPointRootSettingsAreNotLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         Presentation root = source.OpenXmlDocument.PresentationPart!.Presentation!;
         root.FirstSlideNum = 1;
         root.RightToLeft = false;
@@ -523,7 +523,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void UnfilledPowerPointLineIsNotShapeAppearanceLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddLine(0, 0, 100000, 100000);
         ShapeProperties properties = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single().ShapeProperties!;
@@ -538,7 +538,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("spd", "fast")]
     [InlineData("dur", "500")]
     public void TransitionSpeedAndDurationRemainExplicitLoss(string attribute, string value) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         Slide slide = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!;
         slide.Transition = new Transition();
         slide.Transition.SetAttribute(new OpenXmlAttribute("", attribute, "", value));
@@ -548,7 +548,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void TextBodyLevelParagraphDefaultsRemainExplicitLoss() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBoxPoints("Level text", 20, 20, 200, 40);
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
@@ -570,11 +570,11 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
                 new XElement(OdfNamespaces.Text + "p", "Nested item"))));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-lists" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -586,7 +586,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("normalizeH", "1")]
     [InlineData("bmk", "Heading")]
     public void DirectUnsupportedRunAttributesAreExplicitLoss(string attribute, string value) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].AddTextBoxPoints("Text", 20, 20, 100, 50);
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
@@ -601,7 +601,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("modifyVerifier")]
     [InlineData("smartTags")]
     public void AuthoredPresentationRootChildrenAreExplicitLoss(string childName) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
         presentation.Presentation!.AppendChild(new OpenXmlUnknownElement("p", childName,
             "http://schemas.openxmlformats.org/presentationml/2006/main"));
@@ -626,7 +626,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("pic")]
     [InlineData("graphicFrame")]
     public void NotesMediaOrGraphicalContentIsExplicitLoss(string elementName) {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Body note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().NotesSlidePart!.NotesSlide!;
         if (elementName == "pic") notes.CommonSlideData!.ShapeTree!.Append(new Picture());
@@ -643,9 +643,9 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", columns);
         source.Package.MarkXmlDirty("content.xml");
-        using PowerPointPresentation converted = source.ToPowerPointPresentationResult().Value;
+        using PowerPointDocument converted = source.ToPowerPointDocumentResult().Value;
         Assert.Equal(columns, converted.Slides[0].Tables.Single().Columns);
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(converted.ToBytes()));
+        using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(converted.ToBytes()));
         Assert.Equal(columns, reopened.Slides[0].Tables.Single().Columns);
     }
 
@@ -656,7 +656,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", "257");
         source.Package.MarkXmlDirty("content.xml");
-        Assert.Throws<InvalidDataException>(() => source.ToPowerPointPresentationResult());
+        Assert.Throws<InvalidDataException>(() => source.ToPowerPointDocumentResult());
     }
 
     [Fact]
@@ -685,7 +685,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
 
     [Fact]
     public void UnsupportedPowerPointBackgroundExplicitlyHidesOdpMasterBackground() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.Single();
         slide.SlideLayoutPart!.SlideMasterPart!.SlideMaster!.CommonSlideData!.Background =
             new Background(new BackgroundProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
@@ -699,26 +699,26 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .Single(style => (string?)style.Attribute(OdfNamespaces.Style + "name") == pageStyle)
             .Element(OdfNamespaces.Style + "drawing-page-properties")!;
         Assert.Equal("false", (string?)properties.Attribute(OdfNamespaces.Presentation + "background-visible"));
-        using PowerPointPresentation back = reopened.ToPowerPointPresentationResult().Value;
+        using PowerPointDocument back = reopened.ToPowerPointDocumentResult().Value;
         Assert.Null(back.Slides[0].GetBackground().Color);
     }
 
-    private static PowerPointPresentation CreatePowerPoint() {
-        PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+    private static PowerPointDocument CreatePowerPoint() {
+        PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         return source;
     }
 
     private static void AssertOdpLoss(OdpPresentation source, string feature) {
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
-    private static void AssertPowerPointLoss(PowerPointPresentation source, string feature) {
+    private static void AssertPowerPointLoss(PowerPointDocument source, string feature) {
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);

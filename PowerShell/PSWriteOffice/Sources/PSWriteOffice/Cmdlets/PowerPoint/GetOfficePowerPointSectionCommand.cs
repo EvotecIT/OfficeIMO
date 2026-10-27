@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointSectionCommand : PSCmdlet {
     /// <summary>Presentation to inspect (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Optional section name filter.</summary>
     [Parameter]
@@ -35,7 +35,7 @@ public sealed class GetOfficePowerPointSectionCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+            var presentation = Presentation ?? PowerPointDslContext.Current?.Document
                 ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;

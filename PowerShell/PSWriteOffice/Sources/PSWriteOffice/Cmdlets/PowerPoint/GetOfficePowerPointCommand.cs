@@ -8,7 +8,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Loads an existing PowerPoint presentation.</summary>
-/// <para>Returns an OfficeIMO <see cref="PowerPointPresentation"/> for downstream slide operations.</para>
+/// <para>Returns an OfficeIMO <see cref="PowerPointDocument"/> for downstream slide operations.</para>
 /// <example>
 ///   <summary>Open a deck for editing.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -31,7 +31,7 @@ public class GetOfficePowerPointCommand : PSCmdlet {
     protected override void ProcessRecord() {
         try {
             var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-            var presentation = PowerPointDocumentService.LoadPresentation(resolvedPath, Password);
+            var presentation = PowerPointDocumentService.LoadDocument(resolvedPath, Password);
             WriteObject(presentation);
         } catch (FileNotFoundException ex) {
             WriteError(new ErrorRecord(ex, global::OfficeIMO.OfficeDiagnosticCodes.FileNotFound, ErrorCategory.ObjectNotFound, Path));

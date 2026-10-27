@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            PowerPointPicture picture = slide.AddPictureCm(imagePath, leftCm, topCm, widthCm, heightCm);
+            PowerPointPicture picture = slide.AddImageCm(imagePath, leftCm, topCm, widthCm, heightCm);
             if (crop && TryGetImageDimensions(imagePath, out double imageWidth, out double imageHeight)) {
                 picture.FitToBox(imageWidth, imageHeight, crop: true);
             }

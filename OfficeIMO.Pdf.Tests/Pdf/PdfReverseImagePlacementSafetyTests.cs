@@ -888,8 +888,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
-            using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
-                OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            using OfficeIMO.PowerPoint.PowerPointDocument reopened =
+                OfficeIMO.PowerPoint.PowerPointDocument.Load(serialized);
             OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(reopened.Slides).Pictures);
             Assert.Equal(expectedHorizontalFlip, picture.HorizontalFlip);
             Assert.Equal(expectedVerticalFlip, picture.VerticalFlip);
@@ -988,8 +988,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         using var presentationStream = new MemoryStream(bytes);
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation =
-            OfficeIMO.PowerPoint.PowerPointPresentation.Load(presentationStream);
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation =
+            OfficeIMO.PowerPoint.PowerPointDocument.Load(presentationStream);
         OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         double scale = presentation.SlideSize.WidthPoints / 160D;
         Assert.Equal(pageRotation, picture.Rotation);
@@ -1250,7 +1250,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
-            using OfficeIMO.PowerPoint.PowerPointPresentation reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            using OfficeIMO.PowerPoint.PowerPointDocument reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(serialized);
             OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(
                 reopened.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Equal("image/jp2", picture.ContentType);

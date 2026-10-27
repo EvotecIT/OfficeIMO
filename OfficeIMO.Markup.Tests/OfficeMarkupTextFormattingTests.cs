@@ -69,7 +69,7 @@ public class OfficeMarkupTextFormattingTests {
 
         var powerPointSource = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         powerPointSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
-        OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointPresentationResult(
+        OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointDocumentResult(
             new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
 
         var wordSource = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
@@ -94,7 +94,7 @@ public class OfficeMarkupTextFormattingTests {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));
 
-        OfficeMarkupPowerPointConversionResult result = source.ToPowerPointPresentationResult(
+        OfficeMarkupPowerPointConversionResult result = source.ToPowerPointDocumentResult(
             new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
         using (result.Value) {
             OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
@@ -247,7 +247,7 @@ public class OfficeMarkupTextFormattingTests {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         source.Blocks.Add(slide);
 
-        using PowerPointPresentation presentation = source.ToPowerPointPresentationResult().RequireValue();
+        using PowerPointDocument presentation = source.ToPowerPointDocumentResult().RequireValue();
         PowerPointTextBox output = Assert.Single(Assert.Single(presentation.Slides).Shapes.OfType<PowerPointTextBox>(),
             box => box.Text.Contains("mixed case", StringComparison.Ordinal));
         PowerPointTextRun run = Assert.Single(Assert.Single(output.Paragraphs).Runs);

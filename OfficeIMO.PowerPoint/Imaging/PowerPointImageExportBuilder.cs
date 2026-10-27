@@ -72,62 +72,62 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Fluent image-export builder for all selected slides in a PowerPoint presentation.
     /// </summary>
-    public sealed class PowerPointPresentationImageExportBuilder : OfficeImageExportBatchBuilder<PowerPointPresentationImageExportBuilder, PowerPointPresentationImageExportOptions> {
-        internal PowerPointPresentationImageExportBuilder(PowerPointPresentation presentation, PowerPointPresentationImageExportOptions? options = null)
+    public sealed class PowerPointDocumentImageExportBuilder : OfficeImageExportBatchBuilder<PowerPointDocumentImageExportBuilder, PowerPointDocumentImageExportOptions> {
+        internal PowerPointDocumentImageExportBuilder(PowerPointDocument presentation, PowerPointDocumentImageExportOptions? options = null)
             : base(
-                options?.ClonePresentation() ?? new PowerPointPresentationImageExportOptions(),
+                options?.CloneDocument() ?? new PowerPointDocumentImageExportOptions(),
                 presentation.ExportImages,
                 (format, effective, consumer, cancellationToken) =>
                     presentation.ExportImages(format, consumer, effective, cancellationToken)) {
         }
 
         /// <summary>Includes or excludes resolved slide backgrounds.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeBackground(bool include = true) {
+        public PowerPointDocumentImageExportBuilder IncludeBackground(bool include = true) {
             Options.IncludeSlideBackground = include;
             return this;
         }
 
         /// <summary>Excludes resolved slide backgrounds.</summary>
-        public PowerPointPresentationImageExportBuilder WithoutBackground() => IncludeBackground(false);
+        public PowerPointDocumentImageExportBuilder WithoutBackground() => IncludeBackground(false);
 
         /// <summary>Includes or excludes slide content.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeContent(bool include = true) {
+        public PowerPointDocumentImageExportBuilder IncludeContent(bool include = true) {
             Options.IncludeSlideContent = include;
             return this;
         }
 
         /// <summary>Excludes slide content.</summary>
-        public PowerPointPresentationImageExportBuilder WithoutContent() => IncludeContent(false);
+        public PowerPointDocumentImageExportBuilder WithoutContent() => IncludeContent(false);
 
         /// <summary>Includes or excludes pictures.</summary>
-        public PowerPointPresentationImageExportBuilder IncludePictures(bool include = true) { Options.IncludePictures = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludePictures(bool include = true) { Options.IncludePictures = include; return this; }
 
         /// <summary>Includes or excludes auto shapes.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeAutoShapes(bool include = true) { Options.IncludeAutoShapes = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeAutoShapes(bool include = true) { Options.IncludeAutoShapes = include; return this; }
 
         /// <summary>Includes or excludes SmartArt.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeSmartArt(bool include = true) { Options.IncludeSmartArt = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeSmartArt(bool include = true) { Options.IncludeSmartArt = include; return this; }
 
         /// <summary>Includes or excludes text boxes.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeTextBoxes(bool include = true) { Options.IncludeTextBoxes = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeTextBoxes(bool include = true) { Options.IncludeTextBoxes = include; return this; }
 
         /// <summary>Includes or excludes tables.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeTables(bool include = true) { Options.IncludeTables = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeTables(bool include = true) { Options.IncludeTables = include; return this; }
 
         /// <summary>Includes or excludes charts.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeCharts(bool include = true) { Options.IncludeCharts = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeCharts(bool include = true) { Options.IncludeCharts = include; return this; }
 
         /// <summary>Includes or excludes shapes marked hidden.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeHiddenShapes(bool include = true) { Options.IncludeHiddenShapes = include; return this; }
+        public PowerPointDocumentImageExportBuilder IncludeHiddenShapes(bool include = true) { Options.IncludeHiddenShapes = include; return this; }
 
         /// <summary>Sets the maximum nested group depth accepted during rendering.</summary>
-        public PowerPointPresentationImageExportBuilder WithMaximumGroupDepth(int maximumDepth) {
+        public PowerPointDocumentImageExportBuilder WithMaximumGroupDepth(int maximumDepth) {
             Options.MaxGroupShapeDepth = maximumDepth;
             return this;
         }
 
         /// <summary>Sets per-image and aggregate embedded-image read limits.</summary>
-        public PowerPointPresentationImageExportBuilder WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) {
+        public PowerPointDocumentImageExportBuilder WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) {
             if (maximumImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumImageBytes));
             if (maximumTotalImageBytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
             Options.MaximumEmbeddedImageBytes = maximumImageBytes;
@@ -136,16 +136,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Includes or excludes hidden slides.</summary>
-        public PowerPointPresentationImageExportBuilder IncludeHiddenSlides(bool include = true) {
+        public PowerPointDocumentImageExportBuilder IncludeHiddenSlides(bool include = true) {
             Options.IncludeHiddenSlides = include;
             return this;
         }
 
         /// <summary>Selects specific 1-based slide numbers for presentation-level export.</summary>
-        public PowerPointPresentationImageExportBuilder ForSlides(params int[] slideNumbers) => ForSlides((IEnumerable<int>)slideNumbers);
+        public PowerPointDocumentImageExportBuilder ForSlides(params int[] slideNumbers) => ForSlides((IEnumerable<int>)slideNumbers);
 
         /// <summary>Selects specific 1-based slide numbers for presentation-level export.</summary>
-        public PowerPointPresentationImageExportBuilder ForSlides(IEnumerable<int> slideNumbers) {
+        public PowerPointDocumentImageExportBuilder ForSlides(IEnumerable<int> slideNumbers) {
             if (slideNumbers == null) {
                 throw new ArgumentNullException(nameof(slideNumbers));
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Selects a 1-based inclusive slide range for presentation-level export.</summary>
-        public PowerPointPresentationImageExportBuilder ForSlideRange(int firstSlideNumber, int lastSlideNumber) {
+        public PowerPointDocumentImageExportBuilder ForSlideRange(int firstSlideNumber, int lastSlideNumber) {
             if (firstSlideNumber <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(firstSlideNumber), "Slide numbers must be 1-based positive values.");
             }
@@ -188,14 +188,14 @@ namespace OfficeIMO.PowerPoint {
             new PowerPointSlideImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>
         /// Starts a fluent image export for selected slides in this presentation.
         /// </summary>
-        public PowerPointPresentationImageExportBuilder ToImages() => new PowerPointPresentationImageExportBuilder(this);
+        public PowerPointDocumentImageExportBuilder ToImages() => new PowerPointDocumentImageExportBuilder(this);
 
         /// <summary>Starts a fluent batch export using a cloned options snapshot.</summary>
-        public PowerPointPresentationImageExportBuilder ToImages(PowerPointPresentationImageExportOptions options) =>
-            new PowerPointPresentationImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
+        public PowerPointDocumentImageExportBuilder ToImages(PowerPointDocumentImageExportOptions options) =>
+            new PowerPointDocumentImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

@@ -266,7 +266,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, 32, 32);
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
             document.AddParagraph("Native GIF header image body");
             document.Save();
         }
@@ -392,10 +392,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native image header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddImage(imagePath, 32, 32);
+            headerParagraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, 32, 32);
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             document.AddParagraph("Native header/footer image body");
             document.Save();

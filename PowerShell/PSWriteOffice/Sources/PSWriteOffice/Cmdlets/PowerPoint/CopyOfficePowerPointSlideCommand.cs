@@ -23,7 +23,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class CopyOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Zero-based slide index to duplicate.</summary>
     [Parameter(Mandatory = true)]
@@ -36,7 +36,7 @@ public sealed class CopyOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.Off
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+            var presentation = Presentation ?? PowerPointDslContext.Current?.Document
                 ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             WritePassThru(presentation.DuplicateSlide(Index, InsertAt));

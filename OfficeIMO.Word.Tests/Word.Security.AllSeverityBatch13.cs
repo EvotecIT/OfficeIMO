@@ -63,8 +63,8 @@ public sealed class WordAllSeverityBatch13SecurityTests {
         Directory.CreateDirectory(output);
         try {
             using WordDocument source = WordDocument.Create();
-            source.AddParagraph().AddImage(imagePath, 16, 16);
-            source.AddParagraph().AddImage(imagePath, 16, 16);
+            source.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+            source.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
             using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
             WordImage[] images = document.Images.ToArray();
             images[0].FileName = "../a/logo.jpg";
@@ -95,7 +95,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
     public void MarkdownBase64EmbeddingEnforcesImageByteLimitBeforeMaterialization() {
         string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph().AddImage(imagePath, 16, 16);
+        source.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(), writable: false));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -149,7 +149,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
 
-            Assert.Throws<InvalidDataException>(() => paragraph.AddImageVml(path, 16, 16));
+            Assert.Throws<InvalidDataException>(() => paragraph.AddImage(path, OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeLength.Points(16), options: new OfficeIMO.Word.WordImageOptions { Vml = true }));
             Assert.Empty(document.Images);
         } finally {
             File.Delete(path);

@@ -16,7 +16,7 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void CategoryGroups_FollowLayerReferencesWhenPrimaryAxisMovesOrXmlOrderChanges(bool top, bool reverseAxes) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Columns", new[] { 1d, 2d }, null, null, null, false,
                 renderKind: OfficeChartType.ColumnClustered),
@@ -55,7 +55,7 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MixedSnapshot_RepositionedSoleValueAxisRemainsPrimaryAndCanUpdate(bool top) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.ColumnClustered),
             new OfficeSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartType.Line) });
@@ -70,7 +70,7 @@ public sealed class PowerPointChartAxisBindingsTests {
 
     [Fact]
     public void CategoryUpdate_ReversedReferencesPreserveAxisScaleAndPosition() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
         var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
@@ -92,7 +92,7 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ScatterUpdates_RejectConflictingLayerAxesBeforeNativeOrWorkbookMutation(bool shared) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }), new OfficeSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }) });
         var chart = document.AddSlide().AddChart(OfficeChartType.Scatter, data);
@@ -123,7 +123,7 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ScatterUpdates_ReserveASeriesForEachRemainingLayer(bool shared) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var original = new OfficeChartData(new[] { "1", "2" }, new[] {
             new OfficeSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }),
             new OfficeSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }),
@@ -155,7 +155,7 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CategoryUpdate_PreservesLayerFormattingWithRepositionedPrimaryAxis(bool top) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
         var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();

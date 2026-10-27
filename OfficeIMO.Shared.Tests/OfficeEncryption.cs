@@ -168,7 +168,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncrypted_And_OpenEncrypted_RoundTrips() {
             string path = CreateTempPath(".pptx");
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint content", 1, 1, 4, 1);
                 presentation.Save(path, new PowerPointSaveOptions { Password = Password });
@@ -177,7 +177,7 @@ namespace OfficeIMO.Shared.Tests {
             AssertEncryptedContainer(path);
             Assert.ThrowsAny<Exception>(() => PresentationDocument.Open(path, false).Dispose());
 
-            using var loaded = PowerPointPresentation.Load(path, new PowerPointLoadOptions { Password = Password });
+            using var loaded = PowerPointDocument.Load(path, new PowerPointLoadOptions { Password = Password });
             Assert.Single(loaded.Slides);
         }
 
@@ -185,7 +185,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncryptedStream_And_OpenEncryptedStream_RoundTrips() {
             using var encrypted = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint stream content", 1, 1, 4, 1);
                 presentation.Save(encrypted, new PowerPointSaveOptions { Password = Password });
@@ -194,7 +194,7 @@ namespace OfficeIMO.Shared.Tests {
             AssertEncryptedContainer(encrypted);
 
             encrypted.Position = 0;
-            using var loaded = PowerPointPresentation.Load(encrypted, new PowerPointLoadOptions { Password = Password });
+            using var loaded = PowerPointDocument.Load(encrypted, new PowerPointLoadOptions { Password = Password });
             Assert.Single(loaded.Slides);
         }
 

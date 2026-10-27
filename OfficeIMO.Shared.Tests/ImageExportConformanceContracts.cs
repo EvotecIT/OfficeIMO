@@ -48,7 +48,7 @@ public sealed class ImageExportConformanceContracts {
             }));
 
         using (var presentationStream = new MemoryStream())
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationStream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(presentationStream)) {
             presentation.SlideSize.SetSizePoints(240D, 160D);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "336699";

@@ -16,9 +16,9 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         WordParagraph endnote = body.AddEndNote("endnote").EndNote!.Paragraphs![1];
         body.AddComment("OfficeIMO", "OI", "comment");
         WordParagraph comment = Assert.Single(document.Comments).Paragraphs[0];
-        footnote.AddImage(imagePath, 16, 16);
-        endnote.AddImage(imagePath, 16, 16);
-        comment.AddImage(imagePath, 16, 16);
+        footnote.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        endnote.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        comment.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
         footnote.Image!.Remove();
         endnote.Image!.Remove();

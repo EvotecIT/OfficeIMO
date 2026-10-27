@@ -25,7 +25,7 @@ public partial class Word {
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "A";
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "marker.png", pictureWidth * 96D / 72D, 24);
+        paragraph.AddImage(image, "marker.png", OfficeIMO.OfficeLength.Pixels(pictureWidth * 96D / 72D), OfficeIMO.OfficeLength.Pixels(24));
         paragraph.AddText("B");
         ReverseAutofitPreferenceRows(table, reversed);
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;

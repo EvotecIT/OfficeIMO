@@ -112,7 +112,7 @@ internal static class WorkflowShowcase {
                     if (document.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project Word report.");
                 }
                 if (File.Exists(Path.Combine(folder, "report.pptx"))) {
-                    using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "report.pptx"));
+                    using var presentation = PowerPointDocument.Load(Path.Combine(folder, "report.pptx"));
                     if (presentation.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project presentation.");
                 }
                 if (File.Exists(Path.Combine(folder, "report.xlsx"))) {
@@ -134,7 +134,7 @@ internal static class WorkflowShowcase {
                 }
                 break;
             case "powerpoint":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(folder, "example.pptx"))) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(folder, "example.pptx"))) {
                     var errors = presentation.ValidateDocument();
                     if (errors.Count > 0) throw new InvalidOperationException(errors[0].Description);
                     presentation.SaveAsPdf(preview);

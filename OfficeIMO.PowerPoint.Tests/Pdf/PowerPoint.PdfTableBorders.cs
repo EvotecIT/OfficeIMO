@@ -11,7 +11,7 @@ public sealed class PowerPointPdfTableBorderTests {
     [Fact]
     public void Resolved_cell_edges_replace_the_PDF_preset_grid_after_saved_PPTX_reopen() {
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
+        using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSizePoints(260, 180);
             var table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 160, 80);
             table.ApplyStyle(PowerPointTableStylePreset.Plain);
@@ -29,7 +29,7 @@ public sealed class PowerPointPdfTableBorderTests {
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var document = reopened.ToPdf();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(document.Blocks));

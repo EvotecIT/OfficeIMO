@@ -30,7 +30,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextMarginsCommand : PSC
 {
     /// <summary>Presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index.</summary>
     [Parameter]
@@ -78,10 +78,10 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextMarginsCommand : PSC
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PowerPointPresentation? presentation = null;
+        PowerPointDocument? presentation = null;
         try
         {
-            presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             presentation.SetLayoutPlaceholderTextMarginsPoints(
                 Master,
                 Layout,

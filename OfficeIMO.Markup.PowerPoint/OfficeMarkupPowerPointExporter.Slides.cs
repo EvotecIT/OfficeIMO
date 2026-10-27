@@ -40,7 +40,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static void ExportSlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         MarkupToPowerPointOptions options,
@@ -112,7 +112,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryExportDesignerSlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,
@@ -130,7 +130,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryExportMarkupSummarySlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDesignTheme theme,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,

@@ -9,10 +9,10 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointSaveAsPdfSecurityTests {
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_StopsAtConfiguredGroupDepth() {
+    public void SaveAsPdf_PowerPointDocument_StopsAtConfiguredGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
@@ -38,7 +38,7 @@ public class PowerPointSaveAsPdfSecurityTests {
     public void SaveAsPdf_PowerPointHandouts_HonorZeroGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
             PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);

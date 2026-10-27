@@ -47,13 +47,13 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
-                HtmlToPowerPointResult result = source.ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+                HtmlToPowerPointResult result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
                 string artifact = Path.Combine(output, documentName + ".pptx");
-                using (PowerPointPresentation presentation = result.RequireValue()) presentation.Save(artifact);
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(artifact);
+                using (PowerPointDocument presentation = result.RequireValue()) presentation.Save(artifact);
+                using PowerPointDocument loaded = PowerPointDocument.Load(artifact);
                 return new EditableExport(result.Report, artifact, loaded.ToHtml(),
                     PictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count()),
                     LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)),

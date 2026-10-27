@@ -15,17 +15,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox text = slide.AddTextBox("Hello");
                 text.AddBullet("Bullet1");
-                slide.AddPicture(imagePath);
+                slide.AddImage(imagePath);
                 slide.AddTable(2, 2);
                 slide.Notes.Text = "Test notes";
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Single(presentation.Slides);
                 Assert.Equal("Office Theme", presentation.ThemeName);
                 PowerPointSlide slide = presentation.Slides[0];
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Notes.Text = "Notes created for validation";
                     presentation.Save();

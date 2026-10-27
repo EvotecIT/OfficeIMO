@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void FitShapesToBounds_ScalesNonUniform() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(200, 200, 100, 100);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         public void FitShapesToBounds_PreservesAspectAndCenters() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(200, 200, 100, 100);

@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Images count: " + document.Images.Count);
 
                 var headerParagraph = defaultHeader.AddParagraph();
-                headerParagraph.AddImage(filePathImage, 734, 92);
+                headerParagraph.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(734), OfficeIMO.OfficeLength.Pixels(92));
 
                 var firstHeaderParagraph = Guard.GetRequiredItem(defaultHeader.Paragraphs, 0, "Default header should expose the inserted paragraph.");
                 firstHeaderParagraph.SetFontFamily("Arial");

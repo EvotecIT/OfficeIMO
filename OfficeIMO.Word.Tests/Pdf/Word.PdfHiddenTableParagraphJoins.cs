@@ -118,7 +118,7 @@ public partial class Word {
         if (nested) table = table.Rows[0].Cells[0].AddTable(1, 1);
         WordTableCell cell = table.Rows[0].Cells[0];
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
-        alpha.AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
+        alpha.AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(12));
         HideJoinMark(alpha, true);
         cell.AddParagraph("BETA");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));

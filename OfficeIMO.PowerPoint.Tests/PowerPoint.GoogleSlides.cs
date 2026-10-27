@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
     public sealed partial class GoogleSlidesTests {
         [Fact]
         public async Task Exporter_NewDeckPlaceholderDeletionIsNotClassifiedAsCallerDataLoss() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("New deck content");
             var contexts = new List<GoogleWorkspaceOperationContext>();
             using var httpClient = new HttpClient(new DelegateHandler(request => {
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_MapsEditableCoreAndDeterministicIds() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
             slide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80).Paragraphs[0].Runs[0].Bold = true;
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_DropsMalformedRichTextColorsBeforeJsonGeneration() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextRun run = presentation.AddSlide()
                 .AddTextBoxPoints("Unsafe color", 20, 30, 300, 80)
                 .Paragraphs[0].Runs[0];
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_PreservesSupportedTypographyAndMaterializesAllCaps() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Normal", 20, 30, 300, 80);
             PowerPointTextRun first = textBox.Paragraphs[0].Runs[0];
             first.Strikethrough = true;
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompilerAndCheckpointProjectInternalLinksWithoutDereferencingRelativeUris() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextRun shapeRun = source.AddTextBox("Shape link").Paragraphs.Single().Runs.Single();
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BooleanDecorationSettersWriteExplicitOffValuesOverInheritedDefaults() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Plain").Paragraphs.Single();
             PowerPointTextRun run = paragraph.Runs.Single();
             paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_ResolvesParagraphDefaultCapsAndBaselineForTextBoxesAndTables() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
             PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_ResolvesEastAsianAndComplexScriptThemeFonts() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
                 majorLatin: "Major Latin",
                 minorLatin: "Minor Latin",
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_SplitsMixedScriptRunAcrossFontSlots() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextRun run = presentation.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
             run.Run.RunProperties = new A.RunProperties();
             run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
             PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_ResolvesApplicableTableStyleTypographyForGoogleCells() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{9A53DA13-207B-4877-931D-000000000239}";
             DocumentFormat.OpenXml.Packaging.PresentationPart presentationPart = slide.SlidePart
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_PreservesTableFieldsAndLineBreaksInAuthoredOrder() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTableCell cell = presentation.AddSlide()
                 .AddTablePoints(1, 1, 20, 30, 300, 100)
                 .GetCell(0, 0);
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextRun run = presentation.AddSlide()
                 .AddTextBoxPoints("i", 20, 30, 300, 80)
                 .Paragraphs[0].Runs[0];
@@ -427,8 +427,8 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {
                 File.WriteAllText(svgPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"2\"><rect width=\"2\" height=\"2\"/></svg>");
-                using PowerPointPresentation presentation = PowerPointPresentation.Create();
-                presentation.AddSlide().AddPicture(svgPath, left: 0, top: 0, width: 1000, height: 1000);
+                using PowerPointDocument presentation = PowerPointDocument.Create();
+                presentation.AddSlide().AddImage(svgPath, left: 0, top: 0, width: 1000, height: 1000);
 
                 GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions {
                     ComplexSlides = GoogleSlidesComplexSlideMode.PreferNativeAndReport,
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_RasterizesUnmappedAutoShapesInsteadOfChangingTheirGeometry() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_RasterizesMergedTablesToPreserveCellLayout() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 300, 120);
             table.MergeCells(0, 0, 1, 1);
 
@@ -472,7 +472,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PlanBuilder_ReportsRasterFallbackWithoutMaterializingPngBytes() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
 
             GoogleSlidesBatch planningBatch = GoogleSlidesBatchCompiler.Build(
@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PlanBuilder_RasterizesOrReportsUnsupportedSlideBackgrounds() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45);
 
@@ -511,7 +511,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BatchCompiler_PreservesSupportedImageBackgroundNatively() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundImage(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png"));
 
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_CreatesAndReplacesInitialSlideWithRevisionGuard() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide authoredSlide = presentation.AddSlide();
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
@@ -634,7 +634,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_ScalesAndCentersElementsToTargetPageSize() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.SetSizePoints(960, 540);
             presentation.AddSlide().AddTextBoxPoints("Edge", 800, 400, 100, 100);
             string? batchBody = null;
@@ -667,7 +667,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_ProjectsPowerPointRotationIntoSlidesAffineTransform() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Rotated", 10, 20, 100, 40);
             textBox.Rotation = 90;
             string? batchBody = null;
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_PreservesShapeReflectionAndBasicAppearance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(10, 20, 100, 40);
             shape.HorizontalFlip = true;
             shape.FillColor = "336699";
@@ -753,7 +753,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         [InlineData(true)]
         public async Task Exporter_WritesSpeakerNotesAfterSlidesExist(bool existingNotes) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Slide body");
             slide.Notes.Text = "Presenter-only context";
@@ -795,7 +795,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_OverwriteLatest_DoesNotSendRevisionGuard() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Replacement");
             string? batchBody = null;
             int presentationReads = 0;
@@ -826,7 +826,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_RejectsStaleExistingRevisionBeforeMutation() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Local");
             int mutations = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
@@ -848,7 +848,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_RejectsFolderFromUnexpectedSharedDriveBeforeTemplateCopy() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Local");
             int mutations = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
@@ -873,7 +873,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_PreservesInvalidRequestDiagnosticsWhenRevisionStillMatches() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Local");
             int presentationReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
@@ -901,7 +901,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_ClassifiesBatchFailureAsConflictAfterRevisionChanges() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Local");
             int presentationReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
@@ -931,7 +931,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Exporter_PreservesLaterBatchDiagnosticsWhenActiveRevisionStillMatches() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Local");
             slide.Notes.Text = "Notes";
@@ -995,8 +995,8 @@ namespace OfficeIMO.Tests {
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-import", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
-            using (imported.Presentation) {
-                PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+            using (imported.Document) {
+                PowerPointSlide slide = Assert.Single(imported.Document.Slides);
                 Assert.True(slide.Hidden);
                 Assert.Equal("336699", slide.BackgroundColor);
                 PowerPointTextBox importedText = Assert.Single(slide.TextBoxes, text => text.Text == "Imported text");
@@ -1018,7 +1018,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal("CC331A", run.Color);
                     });
                 GoogleSlidesTextBox roundTripText = Assert.Single(
-                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Presentation, new GoogleSlidesSaveOptions()).Slides)
+                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Document, new GoogleSlidesSaveOptions()).Slides)
                         .Elements.OfType<GoogleSlidesTextBox>());
                 Assert.Collection(roundTripText.TextRuns,
                     run => {
@@ -1048,7 +1048,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Imported notes", slide.Notes.Text);
                 Assert.Equal("r4", imported.Source.RevisionId);
                 GoogleSlidesShape roundTripShape = Assert.Single(
-                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Presentation, new GoogleSlidesSaveOptions()).Slides)
+                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Document, new GoogleSlidesSaveOptions()).Slides)
                         .Elements.OfType<GoogleSlidesShape>());
                 Assert.Equal("CC6633", roundTripShape.Style.FillColorHex);
                 Assert.Equal(25, roundTripShape.Style.FillTransparencyPercent);
@@ -1072,9 +1072,9 @@ namespace OfficeIMO.Tests {
                 Session(httpClient),
                 new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
 
-            using (imported.Presentation) {
+            using (imported.Document) {
                 PowerPointTextBox shape = Assert.Single(
-                    Assert.Single(imported.Presentation.Slides).TextBoxes,
+                    Assert.Single(imported.Document.Slides).TextBoxes,
                     candidate => candidate.Text == "Next step");
                 Assert.Equal(OfficePresetShapeType.RightArrow, shape.ShapeType);
                 Assert.True(shape.Paragraphs[0].Runs[0].Bold);
@@ -1100,8 +1100,8 @@ namespace OfficeIMO.Tests {
                 Session(httpClient),
                 new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
 
-            using (imported.Presentation) {
-                PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+            using (imported.Document) {
+                PowerPointSlide slide = Assert.Single(imported.Document.Slides);
                 PowerPointAutoShape rotatedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name == "shape-rotated");
                 Assert.Equal(90d, rotatedShape.Rotation ?? 0, 6);
                 Assert.Equal(40d, rotatedShape.LeftPoints, 6);
@@ -1128,8 +1128,8 @@ namespace OfficeIMO.Tests {
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
-            using (imported.Presentation) {
-                PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+            using (imported.Document) {
+                PowerPointSlide slide = Assert.Single(imported.Document.Slides);
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
                 Assert.Equal("image/gif", picture.ContentType);
                 Assert.Equal(PowerPointSlideBackgroundKind.Image, slide.GetBackground().Kind);
@@ -1163,9 +1163,9 @@ namespace OfficeIMO.Tests {
                         Mode = GoogleWorkspaceImportMode.Native
                     });
 
-            using (imported.Presentation) {
+            using (imported.Document) {
                 Assert.Equal(0, untrustedRequests);
-                Assert.Empty(Assert.Single(imported.Presentation.Slides).Pictures);
+                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1196,8 +1196,8 @@ namespace OfficeIMO.Tests {
                         MaxImageBytes = 8
                     });
 
-            using (imported.Presentation) {
-                Assert.Empty(Assert.Single(imported.Presentation.Slides).Pictures);
+            using (imported.Document) {
+                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1212,7 +1212,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task DiffPlanner_RejectsUnversionedCheckpointBeforeRemoteRead() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Unchanged");
             var legacyCheckpoint = new GoogleSlidesSyncCheckpoint { RevisionId = "observed-revision" };
             legacyCheckpoint.ContentHashes["presentation/size"] = "old-culture-dependent-hash";
@@ -1231,7 +1231,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task DiffPlanner_RejectsEarlierInvariantCheckpointBeforeRemoteRead() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.WidthEmus = 1270;
             GoogleSlidesSyncCheckpoint prior = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
             prior.HashFormatVersion = 2;
@@ -1251,9 +1251,9 @@ namespace OfficeIMO.Tests {
             byte[] firstImage = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
             byte[] secondImage = (byte[])firstImage.Clone();
             secondImage[secondImage.Length - 12] ^= 0x01;
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             using var firstStream = new MemoryStream(firstImage);
-            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            PowerPointPicture picture = presentation.AddSlide().AddImage(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
@@ -1268,14 +1268,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DiffPlanner_CheckpointHashesAreStableAcrossCultures() {
             byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45.5D);
             PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20.25D, 30.5D, 160.75D, 90.125D);
             shape.Rotation = 22.5D;
             shape.OutlineWidthPoints = 1.25D;
             using var imageStream = new MemoryStream(imageBytes);
-            PowerPointPicture picture = slide.AddPicturePoints(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, 10.5D, 20.25D, 40.75D, 30.5D);
+            PowerPointPicture picture = slide.AddImagePoints(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, 10.5D, 20.25D, 40.75D, 30.5D);
             picture.Crop(10, 5, 0, 0);
 
             CultureInfo previousCulture = CultureInfo.CurrentCulture;
@@ -1298,7 +1298,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_CheckpointSizeHashIsPortableAcrossRuntimes() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.WidthEmus = 1234567;
             presentation.SlideSize.HeightEmus = 2345678;
 
@@ -1312,7 +1312,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DiffPlanner_HashesNativeGeometryAndEffectiveTextStyle() {
             string ShapeHash(OfficePresetShapeType shapeType) {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                using PowerPointDocument presentation = PowerPointDocument.Create();
                 PowerPointAutoShape shape = presentation.AddSlide().AddShapePoints(shapeType, 20, 20, 160, 90);
                 Assert.Equal(shapeType, shape.ShapeType);
                 return ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
@@ -1320,14 +1320,14 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEqual(ShapeHash(OfficePresetShapeType.Rectangle), ShapeHash(OfficePresetShapeType.RightArrow));
 
-            using PowerPointPresentation transformedPresentation = PowerPointPresentation.Create();
+            using PowerPointDocument transformedPresentation = PowerPointDocument.Create();
             PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 160, 90);
             string unrotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
             transformedShape.Rotation = 30;
             string rotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
             Assert.NotEqual(unrotated, rotated);
 
-            using PowerPointPresentation styledPresentation = PowerPointPresentation.Create();
+            using PowerPointDocument styledPresentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = styledPresentation.AddSlide().AddTextBoxPoints("Styled text", 20, 20, 180, 60);
             PowerPointTextRun run = Assert.Single(Assert.Single(textBox.Paragraphs).Runs);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
@@ -1352,8 +1352,8 @@ namespace OfficeIMO.Tests {
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-table-style", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
-            using (imported.Presentation) {
-                IReadOnlyList<PowerPointTextRun> runs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Runs;
+            using (imported.Document) {
+                IReadOnlyList<PowerPointTextRun> runs = imported.Document.Slides.Single().Tables.Single().GetCell(0, 0).Runs;
                 Assert.Collection(runs,
                     run => {
                         Assert.Equal("Styled ", run.Text);
@@ -1378,13 +1378,13 @@ namespace OfficeIMO.Tests {
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-paragraphs", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
-            using (imported.Presentation) {
-                IReadOnlyList<PowerPointParagraph> shapeParagraphs = imported.Presentation.Slides.Single().TextBoxes.Single().Paragraphs;
+            using (imported.Document) {
+                IReadOnlyList<PowerPointParagraph> shapeParagraphs = imported.Document.Slides.Single().TextBoxes.Single().Paragraphs;
                 Assert.Equal(new[] { "Shape first", "Shape second" }, shapeParagraphs.Select(paragraph => paragraph.Text));
                 Assert.True(shapeParagraphs[0].Runs.Single().Bold);
                 Assert.True(shapeParagraphs[1].Runs.Single().Italic);
 
-                IReadOnlyList<PowerPointParagraph> cellParagraphs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Paragraphs;
+                IReadOnlyList<PowerPointParagraph> cellParagraphs = imported.Document.Slides.Single().Tables.Single().GetCell(0, 0).Paragraphs;
                 Assert.Equal(new[] { "Cell first", "Cell second" }, cellParagraphs.Select(paragraph => paragraph.Text));
                 Assert.True(cellParagraphs[0].Runs.Single().Underline);
                 Assert.True(cellParagraphs[1].Runs.Single().Strikethrough);
@@ -1393,7 +1393,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_HashesEveryTextRunBoundaryAndSynchronizedStyle() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointParagraph paragraph = presentation.AddSlide()
                 .AddTextBox("First")
                 .Paragraphs.Single();
@@ -1409,7 +1409,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DiffPlanner_UsesGoogleProjectedValuesAndIncludesTableRuns() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextRun textRun = slide.AddTextBox("mixed").Paragraphs.Single().Runs.Single();
             textRun.Capitalization = PowerPointCapitalization.AllCaps;
@@ -1423,7 +1423,7 @@ namespace OfficeIMO.Tests {
             textRun.FontSize = 13;
             Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
 
-            using PowerPointPresentation tablePresentation = PowerPointPresentation.Create();
+            using PowerPointDocument tablePresentation = PowerPointDocument.Create();
             PowerPointTextRun tableRun = tablePresentation.AddSlide().AddTablePoints(1, 1, 10, 80, 200, 50).GetCell(0, 0).Runs.Single();
             tableRun.Text = "Cell";
             string tableBaseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation));
@@ -1433,7 +1433,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task DiffPlanner_ReportsDriveVersionChanges() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Same");
             GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation, revisionId: "revision-1", driveVersion: 4);
             using var httpClient = new HttpClient(new DelegateHandler(request => {

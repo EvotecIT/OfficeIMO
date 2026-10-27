@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 
 public class PowerPointPdfTableImportTests {
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_VisualProfileCreatesOnePageImagePerSlide() {
+    public void PdfDocument_ToPowerPointDocument_VisualProfileCreatesOnePageImagePerSlide() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 360,
                 PageHeight = 240,
@@ -51,7 +51,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_DefaultCreatesNativeEditableObjects() {
+    public void PdfDocument_ToPowerPointDocument_DefaultCreatesNativeEditableObjects() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -99,7 +99,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_EditableContentCreatesNativeSafeVectorShapes() {
+    public void PdfDocument_ToPowerPointDocument_EditableContentCreatesNativeSafeVectorShapes() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
@@ -178,7 +178,7 @@ public class PowerPointPdfTableImportTests {
     [InlineData(PowerPointPdfImportMode.HybridVisualAndEditableTables)]
     [InlineData(PowerPointPdfImportMode.EditableContent)]
     [InlineData(PowerPointPdfImportMode.Auto)]
-    public void PdfDocument_ToPowerPointPresentation_EnforcesPageLimitInEveryMode(
+    public void PdfDocument_ToPowerPointDocument_EnforcesPageLimitInEveryMode(
         PowerPointPdfImportMode mode) {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(p => p.Text("Page one"))
@@ -199,7 +199,7 @@ public class PowerPointPdfTableImportTests {
     [Theory]
     [InlineData(PowerPointPdfImportMode.EditableTables)]
     [InlineData(PowerPointPdfImportMode.EditableContent)]
-    public void PdfDocument_ToPowerPointPresentation_RejectsOversizedSelectionBeforeLogicalExtraction(
+    public void PdfDocument_ToPowerPointDocument_RejectsOversizedSelectionBeforeLogicalExtraction(
         PowerPointPdfImportMode mode) {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(p => p.Text("Only one source page"))
@@ -220,7 +220,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_AllowsRaisedDestinationAndSemanticPageLimits() {
+    public void PdfDocument_ToPowerPointDocument_AllowsRaisedDestinationAndSemanticPageLimits() {
         const int selectedPageCount = 1_001;
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Repeated source page"))
@@ -243,7 +243,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocumentReadResult_ToPowerPointPresentation_AppliesSelectionBeforeDestinationLimit() {
+    public void PdfDocumentReadResult_ToPowerPointDocument_AppliesSelectionBeforeDestinationLimit() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
@@ -265,7 +265,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocumentReadResult_ToPowerPointPresentation_PreservesSelectedOrderAndDuplicates() {
+    public void PdfDocumentReadResult_ToPowerPointDocument_PreservesSelectedOrderAndDuplicates() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
@@ -286,7 +286,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_EditableObjectLimitReportsTextAndTableLoss() {
+    public void PdfDocument_ToPowerPointDocument_EditableObjectLimitReportsTextAndTableLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Limit contract")
             .Paragraph(p => p.Text("Second editable text block"))
@@ -316,7 +316,7 @@ public class PowerPointPdfTableImportTests {
     [Theory]
     [InlineData(360D, 180D, 2000)]
     [InlineData(1440D, 720D, 500)]
-    public void PdfDocument_ToPowerPointPresentation_EditableTextScalesWithPageGeometry(
+    public void PdfDocument_ToPowerPointDocument_EditableTextScalesWithPageGeometry(
         double pageWidth,
         double pageHeight,
         int expectedFontSizeHundredths) {
@@ -352,7 +352,7 @@ public class PowerPointPdfTableImportTests {
     [InlineData(90, 90, 180)]
     [InlineData(90, 180, 270)]
     [InlineData(90, 270, 0)]
-    public void PdfDocument_ToPowerPointPresentation_EditableTextUsesVisualPageRotation(
+    public void PdfDocument_ToPowerPointDocument_EditableTextUsesVisualPageRotation(
         int sourceTextRotation,
         int pageRotation,
         int expectedPowerPointRotation) {
@@ -386,7 +386,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_EditableContinuationTablesStayInsideSlide() {
+    public void PdfDocument_ToPowerPointDocument_EditableContinuationTablesStayInsideSlide() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 3600D,
                 PageHeight = 1800D,
@@ -428,7 +428,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridKeepsVisualPageAndEditableTableOverlay() {
+    public void PdfDocument_ToPowerPointDocument_HybridKeepsVisualPageAndEditableTableOverlay() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -475,7 +475,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_ReportsDocumentActionsAsOmittedFromHybridAndEditableOutput() {
+    public void PdfDocument_ToPowerPointDocument_ReportsDocumentActionsAsOmittedFromHybridAndEditableOutput() {
         var pdfOptions = new PdfCore.PdfCreateOptions {
             PageWidth = 420,
             PageHeight = 360,
@@ -534,7 +534,7 @@ public class PowerPointPdfTableImportTests {
     [Theory]
     [InlineData(90)]
     [InlineData(270)]
-    public void PdfDocument_ToPowerPointPresentation_HybridMapsRotatedTableBoundsToVisualCoordinates(int rotation) {
+    public void PdfDocument_ToPowerPointDocument_HybridMapsRotatedTableBoundsToVisualCoordinates(int rotation) {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
@@ -575,7 +575,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridOmitsSyntheticKeyValueHeader() {
+    public void PdfDocument_ToPowerPointDocument_HybridOmitsSyntheticKeyValueHeader() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .KeyValueTable(new[] {
                 PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
@@ -600,7 +600,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridPreservesSelectedPageIndexesInTableReports() {
+    public void PdfDocument_ToPowerPointDocument_HybridPreservesSelectedPageIndexesInTableReports() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 300,
@@ -631,7 +631,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridSplitsTablesWithinPerSlideCaps() {
+    public void PdfDocument_ToPowerPointDocument_HybridSplitsTablesWithinPerSlideCaps() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 520,
                 PageHeight = 420,
@@ -698,7 +698,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridChargesRepeatedBackgroundsToAggregateBudget() {
+    public void PdfDocument_ToPowerPointDocument_HybridChargesRepeatedBackgroundsToAggregateBudget() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 520,
                 PageHeight = 420,
@@ -733,7 +733,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridUsesVisualPlacementForMixedPageAspectRatios() {
+    public void PdfDocument_ToPowerPointDocument_HybridUsesVisualPlacementForMixedPageAspectRatios() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 240,
@@ -788,7 +788,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_HybridRetainsEditableTablesWhenVisualRenderFails() {
+    public void PdfDocument_ToPowerPointDocument_HybridRetainsEditableTablesWhenVisualRenderFails() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -1087,7 +1087,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_VisualReportsFailedPagePixelsAsOmitted() {
+    public void PdfDocument_ToPowerPointDocument_VisualReportsFailedPagePixelsAsOmitted() {
         byte[] pdf = PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Invoice"))
             .ToBytes();
         var options = PowerPointPdfImportOptions.CreateVisualPages();
@@ -1105,7 +1105,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_VisualScopesOutlineWarningsToSelectedPages() {
+    public void PdfDocument_ToPowerPointDocument_VisualScopesOutlineWarningsToSelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
             .Paragraph(paragraph => paragraph.Text("Selected first page"))
             .PageBreak()
@@ -1208,8 +1208,8 @@ public class PowerPointPdfTableImportTests {
             serialized = result.Value.ToBytes();
         }
 
-        using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
-            OfficeIMO.PowerPoint.PowerPointPresentation.Load(new MemoryStream(serialized));
+        using OfficeIMO.PowerPoint.PowerPointDocument reopened =
+            OfficeIMO.PowerPoint.PowerPointDocument.Load(new MemoryStream(serialized));
         OfficeIMO.PowerPoint.PowerPointSlide reopenedSlide = Assert.Single(reopened.Slides);
         int reopenedTableFontSize = Assert.Single(reopenedSlide.Tables).GetCell(0, 0).FontSize ?? 0;
         Assert.True(reopenedTableFontSize > 18);

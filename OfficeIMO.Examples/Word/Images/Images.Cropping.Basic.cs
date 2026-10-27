@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
 
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Cropped picture below:");
-            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 200, 200);
+            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
             var image = Guard.NotNull(paragraph.Image, "Paragraph should contain an image for cropping.");
 
             image.CropTopCentimeters = 1;

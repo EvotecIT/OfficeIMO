@@ -67,7 +67,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
-                WordImage image = document.AddParagraph("Logo:").InsertImage(imagePath);
+                WordImage image = document.AddParagraph("Logo:").AddImage(imagePath);
                 image.Description = "Company logo alt text";
                 image.Title = "Company logo title";
                 document.Save();
@@ -115,10 +115,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointSlideImageAssetsFromStream() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Intro slide");
-            PowerPointPicture picture = slide.AddPicture(imagePath);
+            PowerPointPicture picture = slide.AddImage(imagePath);
             picture.AltText = "Slide logo alt text";
             presentation.Save();
         }
@@ -155,11 +155,11 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachVisibleSlidePlacement() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide first = presentation.AddSlide();
-            first.AddPicture(imagePath);
+            first.AddImage(imagePath);
             PowerPointSlide second = presentation.AddSlide();
-            second.AddPicture(imagePath);
+            second.AddImage(imagePath);
             presentation.Save();
         }
 
@@ -178,10 +178,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachDuplicateSlidePlacement() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicture(imagePath);
-            slide.AddPicture(imagePath);
+            slide.AddImage(imagePath);
+            slide.AddImage(imagePath);
             presentation.Save();
         }
 
@@ -200,9 +200,9 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_FlagsImageOnlyPowerPointSlideForOcr() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicture(imagePath);
+            slide.AddImage(imagePath);
             presentation.Save();
         }
 

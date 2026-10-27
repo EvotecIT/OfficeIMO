@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [MemberData(nameof(GetRealWorldFixtureBaselines))]
         public void PowerPointImageExportRealWorldFixturesPreserveTextColorsAndDimensions(PowerPointImageFixtureBaseline baseline) {
-            using PowerPointPresentation presentation = baseline.CreatePresentation();
+            using PowerPointDocument presentation = baseline.CreateDocument();
             PowerPointSlide slide = presentation.Slides[0];
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -101,9 +101,9 @@ namespace OfficeIMO.Tests {
         public static IEnumerable<object[]> GetRealWorldFixtureBaselines() =>
             RealWorldFixtureBaselines.Select(item => new object[] { item });
 
-        private static PowerPointPresentation CreateDashboardFixture() {
+        private static PowerPointDocument CreateDashboardFixture() {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 180);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
@@ -151,14 +151,14 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(99, 102, 241)
                 },
                 topDown: true));
-            slide.AddPicturePoints(image, OfficeImageFormat.Bmp, 276, 16, 24, 24);
+            slide.AddImagePoints(image, OfficeImageFormat.Bmp, 276, 16, 24, 24);
 
             return presentation;
         }
 
-        private static PowerPointPresentation CreateProcessDiagramFixture() {
+        private static PowerPointDocument CreateProcessDiagramFixture() {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 180);
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("EFF6FF", "F8FAFC", 0D);
@@ -255,12 +255,12 @@ namespace OfficeIMO.Tests {
         public sealed class PowerPointImageFixtureBaseline {
             public PowerPointImageFixtureBaseline(
                 string name,
-                Func<PowerPointPresentation> createPresentation,
+                Func<PowerPointDocument> createPresentation,
                 IReadOnlyList<string> expectedTexts,
                 IReadOnlyList<OfficeColor> expectedRasterColors,
                 int expectedMinimumNonBackgroundPixels) {
                 Name = name;
-                CreatePresentation = createPresentation;
+                CreateDocument = createPresentation;
                 ExpectedTexts = expectedTexts;
                 ExpectedRasterColors = expectedRasterColors;
                 ExpectedMinimumNonBackgroundPixels = expectedMinimumNonBackgroundPixels;
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
 
             public string Name { get; }
 
-            public Func<PowerPointPresentation> CreatePresentation { get; }
+            public Func<PowerPointDocument> CreateDocument { get; }
 
             public IReadOnlyList<string> ExpectedTexts { get; }
 

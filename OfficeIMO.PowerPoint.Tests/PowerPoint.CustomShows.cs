@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(),
                 "OfficeIMO-CustomShows-" + Guid.NewGuid().ToString("N") + ".pptx");
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(path)) {
                     PowerPointSlide first = presentation.AddSlide();
                     first.AddTitle("First");
                     PowerPointSlide second = presentation.AddSlide();
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened =
-                    PowerPointPresentation.Load(path);
+                using PowerPointDocument reopened =
+                    PowerPointDocument.Load(path);
                 PowerPointCustomShow saved = Assert.Single(reopened.CustomShows);
                 Assert.Equal("Decision path", saved.Name);
                 Assert.Equal(new[] { reopened.Slides[0], reopened.Slides[2] },
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(reopened.CustomShows);
                 reopened.Save();
 
-                using PowerPointPresentation removed =
-                    PowerPointPresentation.Load(path);
+                using PowerPointDocument removed =
+                    PowerPointDocument.Load(path);
                 Assert.Empty(removed.CustomShows);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -62,9 +62,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CustomShows_RejectForeignSlidesShowsDuplicatesAndEmptySequences() {
-            using PowerPointPresentation first = PowerPointPresentation.Create();
+            using PowerPointDocument first = PowerPointDocument.Create();
             PowerPointSlide local = first.AddSlide();
-            using PowerPointPresentation second = PowerPointPresentation.Create();
+            using PowerPointDocument second = PowerPointDocument.Create();
             PowerPointSlide foreign = second.AddSlide();
 
             PowerPointCustomShow show = first.AddCustomShow("Local",
@@ -94,8 +94,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReportPreservesMalformedOrExtendedCustomShows() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Primary", new[] { slide });
@@ -136,8 +136,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReportRetainsExtensionOnlyCustomShowList() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide();
             presentation.OpenXmlDocument.PresentationPart!.Presentation!
                 .CustomShowList = new CustomShowList(new OpenXmlUnknownElement(
@@ -157,8 +157,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReportPreservesCustomShowExtendedAttributes() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddCustomShow("Primary", new[] { slide });
             CustomShowList list = presentation.OpenXmlDocument
@@ -186,8 +186,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CustomShowMutationsPreserveProducerListAndEntryMetadata() {
             const string ProducerNamespace = "urn:officeimo:test";
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide first = presentation.AddSlide();
             PowerPointSlide second = presentation.AddSlide();
             PowerPointSlide third = presentation.AddSlide();
@@ -230,8 +230,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CustomShowDuplicateMutationsPreservePositionalEntryMetadata() {
             const string ProducerNamespace = "urn:officeimo:test";
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Duplicate show", new[] { slide, slide });
@@ -263,8 +263,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CustomShows_RemoveZeroIdentifierAlsoRemovesTargetingActions() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape actionShape = slide.AddRectanglePoints(
                 20, 20, 120, 60);
@@ -288,8 +288,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CustomShows_ReuseFreeIdentifierWhenMaximumIsOccupied() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCustomShow maximum = presentation.AddCustomShow(
                 "Maximum", new[] { slide });
@@ -306,8 +306,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CustomShows_RemoveActionRelationshipsOwnedByDeletedShow() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointCustomShow show = presentation.AddCustomShow(

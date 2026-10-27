@@ -552,7 +552,7 @@ public class PdfDocumentImageValidationTests {
     public void WordPdfAdapterUsesCanonicalRasterPreparation() {
         using WordDocument document = WordDocument.Create();
         using var image = new MemoryStream(CreateMinimalGif());
-        document.AddParagraph().AddImage(image, "pixel.gif", 24, 24);
+        document.AddParagraph().AddImage(image, "pixel.gif", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24));
 
         byte[] pdf = (document.ToPdf()).ToBytes();
 

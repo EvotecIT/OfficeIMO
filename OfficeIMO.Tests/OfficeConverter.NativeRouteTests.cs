@@ -22,7 +22,7 @@ public sealed class OfficeConverterNativeRouteTests {
                     using (var document = ExcelDocument.Create()) { document.AddWorksheet("Data").CellValue(1, 1, "Native variant content"); document.Save(source); }
                     break;
                 case OfficeDocumentFormat.PowerPoint:
-                    using (var document = PowerPointPresentation.Create()) { document.AddSlide().AddTextBox("Native variant content"); document.Save(source); }
+                    using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Native variant content"); document.Save(source); }
                     break;
             }
             OfficeBatchReport report = await OfficeConverter.ConvertAsync([source], output, format);
@@ -38,7 +38,7 @@ public sealed class OfficeConverterNativeRouteTests {
                     using (var document = ExcelDocument.Load(artifact)) { Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string text)); Assert.Equal("Native variant content", text); }
                     break;
                 case OfficeDocumentFormat.PowerPoint:
-                    using (var document = PowerPointPresentation.Load(artifact)) Assert.Single(document.Slides);
+                    using (var document = PowerPointDocument.Load(artifact)) Assert.Single(document.Slides);
                     break;
             }
         } finally { Directory.Delete(root, true); }

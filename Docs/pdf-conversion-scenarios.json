@@ -1497,7 +1497,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PowerPointPresentation.SaveAsPdf",
+          "PowerPointDocument.SaveAsPdf",
           "PdfReadDocument",
           "raw PDF geometry checks"
         ]

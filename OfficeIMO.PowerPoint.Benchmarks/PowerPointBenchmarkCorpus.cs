@@ -28,15 +28,15 @@ internal static class PowerPointBenchmarkCorpus {
 
     internal static byte[] CreatePackage(PowerPointBenchmarkFixture fixture) {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create(stream)) {
             Populate(presentation, fixture);
             presentation.Save();
         }
         return stream.ToArray();
     }
 
-    internal static void Populate(PowerPointPresentation presentation,
+    internal static void Populate(PowerPointDocument presentation,
         PowerPointBenchmarkFixture fixture) {
         presentation.SlideSize.SetSizePoints(960, 540);
         for (int index = 0; index < fixture.SlideCount; index++) {
@@ -44,7 +44,7 @@ internal static class PowerPointBenchmarkCorpus {
         }
     }
 
-    private static void AddSlide(PowerPointPresentation presentation,
+    private static void AddSlide(PowerPointDocument presentation,
         int index, int slideCount) {
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = index % 2 == 0 ? "F8FAFC" : "F1F5F9";

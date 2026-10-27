@@ -16,7 +16,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData(false, 24)]
     [InlineData(true, 24)]
     public void CondensedTableTextRemainsVisibleWhenTheCellGrowsToFit(bool rich, double height) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var table = slide.AddTablePoints(1, 1, 20, 20, 200, height);
         table.SetRowHeightsPoints(height);
@@ -39,7 +39,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void CondensedTextReportsPaintBeyondItsFrame(bool rich, bool precedingParagraph) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints(precedingParagraph ? "FIRST" : "gypsy", 20, 20, 200, precedingParagraph ? 36 : 18);
         box.FontSize = 24; box.FontName = "Helvetica";
@@ -61,7 +61,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData(false)]
     [InlineData(true)]
     public void FirstLineTallerThanItsTextFrameRemainsVisibleAndReportsBoundedOverflow(bool rich) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("TALL", 20, 20, 150, 10);
         box.FontSize = 32;
         box.Paragraphs[0].Runs[0].Underline = rich;
@@ -80,7 +80,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
 
     [Fact]
     public void TableCellGrowthRetainsTheCompleteParagraph() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 140, 40);
         table.SetRowHeightsPoints(40);
@@ -106,7 +106,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         var fonts = new OfficeFontFaceCollection().Add("BoundaryFont",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
         var profile = new OfficeRenderingProfile("native-overflow", fonts);
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(400, 360);
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBoxPoints(
@@ -143,7 +143,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PlainAndRichTextOverflowRetainsTheCompleteText(bool rich) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("VISIBLE alpha beta gamma delta epsilon TAIL", 20, 20, 90, 23);
         box.FontSize = 12;
         box.Paragraphs[0].Runs[0].Underline = rich;
@@ -164,7 +164,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData("rich")]
     [InlineData("paragraph")]
     public void ConfiguredFallbackFontsApplyToUnstyledGlyphsButPreserveAuthoredFonts(string flow) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBoxPoints("DEFAULT", 20, 20, 220, 80);
         box.FontSize = 12;

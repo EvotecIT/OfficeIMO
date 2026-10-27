@@ -13,7 +13,7 @@ internal class Program
     public static void ExampleCreatePresentation()
     {
         var filePath = "my_pres.pptx";
-        using var presentation = PowerPointPresentation.Create(filePath);
+        using var presentation = PowerPointDocument.Create(filePath);
         var slide = presentation.AddSlide();
         slide.AddTitle("Hello World");
         slide.AddTextBoxPoints("Generated with PSWriteOffice", 72, 144, 400, 60);

@@ -19,7 +19,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "other.bin"), "Unsupported input");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Word source"); word.Save(); }
         using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Excel source"); excel.Save(); }
-        using (var slides = PowerPointPresentation.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Slide source", 40, 40, 500, 60); slides.Save(); }
+        using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Slide source", 40, 40, 500, 60); slides.Save(); }
         var items = new Items();
         var builder = (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
             ConversionOptions = new OfficeConversionOptions {
@@ -206,7 +206,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi Encrypted RTF}");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Encrypted Word"); word.Save(); }
         using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
-        using (var slides = PowerPointPresentation.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Encrypted slides", 40, 40, 500, 60); slides.Save(); }
+        using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Encrypted slides", 40, 40, 500, 60); slides.Save(); }
         const string userPassword = "Synthetic output reader", ownerPassword = "Synthetic output owner";
         PdfCreateOptions Encryption() => new PdfCreateOptions().SetEncryption(userPassword, ownerPassword);
         var request = new OfficeBatchOptions {

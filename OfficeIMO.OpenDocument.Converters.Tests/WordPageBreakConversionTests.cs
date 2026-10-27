@@ -38,8 +38,8 @@ public sealed class WordPageBreakConversionTests {
         if (header) source.AddHeadersAndFooters();
         var paragraph = header ? source.Sections[0].Header.Default!.AddParagraph() : source.AddParagraph();
         byte[] bytes = OfficeIMO.Drawing.OfficePngWriter.Encode(new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Red));
-        using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", 12, 12);
-        using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", 12, 12);
+        using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
+        using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph.GetPositionedImages().Last().Image.Description = "Second image description";
         var result = source.ToOpenDocumentResult();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "image-layout" && mapping.Count == 1);
@@ -56,7 +56,7 @@ public sealed class WordPageBreakConversionTests {
         var paragraph = source.AddParagraph();
         var raster = new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Red);
         using var image = new System.IO.MemoryStream(OfficeIMO.Drawing.OfficePngWriter.Encode(raster));
-        paragraph.AddImage(image, "marker.png", 12, 12);
+        paragraph.AddImage(image, "marker.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         var drawing = paragraph._run!.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
         drawing.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.Text("BEFORE"));
         var boundary = new DocumentFormat.OpenXml.Wordprocessing.Break { Type = DocumentFormat.OpenXml.Wordprocessing.BreakValues.Page };
@@ -78,12 +78,12 @@ public sealed class WordPageBreakConversionTests {
         using var source = WordDocument.Create();
         var paragraph = source.AddParagraph("A");
         byte[] bytes = OfficeIMO.Drawing.OfficePngWriter.Encode(new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Red));
-        using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", 12, 12);
+        using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph._run!.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Text("B"));
-        using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", 12, 12);
+        using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Text("C"));
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Break { Type = DocumentFormat.OpenXml.Wordprocessing.BreakValues.Page });
-        using (var third = new System.IO.MemoryStream(bytes)) paragraph.AddImage(third, "third.png", 12, 12);
+        using (var third = new System.IO.MemoryStream(bytes)) paragraph.AddImage(third, "third.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Text("D"));
         var paragraphs = source.ToOpenDocumentResult().Value.Paragraphs;
         Assert.Equal(2, paragraphs.Count);

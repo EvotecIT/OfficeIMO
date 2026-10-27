@@ -730,7 +730,7 @@ public sealed class BrowserConversionServiceTests {
 
     [Fact]
     public void PowerPointConversion_UsesThePortableTaggedPdfProfile() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Delivery readiness", 36, 36, 320, 64);
         textBox.FontName = "Calibri";
         byte[] bytes = presentation.ToBytes();
@@ -761,7 +761,7 @@ public sealed class BrowserConversionServiceTests {
     public void PowerPointSample_ProvesVisibleMultiFeaturePdfOutput() {
         string samplePath = Path.Combine(AppContext.BaseDirectory, "samples", "conversion-proof.pptx");
         byte[] bytes = File.ReadAllBytes(samplePath);
-        using (PowerPointPresentation presentation = PowerPointPresentation.Load(new MemoryStream(bytes))) {
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(bytes))) {
             Assert.Equal(2, presentation.Slides.Count);
             Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointTable>().Any());
             Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointChart>().Any());

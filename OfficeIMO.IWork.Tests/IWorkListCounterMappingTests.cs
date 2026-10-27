@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         table.SetColumnWidthPoints(0, 500);
         table.SetRowHeightPoints(0, 400);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var actualParagraphs = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Paragraphs;
         for (int index = 1; index < actualParagraphs.Count; index++) {

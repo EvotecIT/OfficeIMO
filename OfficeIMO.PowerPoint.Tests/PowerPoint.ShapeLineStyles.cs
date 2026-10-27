@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void CanSetLineDashAndArrowheads() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ArrowLine");
                     line.OutlineColor = "FF0000";
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
         public void LineEndsStayAfterExistingLineJoinNodes() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "JoinedArrowLine");
                     line.OutlineColor = "156082";
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointShape line = presentation.Slides[0].GetShape("JoinedArrowLine")!;
                     line.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     presentation.Save();
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         public void OutlineChildrenStayInSchemaOrderWhenStylingAfterArrowheads() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ReverseStyledArrowLine");
 
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OutlineTransparencyPreservesActiveNonSolidFillChoice() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
                 10, 10, 100, 60);
@@ -199,8 +199,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingOutlineTransparencyRemovesStyleReferenceAlpha() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
                 .AddRectanglePoints(10, 10, 100, 60);
             Shape nativeShape = (Shape)shape.Element;
@@ -234,8 +234,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyPreservesActiveNonSolidFillChoice() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
                 10, 10, 100, 60);
@@ -286,8 +286,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyMutatesPictureFillAlpha() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectanglePoints(
                 10, 10, 100, 60);
@@ -328,8 +328,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TransparencySettersReplaceCompetingColorAlphaTransforms() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
                 .AddRectanglePoints(10, 10, 100, 60);
             shape.FillColor = "112233";
@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyRejectsInheritedGroupFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
                 .AddRectanglePoints(10, 10, 100, 60);
             ShapeProperties properties = ((Shape)shape.Element)

@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(Path.GetTempPath(), "NoRepair_" + Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             bullets.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
             if (File.Exists(imagePath)) {
-                features.AddPicture(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
+                features.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
             } else {
                 PowerPointTextBox placeholder = features.AddTextBoxCm("(image placeholder)",
                     rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm, 2.0);

@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
         var table = Assert.Single(reopened.Slides.SelectMany(slide => slide.Tables));
         for (int row = 0; row < 3; row++) for (int column = 0; column < 3; column++) {
             var paragraph = Assert.Single(table.GetCell(row, column).Paragraphs);
@@ -126,9 +126,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("right", sheet.GetCellStyle(1, 1).HorizontalAlignment);
             Assert.Equal(20, sheet.GetCellStyle(3, 2).FontSize);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal(18, target.GetCell(0, 0).Paragraphs[0].Runs[0].FontSizePoints);
             Assert.False(target.GetCell(0, 0).Paragraphs[0].Runs[0].Bold);
@@ -190,7 +190,7 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         }
     }
@@ -260,9 +260,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSizePoints); Assert.True(paragraph.Bold); });
             Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSizePoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal(2, target.GetCell(0, 0).Paragraphs.Count);
             Assert.All(target.GetCell(0, 0).Paragraphs, paragraph => Assert.All(paragraph.Runs,
@@ -318,7 +318,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         }
@@ -368,10 +368,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(richText ? "Styled\n" : "42", richText ? value!.Text : value!.RawValue);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.Null(result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var table = reopened.Slides[0].Tables.Single();
             Assert.False(table.FirstRow); Assert.False(table.FirstColumn); Assert.False(table.LastRow); Assert.False(table.BandedRows);
             Assert.Equal(richText ? "Styled" : "42", table.GetCell(0, 0).Text);

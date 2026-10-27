@@ -160,11 +160,11 @@ public partial class Html {
         using ExcelDocument importedWorkbook = excelHtml.ToExcelDocumentResult().RequireValue();
         Assert.Single(importedWorkbook.Sheets);
 
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.AddSlide().AddTextBoxPoints("Hello", 20, 20, 200, 40);
         HtmlConversionDocument powerPointHtml = HtmlConversionDocument.Parse(presentation.ToHtml());
-        using PowerPointPresentation importedPresentation = powerPointHtml
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument importedPresentation = powerPointHtml
+            .ToPowerPointDocumentResult()
             .RequireValue();
         Assert.Single(importedPresentation.Slides);
 
@@ -193,7 +193,7 @@ public partial class Html {
                 typeof(HtmlExcelConverterExtensions), "ToExcelDocument", "ToExcelDocumentResult",
                 typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.PowerPoint] = new(
-                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointPresentation", "ToPowerPointPresentationResult",
+                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointDocument", "ToPowerPointDocumentResult",
                 typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.OneNote] = new(
                 typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",

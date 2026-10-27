@@ -13,7 +13,7 @@ public sealed class PowerPointChartSeriesPaintTests {
     public void NativeSeriesFillAndOutlineRemainIndependent() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "Charts", "SeriesPaint", "series-paint.pptx");
         for (int number = 0; number < 16; number++) {
-            using var document = PowerPointPresentation.Load(path);
+            using var document = PowerPointDocument.Load(path);
             var chart = document.Slides[number].Charts.Single();
             Assert.True(chart.TryGetSnapshot(out var native, out var reason), reason);
             var snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(native, 640, 360);
@@ -30,10 +30,10 @@ public sealed class PowerPointChartSeriesPaintTests {
             strokeDashStyle: OfficeStrokeDashStyle.Dash)
             .WithSeriesStyle(new OfficeChartPointStyle(outlineColor: OfficeColor.Red, outlineWidth: 3));
         if (pointOverride) series = series.WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null });
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         using var stream = new MemoryStream(document.ToBytes());
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(reopened.ValidateDocument());
         Assert.True(reopened.Slides[0].Charts.Single().TryGetOfficeSnapshot(out var snapshot));
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
@@ -68,7 +68,7 @@ public sealed class PowerPointChartSeriesPaintTests {
         var series = kind == OfficeChartType.Bubble
             ? OfficeSeries.CreateBubble("Paint", new[] { 1d, 2d }, new[] { 2d, 4d }, new[] { 3d, 5d })
             : new OfficeSeries("Paint", new[] { 2d, 4d }, null, null, null, showMarkers: false);
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         if (byName) chart.SetSeriesLineColor("Paint", "FF0000", 3);
         else chart.SetSeriesLineColor(0, "FF0000", 3);

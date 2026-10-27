@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "Visual proof first", "Favor stronger hero, proof, and visual framing when the content allows it.")
             };
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
             foreach (LayoutStrategyExample example in examples) {
@@ -151,7 +151,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "layout-coverage");
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

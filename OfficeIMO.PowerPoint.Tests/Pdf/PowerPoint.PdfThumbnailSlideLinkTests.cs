@@ -17,7 +17,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, 4, true)]
     public void ThumbnailLinksResolveToVisibleSlideLocationsAndReportUnavailableTargets(
         PowerPointPdfPageLayout layout, int perPage, bool includeHidden) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(400, 300);
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide hidden = presentation.AddSlide(); hidden.Hidden = true;
@@ -49,7 +49,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
         };
 
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence(options);
         byte[] bytes = conversion.ToBytes();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(bytes);

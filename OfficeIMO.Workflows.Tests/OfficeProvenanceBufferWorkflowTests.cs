@@ -28,7 +28,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             document.Save();
         }
         string powerPointPath = Path.Combine(scope.Path, "qualified.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPointPath)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(powerPointPath)) {
             presentation.AddSlide().AddTextBoxPoints("Qualified presentation", 20, 20, 300, 60);
             presentation.Save();
         }
@@ -170,7 +170,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             document.AddWorksheet("Data").Cell(1, 1, "Preserved content"); document.Save();
         }
         string deck = Path.Combine(scope.Path, "report.pptx");
-        using (var presentation = PowerPointPresentation.Create(deck)) {
+        using (var presentation = PowerPointDocument.Create(deck)) {
             presentation.AddSlide().AddTextBoxPoints("Preserved content", 20, 20, 300, 60); presentation.Save();
         }
         foreach (string path in new[] { word, excel, deck }) {

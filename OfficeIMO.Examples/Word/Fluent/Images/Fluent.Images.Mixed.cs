@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word
                 {
                     var paragraph1 = document.AddParagraph();
                     paragraph1 = paragraph1.AddText("Company report with ");
-                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), 24, 24, description: "");
+                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Description = "" });
                     paragraph1 = paragraph1.AddText(" logo");
                     var image3 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
                     image3.Width = 500;

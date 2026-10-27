@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                          string.Concat(Enumerable.Repeat("<g/>", 512)) +
                          "</svg>";
             using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(svg))) {
-                document.AddParagraph().AddImage(stream, "compact.svg", width: null, height: null);
+                document.AddParagraph().AddImage(stream,"compact.svg",width:null,height:null);
             }
             string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointSmartArt smartArt = slide.AddSmartArt();
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                         layoutPart.LayoutDefinition!.UniqueId!.Value);
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument reloaded = PowerPointDocument.Load(filePath)) {
                     PowerPointSmartArt smartArt = Assert.IsType<PowerPointSmartArt>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal("OfficeIMO-native process", smartArt.GetNodeText(0));
                     Assert.Single(reloaded.Slides[0].SmartArts);
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
 
                     Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -104,8 +104,8 @@ namespace OfficeIMO.Tests {
                 Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     PowerPointSmartArt authored = presentation.AddSlide()
                         .AddSmartArt();
                     authored.SetNodeText(0, "First paragraph");
@@ -147,8 +147,8 @@ namespace OfficeIMO.Tests {
                     data.Save(output);
                 }
 
-                using PowerPointPresentation imported =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument imported =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
                 Assert.Equal(1, smartArt.NodeCount);
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddSmartArt(
                         PowerPointSmartArtType.BasicProcess,
                         new[] { "First", "Second", "Third" });
@@ -217,8 +217,8 @@ namespace OfficeIMO.Tests {
                     data.Save(output);
                 }
 
-                using PowerPointPresentation imported =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument imported =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
                 Assert.Equal(new[] { "First", "Second", "Third" },
@@ -241,8 +241,8 @@ namespace OfficeIMO.Tests {
                 Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddSmartArt(
                         PowerPointSmartArtType.BasicHierarchy,
                         new[] { "Root", "Child", "Grandchild" });
@@ -278,8 +278,8 @@ namespace OfficeIMO.Tests {
                     data.Save(output);
                 }
 
-                using PowerPointPresentation imported =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument imported =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
                 Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
@@ -306,8 +306,8 @@ namespace OfficeIMO.Tests {
             const int extraNodeCount = 20000;
 
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddSmartArt(
                         PowerPointSmartArtType.BasicProcess,
                         new[] { "Original" });
@@ -341,8 +341,8 @@ namespace OfficeIMO.Tests {
                     data.Save(output);
                 }
 
-                using PowerPointPresentation imported =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument imported =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
                 Stopwatch stopwatch = Stopwatch.StartNew();
@@ -367,8 +367,8 @@ namespace OfficeIMO.Tests {
             const int extraNodeCount = 20000;
 
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddSmartArt(
                         PowerPointSmartArtType.BasicProcess,
                         new[] { "Original" });
@@ -418,8 +418,8 @@ namespace OfficeIMO.Tests {
                     data.Save(output);
                 }
 
-                using PowerPointPresentation imported =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument imported =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
 #if POWERPOINT_PERFORMANCE_EVIDENCE

@@ -4,7 +4,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Builds a two-slide decision brief with explicit options, trade-offs and an approval record.</summary>
     internal static class BoardDecision {
         internal static void Create(string folder) {
-            using var deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+            using var deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
             var options = deck.AddSlide();
             Text(options, "Choose the next service investment", 1.5, 1, 30, 2, 30, "17365D");
             Text(options, "NORTHWIND / GOVERNANCE REVIEW / SYNTHETIC ESTIMATES", 1.5, 3, 30, 1, 14, "526179");

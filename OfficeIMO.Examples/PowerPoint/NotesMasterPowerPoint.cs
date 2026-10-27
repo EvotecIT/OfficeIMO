@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointNotesMaster(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Notes master");
             string filePath = Path.Combine(folderPath, "NotesMaster.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
 

@@ -12,7 +12,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PresetFrameFlipsAsymmetricGeometryExactlyOnce(bool flipH) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(120, 90);
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
@@ -44,7 +44,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(true, false, 0, 0, false, true)]
     public void PresetFrameTransformsPaintTogetherWithGeometry(bool flipH, bool flipV, int gradientAngle,
         int rotation, bool rotateWithShape, bool textBox) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(120, 90);
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";

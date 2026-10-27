@@ -51,10 +51,10 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         byte[] excelPng = Assert.Single(excel.Sheets).ToPng(
             new ExcelWorksheetImageExportOptions { Range = "A1:E16" });
 
-        HtmlToPowerPointResult powerPointResult = source.ToPowerPointPresentationResult(
+        HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         byte[] pptx = SavePowerPoint(powerPointResult.Value);
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Load(
+        using PowerPointDocument powerPoint = PowerPointDocument.Load(
             new MemoryStream(pptx),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         PowerPointSlide powerPointSlide = Assert.Single(powerPoint.Slides);
@@ -101,7 +101,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         }
     }
 
-    private static byte[] SavePowerPoint(PowerPointPresentation presentation) {
+    private static byte[] SavePowerPoint(PowerPointDocument presentation) {
         using (presentation) {
             using var stream = new MemoryStream();
             presentation.Save(stream);

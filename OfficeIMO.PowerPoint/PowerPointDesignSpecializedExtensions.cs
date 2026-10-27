@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a logo, partner, or certification wall slide with optional proof/certificate emphasis.
         /// </summary>
-        public static PowerPointSlide AddDesignerLogoWallSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerLogoWallSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointLogoItem> logos,
             PowerPointDesignTheme? theme = null, PowerPointLogoWallSlideOptions? options = null) {
             if (presentation == null) {
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a coverage/location slide with editable pins and a structured location list.
         /// </summary>
-        public static PowerPointSlide AddDesignerCoverageSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCoverageSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCoverageLocation> locations,
             PowerPointDesignTheme? theme = null, PowerPointCoverageSlideOptions? options = null) {
             if (presentation == null) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a capability/content slide with structured narrative sections and optional visual support.
         /// </summary>
-        public static PowerPointSlide AddDesignerCapabilitySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCapabilitySlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCapabilitySection> sections,
             PowerPointDesignTheme? theme = null, PowerPointCapabilitySlideOptions? options = null) {
             if (presentation == null) {

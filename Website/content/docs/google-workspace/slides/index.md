@@ -11,7 +11,7 @@ using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.GoogleSlides;
 
-using PowerPointPresentation deck = PowerPointPresentation.Create();
+using PowerPointDocument deck = PowerPointDocument.Create();
 PowerPointSlide slide = deck.AddSlide();
 slide.AddTextBoxPoints("Quarterly review", 30, 40, 500, 80);
 slide.Notes.Text = "Discuss the year-over-year change.";

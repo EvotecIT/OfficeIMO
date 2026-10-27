@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGroupContent() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20);
             PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyAllowsSmallCapsApproximation() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Keep this text", 20, 20, 120, 50);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnreadableBackgroundImage() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             using var emptyImage = new MemoryStream();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnsupportedBackgroundFill() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             slide.SlidePart.Slide.CommonSlideData!.Background = new Background(

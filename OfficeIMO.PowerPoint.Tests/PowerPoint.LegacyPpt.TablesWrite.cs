@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptTableWriteTests {
         [Fact]
         public void NativeWriter_RoundTripsExplicitNoFillTableCell() {
-            using var source = PowerPointPresentation.Create();
+            using var source = PowerPointDocument.Create();
             source.SlideSize.SetSizePoints(180, 100);
             var slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             slide.BackgroundColor = "FFFF00";
@@ -19,11 +19,11 @@ namespace OfficeIMO.Tests {
             table.GetCell(0, 1).FillColor = "FF0000";
             Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
             byte[] bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            var legacy = LegacyPptPresentation.Load(bytes);
+            var legacy = LegacyPptDocument.Load(bytes);
             var native = Assert.Single(Assert.Single(legacy.Slides).Shapes, shape => shape.Kind == LegacyPptShapeKind.Table).Table!;
             Assert.False(Assert.Single(native.Cells, cell => cell.Row == 0 && cell.Column == 0).SourceShape.Style.FillEnabled);
             using var input = new MemoryStream(bytes);
-            using var reopened = PowerPointPresentation.Load(input);
+            using var reopened = PowerPointDocument.Load(input);
             var projected = Assert.Single(reopened.Slides[0].Tables);
             Assert.True(projected.GetCell(0, 0).NoFill);
             Assert.Equal("FF0000", projected.GetCell(0, 1).FillColor);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsEditableTableCellsAndLinks() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointTable sourceTable = source
                     .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTable(3, 3, PowerPointTableStylePreset.Default,
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             Assert.Empty(legacy.BlipStoreEntries);
             LegacyPptShape native = Assert.Single(
                 Assert.Single(legacy.Slides).Shapes,
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 nativeCell.LeftBorder?.WidthPoints ?? 0D, 3);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             PowerPointTable table = Assert.Single(projected.Slides[0].Tables);
             Assert.Equal("Region", table.GetCell(0, 0).Text);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksMergedCellsInsteadOfFlatteningThem() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointTable table = source.AddSlide().AddTable(2, 2);
             table.MergeCells(0, 0, 0, 1);
 
@@ -137,15 +137,15 @@ namespace OfficeIMO.Tests {
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
             using var input = new MemoryStream(converted, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             Assert.Empty(reopened.Slides[0].Tables);
             Assert.Single(reopened.Slides[0].Pictures);
         }
 
         [Fact]
         public void NativeWriter_BlocksConflictingSharedTableBorders() {
-            using PowerPointPresentation source = PowerPointPresentation
+            using PowerPointDocument source = PowerPointDocument
                 .Create();
             PowerPointTable table = source.AddSlide().AddTable(1, 2);
             table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Right,
@@ -166,8 +166,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsExplicitInvisibleTableBorders() {
             byte[] bytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointTable table = source.AddSlide().AddTable(1, 1);
                 table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", 1.25D);
                 A.TableCellProperties properties = table.GetCell(0, 0)
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptTableCell nativeCell = Assert.Single(Assert.Single(
                 legacy.Slides).Shapes, shape =>
                 shape.Kind == LegacyPptShapeKind.Table).Table!.Cells.Single();
@@ -186,8 +186,8 @@ namespace OfficeIMO.Tests {
             Assert.True(nativeCell.TopBorder?.IsVisible);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             A.TableCellProperties projectedProperties = Assert.Single(
                 projected.Slides[0].Tables).GetCell(0, 0).Cell
                 .TableCellProperties!;
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void StaticTableRasterizationRejectsExcessiveRowCountBeforeMatrices() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointTable table = source.AddSlide().AddTable(4097, 1);
 
             bool rendered = PowerPointSlideImageRenderer.TryCreateTableDrawing(

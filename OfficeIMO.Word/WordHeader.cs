@@ -158,12 +158,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a VML image to the header.
+        /// Adds an image to the header.
         /// </summary>
-        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var paragraph = AddParagraph(newRun: true);
-            paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
+        public WordImage AddImage(string path, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions? options = null) {
+            return AddParagraph(newRun: true).AddImage(path, width, height, options);
         }
 
         /// <summary>

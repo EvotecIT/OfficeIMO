@@ -869,7 +869,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 }
                 break;
             case "pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) presentation.Save();
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) presentation.Save();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(extension));
@@ -938,14 +938,14 @@ public sealed partial class ProvenanceDocumentContracts {
     private static OfficeProvenanceReport InspectOpenXml(string path, string extension) => extension switch {
         "docx" => WordDocument.InspectProvenance(path),
         "xlsx" => ExcelDocument.InspectProvenance(path),
-        "pptx" => PowerPointPresentation.InspectProvenance(path),
+        "pptx" => PowerPointDocument.InspectProvenance(path),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };
 
     private static OfficeProvenanceRemovalResult RemoveOpenXml(byte[] package, string extension) => extension switch {
         "docx" => WordDocument.RemoveProvenance(package),
         "xlsx" => ExcelDocument.RemoveProvenance(package),
-        "pptx" => PowerPointPresentation.RemoveProvenance(package),
+        "pptx" => PowerPointDocument.RemoveProvenance(package),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };
 

@@ -48,7 +48,7 @@ public sealed partial class IWorkRuntimeWorkload {
     }
 
     private void ValidateNativeKeynoteOutput(Stream saved) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(saved);
+        using PowerPointDocument presentation = PowerPointDocument.Load(saved);
         if (presentation.Slides.Count != _units || presentation.SlideSize.WidthPoints != 1024 || presentation.SlideSize.HeightPoints != 768
             || presentation.ValidateDocument().Count != 0)
             throw new InvalidDataException("Native PPTX structure differs.");

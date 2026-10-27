@@ -52,7 +52,7 @@ public static class PowerPointFormatCatalog {
 
     internal static OfficeFormatDescriptor GetDescriptor(PowerPointFileFormat format, string? path = null) {
         if (TryGetByExtension(path, out OfficeFormatDescriptor? descriptor)
-            && (PowerPointPresentation.IsLegacyBinaryFormat(format))
+            && (PowerPointDocument.IsLegacyBinaryFormat(format))
                 == (descriptor!.Generation == OfficeFormatGeneration.Legacy)) {
             return descriptor;
         }

@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGrid_RowMajor_ResizesToCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGrid_ColumnMajor_UsesGutters() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGrid_DoesNotResizeWhenDisabled() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1500);
 
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGridAuto_ComputesRowsAndColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGridAuto_RespectsMinMaxColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGridAuto_UsesTargetCellAspect() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 for (int i = 0; i < 6; i++) {
                     slide.AddRectangle(0, 0, 100, 100);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGridToSlideContent_RespectsMargin() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeShapesInGridAutoToSlideContent_RespectsMargin() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);

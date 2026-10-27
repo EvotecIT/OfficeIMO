@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.IsType<PowerPointPicture>(Assert.Single(reopened.Slides).Shapes[0]);
         Assert.IsType<PowerPointTable>(Assert.Single(reopened.Slides).Shapes[1]);
     }

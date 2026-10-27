@@ -12,10 +12,10 @@ public partial class PowerPointImageExportTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SelectedSlideExportsRetainOriginalIdentityAndBatchPosition(bool streaming) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(80, 60);
         for (int i = 0; i < 3; i++) presentation.AddSlide();
-        var options = new PowerPointPresentationImageExportOptions { SlideNumbers = new[] { 1, 3 } };
+        var options = new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 1, 3 } };
         var results = new List<OfficeImageExportResult>();
         if (streaming) presentation.ExportImages(OfficeImageExportFormat.Svg, results.Add, options);
         else results.AddRange(presentation.ExportImages(OfficeImageExportFormat.Svg, options));
@@ -31,7 +31,7 @@ public partial class PowerPointImageExportTests {
 
     [Fact]
     public void VisualSnapshotEnforcesItsPublicTimeoutContract() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         Assert.Throws<OfficeImageExportTimeoutException>(() => slide.CreateVisualSnapshot(
             new PowerPointImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) }));

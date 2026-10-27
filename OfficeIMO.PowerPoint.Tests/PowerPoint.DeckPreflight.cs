@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_ReportsMeasuredTextOverflowAndSerializesStableJson() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(400, 225);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBoxPoints(
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_InspectsTextNestedInsideGroups() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(400, 225);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBoxPoints(
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_ChecksUnreadableReductionWhenOverflowDetectionIsDisabled() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointTextBox text = presentation.AddSlide().AddTextBoxPoints(
                 "Auto-fit text must shrink to remain inside this deliberately tiny frame.", 20, 20, 80, 14);
             text.FontSize = 20;
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_ChecksCollisionsBetweenGroupedPeers() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 120, 80, "Grouped first");
             PowerPointAutoShape second = slide.AddRectanglePoints(60, 40, 120, 80, "Grouped second");
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_ReportsOffSlideShapesAndSignificantPeerCollisions() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(400, 225);
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(20, 30, 120, 80, "First panel");
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         public void SaveWithPreflight_RejectsSelectedSeverityBeforeSaving() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.SlideSize.SetSizePoints(400, 225);
                     PowerPointSlide slide = presentation.AddSlide();
                     presentation.Save();
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                         finding => finding.Code == "layout-shape-off-slide");
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+                using PowerPointDocument reopened = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.DoesNotContain(reopened.Slides[0].Shapes, shape => shape.Name == "Outside");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_AllowsReadableContainedComposition() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(400, 225);
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(20, 20, 360, 185, "Panel");
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_AllowsBoundedDecorativeBleedButStillRejectsContentOffSlide() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(400, 225);
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(-20, 0, 220, 225, "Intentional plane");

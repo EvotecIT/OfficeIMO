@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), "test_no_repair_" + Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 // Add multiple slides with various content
                 for (int i = 0; i < 3; i++) {
                     PowerPointSlide slide = presentation.AddSlide();
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                     slide.AddTextBox($"Content for slide {i + 1}");
                     
                     if (File.Exists(imagePath)) {
-                        slide.AddPicture(imagePath);
+                        slide.AddImage(imagePath);
                     }
                     
                     slide.AddTable(2, 3);

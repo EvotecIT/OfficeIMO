@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void GroupShapes_CreatesGroupWithBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(100, 200, 300, 400);
                 PowerPointAutoShape b = slide.AddRectangle(800, 1000, 200, 200);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void UngroupShape_RestoresChildren() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
                 PowerPointAutoShape b = slide.AddRectangle(200, 300, 150, 120);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         public void AlignGroupChildren_UsesGroupBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(100, 200, 300, 100);
                 PowerPointAutoShape b = slide.AddRectangle(500, 250, 200, 100);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void DistributeGroupChildrenWithSpacing_UsesGroupBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddRectangle(0, 0, 1000, 500);
                 slide.AddRectangle(2000, 0, 1000, 500);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
         public void ArrangeGroupChildrenInGrid_UsesGroupBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddRectangle(0, 0, 100, 100);
                 slide.AddRectangle(200, 0, 100, 100);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         public void GetGroupTextBoxes_ReturnsOnlyTextBoxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTextBox("A", 0, 0, 100, 100);
                 slide.AddTextBox("B", 200, 0, 100, 100);

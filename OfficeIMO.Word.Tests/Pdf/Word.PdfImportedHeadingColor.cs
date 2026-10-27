@@ -153,8 +153,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         // Match the admitted native heading-color control's source profile:
         // 120x32pt, column/paragraph offsets0, four explicit8pt distances.
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.AddText(string.Empty).AddImage(png, "heading.png", 160D, 128D / 3D,
-            WordImageTextWrapping.TopAndBottom);
+        WordImage image = paragraph.AddText(string.Empty).AddImage(png, "heading.png", OfficeIMO.OfficeLength.Pixels(160D), OfficeIMO.OfficeLength.Pixels(128D / 3D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.TopAndBottom });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
         image.HorizontalPositionOffset = 0L;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;

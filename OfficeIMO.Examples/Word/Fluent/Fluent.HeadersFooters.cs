@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word
                     document.HeaderDefaultOrCreate.AddParagraph("Default header");
                     var paragraph1 = document.HeaderDefaultOrCreate.AddParagraph();
                     paragraph1 = paragraph1.AddText("Second header paragraph");
-                    document.HeaderDefaultOrCreate.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"), 50, 50);
+                    document.HeaderDefaultOrCreate.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                     document.HeaderDefaultOrCreate.AddTable(2, 2);
                     document.HeaderFirstOrCreate.AddParagraph("First page header");
                     document.HeaderEvenOrCreate.AddParagraph("Even page header");

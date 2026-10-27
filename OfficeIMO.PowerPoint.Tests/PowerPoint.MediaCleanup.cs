@@ -6,8 +6,8 @@ namespace OfficeIMO.Tests {
     public sealed class PowerPointMediaCleanupTests {
         [Fact]
         public void RemovingSoundedSlideReleasesPackageMediaData() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTitle("Retained");
             PowerPointSlide removed = presentation.AddSlide();
             PowerPointAutoShape shape = removed.AddRectangle(
@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingTableRowWrappersAndColumnsReleasesDiscardedRunSounds() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTable(2, 2);
             PowerPointTextRun removedRowRun = table.GetCell(0, 0)

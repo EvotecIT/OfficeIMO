@@ -18,7 +18,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
 
     [Fact]
     public void SmartArtDrawsTheShapesOfficeCached() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
         int slideIndex = presentation.Slides.ToList().FindIndex(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
         PowerPointSlide slide = presentation.Slides[slideIndex];
         PowerPointSmartArt smartArt = slide.Shapes.OfType<PowerPointSmartArt>().Single();
@@ -40,7 +40,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
 
     [Fact]
     public void EditedSmartArtRefreshesItsProducerDrawing() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
         PowerPointSmartArt smartArt = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointSmartArt>().Single();
         Assert.True(smartArt.TryCreateCachedDrawing(out _, out string? current), current);
 
@@ -57,7 +57,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void EditedSmartArtKeepsWhitespaceAndNodePositionsAfterReopen(bool swap, bool embeddedFont) {
-        using var original = PowerPointPresentation.Load(RoadmapPath);
+        using var original = PowerPointDocument.Load(RoadmapPath);
         PowerPointSlide originalSlide = original.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
         PowerPointSmartArt smartArt = originalSlide.Shapes.OfType<PowerPointSmartArt>().Single();
         Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape originalGroup, out string? current), current);
@@ -70,7 +70,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         using var stream = new MemoryStream();
         original.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         PowerPointSlide slide = reopened.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
         PowerPointSmartArt edited = slide.Shapes.OfType<PowerPointSmartArt>().Single();
         Assert.Equal(modelIds, ReadSmartArtModelIds(slide.SlidePart));
@@ -123,7 +123,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CachedSmartArtRejectsWhitespaceEditsAndSwappedNodeLabels(bool swap) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
         PowerPointSmartArt smartArt = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointSmartArt>().Single();
         Assert.True(smartArt.TryCreateCachedDrawing(out _, out string? current), current);
 

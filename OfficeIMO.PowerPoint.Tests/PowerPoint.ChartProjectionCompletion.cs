@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointChartProjectionCompletionTests {
     [Fact]
     public void SeparateStackedLayersSharingAxesDoNotFlattenIntoOneStack() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnStacked,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("First", new[] { 1d, 2d })
@@ -31,7 +31,7 @@ public sealed class PowerPointChartProjectionCompletionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UncachedFormulaTitleDoesNotDisappearFromStaticProjection(bool axisTitle) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart();
         ChartPart part = GetChartPart(presentation);
         C.Title title = new(new C.ChartText(new C.StringReference(
@@ -44,7 +44,7 @@ public sealed class PowerPointChartProjectionCompletionTests {
 
     [Fact]
     public void NativeAxisVisibilityAndLabelsSurviveStaticProjection() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart();
         C.ChartSpace native = GetChartPart(presentation).ChartSpace!;
         C.CategoryAxis category = native.Descendants<C.CategoryAxis>().Single();
@@ -59,7 +59,7 @@ public sealed class PowerPointChartProjectionCompletionTests {
 
     [Fact]
     public void RadarGridlinesLabelsAndFillFollowNativeAxes() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Radar,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
                 new OfficeSeries("Values", new[] { 1d, 2d, 3d })
@@ -81,6 +81,6 @@ public sealed class PowerPointChartProjectionCompletionTests {
         Assert.Equal(OfficeColor.FromRgb(0xBA, 0xDA, 0x55), snapshot.Style.ValueGridLineColor);
     }
 
-    private static ChartPart GetChartPart(PowerPointPresentation presentation) =>
+    private static ChartPart GetChartPart(PowerPointDocument presentation) =>
         presentation.Slides.Single().SlidePart.ChartParts.Single();
 }

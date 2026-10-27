@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
             //
             // Note: The image MUST be constructed with a WordImageTextWrapping property that is NOT inline. Assigning
             // the WordImageTextWrapping property later was not available at the time of making this example.
-            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
+            paragraph1.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
             var image = Guard.NotNull(paragraph1.Image, "The first paragraph should contain the inserted image.");
 
             Console.WriteLine("PRE position edit.");

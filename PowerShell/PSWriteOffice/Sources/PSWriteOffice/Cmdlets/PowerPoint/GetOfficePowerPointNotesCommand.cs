@@ -32,7 +32,7 @@ public sealed class GetOfficePowerPointNotesCommand : PSCmdlet
 
     /// <summary>Presentation whose slides should be inspected.</summary>
     [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetPresentation)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Optional zero-based slide index when reading from a presentation.</summary>
     [Parameter(ParameterSetName = ParameterSetPresentation)]
@@ -49,7 +49,7 @@ public sealed class GetOfficePowerPointNotesCommand : PSCmdlet
         {
             if (ParameterSetName == ParameterSetPresentation)
             {
-                var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+                var presentation = Presentation ?? PowerPointDslContext.Current?.Document
                     ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
                 if (Index.HasValue)
@@ -76,8 +76,8 @@ public sealed class GetOfficePowerPointNotesCommand : PSCmdlet
             var slide = Slide ?? context?.RequireSlide()
                 ?? throw new InvalidOperationException("Slide was not provided. Use -Slide or run inside Add-OfficePowerPointSlide / PptSlide.");
 
-            var slideIndex = context?.Presentation != null
-                ? ResolveSlideIndex(slide, context.Presentation)
+            var slideIndex = context?.Document != null
+                ? ResolveSlideIndex(slide, context.Document)
                 : PowerPointNotesReader.ResolveSlideIndex(slide);
 
             WriteInfo(slide, slideIndex);
@@ -98,7 +98,7 @@ public sealed class GetOfficePowerPointNotesCommand : PSCmdlet
         }
     }
 
-    private static int ResolveSlideIndex(PowerPointSlide slide, PowerPointPresentation? presentation)
+    private static int ResolveSlideIndex(PowerPointSlide slide, PowerPointDocument? presentation)
     {
         if (presentation == null)
         {

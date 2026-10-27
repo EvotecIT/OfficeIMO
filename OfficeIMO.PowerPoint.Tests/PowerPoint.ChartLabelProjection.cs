@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointChartLabelProjectionTests {
     [Fact]
     public void StyledLabelBodyRotationIsNotSilentlyDiscarded() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
@@ -31,7 +31,7 @@ public sealed class PowerPointChartLabelProjectionTests {
 
     [Fact]
     public void StyledLabelTextUsesChartLocalTextColorMapping() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
@@ -66,7 +66,7 @@ public sealed class PowerPointChartLabelProjectionTests {
 
     [Fact]
     public void ExplicitStyledLabelTextProjectsWithoutStyleInheritance() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
@@ -79,7 +79,7 @@ public sealed class PowerPointChartLabelProjectionTests {
 
     [Fact]
     public void PartialStyledLabelTextRemainsUnprojectable() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
@@ -91,7 +91,7 @@ public sealed class PowerPointChartLabelProjectionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void StyledLabelRequiresBothFontFlagsToOverrideInheritedStyle(bool overrideItalic) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
@@ -116,7 +116,7 @@ public sealed class PowerPointChartLabelProjectionTests {
     [InlineData(OfficeChartType.Line)]
     [InlineData(OfficeChartType.Scatter)]
     public void SharedSnapshot_PreservesNativeDataLabelsOnNonRadialCharts(OfficeChartType kind) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var series = new OfficeSeries("Values", new[] { 3d, 4d },
             kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null);
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
@@ -133,7 +133,7 @@ public sealed class PowerPointChartLabelProjectionTests {
     [InlineData(OfficeChartType.Line)]
     [InlineData(OfficeChartType.Scatter)]
     public void SharedSnapshot_ResolvesThemedNonRadialDataLabelText(OfficeChartType kind) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SetThemeColor(PowerPointThemeColor.Accent3, "2468AC");
         var series = new OfficeSeries("Values", new[] { 3d, 4d },
             kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null);

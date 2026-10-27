@@ -10,11 +10,11 @@ namespace OfficeIMO.Pdf.PowerPoint;
 
 public static partial class PdfPowerPointConverterExtensions {
     /// <summary>Reconstructs a PowerPoint document from the source PDF.</summary>
-    public static PptCore.PowerPointPresentation ToPowerPoint(this PdfDocument document, PowerPointPdfImportOptions? options = null,
+    public static PptCore.PowerPointDocument ToPowerPoint(this PdfDocument document, PowerPointPdfImportOptions? options = null,
         CancellationToken cancellationToken = default) => document.ToPowerPoint(options, out _, cancellationToken);
 
     /// <summary>Reconstructs a PowerPoint document and returns its fidelity report.</summary>
-    public static PptCore.PowerPointPresentation ToPowerPoint(this PdfDocument document, PowerPointPdfImportOptions? options,
+    public static PptCore.PowerPointDocument ToPowerPoint(this PdfDocument document, PowerPointPdfImportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfPowerPointConversionResult result = document.ConvertToPowerPointWithEvidence(options, cancellationToken);
@@ -27,14 +27,14 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     /// <summary>Asynchronously reconstructs PowerPoint content and returns the model with its report.</summary>
-    public static async Task<OfficeConversionResult<PptCore.PowerPointPresentation>> ToPowerPointAsync(this PdfDocument document,
+    public static async Task<OfficeConversionResult<PptCore.PowerPointDocument>> ToPowerPointAsync(this PdfDocument document,
         PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new PowerPointPdfImportOptions()).Snapshot();
         return await Task.Run(() => {
-            PptCore.PowerPointPresentation value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
+            PptCore.PowerPointDocument value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
             try { cancellationToken.ThrowIfCancellationRequested(); }
             catch { value.Dispose(); throw; }
-            return new OfficeConversionResult<PptCore.PowerPointPresentation>(value, report);
+            return new OfficeConversionResult<PptCore.PowerPointDocument>(value, report);
         }, cancellationToken).ConfigureAwait(false);
     }
 

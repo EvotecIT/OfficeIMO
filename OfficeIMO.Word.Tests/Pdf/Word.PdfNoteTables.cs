@@ -35,7 +35,7 @@ public partial class Word {
         items[3].AddBookmark("NoteTableAnchor");
         var imageParagraph = new WordParagraph(source, cells[1].Elements<W.Paragraph>().Single());
         using (var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80)))
-            imageParagraph.AddText(string.Empty).AddImage(pixels, "note-table.png", 24, 16);
+            imageParagraph.AddText(string.Empty).AddImage(pixels, "note-table.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
         var linkParagraph = new W.Paragraph();
         cells[1].Append(linkParagraph);
         new WordParagraph(source, linkParagraph).AddHyperLink("CELLLINK", new Uri("https://example.test/note-table"));

@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates a short question-and-answer deck from structured training content.</summary>
 internal static class TrainingQuiz {
     internal static void Create(string folder) {
-        using PowerPointPresentation deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         AddSlide("What should happen first?",
             "A user reports that a shared service is unavailable.",
             new[] { "A / Restart every component", "B / Confirm impact and name the incident owner", "C / Wait for more reports" },

@@ -12,16 +12,16 @@ internal sealed class PowerPointDslContext : IDisposable
     private static readonly AsyncLocal<PowerPointDslContext?> CurrentScope = new();
     private readonly Stack<PowerPointSlide> _slides = new();
 
-    private PowerPointDslContext(PowerPointPresentation presentation)
+    private PowerPointDslContext(PowerPointDocument presentation)
     {
-        Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
+        Document = presentation ?? throw new ArgumentNullException(nameof(presentation));
     }
 
-    public PowerPointPresentation Presentation { get; }
+    public PowerPointDocument Document { get; }
 
     public static PowerPointDslContext? Current => CurrentScope.Value;
 
-    public static PowerPointDslContext Enter(PowerPointPresentation presentation)
+    public static PowerPointDslContext Enter(PowerPointDocument presentation)
     {
         if (presentation == null)
         {

@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph();
             byte[] bytes = extension ? OfficePngWriter.Encode(new OfficeRasterImage(40, 40, OfficeColor.FromRgb(0, 0, 255))) :
                 Encoding.UTF8.GetBytes(svg!);
-            WordImage image = paragraph.AddImage(new MemoryStream(bytes), extension ? "fallback.png" : "image.svg", 40, 40)!;
+            WordImage image = paragraph.AddImage(new MemoryStream(bytes), extension ? "fallback.png" : "image.svg", OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40))!;
             if (extension) {
                 OpenXmlPart owner = WordPartOwnership.Resolve(document, paragraph._paragraph);
                 string id = "missingSvg";

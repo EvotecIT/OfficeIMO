@@ -187,7 +187,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (OfficeMarkupMermaidRenderer.TryRenderPng(diagram, options, out var imagePath)) {
             try {
-                AddPicture(slide, imagePath, box, GetAttribute(diagram.Attributes, "fit"));
+                AddImage(slide, imagePath, box, GetAttribute(diagram.Attributes, "fit"));
                 if (!HasExplicitPlacement(diagram.Placement, diagram.Attributes)) {
                     cursor.Advance(box.Height);
                 }

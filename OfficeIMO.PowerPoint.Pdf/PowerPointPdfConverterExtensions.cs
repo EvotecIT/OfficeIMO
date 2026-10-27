@@ -24,7 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
         });
     }
 
-    private static void RenderNotesPages(PdfCore.PdfDocument pdf, PptCore.PowerPointPresentation presentation,
+    private static void RenderNotesPages(PdfCore.PdfDocument pdf, PptCore.PowerPointDocument presentation,
         double pageWidth, double pageHeight, PowerPointPdfExportOptions options) {
         List<(PptCore.PowerPointSlide Slide, int Number)> slides = GetVisibleSlides(presentation, options);
         if (slides.Count == 0) {
@@ -55,7 +55,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RenderHandoutPages(PdfCore.PdfDocument pdf, PptCore.PowerPointPresentation presentation,
+    private static void RenderHandoutPages(PdfCore.PdfDocument pdf, PptCore.PowerPointDocument presentation,
         double pageWidth, double pageHeight, PowerPointPdfExportOptions options) {
         List<(PptCore.PowerPointSlide Slide, int Number)> slides = GetVisibleSlides(presentation, options);
         if (slides.Count == 0) {
@@ -73,7 +73,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderHandoutPage(PdfCore.PdfPageCanvas canvas,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         IReadOnlyList<(PptCore.PowerPointSlide Slide, int Number)> slides,
         double pageWidth, double pageHeight, PowerPointPdfExportOptions options) {
         const double margin = 36D;
@@ -136,7 +136,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSnapshotThumbnail(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointSlide slide,
         int slideNumber, double x, double y, double width, double height, PowerPointPdfExportOptions options) {
-        var size = slide.OwnerPresentation!.SlideSize;
+        var size = slide.OwnerDocument!.SlideSize;
         canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), x, y);
         // Draw the canonical slide directly under a thumbnail transform. Reading
         // an image snapshot here would discard PDF links and text semantics.
@@ -151,7 +151,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static List<(PptCore.PowerPointSlide Slide, int Number)> GetVisibleSlides(
-        PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+        PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         var slides = new List<(PptCore.PowerPointSlide, int)>();
         for (int index = 0; index < presentation.Slides.Count; index++) {
             PptCore.PowerPointSlide slide = presentation.Slides[index];

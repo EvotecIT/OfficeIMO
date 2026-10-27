@@ -223,8 +223,8 @@ public sealed class ReaderAsyncTests {
     public async Task DocumentReader_ReadDocumentAsync_CancelsEncryptedDetectionAfterInitialProbe() {
         const string password = "reader-async-cancel-pass";
         byte[] encrypted;
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox("Encrypted cancellation probe");
             encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
@@ -245,8 +245,8 @@ public sealed class ReaderAsyncTests {
     public void DocumentReader_ReadDocument_CancelsEncryptedDetectionAfterInitialProbe() {
         const string password = "reader-sync-cancel-pass";
         byte[] encrypted;
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox("Encrypted sync cancellation probe");
             encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }

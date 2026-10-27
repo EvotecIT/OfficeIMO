@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
 
 
-    private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+    private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
@@ -76,7 +76,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));

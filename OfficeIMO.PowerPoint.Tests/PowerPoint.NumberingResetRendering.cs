@@ -12,13 +12,13 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(true)]
     public void Saved_PPTX_parent_items_reset_deeper_rendered_counters(bool tableCell) {
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
+        using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSizePoints(600, 500);
             AddNestedItems(presentation.AddSlide(), tableCell);
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var snapshot = reopened.Slides[0].CreateVisualSnapshot();
         string[] lines = snapshot.TextSpans.GroupBy(span => Math.Round(span.Y, 2))
@@ -31,13 +31,13 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [Fact]
     public void Saved_PPTX_table_number_markers_reach_PDF_text() {
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
+        using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSizePoints(600, 500);
             AddNestedItems(presentation.AddSlide(), tableCell: true);
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         var result = reopened.ConvertToPdfWithEvidence();
         var pdf = PdfCore.PdfReadDocument.Open(result.ToBytes());
         string text = pdf.ExtractText();
@@ -50,7 +50,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PDF_table_markers_retain_separate_font_and_point_size(bool characterBullet) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(300, 200);
         var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150).GetCell(0, 0);
         cell.FontSize = 12;
@@ -63,7 +63,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         else paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);
         paragraph.SetBulletFont("Times New Roman").SetBulletSizePoints(11);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         var result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
@@ -83,7 +83,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(true, false, 12)]
     [InlineData(false, true, 14)]
     public void PDF_table_marker_percent_uses_effective_row_font_default(bool header, bool footer, int expectedSize) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150);
         table.FirstRow = header;
         table.LastRow = footer;

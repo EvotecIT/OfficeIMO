@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests;
 public class PowerPointSharedChartSeriesQualificationTests {
     [Fact]
     public void NativeUpdate_KeepsPointFormattingWithPlottedSeriesOrder() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
                 new OfficeSeries("First", new[] { 1d }),
@@ -37,7 +37,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
 
     [Fact]
     public void NativeUpdate_PreservesUnresolvedPointColorWhenOnlyDataChanges() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
         C.PieChartSeries series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
@@ -57,7 +57,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Snapshot_QualifiesZeroWidthPointOutlineVisibility(bool hidden) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 2d }) }));
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.PieChartSeries>().Single();
         var outline = new A.Outline { Width = 0 };
@@ -69,7 +69,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
 
     [Fact]
     public void NativeUpdate_PreservesUnspecifiedRadarMarkerShape() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Radar, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Values", new[] { 2d }) }));
         chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
@@ -85,7 +85,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
 
     [Fact]
     public void Snapshot_RejectsExplicitZeroWidthBubbleOutline() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Bubble, new OfficeChartData(new[] { "1" }, new[] {
             OfficeSeries.CreateBubble("Values", new[] { 1d }, new[] { 2d }, new[] { 3d }, OfficeColor.Parse("#123456")) }));
         var properties = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single().ChartShapeProperties!;
@@ -100,7 +100,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(OfficeChartType.Line, true)]
     [InlineData(OfficeChartType.ColumnClustered, false)]
     public void Snapshot_RejectsExplicitZeroWidthVisibleOutlines(OfficeChartType kind, bool marker) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "1" }, new[] {
             new OfficeSeries("Values", new[] { 2d }, kind == OfficeChartType.Scatter ? new[] { 1d } : null, OfficeColor.Parse("#123456")) }));
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants().OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
@@ -120,7 +120,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(false, OfficeChartType.Bubble)]
     [InlineData(true, OfficeChartType.Bubble)]
     public void NativeUpdate_PreservesUnprojectablePointAppearance(bool marker, OfficeChartType kind) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var initial = kind == OfficeChartType.Bubble ? OfficeSeries.CreateBubble("Values", new[] { 1d }, new[] { 1d }, new[] { 5d }) : new OfficeSeries("Values", new[] { 1d });
         var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A" }, new[] { initial }));
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants().OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
@@ -143,7 +143,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Snapshot_IgnoresDormantMarkerOnlyLineDash(bool cap) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Scatter, new OfficeChartData(new[] { "1" }, new[] {
             new OfficeSeries("Values", new[] { 2d }, new[] { 1d }, null, null, true, connectLine: false) }));
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
@@ -159,7 +159,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(OfficeChartType.Scatter)]
     [InlineData(OfficeChartType.Line)]
     public void Snapshot_PreservesPlottingOrderAcrossNativeLayers(OfficeChartType kind) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         bool mixed = kind == OfficeChartType.Line;
         var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "1" }, new[] {
             new OfficeSeries("First", new[] { 10d }, kind == OfficeChartType.Scatter ? new[] { 1d } : null,
@@ -177,7 +177,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Snapshot_RejectsSeriesAndPointGradients(bool point) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
         var native = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!;
@@ -196,7 +196,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
     [InlineData(OfficeChartType.Pie, false)]
     [InlineData(OfficeChartType.Pie, true)]
     public void Snapshot_AcceptsDefaultNativeOutlineAttributes(OfficeChartType kind, bool pointOrMarker) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants()

@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_WritesDeduplicatedPicturesOnAllMasterTypes() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(62, 122, 202);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
             SlideMasterPart mainPart = presentationPart.SlideMasterParts
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             AssertMasterPicture(Assert.Single(binary.Masters).Shapes,
                 imageBytes, expectedHidden: true);
@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
                 .ReferenceCount);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             AssertProjectedMasterPicture(LegacyPptWriter
                 .ReadMasterShapesForWrite(reopened.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single(), out _),
@@ -72,8 +72,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RasterizesUnsupportedTablesOnMastersWhenAllowed() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             PowerPointTable sourceTable = slide.AddTable(2, 2);
@@ -101,13 +101,13 @@ namespace OfficeIMO.Tests {
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             Assert.Contains(Assert.Single(binary.Masters).Shapes,
                 shape => shape.Kind == LegacyPptShapeKind.Picture);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             Assert.Contains(LegacyPptWriter.ReadMasterShapesForWrite(
                 reopened.OpenXmlDocument.PresentationPart!
                     .SlideMasterParts.Single(), out _),
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_MaterializesLayoutPicturesIntoAffectedSlides() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(142, 82, 42);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             int layoutIndex = presentation.GetLayoutIndex(
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             Assert.All(binary.Slides, slide => AssertMasterPicture(
                 slide.Shapes, imageBytes));
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
                 .ReferenceCount);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             Assert.All(reopened.Slides, slide => Assert.Equal(imageBytes,
                 Assert.Single(slide.Pictures).GetImageBytes()));
             Assert.Empty(reopened.ValidateDocument());
@@ -156,8 +156,8 @@ namespace OfficeIMO.Tests {
         public void ImportedMasterPictureVisibilityEdit_IsIncremental() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(82, 42, 122);
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 P.Picture picture = AddPictureShape(masterPart,
@@ -168,13 +168,13 @@ namespace OfficeIMO.Tests {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointPicture picture = Assert.IsType<PowerPointPicture>(
                     Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 editedBytes);
             Assert.False(Assert.Single(Assert.Single(edited.Masters).Shapes,
                 shape => shape.Kind == LegacyPptShapeKind.Picture)
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
 
             using var editedInput = new MemoryStream(editedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(editedInput);
             PowerPointPicture reopenedPicture = Assert.IsType<
                 PowerPointPicture>(Assert.Single(LegacyPptWriter
@@ -219,8 +219,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsPicturesOnUnusedOrdinaryLayouts() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(52, 92, 132);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             int unusedLayoutIndex = presentation.GetLayoutIndex(
@@ -247,8 +247,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsLayoutPicturesHiddenByOwningSlides() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(72, 112, 152);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             int layoutIndex = presentation.GetLayoutIndex(
@@ -274,8 +274,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsLayoutPicturesOverriddenOnAllSlides() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(92, 132, 172);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             int layoutIndex = presentation.GetLayoutIndex(
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             AddPicturePlaceholder(layoutPicture, 7U);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
             using var image = new MemoryStream(imageBytes, writable: false);
-            P.Picture slidePicture = (P.Picture)slide.AddPicture(image,
+            P.Picture slidePicture = (P.Picture)slide.AddImage(image,
                 OfficeIMO.Drawing.OfficeImageFormat.Png,
                 450000L, 300000L, 800000L, 600000L)
                 .Element;
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsMediaPicturesOnMasters() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(22, 42, 62);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             P.Picture picture = AddPictureShape(masterPart,
@@ -328,8 +328,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RejectsPictureLocksWithoutExactMapping() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(32, 72, 112);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             P.Picture picture = AddPictureShape(masterPart,

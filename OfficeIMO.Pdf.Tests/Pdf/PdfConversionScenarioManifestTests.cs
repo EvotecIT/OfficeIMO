@@ -2470,7 +2470,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreatePowerPointLayoutThemeGroupsPdf() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "1D4ED8");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "16A34A");

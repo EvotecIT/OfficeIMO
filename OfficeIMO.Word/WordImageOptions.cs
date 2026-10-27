@@ -17,6 +17,11 @@ public sealed class WordImageOptions {
     /// <summary>Gets or sets the image paragraph's alignment.</summary>
     public WordParagraphAlignment? Alignment { get; set; }
 
+    /// <summary>Gets or sets whether to embed legacy VML markup instead of DrawingML.</summary>
+    public bool Vml { get; set; }
+
+    internal WordImageOptions Clone() => (WordImageOptions)MemberwiseClone();
+
     internal WordImage Apply(WordImage image) {
         if (Title != null) image.Title = Title;
         if (Hyperlink != null) image.Hyperlink = Hyperlink;

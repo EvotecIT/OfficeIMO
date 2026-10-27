@@ -101,14 +101,8 @@ namespace OfficeIMO.Tests {
                 chart.AddCategories(new List<string> { "A" });
                 chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.OfficeColor.Blue);
                 document.AddSmartArt(WordSmartArtType.BasicProcess);
-                document.AddParagraph().AddImage(
-                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
-                    20,
-                    20);
-                document.AddParagraph().AddImage(
-                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
-                    20,
-                    20);
+                document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
+                document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddTextBox("Allocated text box");
                 document.AddHeadersAndFooters();
                 RequireSectionHeader(document, 0, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default)

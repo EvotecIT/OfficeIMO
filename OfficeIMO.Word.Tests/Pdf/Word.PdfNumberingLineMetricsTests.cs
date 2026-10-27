@@ -234,7 +234,7 @@ public partial class Word {
         Paragraph first = source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Paragraph>().First();
         var paragraph = new WordParagraph(source, first, first.Elements<Run>().First());
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddText(string.Empty).AddImage(image, "inline.png", 10, 10);
+        paragraph.AddText(string.Empty).AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         (first.ParagraphProperties!.ParagraphMarkRunProperties ??= new ParagraphMarkRunProperties()).Append(new FontSize { Val = "80" });
         var letters = ReadNumberingMetricLetters(source);
         Assert.Equal(grid ? 36D : 25.5D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);

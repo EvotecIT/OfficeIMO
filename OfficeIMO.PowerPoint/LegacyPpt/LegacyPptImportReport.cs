@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Provides a compact inventory of a binary PowerPoint import.</summary>
     public sealed class LegacyPptImportReport : IOfficeConversionReport {
-        internal LegacyPptImportReport(LegacyPptPresentation presentation) {
+        internal LegacyPptImportReport(LegacyPptDocument presentation) {
             SlideCount = presentation.Slides.Count;
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);
             TextShapeCount = presentation.Slides.Sum(slide =>
@@ -409,7 +409,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             master?.Background?.HasProjectableFill == true ? 1 : 0;
 
         private static IEnumerable<LegacyPptShape> EnumerateShapes(
-            LegacyPptPresentation presentation) {
+            LegacyPptDocument presentation) {
             IEnumerable<LegacyPptShape> roots = presentation.Slides
                 .SelectMany(slide => slide.Shapes)
                 .Concat(presentation.Slides.SelectMany(slide =>

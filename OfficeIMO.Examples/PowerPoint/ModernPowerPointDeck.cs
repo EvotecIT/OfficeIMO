@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string imagesDirectory = AppendPathSegment(AppContext.BaseDirectory, "Images");
             string backgroundImagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             presentation.ThemeName = "OfficeIMO Modern";
             presentation.SetThemeColorsForAllMasters(new Dictionary<PowerPointThemeColor, string> {
@@ -72,7 +72,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);
         }
 
-        private static void AddCoverSlide(PowerPointPresentation presentation, string backgroundImagePath) {
+        private static void AddCoverSlide(PowerPointDocument presentation, string backgroundImagePath) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Morph;
@@ -125,7 +125,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Opening slide introduces the feature set demonstrated by this deck.";
         }
 
-        private static void AddAgendaSlide(PowerPointPresentation presentation) {
+        private static void AddAgendaSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -167,7 +167,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Agenda slide demonstrates styled bullet lists, numbered cards, and a consistent placement grid.";
         }
 
-        private static void AddCapabilitiesSlide(PowerPointPresentation presentation) {
+        private static void AddCapabilitiesSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -213,7 +213,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Capabilities slide exercises card grids, bulleted text inside cards, and pill-style supporting sections.";
         }
 
-        private static void AddProcessSlide(PowerPointPresentation presentation) {
+        private static void AddProcessSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Teal;
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -263,7 +263,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Process slide demonstrates dark backgrounds, diagonal planes, arrow connectors, large numbers, grouped step content, and bottom captions.";
         }
 
-        private static void AddPerformanceSlide(PowerPointPresentation presentation) {
+        private static void AddPerformanceSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -319,7 +319,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Performance slide: keep the conversation on the widening gap between revenue growth and profitability.";
         }
 
-        private static void AddChannelMixSlide(PowerPointPresentation presentation) {
+        private static void AddChannelMixSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Fade;
@@ -354,7 +354,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Channel slide: direct is still dominant, but online has enough share to justify deliberate investment.";
         }
 
-        private static void AddGrowthSlide(PowerPointPresentation presentation) {
+        private static void AddGrowthSlide(PowerPointDocument presentation) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = Paper;
             slide.Transition = PowerPointSlideTransition.Fade;

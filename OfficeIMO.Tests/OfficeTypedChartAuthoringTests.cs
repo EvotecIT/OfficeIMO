@@ -37,7 +37,7 @@ public sealed class OfficeTypedChartAuthoringTests {
                 }
                 break;
             default:
-                using (var document = PowerPointPresentation.Create()) {
+                using (var document = PowerPointDocument.Create()) {
                     var slide = document.AddSlide();
                     if (named) slide.AddChart(OfficeChartType.Column, rows, nameof(Trend.Week), nameof(Trend.Revenue));
                     else slide.AddChart(OfficeChartType.Column, rows, row => row.Week, OfficeSeries.From(rows, row => row.Revenue));

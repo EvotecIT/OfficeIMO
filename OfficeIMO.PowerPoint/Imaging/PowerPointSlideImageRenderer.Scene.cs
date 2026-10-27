@@ -76,7 +76,7 @@ internal static partial class PowerPointSlideImageRenderer {
             if (shape is PowerPointGroupShape groupShape) {
                 AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options, imageBudget, groupDepth, token);
             } else if (shape is PowerPointPicture picture) {
-                AddPicture(drawing, picture, diagnostics, mapping, imageBudget);
+                AddImage(drawing, picture, diagnostics, mapping, imageBudget);
             } else if (shape is PowerPointTable table) {
                 AddTable(drawing, table, diagnostics, mapping, colorScheme);
             } else if (shape is PowerPointChart chart) {

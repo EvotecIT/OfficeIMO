@@ -43,7 +43,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     document.AddWorksheet("Load").AddVisualArtifact(2, 3, conversion);
                     document.Save();
                 }
-                using (var document = PowerPointPresentation.Create(presentationPath)) {
+                using (var document = PowerPointDocument.Create(presentationPath)) {
                     document.AddSlide().AddVisualArtifact(conversion, 24D, 36D);
                     document.Save();
                 }
@@ -66,7 +66,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     Assert.Equal(2, image.RowIndex);
                     Assert.Equal(3, image.ColumnIndex);
                 }
-                using (var document = PowerPointPresentation.Load(presentationPath)) {
+                using (var document = PowerPointDocument.Load(presentationPath)) {
                     var picture = Assert.Single(document.Slides[0].Pictures);
                     Assert.Equal(160D, picture.WidthPoints, 6);
                     Assert.Equal(100D, picture.HeightPoints, 6);

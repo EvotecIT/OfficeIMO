@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
@@ -30,12 +30,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.AddTitleCm("Update Picture", marginCm, marginCm, content.WidthCm, 1.3);
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture original = slide.AddPicture(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
+                PowerPointPicture original = slide.AddImage(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
                 original.FitToBox(1200, 800, crop: false);
                 slide.AddTextBox("Original", leftColumn.Left, leftColumn.Top + leftColumn.Height - PowerPointUnits.FromCentimeters(0.8),
                     leftColumn.Width, PowerPointUnits.FromCentimeters(0.6));
 
-                PowerPointPicture updated = slide.AddPicture(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
+                PowerPointPicture updated = slide.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
                 if (File.Exists(newImagePath)) {
                     updated.UpdateImage(newImagePath);
                 }

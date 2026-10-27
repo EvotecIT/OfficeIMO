@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ShapeImport_MatchesLibreOfficeVisualReferenceWithinDocumentedTolerance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 ShapeFixturePath);
             var options = new PowerPointImageExportOptions {
                 BackgroundColor = OfficeColor.White,
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MicrosoftAuthoredImport_DoesNotRenderMasterPlaceholderPrompts() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             var options = new PowerPointImageExportOptions {
                 BackgroundColor = OfficeColor.White,

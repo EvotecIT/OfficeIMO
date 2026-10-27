@@ -139,7 +139,7 @@ internal static class ReaderBenchmarkCorpus {
 
     private static byte[] BuildPowerPoint() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             for (int slideNumber = 1; slideNumber <= 24; slideNumber++) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTextBox("Reader benchmark slide " + slideNumber);
@@ -152,7 +152,7 @@ internal static class ReaderBenchmarkCorpus {
     }
 
     private static byte[] BuildBinaryPowerPoint() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         for (int slideNumber = 1; slideNumber <= 24; slideNumber++) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Reader binary benchmark slide " + slideNumber);

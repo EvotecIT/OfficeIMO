@@ -88,7 +88,7 @@ public partial class WordRtfConverterTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph target = source.AddParagraph();
         using (var image = new MemoryStream(png, writable: false)) {
-            target.AddImage(image, "mixed-run.png", 16, 16, WordImageTextWrapping.InLineWithText, "Mixed image");
+            target.AddImage(image, "mixed-run.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Mixed image" });
         }
         WordDrawing drawing = Assert.Single(target._paragraph.Descendants<WordDrawing>());
         drawing.Remove();

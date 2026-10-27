@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointChartPointColorsTests {
         [Fact]
         public void NotesChartUsesNotesColorMapOverride() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Notes.Text = "Notes";
             NotesSlidePart notes = slide.SlidePart.NotesSlidePart!;
@@ -41,20 +41,20 @@ namespace OfficeIMO.Tests {
         [Theory]
         [MemberData(nameof(CategoryKinds))]
         public void PointColors_SurviveNativeSaveReopenAndDataUpdate(OfficeChartType kind) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartCm(kind, CreateData(kind, Colors), 1, 1, 20, 10);
             AssertColors(chart, Colors);
             chart.UpdateData(CreateData(kind, new OfficeColor?[] { Colors[2], null, Colors[0] }));
             AssertColors(chart, new OfficeColor?[] { Colors[2], null, Colors[0] });
             using var bytes = new MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             AssertColors(Assert.Single(reopened.Slides.Single().Charts), new OfficeColor?[] { Colors[2], null, Colors[0] });
             Assert.Empty(reopened.ValidateDocument());
         }
 
         [Fact]
         public void PointColors_ExplicitNullClearsAnOldNativePointFill() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
                 CreateData(OfficeChartType.Pie, Colors));
             chart.UpdateData(CreateData(OfficeChartType.Pie,
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PointColors_ReplaceImportedMarkerFillAndRetainItsOutline() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Line,
                 CreateData(OfficeChartType.Line, null));
             C.LineChartSeries series = presentation.Slides.Single().SlidePart.ChartParts.Single()
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PointColors_KeepComboSeriesAlignmentAndPdfStyleOverrides() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var data = new OfficeChartData(new[] { "First", "Second", "Third" }, new[] {
                 new OfficeSeries("Columns", new double[] { 3, 2, 1 }, null, null, Colors,
                     showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(Colors, overridden.Data.Series[0].PointColors);
             Assert.All(overridden.Data.Series, series => Assert.Null(series.Color));
             using var bytes = new MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
             OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
                 persisted, 400, 200, new PowerPointPdfExportOptions { ChartStyle = style });
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PdfStylePreservesExplicitNativeSeriesColorThatMatchesDefaultPalette() {
             OfficeColor explicitColor = OfficeChartStyle.Default.GetSeriesColor(0);
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartPoints(OfficeChartType.ColumnClustered,
                 new OfficeChartData(new[] { "A" }, new[] {
                     new OfficeSeries("Explicit", new[] { 3d }, null, explicitColor)
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 600, 320, new PowerPointPdfExportOptions { ChartStyle = customStyle });
             Assert.Equal(explicitColor, projected.Data.Series[0].Color);
             using var bytes = new MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
             OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
                 persisted, 600, 320, new PowerPointPdfExportOptions { ChartStyle = customStyle });
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PointColors_RejectExcessDuplicateAndOutOfRangeOverrides() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddChartCm(OfficeChartType.Pie, CreateData(OfficeChartType.Pie, null), 1, 1, 20, 10);
             using var bytes = new MemoryStream();
             byte[] package = presentation.ToBytes();
@@ -162,13 +162,13 @@ namespace OfficeIMO.Tests {
                 part.ChartSpace.Save();
             }
             bytes.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             Assert.False(Assert.Single(reopened.Slides.Single().Charts).TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
         public void PointColors_DoughnutLegendUsesTheSameSparseFallbackAsSlices() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartType.Doughnut,
                 CreateData(OfficeChartType.Doughnut, Colors), 1, 1, 20, 10);
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeChartType.ColumnClustered)]
         [InlineData(OfficeChartType.BarClustered)]
         public void PointColors_SparseBarOverridesKeepTheSeriesFill(OfficeChartType kind) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
                 CreateData(kind, Colors), 1, 1, 20, 10);
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PointColors_ResolveSparseThemeFillWithoutAllocatingForUnboundedIndex() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddChartCm(OfficeChartType.Pie, CreateData(OfficeChartType.Pie, null), 1, 1, 20, 10);
             using var bytes = new MemoryStream();
             byte[] package = presentation.ToBytes();
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 part.ChartSpace.Save();
             }
             bytes.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             AssertColors(Assert.Single(reopened.Slides.Single().Charts), new OfficeColor?[] { null, expected, null });
         }
 
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeChartType.Pie)]
         [InlineData(OfficeChartType.Doughnut)]
         public void ModernRadialChartProjectsDirectThemeColorStyle(OfficeChartType kind) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
                 new OfficeChartData(new[] { "A", "B" }, new[] {
                     new OfficeSeries("Values", new[] { 3d, 2d })
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RadialPaletteUsesChartLocalColorMapBeforeSlideMapping() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartType.Pie,
                 new OfficeChartData(new[] { "A", "B" }, new[] {
                     new OfficeSeries("Values", new[] { 3d, 2d })
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MultiRingDoughnutCanUpdateDataWithoutProjectingItsPalette() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var categories = new[] { "A", "B" };
             PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartType.Doughnut,
                 new OfficeChartData(categories, new[] {
@@ -299,7 +299,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MultiRingDoughnutProjectsWhenEverySliceHasAnExplicitFill() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
             PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartType.Doughnut,
                 new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -316,11 +316,11 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeChartType.Doughnut)]
         [InlineData(OfficeChartType.ColumnClustered)]
         public void PointColors_AppearInSlidePngAndRenderedPdf(OfficeChartType kind) {
-            using PowerPointPresentation authored = PowerPointPresentation.Create();
+            using PowerPointDocument authored = PowerPointDocument.Create();
             authored.SlideSize.SetSizePoints(640, 360);
             authored.AddSlide().AddChartPoints(kind, CreateData(kind, Colors), 20, 20, 600, 320);
             using var bytes = new MemoryStream(authored.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
             AssertColorPixels(reopened.Slides.Single().ToPng(), Colors[0]!.Value, Colors[2]!.Value);
             var options = new PowerPointPdfExportOptions();
             byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

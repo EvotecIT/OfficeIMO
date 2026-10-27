@@ -10,7 +10,7 @@ public partial class PowerPointImageExportTests {
     [Fact]
     public void PowerPointRasterExport_ReachesTheSharedTextShapingProvider() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSizePoints(240D, 160D);
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox textBox = slide.AddTextBoxPoints("A", 20D, 20D, 100D, 30D);

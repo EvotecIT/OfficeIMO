@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string accessibilityPath = Path.Combine(outputFolder, "Executive Delivery Review.accessibility.json");
             string visualProofPath = Path.Combine(outputFolder, "Executive Delivery Review.visual-proof.json");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(presentationPath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#0B7FAB", "e2e-proof", "executive delivery review")

@@ -17,12 +17,12 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Saves the current presentation without closing it.</para>
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficePowerPoint", SupportsShouldProcess = true)]
-[OutputType(typeof(PowerPointPresentation))]
+[OutputType(typeof(PowerPointDocument))]
 public class SaveOfficePowerPointCommand : PSCmdlet {
     /// <summary>Presentation instance to save.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]
     [ValidateNotNull]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Optional save-as path.</summary>
     [Parameter]
@@ -59,7 +59,7 @@ public class SaveOfficePowerPointCommand : PSCmdlet {
                 ? associatedPath!
                 : SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
             if (ShouldProcess(targetPath, "Save PowerPoint presentation")) {
-                PowerPointDocumentService.SavePresentation(Presentation, Open.IsPresent, Password, targetPath);
+                PowerPointDocumentService.SaveDocument(Presentation, Open.IsPresent, Password, targetPath);
                 if (PassThru.IsPresent) {
                     WriteObject(Presentation);
                 }

@@ -648,8 +648,8 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
 }
 
 /// <summary>Contains a PowerPoint presentation and the corresponding PDF conversion report.</summary>
-public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCore.PowerPointPresentation, PdfPowerPointConversionReport> {
-    internal PdfPowerPointConversionResult(PptCore.PowerPointPresentation value, PdfPowerPointConversionReport report)
+public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCore.PowerPointDocument, PdfPowerPointConversionReport> {
+    internal PdfPowerPointConversionResult(PptCore.PowerPointDocument value, PdfPowerPointConversionReport report)
         : base(value, report) { }
 
     /// <summary>Gets whether the source contained page or document content omitted by the selected projection.</summary>

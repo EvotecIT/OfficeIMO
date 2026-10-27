@@ -271,7 +271,7 @@ public sealed class ReaderOfficeRichMappingTests {
     [Fact]
     public void DocumentReader_PowerPointRichMapping_UsesShapesTablesChartsLinksAndSlideGeometry() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             presentation.BuiltinDocumentProperties.Title = "Rich deck";
             presentation.BuiltinDocumentProperties.Creator = "OfficeIMO";
             PowerPointSlide slide = presentation.AddSlide();
@@ -322,7 +322,7 @@ public sealed class ReaderOfficeRichMappingTests {
     [Fact]
     public void DocumentReader_PowerPointRichMapping_PreservesHeaderlessFirstRow() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointTable table = presentation.AddSlide().AddTable(2, 1);
             table.HeaderRow = false;
             table.GetCell(0, 0).Text = "First value";
@@ -344,7 +344,7 @@ public sealed class ReaderOfficeRichMappingTests {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         uint hiddenImageFillId;
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox visible = slide.AddTextBox("Visible guidance");
             visible.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/visible");
@@ -360,10 +360,10 @@ public sealed class ReaderOfficeRichMappingTests {
                 new[] { new OfficeSeries("Hidden series", new[] { 1D }) }));
             hiddenChart.Hidden = true;
 
-            PowerPointPicture visiblePicture = slide.AddPicture(
+            PowerPointPicture visiblePicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visiblePicture.AltText = "Visible direct picture";
-            PowerPointPicture hiddenPicture = slide.AddPicture(
+            PowerPointPicture hiddenPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenPicture.AltText = "Hidden direct picture";
             hiddenPicture.Hidden = true;
@@ -373,7 +373,7 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenImageFillId = hiddenImageFill.Id ?? throw new InvalidOperationException("Hidden image-fill shape has no id.");
 
             PowerPointTextBox hiddenGroupText = slide.AddTextBox("Hidden group guidance");
-            PowerPointPicture hiddenGroupPicture = slide.AddPicture(
+            PowerPointPicture hiddenGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupPicture.AltText = "Hidden group picture";
             PowerPointGroupShape hiddenGroup = slide.GroupShapes(
@@ -381,10 +381,10 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenGroup.Hidden = true;
 
             PowerPointTextBox visibleGroupText = slide.AddTextBox("Visible group guidance");
-            PowerPointPicture visibleGroupPicture = slide.AddPicture(
+            PowerPointPicture visibleGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visibleGroupPicture.AltText = "Visible group picture";
-            PowerPointPicture hiddenGroupChildPicture = slide.AddPicture(
+            PowerPointPicture hiddenGroupChildPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupChildPicture.AltText = "Hidden group child picture";
             hiddenGroupChildPicture.Hidden = true;

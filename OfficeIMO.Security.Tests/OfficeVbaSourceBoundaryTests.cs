@@ -81,7 +81,7 @@ public sealed class OfficeVbaSourceBoundaryTests {
         using var excel = ExcelDocument.Create(); excel.AddWorksheet("Data"); excel.SetVbaProject(large);
         excel.SetVbaProject(small, new OfficeVbaWriteOptions { MaximumProjectBytes = limit });
         Assert.Equal("Helpers", Assert.Single(excel.ReadVbaProject()!.Modules).Name);
-        using var presentation = PowerPointPresentation.Create(); presentation.SetVbaProject(large);
+        using var presentation = PowerPointDocument.Create(); presentation.SetVbaProject(large);
         presentation.SetVbaProject(small, new OfficeVbaWriteOptions { MaximumProjectBytes = limit });
         Assert.Equal("Helpers", Assert.Single(presentation.ReadVbaProject()!.Modules).Name);
         using var word = WordDocument.Create(); word.SetVbaProject(large);

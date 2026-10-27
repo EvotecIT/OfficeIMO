@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
         public void PowerPointSlide_ExplicitNoFillCellShowsSlideBackgroundInsteadOfTableTheme() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.SetSizePoints(180, 100);
             var slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFF00";
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             var cell = table.GetCell(0, 0);
             cell.NoFill = true;
             using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             slide = reopened.Slides[0];
             Assert.True(Assert.Single(slide.Tables).GetCell(0, 0).NoFill);
             Assert.Empty(reopened.ValidateDocument());
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersTableStyleColumnsAndCorners() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000101}";
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersTableStyleBandedColumns() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersMergedTableStyleOuterBorders() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(140, 90);
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000102}";

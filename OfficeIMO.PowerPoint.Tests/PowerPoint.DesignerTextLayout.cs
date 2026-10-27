@@ -82,15 +82,15 @@ namespace OfficeIMO.Tests {
             });
         }
 
-        private static void WithSavedDeck(Action<PowerPointPresentation> build, Action<PowerPointPresentation> inspect) {
+        private static void WithSavedDeck(Action<PowerPointDocument> build, Action<PowerPointDocument> inspect) {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     build(presentation);
                     presentation.Save();
                 }
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(path)) {
                     Assert.Empty(presentation.ValidateDocument());
                     inspect(presentation);
                 }

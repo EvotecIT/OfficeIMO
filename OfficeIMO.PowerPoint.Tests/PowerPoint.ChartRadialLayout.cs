@@ -12,10 +12,10 @@ public sealed class PowerPointChartRadialLayoutTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void RadialGeometry_PersistsThroughReopenAndDataUpdate(OfficeChartType kind) {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) });
-        using PowerPointPresentation authored = PowerPointPresentation.Create();
+        using PowerPointDocument authored = PowerPointDocument.Create();
         authored.AddSlide().AddChart(kind, data).SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         using var bytes = new MemoryStream(authored.ToBytes());
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         PowerPointChart chart = reopened.Slides.Single().Charts.Single();
         chart.UpdateData(data);
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));

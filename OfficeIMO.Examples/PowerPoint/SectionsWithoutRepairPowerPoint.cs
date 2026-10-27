@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Sections without repair");
             string filePath = Path.Combine(folderPath, "Sections Without Repair.pptx");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
 

@@ -15,7 +15,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
     [InlineData(false, true, true)]
     [InlineData(true, true, true)]
     public void InheritedSoundReplacementSurvivesSaveReopen(bool master, bool table, bool mouseOver) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointShape inherited = CreateSoundConsumer(presentation, master, table);
         OpenXmlPart owner = Owner(presentation.Slides[0], master);
         byte[] original = SoundWave(), replacement = SoundWave();
@@ -26,7 +26,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Single(presentation.OpenXmlDocument.DataParts);
         Assert.Empty(presentation.Slides[0].SlidePart.DataPartReferenceRelationships);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PowerPointShape restored = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport(), shape => shape.Name == inherited.Name);
         if (restored is PowerPointTable restoredTable) {
             PowerPointTextRun run = SoundRun(restoredTable);
@@ -65,7 +65,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
     [InlineData(false, "markdown")]
     [InlineData(true, "markdown")]
     public void RemovingInheritedTextReleasesItsLastSound(bool master, string operation) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         bool table = operation is "row" or "column" or "merge";
         PowerPointShape inherited = CreateSoundConsumer(presentation, master, table);
         PowerPointTextRun run = table ? SoundRun((PowerPointTable)inherited) : ((PowerPointTextBox)inherited).Paragraphs[0].Runs[0];
@@ -84,7 +84,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Empty(presentation.ValidateDocument());
     }
 
-    private static PowerPointShape CreateSoundConsumer(PowerPointPresentation presentation, bool master, bool table) {
+    private static PowerPointShape CreateSoundConsumer(PowerPointDocument presentation, bool master, bool table) {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointShape shape;
         if (table) {

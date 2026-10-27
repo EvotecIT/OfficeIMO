@@ -6,7 +6,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates a themed presentation; with a content block, builds, saves and closes it.",
-      "outputType": "PowerPointPresentation (Live set), System.IO.FileInfo (Content set with -PassThru)",
+      "outputType": "PowerPointDocument (Live set), System.IO.FileInfo (Content set with -PassThru)",
       "shouldProcess": true,
       "parameterSets": [
         {
@@ -279,7 +279,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Opens an existing presentation; with a content block, edits, saves and closes it.",
-      "outputType": "PowerPointPresentation (no block), System.IO.FileInfo (block with -PassThru)",
+      "outputType": "PowerPointDocument (no block), System.IO.FileInfo (block with -PassThru)",
       "parameterSets": [
         {
           "name": "Path",
@@ -407,7 +407,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "position": 0,
               "pipeline": "value"
@@ -477,7 +477,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "position": 0,
               "pipeline": "value"
@@ -670,7 +670,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -2965,7 +2965,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3024,7 +3024,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3055,7 +3055,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3337,7 +3337,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3392,7 +3392,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3447,7 +3447,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3581,7 +3581,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -3635,7 +3635,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3689,7 +3689,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3728,7 +3728,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3769,13 +3769,13 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
             {
               "name": "SourceDocument",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "pipeline": "none"
             },
@@ -3839,7 +3839,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3880,7 +3880,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -3928,7 +3928,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3993,7 +3993,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4039,7 +4039,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4078,7 +4078,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4129,7 +4129,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4437,7 +4437,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4517,7 +4517,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4548,7 +4548,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4599,7 +4599,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -4633,7 +4633,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Applies a theme to an existing deck or customizes its colors, fonts and name.",
-      "outputType": "PowerPointPresentation (with -PassThru)",
+      "outputType": "PowerPointDocument (with -PassThru)",
       "parameterSets": [
         {
           "name": "Document",
@@ -4641,7 +4641,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4761,7 +4761,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -4803,7 +4803,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4821,7 +4821,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4851,7 +4851,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4903,7 +4903,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -5124,7 +5124,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -5398,7 +5398,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates slide rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage -Options.",
-      "outputType": "PowerPointPresentationImageExportOptions",
+      "outputType": "PowerPointDocumentImageExportOptions",
       "parameterSets": [
         {
           "name": "Default",

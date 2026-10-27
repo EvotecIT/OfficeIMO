@@ -16,7 +16,7 @@ public static class OdpPdfConversionExtensions {
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this OdpPresentation source, PowerPointOpenDocumentConversionOptions? conversionOptions = null, PowerPointPdf.PowerPointPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
-        OdfConversionResult<OfficeIMO.PowerPoint.PowerPointPresentation> conversion = source.ToPowerPointPresentationResult(conversionOptions);
+        OdfConversionResult<OfficeIMO.PowerPoint.PowerPointDocument> conversion = source.ToPowerPointDocumentResult(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = PowerPointPdf.PowerPointPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
             return result.WithSourceConversionReport(conversion.Report);

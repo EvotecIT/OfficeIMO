@@ -528,7 +528,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Styled");
                 paragraph.IndentationBeforePoints = 12.75D;
                 using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
-                paragraph.AddImage(imageStream, "pixel.png", 10, 10);
+                paragraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
                 Assert.Single(document.Images).Width = 15.5D;
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph imageParagraph = document.AddParagraph("Image ");
                 byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
                 using (var imageStream = new MemoryStream(png)) {
-                    imageParagraph.AddImage(imageStream, "pixel.png", 10, 10);
+                    imageParagraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
                 }
                 WordImage image = Assert.Single(document.Images);
 

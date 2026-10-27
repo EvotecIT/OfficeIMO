@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.Markdown {
                         out var finalH,
                         out _);
 
-                    paragraph.AddImage(imageSource, finalW, finalH, description: alt ?? string.Empty);
+                    paragraph.AddImage(imageSource, (finalW is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (finalH is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
                 } else {
                     AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
                 }
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word.Markdown {
                                 out _);
 
                             using var stream = new System.IO.MemoryStream(bytes, writable: false);
-                            paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+                            paragraph.AddImage(stream, fileName, (finalW is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (finalH is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
                         } catch (Exception ex) {
                             options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
                             if (options.FallbackRemoteImagesToHyperlinks) {
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word.Markdown {
 
             using var stream = new System.IO.MemoryStream(bytes, writable: false);
             try {
-                paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+                paragraph.AddImage(stream, fileName, (finalW is { } imageLength5 ? OfficeIMO.OfficeLength.Pixels(imageLength5) : (OfficeIMO.OfficeLength? )null), (finalH is { } imageLength6 ? OfficeIMO.OfficeLength.Pixels(imageLength6) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
             } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
                 options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
                 AddImageFallbackText(paragraph, alt, string.Empty, options);

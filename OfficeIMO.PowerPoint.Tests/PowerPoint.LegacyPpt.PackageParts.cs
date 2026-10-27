@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         [Fact]
         public void NativeWriter_BlocksUnrepresentablePackagePartsAndRelationships() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Package preflight");
             PresentationPart presentationPart = presentation.OpenXmlDocument
@@ -54,15 +54,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPresentation_CustomXmlBypassesNeitherPreservationPath() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                    PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Imported package preflight");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             CustomXmlPart customXml = imported.OpenXmlDocument
                 .PresentationPart!.AddCustomXmlPart(
                     CustomXmlPartType.CustomXml);
@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ClassifiesAdvancedExtendedParts() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Extended part preflight");
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksTypedPartsAndPackageRootRelationships() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Typed package preflight");
 
             RibbonExtensibilityPart ribbon = presentation.OpenXmlDocument
@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RecognizesMappedOleObjectInsideGroup() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             byte[] storageBytes = CreateOleTestStorage("Grouped OLE");
             using var storage = new MemoryStream(storageBytes,
@@ -169,8 +169,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void GroupProjection_MapsAnimationsPastOmittedOleChildren() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 byte[] storageBytes = CreateOleTestStorage(
                     "Animated group OLE");
@@ -191,8 +191,8 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointSlide projectedSlide = Assert.Single(
                 projected.Slides);
             PowerPointGroupShape projectedGroup = Assert.Single(
@@ -208,8 +208,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void OleCreationReservesBothShapeIdsBeforeAddingParts() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape first = slide.AddRectangle(
                     1000, 1000, 2000, 1000);
@@ -224,8 +224,8 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation loaded =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument loaded =
+                PowerPointDocument.Load(input);
             PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
             int partCount = loadedSlide.SlidePart.Parts.Count();
             using var storage = new MemoryStream(
@@ -242,8 +242,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ReportsOpenXmlSignatureBeforeMutationPolicyRuns() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Signed package preflight");
             DigitalSignatureOriginPart origin = presentation.OpenXmlDocument
                 .AddDigitalSignatureOriginPart();
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.DigitalSignatures
                 && finding.Code == "ppt-write-openxml-signature");
-            Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
+            Assert.Throws<PowerPointSignedDocumentMutationException>(() =>
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             presentation.SignatureMutationPolicy =

@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies the designer theme colors and fonts to all slide masters.
         /// </summary>
-        public static PowerPointPresentation ApplyDesignerTheme(this PowerPointPresentation presentation,
+        public static PowerPointDocument ApplyDesignerTheme(this PowerPointDocument presentation,
             PowerPointDesignTheme? theme = null) {
             if (presentation == null) {
                 throw new ArgumentNullException(nameof(presentation));
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a full-bleed section/title slide with diagonal planes and optional footer chrome.
         /// </summary>
-        public static PowerPointSlide AddDesignerSectionSlide(this PowerPointPresentation presentation, string title,
+        public static PowerPointSlide AddDesignerSectionSlide(this PowerPointDocument presentation, string title,
             string? subtitle = null, PowerPointDesignTheme? theme = null,
             PowerPointDesignerSlideOptions? options = null) {
             if (presentation == null) {
@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a case-study slide with summary columns, a strong visual band, metrics, and optional tags.
         /// </summary>
-        public static PowerPointSlide AddDesignerCaseStudySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCaseStudySlide(this PowerPointDocument presentation,
             string clientTitle, IEnumerable<PowerPointCaseStudySection> sections,
             IEnumerable<PowerPointMetric>? metrics = null,
             PowerPointDesignTheme? theme = null,
@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a card grid slide that automatically chooses rows and columns for the supplied content.
         /// </summary>
-        public static PowerPointSlide AddDesignerCardGridSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCardGridSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCardContent> cards,
             PowerPointDesignTheme? theme = null,
             PowerPointCardGridSlideOptions? options = null) {
@@ -159,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a dark process slide with a readable timeline and automatic spacing.
         /// </summary>
-        public static PowerPointSlide AddDesignerProcessSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerProcessSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointProcessStep> steps,
             PowerPointDesignTheme? theme = null,
             PowerPointProcessSlideOptions? options = null) {

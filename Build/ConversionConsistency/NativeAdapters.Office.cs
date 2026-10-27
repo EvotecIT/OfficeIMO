@@ -35,8 +35,8 @@ internal static partial class NativeAdapters {
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "pptx": {
-                using var document = PowerPointPresentation.Load(source);
-                var imageOptions = Images<PowerPointPresentationImageExportOptions>(suite, profile);
+                using var document = PowerPointDocument.Load(source);
+                var imageOptions = Images<PowerPointDocumentImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
@@ -57,7 +57,7 @@ internal static partial class NativeAdapters {
             }
             case "odp": {
                 var document = OdpPresentation.Load(source);
-                var imageOptions = Images<PowerPointPresentationImageExportOptions>(suite, profile);
+                var imageOptions = Images<PowerPointDocumentImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);

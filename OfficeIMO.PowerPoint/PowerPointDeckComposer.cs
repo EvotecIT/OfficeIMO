@@ -4,15 +4,15 @@ using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    ///     Presentation-bound designer facade that applies one deck design across many semantic slides.
+    ///     Document-bound designer facade that applies one deck design across many semantic slides.
     /// </summary>
     internal sealed class PowerPointDeckComposer {
-        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDocument _presentation;
         private readonly PowerPointDeckDesign _design;
         private readonly PowerPointTemplateLayoutMap? _templateLayoutMap;
         private int _slideIndex;
 
-        internal PowerPointDeckComposer(PowerPointPresentation presentation, PowerPointDeckDesign design,
+        internal PowerPointDeckComposer(PowerPointDocument presentation, PowerPointDeckDesign design,
             bool applyTheme, PowerPointTemplateLayoutMap? templateLayoutMap = null) {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _design = design ?? throw new ArgumentNullException(nameof(design));
@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Underlying presentation.
         /// </summary>
-        public PowerPointPresentation Presentation => _presentation;
+        public PowerPointDocument Document => _presentation;
 
         /// <summary>
         ///     Active deck design.
@@ -283,7 +283,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a presentation-bound designer facade and optionally applies the deck theme immediately.
         /// </summary>
-        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             PowerPointDeckDesign design, bool applyTheme = true) {
             return new PowerPointDeckComposer(presentation, design, applyTheme);
         }
@@ -291,7 +291,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a designer facade from a reusable design brief.
         /// </summary>
-        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             PowerPointDesignBrief brief, int alternativeIndex = 0, bool applyTheme = true) {
             if (brief == null) {
                 throw new ArgumentNullException(nameof(brief));
@@ -303,7 +303,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a designer facade from the brief alternative that best fits the supplied deck plan.
         /// </summary>
-        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             PowerPointDesignBrief brief, PowerPointDeckPlan plan, int alternativeCount = 0, bool applyTheme = true) {
             if (brief == null) {
                 throw new ArgumentNullException(nameof(brief));
@@ -320,7 +320,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a designer facade directly from a brand accent and scenario recipe.
         /// </summary>
-        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             string accentColor, string seed, PowerPointDesignRecipe recipe, int alternativeIndex = 0,
             string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
             bool applyTheme = true) {
@@ -341,7 +341,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a designer facade from a brand accent and plain-language deck purpose.
         /// </summary>
-        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             string accentColor, string seed, string purpose, int alternativeIndex = 0,
             string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
             bool applyTheme = true) {

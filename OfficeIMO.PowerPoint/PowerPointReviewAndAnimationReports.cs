@@ -215,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>Inspects classic and modern comments without mutating review markup.</summary>
         public PowerPointReviewReport InspectReviewComments() => InspectReviewComments(CancellationToken.None);
 

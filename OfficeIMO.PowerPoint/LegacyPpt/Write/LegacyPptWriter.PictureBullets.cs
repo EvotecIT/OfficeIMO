@@ -196,7 +196,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryReadPictureBulletCatalog(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             out LegacyPptWriterPictureBulletCatalog catalog,
             out string? reason) {
             if (presentation == null) throw new ArgumentNullException(

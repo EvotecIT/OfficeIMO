@@ -66,7 +66,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToPptx() {
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PowerPointPdfImportOptions.CreateEditableContent());
+            .ToPowerPointDocumentResult(PowerPointPdfImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);
@@ -120,7 +120,7 @@ public class PdfReverseConversionBenchmarks {
             PdfBenchmarkValidation.ValidateTableScenarioContent(GetSpreadsheetText(package), _scenario, Producer + " " + Scale + " XLSX");
         }
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
-            .ToPowerPointPresentationResult(PowerPointPdfImportOptions.CreateEditableContent());
+            .ToPowerPointDocumentResult(PowerPointPdfImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
             result.Value.Save(stream);

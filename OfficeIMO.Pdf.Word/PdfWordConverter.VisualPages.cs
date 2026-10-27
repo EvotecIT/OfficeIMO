@@ -117,8 +117,7 @@ internal static partial class PdfWordConverter {
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = 0;
                 paragraph.LineSpacingPoints = 1;
                 using var stream = new MemoryStream(bytes, writable: false);
-                WordImage image = paragraph.InsertImage(stream, "page-" + page.PageNumber + ".png", width * 96D / 72D,
-                    height * 96D / 72D, WordImageTextWrapping.InFrontOfText, "PDF page " + page.PageNumber);
+                WordImage image = paragraph.AddImage(stream, "page-" + page.PageNumber + ".png", OfficeIMO.OfficeLength.Pixels(width * 96D / 72D), OfficeIMO.OfficeLength.Pixels(height * 96D / 72D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText, Description = "PDF page " + page.PageNumber });
                 image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                 image.HorizontalPositionOffset = image.VerticalPositionOffset = 0;

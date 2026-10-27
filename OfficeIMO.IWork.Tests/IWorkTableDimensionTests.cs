@@ -97,11 +97,11 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(new[] { 405, 200, 600 }, output.RowHeight);
             Assert.Equal(new[] { 810, 400 }, output.ColumnWidth);
         } else {
-            using var result = source.ToPowerPointPresentationResult();
+            using var result = source.ToPowerPointDocumentResult();
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved);
             saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             PowerPointTable output = Assert.Single(Assert.Single(reopened.Slides).Tables);
             Assert.Equal(20.25d, output.GetRowHeightPoints(0), 5);
             Assert.Equal(10d, output.GetRowHeightPoints(1), 5);

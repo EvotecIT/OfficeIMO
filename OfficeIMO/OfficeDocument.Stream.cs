@@ -34,7 +34,7 @@ public static partial class OfficeDocument {
         if (settings.ContentSafety != null) result.ContentSafety = extension switch {
             ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.InspectContentSafety(bytes, settings.ContentSafety, cancellationToken),
             ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlsb" or ".xls" or ".xlam" => ExcelDocument.InspectContentSafety(bytes, sourceName, settings.ContentSafety),
-            ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointPresentation.InspectContentSafety(bytes, sourceName, settings.ContentSafety),
+            ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointDocument.InspectContentSafety(bytes, sourceName, settings.ContentSafety),
             ".pdf" => PdfDocument.InspectContentSafety(bytes, settings.ContentSafety, settings.Formats.Pdf?.ReadOptions),
             _ => throw new NotSupportedException("Concealed-content inspection is not supported for this source format.")
         };
@@ -44,7 +44,7 @@ public static partial class OfficeDocument {
             result.Provenance = extension switch {
                 ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.InspectProvenance(bytes, sourceName, provenance),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlsb" or ".xlam" => ExcelDocument.InspectProvenance(bytes, sourceName, provenance),
-                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointPresentation.InspectProvenance(bytes, sourceName, provenance),
+                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointDocument.InspectProvenance(bytes, sourceName, provenance),
                 ".pdf" => PdfProvenance.Inspect(bytes, provenance, settings.Formats.Pdf?.ReadOptions),
                 _ => throw new NotSupportedException("Provenance inspection is not supported for this source format.")
             };

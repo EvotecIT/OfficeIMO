@@ -31,7 +31,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.AddHeadersAndFooters();
                 WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
                 headerLogo.ParagraphAlignment = WordParagraphAlignment.Right;
-                headerLogo.AddImage(logoPath, 48, 24);
+                headerLogo.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(24));
 
                 document.AddTableOfContent();
                 document.AddParagraph("Native Word PDF Visual Gate").SetStyle(WordParagraphStyles.Heading1);
@@ -131,7 +131,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
                 header.ParagraphAlignment = WordParagraphAlignment.Right;
                 header.AddText("Daily layout gate");
-                header.AddImage(logoPath, 42, 20);
+                header.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(42), OfficeIMO.OfficeLength.Pixels(20));
                 document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
 
                 document.AddTableOfContent();
@@ -173,7 +173,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 steps.AddItem("Collect daily document patterns.");
                 steps.AddItem("Render through OfficeIMO.Pdf.");
 
-                document.AddParagraph().AddImage(logoPath, 54, 26);
+                document.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(54), OfficeIMO.OfficeLength.Pixels(26));
                 WordParagraph columnHandoff = document.AddParagraph("Inline column break keeps this text in the first column.");
                 columnHandoff.AddBreak(OfficeIMO.Word.WordBreakType.Column);
                 columnHandoff.AddText("Right column starts here.");

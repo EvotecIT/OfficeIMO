@@ -5,7 +5,7 @@ using OfficeIMO.Project;
 namespace OfficeIMO.Workflows;
 
 public static partial class ProjectReportWorkflow {
-    private static void AddTableSlides(PowerPointPresentation presentation, ProjectView view, TablePart part, OfficeRasterCanvas measurement, CancellationToken token) {
+    private static void AddTableSlides(PowerPointDocument presentation, ProjectView view, TablePart part, OfficeRasterCanvas measurement, CancellationToken token) {
         double width = view.PageWidth - 2 * view.PageMargin;
         double availableHeight = view.PageHeight - 2 * view.PageMargin - 85;
         var weights = ColumnWeights(part.Headers);

@@ -79,9 +79,9 @@ internal static class OfficeEncryptedPackageService
         }
     }
 
-    public static PowerPointPresentation OpenPowerPoint(string path, string password, bool readOnly = false)
+    public static PowerPointDocument OpenPowerPoint(string path, string password, bool readOnly = false)
     {
-        return PowerPointPresentation.Load(path, new PowerPointLoadOptions
+        return PowerPointDocument.Load(path, new PowerPointLoadOptions
         {
             Password = password,
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
@@ -89,7 +89,7 @@ internal static class OfficeEncryptedPackageService
         });
     }
 
-    public static void SavePowerPoint(PowerPointPresentation presentation, string path, string password)
+    public static void SavePowerPoint(PowerPointDocument presentation, string path, string password)
     {
         presentation.Save(path, new PowerPointSaveOptions { Password = password });
     }

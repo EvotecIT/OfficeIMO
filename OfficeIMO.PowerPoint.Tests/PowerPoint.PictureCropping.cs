@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicture(imagePath, 0, 0, 2000000, 1000000);
+                PowerPointPicture picture = slide.AddImage(imagePath, 0, 0, 2000000, 1000000);
                 picture.Crop(10, 5, 10, 0);
                 presentation.Save();
             }
@@ -39,14 +39,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicture(imagePath, 0, 0, 2000000, 2000000);
+                PowerPointPicture picture = slide.AddImage(imagePath, 0, 0, 2000000, 2000000);
                 picture.FitToBox(400, 200, crop: false);
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointPicture picture = presentation.Slides.Single().Pictures.First();
                 Assert.Equal(0, picture.Left);
                 Assert.Equal(500000, picture.Top);

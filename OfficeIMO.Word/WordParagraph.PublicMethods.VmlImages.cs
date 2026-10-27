@@ -5,16 +5,6 @@ using V = DocumentFormat.OpenXml.Vml;
 namespace OfficeIMO.Word;
 
 public partial class WordParagraph {
-    /// <summary>Adds a legacy VML image to the paragraph.</summary>
-    /// <param name="filePathImage">Image file to embed in the paragraph's document story.</param>
-    /// <param name="width">Optional width in points. An omitted value leaves the VML width declaration absent.</param>
-    /// <param name="height">Optional height in points. An omitted value leaves the VML height declaration absent.</param>
-    /// <returns>The created image occurrence.</returns>
-    public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-        using var stream = File.OpenRead(filePathImage);
-        return InsertImageVml(stream, Path.GetFileName(filePathImage), width, height);
-    }
-
     /// <summary>Embeds a VML image in the current run, returning its attached occurrence without disposing the caller's stream.</summary>
     /// <remarks>Dimensions are points. Omitted dimensions remain absent from the VML style; shared image embedding owns payload and story relationships.</remarks>
     internal WordImage InsertImageVml(Stream imageStream, string fileName, double? widthPoints = null,

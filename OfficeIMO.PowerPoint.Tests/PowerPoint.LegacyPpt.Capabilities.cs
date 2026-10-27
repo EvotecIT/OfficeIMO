@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_FindingsReferenceNonNativeCapabilityRows() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
             PowerPointAutoShape shape = slide.AddRectangle(
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_ExposesTypedOmissionsAndStrictAcceptance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddChart();
 

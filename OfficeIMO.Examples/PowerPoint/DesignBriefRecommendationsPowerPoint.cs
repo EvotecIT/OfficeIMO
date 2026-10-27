@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .ThenBy(recommendation => recommendation.Design.Index)
                 .First();
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDeckPlan plan = new PowerPointDeckPlan();
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

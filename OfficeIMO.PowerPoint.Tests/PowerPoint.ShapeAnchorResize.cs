@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Resize_WithCenterAnchor_PreservesCenter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void Resize_WithTopLeftAnchor_PreservesTopLeft() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
         public void Scale_WithBottomRightAnchor_PreservesBottomRight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
 

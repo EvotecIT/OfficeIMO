@@ -14,14 +14,14 @@ public static partial class HtmlPowerPointConverterExtensions {
     /// <summary>
     /// Imports a prepared shared HTML conversion document without reparsing its adapter DOM.
     /// </summary>
-    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
-        return GetPresentationOrThrow(ToPowerPointPresentationResult(document, options));
+    public static PptCore.PowerPointDocument ToPowerPointDocument(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+        return GetPresentationOrThrow(ToPowerPointDocumentResult(document, options));
     }
 
     /// <summary>
     /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
     /// </summary>
-    public static HtmlToPowerPointResult ToPowerPointPresentationResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+    public static HtmlToPowerPointResult ToPowerPointDocumentResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
@@ -58,7 +58,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
         if (!Enum.IsDefined(typeof(HtmlImportMode), options.Mode)) throw new ArgumentOutOfRangeException(nameof(options.Mode));
-        PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
+        PptCore.PowerPointDocument presentation = PptCore.PowerPointDocument.Create();
         var result = new HtmlToPowerPointResult(presentation);
         if (initialDiagnostics != null) {
             foreach (HtmlDiagnostic diagnostic in initialDiagnostics) result.AddImportDiagnostic(diagnostic);
@@ -124,7 +124,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         return result;
     }
 
-    private static PptCore.PowerPointPresentation GetPresentationOrThrow(HtmlToPowerPointResult result) {
+    private static PptCore.PowerPointDocument GetPresentationOrThrow(HtmlToPowerPointResult result) {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
@@ -173,7 +173,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ReadPictureSize(item, budget, result, out double width, out double height);
         ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
+        PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imagePartType, left, pictureTop, width, height);
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         string alt = NormalizeText(image.GetAttribute("alt"));
         if (label.Length > 0) {

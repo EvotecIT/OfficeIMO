@@ -37,13 +37,7 @@ public static partial class OfficeVisualPlacementExtensions {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        WordImage image = paragraph.InsertImage(
-            stream,
-            ResolveFileName(conversion.Id, conversion.PlacementFileExtension),
-            conversion.WidthPoints / PointsPerOfficePixel,
-            conversion.HeightPoints / PointsPerOfficePixel,
-            wrapping,
-            conversion.AlternativeText);
+        WordImage image = paragraph.AddImage(stream, ResolveFileName(conversion.Id, conversion.PlacementFileExtension), OfficeIMO.OfficeLength.Pixels(conversion.WidthPoints / PointsPerOfficePixel), OfficeIMO.OfficeLength.Pixels(conversion.HeightPoints / PointsPerOfficePixel), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = conversion.AlternativeText });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }
@@ -111,7 +105,7 @@ public static partial class OfficeVisualPlacementExtensions {
         ValidateFinite(leftPoints, nameof(leftPoints));
         ValidateFinite(topPoints, nameof(topPoints));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        PowerPointPicture picture = slide.AddPicture(
+        PowerPointPicture picture = slide.AddImage(
             stream,
             conversion.PlacementFormat == OfficeVisualMediaFormat.Svg ? OfficeImageFormat.Svg : OfficeImageFormat.Png,
             PowerPointUnits.FromPoints(leftPoints),

@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word
                 {
                     var paragraph1 = document.AddParagraph();
                     paragraph1 = paragraph1.AddText("Here is an inline icon ");
-                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), 16, 16, description: "icon");
+                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "icon" });
                     paragraph1 = paragraph1.AddText(" followed by text.");
                 }
 

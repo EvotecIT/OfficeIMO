@@ -27,9 +27,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 using var stream = new MemoryStream(bytes, writable: false);
                 var placement = IsStretchFit(GetAttribute(image.Attributes, "fit"))
                     ? box : ContainPicture(box, info.Width, info.Height);
-                picture = slide.AddPictureInches(stream, info.Format, placement.Left, placement.Top, placement.Width, placement.Height);
+                picture = slide.AddImageInches(stream, info.Format, placement.Left, placement.Top, placement.Width, placement.Height);
             } else {
-                picture = AddPicture(slide, path, box, GetAttribute(image.Attributes, "fit"));
+                picture = AddImage(slide, path, box, GetAttribute(image.Attributes, "fit"));
             }
             picture.AltText = image.Alt;
             if (!string.IsNullOrWhiteSpace(image.Title)) picture.Name = image.Title;
@@ -143,11 +143,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         panel.OutlineWidthPoints = 0.75;
     }
 
-    private static PowerPointPicture AddPicture(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
+    private static PowerPointPicture AddImage(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
         switch (Normalize(fit ?? string.Empty)) {
             case "fill":
             case "stretch":
-                return slide.AddPictureInches(path, box.Left, box.Top, box.Width, box.Height);
+                return slide.AddImageInches(path, box.Left, box.Top, box.Width, box.Height);
             case "contain":
             default:
                 return AddPictureContained(slide, path, box);
@@ -157,7 +157,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static PowerPointPicture AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
         var placement = TryReadImageSize(path, out var pixelWidth, out var pixelHeight)
             ? ContainPicture(box, pixelWidth, pixelHeight) : box;
-        return slide.AddPictureInches(path, placement.Left, placement.Top, placement.Width, placement.Height);
+        return slide.AddImageInches(path, placement.Left, placement.Top, placement.Width, placement.Height);
     }
 
     private static LayoutCursor ContainPicture(LayoutCursor box, int pixelWidth, int pixelHeight) {

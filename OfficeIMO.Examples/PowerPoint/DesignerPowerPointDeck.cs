@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Designer composition deck");
             string filePath = Path.Join(folderPath, "Designer PowerPoint Deck.pptx");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDesignRecipe recipe = PowerPointDesignRecipe.FindBuiltIn("consulting portfolio")
                 ?? PowerPointDesignRecipe.ConsultingPortfolio;

@@ -199,7 +199,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
                 }
                 break;
             case "pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) presentation.Save();
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) presentation.Save();
                 break;
             case "vsdx":
                 VisioDocument.Create(path).Save();
@@ -212,7 +212,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
     private static OfficePackageSigningResult Sign(string path, string extension, X509Certificate2 certificate) => extension switch {
         "docx" => WordDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
         "xlsx" => ExcelDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
-        "pptx" => PowerPointPresentation.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
+        "pptx" => PowerPointDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
         "vsdx" => VisioDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };
@@ -230,7 +230,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
         return extension switch {
             "docx" => WordDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
             "xlsx" => ExcelDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
-            "pptx" => PowerPointPresentation.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
+            "pptx" => PowerPointDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
             "vsdx" => VisioDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
             _ => throw new ArgumentOutOfRangeException(nameof(extension))
         };

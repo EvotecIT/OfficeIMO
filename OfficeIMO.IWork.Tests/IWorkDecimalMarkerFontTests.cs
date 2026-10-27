@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         var paragraphs = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs;
         Assert.All(paragraphs, paragraph => {
             Assert.Equal(11, paragraph.BulletSizePoints);

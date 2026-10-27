@@ -379,7 +379,7 @@ document.FooterDefaultOrCreate.AddParagraph()
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImage("logo.png", width: 160, height: 64);
+paragraph.AddImage("logo.png", width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(64));
 ```
 
 Crop an embedded picture using lengths measured on the original image:

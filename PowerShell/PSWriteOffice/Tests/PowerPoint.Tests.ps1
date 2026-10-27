@@ -137,7 +137,7 @@ Describe 'PowerPoint cmdlets' {
     It 'rejects external SaveOnDispose presentations before tracking them' {
         $path = Join-Path $TestDrive 'PowerPointExternalAutoSave.pptx'
         $presentationType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointPresentation', $false) } |
+            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointDocument', $false) } |
             Where-Object { $null -ne $_ } |
             Select-Object -First 1
         $optionsType = [AppDomain]::CurrentDomain.GetAssemblies() |
@@ -175,7 +175,7 @@ Describe 'PowerPoint cmdlets' {
                 [System.Runtime.InteropServices.OSPlatform]::Linux)) {
             return
         }
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointPresentation' -MethodName 'OpenEncrypted')) {
+        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
             return
         }
 
@@ -209,7 +209,7 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'saves an encrypted presentation through the canonical path writer' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointPresentation' -MethodName 'OpenEncrypted')) {
+        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
             return
         }
 
@@ -233,7 +233,7 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'does not overwrite an externally loaded encrypted presentation without a password' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointPresentation' -MethodName 'LoadEncrypted')) {
+        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'LoadEncrypted')) {
             return
         }
 
@@ -243,7 +243,7 @@ Describe 'PowerPoint cmdlets' {
         }
 
         $presentationType = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointPresentation', $false) } |
+            ForEach-Object { $_.GetType('OfficeIMO.PowerPoint.PowerPointDocument', $false) } |
             Where-Object { $null -ne $_ } |
             Select-Object -First 1
         $loadEncrypted = $presentationType.GetMethods() | Where-Object {
@@ -272,7 +272,7 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'does not overwrite a different encrypted target from a tracked presentation without a password' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointPresentation' -MethodName 'OpenEncrypted')) {
+        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
             return
         }
 
@@ -343,7 +343,7 @@ Describe 'PowerPoint cmdlets' {
     }
 
     It 'round-trips encrypted presentations through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointPresentation' -MethodName 'OpenEncrypted')) {
+        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.PowerPoint.PowerPointDocument' -MethodName 'OpenEncrypted')) {
             (Get-Command New-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'
             (Get-Command Save-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'
             (Get-Command Get-OfficePowerPoint).Parameters.Keys | Should -Contain 'Password'

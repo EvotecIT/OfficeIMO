@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointTextFormatting {
         [Fact]
         public void DrawingFontSizeAuthoringEnforcesSchemaBoundsAcrossTextSurfaces() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox box = slide.AddTextBox("Text");
             PowerPointTextRun run = box.Paragraphs.Single().Runs.Single();
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         public void CanApplyFormattingToTextBoxAndBullets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Hello");
                 box.Bold = true;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
         public void TextBoxTextReturnsEmptyWhenParagraphsAreMissing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTextBox("Initial");
                 presentation.Save();
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.First();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
                 Assert.Equal(string.Empty, textBox.Text);
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         public void TextBoxTextHandlesSingleParagraph() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Initial");
 
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             string[] lines = { "First line", "Second line", "Third line" };
             string text = string.Join(Environment.NewLine, lines);
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox(string.Empty);
 
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
         public void CanApplyTextAndParagraphStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Highlights");
                 box.AddBullets(new[] { "First", "Second" });
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
         public void ClearPreservesValidTextBodyStructure() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Initial");
 
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
         public void SetParagraphs_ReplacesContentWithoutLeadingBlankParagraph() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Initial");
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
         public void SetBulletsAndNumberedList_DoNotLeaveLeadingBlankParagraph() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox bullets = slide.AddTextBox("Initial bullets");
                 PowerPointTextBox numbered = slide.AddTextBox("Initial numbered");
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests {
         public void BulletSizingAndFontStayInSchemaOrder() {
             string filePath = CreateTempFilePath(".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Bullets");
                 box.SetBullets(new[] { "First", "Second" }, configure: paragraph => {

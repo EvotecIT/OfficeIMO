@@ -51,7 +51,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             using var encrypted = new MemoryStream(output);
             if (targetExtension == ".docx") { using var document = WordDocument.Load(encrypted, new WordLoadOptions { Password = password }); Assert.NotEmpty(document.Sections); }
             else if (targetExtension == ".xlsx") { using var document = ExcelDocument.Load(encrypted, new ExcelLoadOptions { Password = password }); Assert.NotEmpty(document.Sheets); }
-            else { using var document = PowerPointPresentation.Load(encrypted, new PowerPointLoadOptions { Password = password }); Assert.NotEmpty(document.Slides); }
+            else { using var document = PowerPointDocument.Load(encrypted, new PowerPointLoadOptions { Password = password }); Assert.NotEmpty(document.Slides); }
         } finally { Directory.Delete(directory, true); }
     }
 

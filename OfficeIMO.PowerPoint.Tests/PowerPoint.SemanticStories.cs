@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             }.Annotate(new PowerPointImageAnnotation(0.72, 0.35, "Risk", "Two sites need attention."));
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     presentation.AddDesignerExecutiveSummarySlide("Executive summary", "Metric lead",
                         CreateExecutiveContent(), options: new PowerPointExecutiveSummarySlideOptions {
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation reopened = PowerPointPresentation.Load(output)) {
+                using (PowerPointDocument reopened = PowerPointDocument.Load(output)) {
                     List<OfficeOpenXmlValidationError> errors = reopened.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
                     PowerPointPicture picture = reopened.Slides.SelectMany(slide => slide.Pictures).First();
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             try {
                 using var stream = new MemoryStream();
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+                using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
                 var image = new PowerPointImageAsset(imagePath, "Geometry test image") {
                     Placement = placement
                 }.Annotate(new PowerPointImageAnnotation(annotationX, annotationY, "Anchor"));
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                     .Select(index => new PowerPointMetric(index.ToString(), "Metric " + index)),
                 Array.Empty<PowerPointCardContent>());
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 presentation.AddDesignerExecutiveSummarySlide("Summary", null, content,

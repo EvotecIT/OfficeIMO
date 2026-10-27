@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ExplicitlyConvertsSmartArtToStaticPngPicture(
             PowerPointSmartArtType sourceKind, OfficeDiagramKind expectedKind) {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSmartArt smartArt = source
                     .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddSmartArt(sourceKind,
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry image = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal("image/png", image.ContentType);
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 picture.Bounds);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].SmartArts);
             Assert.Single(projected.Slides[0].Pictures);

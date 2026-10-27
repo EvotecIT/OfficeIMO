@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_SlidesManagement(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Slides management");
             string filePath = Path.Combine(folderPath, "Slides Management.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide2.Hidden = true;
 
             string sourcePath = Path.Combine(folderPath, "Slides Management - Source.pptx");
-            using (PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(sourcePath)) {
+            using (PowerPointDocument sourcePresentation = PowerPointDocument.Create(sourcePath)) {
                 PowerPointLayoutBox sourceContent = sourcePresentation.SlideSize.GetContentBoxCm(marginCm);
                 PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
                 ConfigureSlide(sourceSlide, sourceContent, "Imported Slide", "This slide is imported from another presentation.");

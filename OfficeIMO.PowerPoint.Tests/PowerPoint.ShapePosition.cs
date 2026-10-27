@@ -16,10 +16,10 @@ namespace OfficeIMO.Tests {
             long width = 3000000L;
             long height = 4000000L;
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Hello", left, top, width, height);
-                PowerPointPicture picture = slide.AddPicture(imagePath, left, top, width, height);
+                PowerPointPicture picture = slide.AddImage(imagePath, left, top, width, height);
                 PowerPointTable table = slide.AddTable(2, 2, left, top, width, height);
 
                 Assert.Equal(left, textBox.Left);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
                 PowerPointPicture picture = slide.Pictures.First();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void CanUseCentimeterHelpers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Hello");
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
 

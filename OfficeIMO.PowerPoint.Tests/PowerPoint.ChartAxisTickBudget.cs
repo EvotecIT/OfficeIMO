@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointChartAxisTickBudgetTests {
     [Fact]
     public void Snapshot_RejectsRadarUnitsAndSuppressedOverMaximumLabels() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d }) });
         PowerPointChart radar = presentation.AddSlide().AddChart(OfficeChartType.Radar, data);
@@ -37,7 +37,7 @@ public sealed class PowerPointChartAxisTickBudgetTests {
     [InlineData(OfficeChartType.Scatter, true)]
     public void Snapshot_RejectsMajorUnitsThatCannotKeepNativeTicks(OfficeChartType kind,
         bool horizontal) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "0", "100" }, new[] {
             new OfficeSeries("Values", new[] { 0d, 100d },
                 horizontal ? new[] { 0d, 100d } : null)
@@ -65,7 +65,7 @@ public sealed class PowerPointChartAxisTickBudgetTests {
 
     [Fact]
     public void Snapshot_TreatsEmptyNativeAxisDeleteAsHidden() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Values", new[] { 1d, 2d })

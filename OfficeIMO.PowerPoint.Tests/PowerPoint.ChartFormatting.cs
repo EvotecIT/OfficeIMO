@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetTitle("Sales Trend")
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempFilePath(".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChartData data = new(
                         new[] { "Direct", "Partner", "Online" },
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempFilePath(".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChartData data = new(
                         new[] { "Direct", "Partner", "Online" },
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetTitle("Sales Trend")
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1.25)
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetDataLabels(showValue: true)
@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests {
                     LineWidthPoints = 0.5
                 };
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart();
                     chart.SetDataLabelTemplate(template);
@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart();
                     chart.SetDataLabels(showValue: true)
@@ -485,7 +485,7 @@ namespace OfficeIMO.Tests {
                     new[] { "North", "South", "West" },
                     new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetDataLabelCallouts(enabled: true, lineColor: "C00000", lineWidthPoints: 0.75);
@@ -549,7 +549,7 @@ namespace OfficeIMO.Tests {
                     LineWidthPoints = 0.5
                 };
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabelTemplate(0, template);
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
                     });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
                     chart.SetDataLabels(showValue: true)
@@ -668,7 +668,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
                     });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
                     chart.SetDataLabels(showValue: true)
@@ -741,7 +741,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
                     });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
                     chart.SetSeriesDataLabels("Forecast", showValue: true, showCategoryName: true, position: OfficeChartDataLabelPosition.Top,
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
                     new[] { "North", "South", "West" },
                     new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
@@ -877,7 +877,7 @@ namespace OfficeIMO.Tests {
                     new[] { "North", "South", "West" },
                     new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabelCalloutsForPoint(0, 1, enabled: true);
@@ -938,7 +938,7 @@ namespace OfficeIMO.Tests {
                     LineWidthPoints = 0.75
                 };
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabelTemplateForPoint(0, 1, template);
@@ -1005,7 +1005,7 @@ namespace OfficeIMO.Tests {
                     new[] { "North", "South", "West" },
                     new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0.0", sourceLinked: false)
@@ -1060,7 +1060,7 @@ namespace OfficeIMO.Tests {
                     new[] { "Jan", "Feb", "Mar" },
                     new[] { new PowerPointChartSeries("Revenue", new[] { 12d, 18d, 15d }) });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
                     chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Polynomial, order: 2, forward: 1.5, backward: 0.5,
@@ -1115,7 +1115,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointScatterChartSeries("Revenue", new[] { 1d, 2d, 3d }, new[] { 10d, 15d, 12d })
                 });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart(data);
                     chart.SetSeriesTrendline("Revenue", OfficeChartTrendlineType.Linear, lineColor: "5B9BD5", lineWidthPoints: 2)

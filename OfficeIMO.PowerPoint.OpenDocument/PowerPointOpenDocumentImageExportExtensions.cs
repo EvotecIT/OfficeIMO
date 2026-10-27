@@ -11,7 +11,7 @@ public static class PowerPointOpenDocumentImageExportExtensions {
     public static IReadOnlyList<OfficeImageExportResult> ExportImages(
         this OdpPresentation source,
         OfficeImageExportFormat format,
-        PowerPointPresentationImageExportOptions? imageOptions = null,
+        PowerPointDocumentImageExportOptions? imageOptions = null,
         PowerPointOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
@@ -29,16 +29,16 @@ public static class PowerPointOpenDocumentImageExportExtensions {
         this OdpPresentation source,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
-        PowerPointPresentationImageExportOptions? imageOptions = null,
+        PowerPointDocumentImageExportOptions? imageOptions = null,
         PowerPointOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        PowerPointPresentationImageExportOptions effective =
-            imageOptions?.ClonePresentation() ??
-            new PowerPointPresentationImageExportOptions();
-        OdfConversionResult<PowerPointPresentation> conversion =
-            source.ToPowerPointPresentationResult(conversionOptions);
+        PowerPointDocumentImageExportOptions effective =
+            imageOptions?.CloneDocument() ??
+            new PowerPointDocumentImageExportOptions();
+        OdfConversionResult<PowerPointDocument> conversion =
+            source.ToPowerPointDocumentResult(conversionOptions);
         using (conversion.Value) {
             conversion.Value.ExportImages(
                 format,

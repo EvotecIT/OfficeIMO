@@ -106,11 +106,11 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Editable classic PowerPoint comment.</summary>
     public sealed class PowerPointClassicComment {
-        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDocument _presentation;
         private readonly PowerPointSlide _slide;
         private readonly P.Comment _comment;
 
-        internal PowerPointClassicComment(PowerPointPresentation presentation,
+        internal PowerPointClassicComment(PowerPointDocument presentation,
             PowerPointSlide slide, P.Comment comment) {
             _presentation = presentation;
             _slide = slide;
@@ -128,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
         public string Text {
             get => RequireAttached().Text?.Text ?? string.Empty;
             set {
-                PowerPointPresentation.ValidateClassicCommentText(
+                PowerPointDocument.ValidateClassicCommentText(
                     value, nameof(value));
                 RequireAttached().Text = new P.Text(value);
             }
@@ -150,7 +150,7 @@ namespace OfficeIMO.PowerPoint {
         public long X {
             get => RequirePosition().X?.Value ?? 0L;
             set {
-                PowerPointPresentation.ValidateClassicCommentPosition(
+                PowerPointDocument.ValidateClassicCommentPosition(
                     value, nameof(value));
                 RequirePosition().X = value;
             }
@@ -160,7 +160,7 @@ namespace OfficeIMO.PowerPoint {
         public long Y {
             get => RequirePosition().Y?.Value ?? 0L;
             set {
-                PowerPointPresentation.ValidateClassicCommentPosition(
+                PowerPointDocument.ValidateClassicCommentPosition(
                     value, nameof(value));
                 RequirePosition().Y = value;
             }
@@ -214,12 +214,12 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Editable modern threaded PowerPoint comment.</summary>
     public sealed class PowerPointModernComment {
-        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDocument _presentation;
         private readonly PowerPointSlide _slide;
         private readonly PowerPointCommentPart _part;
         private readonly P188.Comment _comment;
 
-        internal PowerPointModernComment(PowerPointPresentation presentation,
+        internal PowerPointModernComment(PowerPointDocument presentation,
             PowerPointSlide slide, PowerPointCommentPart part, P188.Comment comment) {
             _presentation = presentation;
             _slide = slide;
@@ -237,17 +237,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Visible review text.</summary>
         /// <exception cref="NotSupportedException">The imported comment uses rich text markup that cannot be replaced without losing formatting.</exception>
         public string Text {
-            get => PowerPointPresentation.GetModernCommentText(RequireAttached());
+            get => PowerPointDocument.GetModernCommentText(RequireAttached());
             set {
-                PowerPointPresentation.ValidateCommentText(value);
-                PowerPointPresentation.SetModernCommentText(RequireAttached(), value);
+                PowerPointDocument.ValidateCommentText(value);
+                PowerPointDocument.SetModernCommentText(RequireAttached(), value);
             }
         }
 
         /// <summary>Review status.</summary>
         public PowerPointModernCommentStatus Status {
-            get => PowerPointPresentation.FromModernStatus(RequireAttached().Status?.Value);
-            set => RequireAttached().Status = PowerPointPresentation.ToModernStatus(value);
+            get => PowerPointDocument.FromModernStatus(RequireAttached().Status?.Value);
+            set => RequireAttached().Status = PowerPointDocument.ToModernStatus(value);
         }
 
         /// <summary>Creation timestamp.</summary>
@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
             get => RequireAttached().GetFirstChild<P188.Point2DType>()?
                 .X?.Value ?? 0L;
             set {
-                PowerPointPresentation.ValidateModernCommentPosition(
+                PowerPointDocument.ValidateModernCommentPosition(
                     value, nameof(value));
                 RequirePosition().X = value;
             }
@@ -278,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
             get => RequireAttached().GetFirstChild<P188.Point2DType>()?
                 .Y?.Value ?? 0L;
             set {
-                PowerPointPresentation.ValidateModernCommentPosition(
+                PowerPointDocument.ValidateModernCommentPosition(
                     value, nameof(value));
                 RequirePosition().Y = value;
             }
@@ -302,14 +302,14 @@ namespace OfficeIMO.PowerPoint {
             string text, PowerPointModernCommentStatus status = PowerPointModernCommentStatus.Active,
             DateTime? created = null) {
             if (author == null) throw new ArgumentNullException(nameof(author));
-            PowerPointPresentation.ValidateCommentText(text);
+            PowerPointDocument.ValidateCommentText(text);
             P188.Comment comment = RequireAttached();
             P188.CommentStatus modernStatus =
-                PowerPointPresentation.ToModernStatus(status);
+                PowerPointDocument.ToModernStatus(status);
             P188.Author modernAuthor = _presentation.GetOrCreateModernCommentAuthor(author);
             var reply = new P188.CommentReply(
-                PowerPointPresentation.CreateModernCommentTextBody(text)) {
-                Id = PowerPointPresentation.CreateModernCommentId(),
+                PowerPointDocument.CreateModernCommentTextBody(text)) {
+                Id = PowerPointDocument.CreateModernCommentId(),
                 AuthorId = modernAuthor.Id?.Value,
                 Status = modernStatus,
                 Created = created ?? DateTime.UtcNow
@@ -358,7 +358,7 @@ namespace OfficeIMO.PowerPoint {
             _comment.Remove();
             if (_part.CommentList == null
                 || !_part.CommentList.Elements<P188.Comment>().Any()) {
-                PowerPointPresentation.RemoveModernCommentRelationship(_slide.SlidePart, _part);
+                PowerPointDocument.RemoveModernCommentRelationship(_slide.SlidePart, _part);
                 _slide.SlidePart.DeletePart(_part);
             }
             foreach (string? authorId in authorIds) {
@@ -391,13 +391,13 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Editable reply in a modern PowerPoint comment thread.</summary>
     public sealed class PowerPointModernCommentReply {
-        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDocument _presentation;
         private readonly PowerPointSlide _slide;
         private readonly PowerPointCommentPart _part;
         private readonly P188.Comment _parent;
         private readonly P188.CommentReply _reply;
 
-        internal PowerPointModernCommentReply(PowerPointPresentation presentation,
+        internal PowerPointModernCommentReply(PowerPointDocument presentation,
             PowerPointSlide slide, PowerPointCommentPart part,
             P188.Comment parent, P188.CommentReply reply) {
             _presentation = presentation;
@@ -417,17 +417,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Visible reply text.</summary>
         /// <exception cref="NotSupportedException">The imported reply uses rich text markup that cannot be replaced without losing formatting.</exception>
         public string Text {
-            get => PowerPointPresentation.GetModernCommentText(RequireAttached());
+            get => PowerPointDocument.GetModernCommentText(RequireAttached());
             set {
-                PowerPointPresentation.ValidateCommentText(value);
-                PowerPointPresentation.SetModernCommentText(RequireAttached(), value);
+                PowerPointDocument.ValidateCommentText(value);
+                PowerPointDocument.SetModernCommentText(RequireAttached(), value);
             }
         }
 
         /// <summary>Review status.</summary>
         public PowerPointModernCommentStatus Status {
-            get => PowerPointPresentation.FromModernStatus(RequireAttached().Status?.Value);
-            set => RequireAttached().Status = PowerPointPresentation.ToModernStatus(value);
+            get => PowerPointDocument.FromModernStatus(RequireAttached().Status?.Value);
+            set => RequireAttached().Status = PowerPointDocument.ToModernStatus(value);
         }
 
         /// <summary>Creation timestamp.</summary>
@@ -481,7 +481,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         private const int MaxModernCommentTextLength = 32000;
         private const int MaxModernCommentParagraphCount = 1024;
         /// <summary>Returns editable classic comments for a slide.</summary>

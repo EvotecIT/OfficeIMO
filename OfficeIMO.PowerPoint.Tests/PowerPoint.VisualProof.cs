@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
             using var firstStream = new MemoryStream();
-            using PowerPointPresentation firstPresentation = PowerPointPresentation.Create(firstStream);
+            using PowerPointDocument firstPresentation = PowerPointDocument.Create(firstStream);
             firstPresentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide firstSlide = firstPresentation.AddSlide();
             firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var secondStream = new MemoryStream();
-            using PowerPointPresentation secondPresentation = PowerPointPresentation.Create(secondStream);
+            using PowerPointDocument secondPresentation = PowerPointDocument.Create(secondStream);
             PowerPointTextBox cleanText = secondPresentation.AddSlide()
                 .AddTextBoxPoints("Clean snapshot", 20, 20, 160, 40);
             cleanText.FontName = "Helvetica";
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 PowerPointVisualProofReport report;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.BackgroundColor = "FFFFFF";
                     PowerPointTextBox title = slide.AddTextBoxPoints("Shared fidelity proof", 40, 36, 480, 46);
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void VisualReviewSharedSnapshotHonorsTableSuppression() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 40, 180, 45);
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            using PowerPointDocument presentation = PowerPointDocument.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointCompatibility", Guid.NewGuid().ToString("N"));
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     presentation.AddSlide().AddTitle("Compatibility proof");
                     presentation.Save();
                 }
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointDesktopReference", Guid.NewGuid().ToString("N"));
             try {
                 byte[] snapshotPng;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     presentation.AddSlide().AddTitle("Native reference");
                     presentation.Save();
                     snapshotPng = presentation.Slides[0].ToPng();

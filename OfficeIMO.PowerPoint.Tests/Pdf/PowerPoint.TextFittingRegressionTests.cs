@@ -16,7 +16,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void StoredNormalFitScalesAllRunsAndReducesOnlyPercentageLeading(bool absoluteLeading) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST\nSECOND", 220, 140);
         box.Paragraphs[0].Runs[0].FontSize = 24;
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.com/text-fitting");
@@ -40,7 +40,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MissingNormalFontScaleFitsCompleteParagraphFlow(bool storedReduction) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST", 120, 45);
         box.Paragraphs[0].SpaceAfterPoints = 3;
         box.AddParagraph("SECOND");
@@ -64,7 +64,7 @@ public sealed class PowerPointTextFittingRegressionTests {
 
     [Fact]
     public void MissingNormalScaleRewrapsToFitHeightWithoutShrinkingTextThatAlreadyFits() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "ALPHA BETA GAMMA DELTA EPSILON ZETA", 110, 45);
         box.TextAutoFit = PowerPointTextAutoFit.Normal;
         var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -82,7 +82,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(PowerPointTextAutoFit.None)]
     [InlineData(PowerPointTextAutoFit.Normal)]
     public void FixedFrameOverflowRetainsEveryParagraphAndReportsOverflowWithoutClaimingOmission(PowerPointTextAutoFit mode) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(400, 300);
         var box = CreateBox(presentation, "FIRST", 220, 15);
         box.AddParagraph("SECOND");
@@ -116,7 +116,7 @@ public sealed class PowerPointTextFittingRegressionTests {
 
     [Fact]
     public void ShapeFitGrowsExportedFrameAndKeepsSourceGeometryAndFontSizes() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST", 220, 15);
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
@@ -143,7 +143,7 @@ public sealed class PowerPointTextFittingRegressionTests {
 
     [Fact]
     public void ShapeFitGrowsTheNativePdfEllipseFrameAfterTextMeasurement() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = presentation.AddSlide().AddTextShapePoints(OfficePresetShapeType.Ellipse, "FIRST", 20, 20, 220, 15);
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
@@ -177,7 +177,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(PowerPointTextAutoFit.Shape)]
     public void UnwrappedTextStaysOnOneLineAndShapeFitGrowsWidth(PowerPointTextAutoFit mode) {
         const string value = "UNWRAPPED TEXT STAYS COMPLETE";
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(600, 200);
         var box = CreateBox(presentation, value, 80, 60);
         box.FillColor = "1264A3";
@@ -216,7 +216,7 @@ public sealed class PowerPointTextFittingRegressionTests {
 
     [Fact]
     public void UnwrappedShapeFitGrowsBothDimensionsForAuthoredHardBreaks() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(600, 200);
         var box = CreateBox(presentation, "FIRST LONG LINE\nSECOND LONG LINE", 80, 10);
         box.FillColor = "1264A3";
@@ -246,7 +246,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ComputedFittingObservesCancellationDuringTextMeasurement(bool unwrapped) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST SECOND THIRD FOURTH FIFTH LAST", 40, 10);
         box.TextAutoFit = PowerPointTextAutoFit.Normal;
         if (unwrapped) box.TextBody!.GetFirstChild<A.BodyProperties>()!.Wrap = A.TextWrappingValues.None;
@@ -263,7 +263,7 @@ public sealed class PowerPointTextFittingRegressionTests {
 
     [Fact]
     public void PartlyOffLeftTextBoxRasterRetainsOverflowBeyondItsOriginalFrame() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(160, 100);
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("OOOOOOOO", -12, 10, 24, 10);
@@ -298,7 +298,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         Assert.True(paintedOverflow > 10, "The slide clip discarded text outside the original text box frame.");
     }
 
-    private static PowerPointTextBox CreateBox(PowerPointPresentation presentation, string text, double width, double height) {
+    private static PowerPointTextBox CreateBox(PowerPointDocument presentation, string text, double width, double height) {
         var box = presentation.AddSlide().AddTextBoxPoints(text, 20, 20, width, height);
         box.FontName = "Helvetica";
         box.FontSize = 24;

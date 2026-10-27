@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsPpt9AutomaticNumberingAcrossRunGroups() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape binaryShape = Assert.Single(
                 Assert.Single(binary.Slides).Shapes,
                 shape => shape.Text.StartsWith("Fourth",
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                 run => run.Ppt9RunId == 3);
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             A.Paragraph[] paragraphs = Assert.IsType<P.Shape>(Assert.Single(
                     reopened.Slides[0].TextBoxes).Element).TextBody!
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_PreservesImplicitAutomaticNumberingContinuation() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape shape = Assert.Single(
-                Assert.Single(LegacyPptPresentation.Load(bytes).Slides)
+                Assert.Single(LegacyPptDocument.Load(bytes).Slides)
                     .Shapes);
             Assert.Collection(shape.TextBody.ParagraphRuns,
                 paragraph => AssertAutoNumber(paragraph,
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
                     LegacyPptAutoNumberScheme.AlphaLowerParenRight, 4));
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(input);
             PowerPointParagraph[] paragraphs = reopened.Slides[0].TextBoxes
                 .Single().Paragraphs.ToArray();
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsPpt9MasterAutomaticNumbering() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                       PowerPointDocument.Create()) {
                 SlideMasterPart masterPart = presentation.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 P.BodyStyle bodyStyle = masterPart.SlideMaster!.TextStyles!
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                 bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptTextMasterStyle body = Assert.Single(
                 Assert.Single(binary.Masters).TextMasterStyles,
                 style => style.TextType == LegacyPptTextType.Body);
@@ -176,8 +176,8 @@ namespace OfficeIMO.Tests {
             Assert.False(body.HasUnprojectedFormatting);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             A.TextParagraphPropertiesType[] levels = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single().SlideMaster!
                 .TextStyles!.BodyStyle!.ChildElements
@@ -193,8 +193,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedMasterAutomaticNumbering_CanChangeAndRemoveEntries() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                       PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                       PowerPointDocument.Create()) {
                 P.BodyStyle bodyStyle = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single().SlideMaster!
                     .TextStyles!.BodyStyle!;
@@ -212,14 +212,14 @@ namespace OfficeIMO.Tests {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                       PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                       PowerPointDocument.Load(input)) {
                 A.TextParagraphPropertiesType[] levels = imported
                     .OpenXmlDocument.PresentationPart!.SlideMasterParts
                     .Single().SlideMaster!.TextStyles!.BodyStyle!
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptTextMasterStyle body = Assert.Single(
                 Assert.Single(saved.Masters).TextMasterStyles,
@@ -262,8 +262,8 @@ namespace OfficeIMO.Tests {
                 new OfficeRasterImage(3, 4,
                     OfficeColor.FromRgb(80, 100, 200)));
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 ImagePart imagePart = masterPart.AddImagePart(
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptTextMasterStyle originalBody = Assert.Single(
                 Assert.Single(original.Masters).TextMasterStyles,
@@ -295,8 +295,8 @@ namespace OfficeIMO.Tests {
             byte[] changedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 SlideMasterPart masterPart = imported.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 P.BodyStyle body = masterPart.SlideMaster!.TextStyles!
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, preflight.Findings));
                 changedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation changed = LegacyPptPresentation.Load(
+            LegacyPptDocument changed = LegacyPptDocument.Load(
                 changedBytes);
             LegacyPptPictureBullet changedBullet = Assert.Single(
                 changed.PictureBullets);
@@ -342,8 +342,8 @@ namespace OfficeIMO.Tests {
             byte[] removedBytes;
             using (var input = new MemoryStream(changedBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 A.TextParagraphPropertiesType first = imported
                     .OpenXmlDocument.PresentationPart!.SlideMasterParts
                     .Single().SlideMaster!.TextStyles!.BodyStyle!
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+            LegacyPptDocument removed = LegacyPptDocument.Load(
                 removedBytes);
             LegacyPptTextMasterStyle removedBody = Assert.Single(
                 Assert.Single(removed.Masters).TextMasterStyles,
@@ -375,19 +375,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPlainText_AddsPpt9NumberingWithAppendOnlyRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Number me");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                     imported.Slides[0].TextBoxes).Element);
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptParagraphRun paragraphRun = Assert.Single(
                 Assert.Single(Assert.Single(saved.Slides).Shapes,
@@ -423,7 +423,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedAutomaticNumbering_CanChangeAndRemoveEntries() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -436,13 +436,13 @@ namespace OfficeIMO.Tests {
                             A.TextAutoNumberSchemeValues.ArabicPeriod, 3));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 A.Paragraph[] paragraphs = Assert.IsType<P.Shape>(
                         Assert.Single(imported.Slides[0].TextBoxes).Element)
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape shape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
@@ -485,7 +485,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedAutomaticNumbering_RemovesLastPpt9Tag() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -496,7 +496,7 @@ namespace OfficeIMO.Tests {
                             A.TextAutoNumberSchemeValues.ArabicPeriod, 1));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             Assert.True(Assert.Single(Assert.Single(original.Slides).Shapes)
                 .TextBody.HasStyle9Record);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 A.ParagraphProperties properties = Assert.IsType<P.Shape>(
                         Assert.Single(imported.Slides[0].TextBoxes).Element)
@@ -519,7 +519,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape shape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes);

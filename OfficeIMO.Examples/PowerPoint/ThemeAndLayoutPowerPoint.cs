@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointThemeAndLayout(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Theme and Layout presentation");
             string filePath = Path.Combine(folderPath, "ThemeAndLayout.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double titleHeightCm = 1.6;
             const double bodyGapCm = 0.8;

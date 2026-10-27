@@ -375,10 +375,10 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
-    public void DocumentReader_ReadDocument_EmitsSlideContainersForPowerPointPresentation() {
+    public void DocumentReader_ReadDocument_EmitsSlideContainersForPowerPointDocument() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 presentation.AddSlide().AddTextBox("Intro slide");
                 presentation.AddSlide().AddTextBox("Details slide");
                 presentation.Save();

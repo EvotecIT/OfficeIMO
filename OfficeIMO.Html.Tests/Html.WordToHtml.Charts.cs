@@ -311,8 +311,8 @@ public sealed class HtmlWordChartTests {
         document.AddChart(OfficeChartType.ColumnClustered, Data());
         byte[] first = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
         byte[] second = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
-        var firstImage = document.AddParagraph().AddImage(new MemoryStream(first), "first.gif", 10, 10);
-        var secondImage = document.AddParagraph().AddImage(new MemoryStream(second), "second.png", 20, 20);
+        var firstImage = document.AddParagraph().AddImage(new MemoryStream(first), "first.gif", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        var secondImage = document.AddParagraph().AddImage(new MemoryStream(second), "second.png", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
         var target = document.Paragraphs[0].GetRuns().Single()._run!;
         foreach (var item in new[] { (firstImage, "First"), (secondImage, "Second") }) {
             string id = item.Item1.Image!.RelationshipId!;
@@ -433,7 +433,7 @@ public sealed class HtmlWordChartTests {
         document.AddChart(OfficeChartType.ColumnClustered, Data(), title: "First chart");
         document.AddChart(OfficeChartType.Doughnut, Data(), title: "Second chart");
         using var pixels = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII="));
-        document.AddParagraph().AddImage(pixels, "marker.png", 10, 10, description: "Picture marker");
+        document.AddParagraph().AddImage(pixels, "marker.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), options: new OfficeIMO.Word.WordImageOptions { Description = "Picture marker" });
         var runs = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Select(run => run._run!).ToArray();
         var secondDrawing = runs[1].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
         var pictureDrawing = runs[2].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;

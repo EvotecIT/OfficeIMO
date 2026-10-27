@@ -14,7 +14,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
     /// <param name="directoryPath">Directory where artifacts will be written.</param>
     /// <param name="options">Optional gallery options.</param>
     /// <returns>Shared gallery manifest describing the generated artifacts and rich-content expectations.</returns>
-    public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this PptCore.PowerPointPresentation presentation, string directoryPath, PowerPointHtmlCapabilityGalleryOptions? options = null) {
+    public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this PptCore.PowerPointDocument presentation, string directoryPath, PowerPointHtmlCapabilityGalleryOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
@@ -102,7 +102,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
         return manifest;
     }
 
-    private static IReadOnlyList<HtmlCapabilityGalleryExpectation> CreateExpectations(PptCore.PowerPointPresentation presentation, PowerPointHtmlCapabilityGalleryOptions options) {
+    private static IReadOnlyList<HtmlCapabilityGalleryExpectation> CreateExpectations(PptCore.PowerPointDocument presentation, PowerPointHtmlCapabilityGalleryOptions options) {
         var expectations = new List<HtmlCapabilityGalleryExpectation>();
         IEnumerable<PptCore.PowerPointSlide> slides = options.IncludeHiddenSlides
             ? presentation.Slides

@@ -24,7 +24,7 @@ public sealed class GetOfficePowerPointLayoutCommand : PSCmdlet
 {
     /// <summary>Presentation to inspect (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index.</summary>
     [Parameter]
@@ -41,7 +41,7 @@ public sealed class GetOfficePowerPointLayoutCommand : PSCmdlet
                 throw new ArgumentOutOfRangeException(nameof(Master), "Master index cannot be negative.");
             }
 
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            var presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             var layouts = presentation.GetSlideLayouts(Master);
             foreach (var layout in layouts)
             {

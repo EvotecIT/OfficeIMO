@@ -109,6 +109,6 @@ public partial class Word {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(8, 8, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var image = new MemoryStream(png);
         paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-        paragraph.AddImage(image, "running-picture.png", width, height);
+        paragraph.AddImage(image, "running-picture.png", OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height));
     }
 }

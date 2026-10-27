@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointSharedChartTextStyleTests {
     [Fact]
     public void SharedSnapshot_PreservesExplicitNativeChartFonts() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
@@ -30,7 +30,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_DoesNotProjectTitleFontOntoChartBodyText() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
@@ -50,8 +50,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_PreservesAxisTitleFontSeparatelyFromLabels() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
@@ -75,8 +75,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_RejectsConflictingAxisTitleFonts() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
@@ -95,7 +95,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_RejectsMixedTitleRunFonts() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1" }, new[] {
@@ -117,7 +117,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_RejectsMixedTitleFieldFonts() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1" }, new[] {
@@ -142,7 +142,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_UsesTitleParagraphDefaultRunFont() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1" }, new[] {
@@ -170,7 +170,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_UsesTitleListLevelDefaultRunFont() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1" }, new[] {
@@ -199,7 +199,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_RejectsConflictingBodyFonts() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
@@ -215,7 +215,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_RejectsPartialBodyFontOverrides() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
@@ -229,7 +229,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_ResolvesThemeFontTokensToEffectiveFamilies() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(
@@ -250,8 +250,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_ResolvesInheritedBodyFontFromMinorTheme() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
@@ -274,8 +274,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_UsesChartSpaceDefaultForInheritedBodyText() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
@@ -304,8 +304,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_UsesChartSpaceDefaultForInheritedTitleText() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
@@ -340,8 +340,8 @@ public sealed class PowerPointSharedChartTextStyleTests {
 
     [Fact]
     public void SharedSnapshot_PreservesIndependentlyInheritedTitleFont() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Theme Heading", "Theme Body");
         PowerPointChart chart = presentation.AddSlide().AddChartPoints(
             OfficeChartType.ColumnClustered,

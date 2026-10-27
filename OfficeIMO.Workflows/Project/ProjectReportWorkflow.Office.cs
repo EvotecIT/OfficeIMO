@@ -57,16 +57,16 @@ public static partial class ProjectReportWorkflow {
     }
 
     /// <summary>Creates chart slides and editable PowerPoint table slides.</summary>
-    public static PowerPointPresentation CreatePowerPoint(ProjectView view, CancellationToken cancellationToken = default) {
+    public static PowerPointDocument CreatePowerPoint(ProjectView view, CancellationToken cancellationToken = default) {
         return CreatePowerPoint(view, new ProjectOfficeReportOptions(), cancellationToken);
     }
 
     /// <summary>Creates a presentation with explicit chart and table selection.</summary>
-    public static PowerPointPresentation CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
+    public static PowerPointDocument CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
         if (view == null) throw new ArgumentNullException(nameof(view));
         ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
-        var presentation = PowerPointPresentation.Create();
+        var presentation = PowerPointDocument.Create();
         try {
             if (view.PageWidth > 4032 || view.PageHeight > 4032) throw new ArgumentOutOfRangeException(nameof(view), "PowerPoint pages cannot exceed 56 inches.");
             presentation.SlideSize.WidthPoints = view.PageWidth; presentation.SlideSize.HeightPoints = view.PageHeight;

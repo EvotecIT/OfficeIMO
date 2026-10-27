@@ -9,10 +9,10 @@ public sealed class PowerPointSelectedSlideExportTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ExhaustedImageBudgetRetainsFollowingSolidAndGradientBackgrounds(bool gradient) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSizePoints(100, 60);
         byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-        deck.AddSlide().AddPicture(new MemoryStream(picture), OfficeImageFormat.Png,
+        deck.AddSlide().AddImage(new MemoryStream(picture), OfficeImageFormat.Png,
             PowerPointUnits.FromPoints(10), PowerPointUnits.FromPoints(10),
             PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
         var background = deck.AddSlide();
@@ -20,7 +20,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         else background.BackgroundColor = "123456";
         deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
 
-        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions {
+        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions {
             MaximumTotalEmbeddedImageBytes = picture.Length
         });
 
@@ -32,7 +32,7 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void MissingSlideBackgroundUsesTheSharedImageExportBackground() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSizePoints(100, 60);
         var slide = deck.AddSlide();
         byte[] bytes = slide.ToPng(new PowerPointImageExportOptions {
@@ -44,7 +44,7 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void PartlyOffSlideFixedFrameKeepsOverflowVisibleBelowItsOriginalHeight() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSizePoints(220, 180);
         var slide = deck.AddSlide();
         var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTAIL", -5, 20, 100, 12);
@@ -65,7 +65,7 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void SelectingOneSlideDoesNotReportLossFromUnselectedSlides() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         var good = deck.AddSlide();
         good.AddTextBoxPoints("SELECTED", 20, 20, 200, 50);
         var omitted = deck.AddSlide();

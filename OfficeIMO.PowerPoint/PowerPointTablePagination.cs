@@ -107,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
         public int PageCount => Slides.Count;
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>
         ///     Adds as many slides as required to represent every data row in native PowerPoint tables.
         ///     Capacity is measured from the table box and minimum row height, and headers repeat by default.

@@ -86,7 +86,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
             VerifyText(root, edited, rows.Select(row => row.Elements<W.TableCell>().Last().InnerText).ToArray());
             Assert.Contains(rows[6].Descendants<W.Color>(), color => color.Val?.Value == "FF0000");
         } else {
-            using var converted = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var converted = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
             using var saved = PresentationDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
             var rows = saved.PresentationPart!.SlideParts.Single().Slide!.Descendants<A.Table>().Single().Elements<A.TableRow>().ToArray();

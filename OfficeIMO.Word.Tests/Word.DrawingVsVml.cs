@@ -19,13 +19,13 @@ namespace OfficeIMO.Tests {
                 string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
                 byte[] expected = File.ReadAllBytes(source);
                 using var document = WordDocument.Create();
-                document.AddParagraph().AddImageVml(source, 24.5D, 12.25D);
-                document.AddParagraph().AddImageVml(source);
+                document.AddParagraph().AddImage(source, OfficeIMO.OfficeLength.Points(24.5D), OfficeIMO.OfficeLength.Points(12.25D), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
+                document.AddParagraph().AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
                 WordImage image;
                 using (var input = new MemoryStream(expected, writable: false)) {
                     input.Position = 3;
-                    image = header.AddParagraph().InsertImageVml(input, "stream.png", 24.5D, 12.25D, "Stream image");
+                    image = header.AddParagraph().AddImage(input, "stream.png", OfficeLength.Points(24.5D), OfficeLength.Points(12.25D), new WordImageOptions { Vml = true, Description = "Stream image" });
                     Assert.True(input.CanRead);
                     Assert.Equal(3L, input.Position);
                 }
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
-                    document.AddImageVml(source);
+                    document.AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                     document.Save();
                 }
                 string expected;
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
-                    document.AddImageVml(source);
+                    document.AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                     WordImage image = Assert.Single(document.Images);
                     Assert.Equal(Path.GetFileName(source), image.FileName);
                     image.FileName = "renamed.png";
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
 
             string vmlFile = Path.Combine(_directoryWithFiles, "VmlCounts.docx");
             using (WordDocument doc = WordDocument.Create(vmlFile)) {
-                doc.AddImageVml(img);
+                doc.AddImage(img, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 doc.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
                 doc.AddShape(WordShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
                 doc.AddShape(WordShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);

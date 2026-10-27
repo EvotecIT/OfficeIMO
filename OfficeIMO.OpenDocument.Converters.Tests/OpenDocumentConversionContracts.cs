@@ -391,7 +391,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointAndOdpRoundTripSlidesShapesTablesNotesAndTransitions() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         PowerPointTextBox title = slide.AddTextBoxPoints("OpenDocument deck", 24, 20, 240, 40);
         title.Paragraphs[0].Runs[0].Bold = true;
@@ -414,8 +414,8 @@ public sealed class OpenDocumentConversionContracts {
 
         using var package = new MemoryStream(odp.ToBytes());
         OdpPresentation reopened = OdpPresentation.Load(package);
-        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
-        using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult();
+        using PowerPointDocument roundTrip = toPowerPoint.Value;
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
         PowerPointSlide roundTripSlide = Assert.Single(roundTrip.Slides);
@@ -432,7 +432,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointAndOdpRoundTripCommonRunFormatting() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
             .Paragraphs[0].Runs[0];
         run.Bold = true;
@@ -457,8 +457,8 @@ public sealed class OpenDocumentConversionContracts {
         Assert.DoesNotContain(toOdp.Report.Mappings, mapping => mapping.Feature == "run-format-details");
 
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
-        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
-        using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult();
+        using PowerPointDocument roundTrip = toPowerPoint.Value;
         PowerPointTextRun converted = roundTrip.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
         Assert.True(converted.Bold);
         Assert.True(converted.Italic);
@@ -472,7 +472,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointAndOdpTableCellsRoundTripParagraphsRunsAndHyperlinks() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTableCell sourceCell = source.AddSlide()
             .AddTablePoints(1, 1, 10, 10, 240, 80)
             .GetCell(0, 0);
@@ -496,11 +496,11 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(Assert.Single(odpCell.Paragraphs[1].Runs).Underline);
 
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
-        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult(
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
-        using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        using PowerPointDocument roundTrip = toPowerPoint.Value;
         Assert.Empty(roundTrip.ValidateDocument());
         PowerPointTableCell roundTripCell = roundTrip.Slides[0].Tables.Single().GetCell(0, 0);
         Assert.Equal(2, roundTripCell.Paragraphs.Count);
@@ -535,8 +535,8 @@ public sealed class OpenDocumentConversionContracts {
             },
             reopenedParagraph.InlineNodes.Select(node => node.Kind));
 
-        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         var runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
         Assert.Equal(new[] { "Before ", "bold", " between ", "link", " after" }, runs.Select(run => run.Text));
         Assert.True(runs[1].Bold);
@@ -573,9 +573,9 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(new[] { OdpInlineNodeKind.Text, OdpInlineNodeKind.Run, OdpInlineNodeKind.Text },
             actual.InlineNodes[1].Children.Select(node => node.Kind));
 
-        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = conversion.Value;
-        using PowerPointPresentation target = PowerPointPresentation.Load(new MemoryStream(converted.ToBytes()));
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = conversion.Value;
+        using PowerPointDocument target = PowerPointDocument.Load(new MemoryStream(converted.ToBytes()));
         IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
         Assert.Equal(new[] { "Outer ", "inner", " linked", "Another ", "styled", " end" },
             runs.Select(run => run.Text));
@@ -616,8 +616,8 @@ public sealed class OpenDocumentConversionContracts {
         OdpRun nested = actual.InlineNodes.Single().Children[1].Run!;
         Assert.True(nested.HasTextBackgroundOverride);
         Assert.Null(nested.BackgroundColor);
-        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
         Assert.Equal("FFFF00", runs[0].HighlightColor);
         Assert.Null(runs[1].HighlightColor);
@@ -625,7 +625,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointRunHyperlinksMapToOdpHyperlinkSyntax() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Linked", 10, 10, 160, 40)
             .Paragraphs[0].Runs[0];
         run.Bold = true;
@@ -649,7 +649,7 @@ public sealed class OpenDocumentConversionContracts {
         slide.AddTable(OdfRect.FromCentimeters(1, 1, 10, 4), 1, 3);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            source.ToPowerPointPresentationResult(new PowerPointOpenDocumentConversionOptions {
+            source.ToPowerPointDocumentResult(new PowerPointOpenDocumentConversionOptions {
                 MaxTableRows = 2,
                 MaxTableColumns = 2
             }));
@@ -659,7 +659,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointToOdpRejectsTablesBeyondConfiguredBounds() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide().AddTablePoints(1, 3, 10, 10, 120, 40);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

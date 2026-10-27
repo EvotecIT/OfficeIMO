@@ -11204,7 +11204,7 @@
       "parameters": {
         "WordDocument": "Document",
         "ExcelDocument": "Document",
-        "PowerPointPresentation": "Document",
+        "PowerPointDocument": "Document",
         "WordOptions": "Options",
         "ExcelOptions": "Options",
         "PowerPointOptions": "Options"

@@ -105,8 +105,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichExtractionRecursesThroughGroupsInDrawingOrder() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before group");
             PowerPointTextBox groupedText =
@@ -153,8 +153,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [InlineData(true)]
     public void InternalRunHyperlinksBecomeMarkdownSlideLinks(bool binary) {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextBox link = source.AddTextBox("Open ");
@@ -181,8 +181,8 @@ public sealed class ReaderPowerPointExtractionTests {
     public void TableContractKeepsPptxAndPptSemanticParity() {
         byte[] pptxBytes;
         byte[] pptBytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before table");
             PowerPointTable table = slide.AddTable(2, 2);
@@ -247,8 +247,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichNumberingRestartsAtPlainAndParentBoundaries() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointTextBox text = presentation.AddSlide()
                 .AddTextBox(string.Empty);
             text.SetNumberedList(new[] { "Before one", "Before two" });
@@ -294,8 +294,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichTitleHeadingDoesNotExposeItsParagraphBullet() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointTextBox title = presentation.AddSlide()
                 .AddTitle("Bulleted title");
             title.Paragraphs[0].SetBullet();
@@ -316,8 +316,8 @@ public sealed class ReaderPowerPointExtractionTests {
     }
 
     private static byte[] CreateRichPresentation(bool binary) {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Reader extraction contract");
         PowerPointTextBox list = slide.AddTextBox(string.Empty);

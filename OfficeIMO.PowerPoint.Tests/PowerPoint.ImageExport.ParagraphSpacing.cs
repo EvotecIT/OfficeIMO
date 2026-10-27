@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTextBoxLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.AddSlide();
 

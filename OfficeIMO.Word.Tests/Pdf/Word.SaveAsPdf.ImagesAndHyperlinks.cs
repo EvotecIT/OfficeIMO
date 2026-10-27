@@ -21,7 +21,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddParagraph().AddImage(imagePath, 50, 50);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
             document.Save();
             document.SaveAsPdf(pdfPath);
@@ -42,15 +42,15 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph left = document.AddParagraph();
             left.ParagraphAlignment = WordParagraphAlignment.Left;
-            left.AddImage(imagePath, 48, 48);
+            left.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             WordParagraph center = document.AddParagraph();
             center.ParagraphAlignment = WordParagraphAlignment.Center;
-            center.AddImage(imagePath, 48, 48);
+            center.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             WordParagraph right = document.AddParagraph();
             right.ParagraphAlignment = WordParagraphAlignment.Right;
-            right.AddImage(imagePath, 48, 48);
+            right.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText("Before loaded image ");
-            paragraph.AddImage(imagePath, 48, 48);
+            paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
             paragraph.AddText(" after loaded image");
             document.Save();
         }
@@ -121,7 +121,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Before unsupported image");
-            document.AddParagraph().AddImage(imagePath, 48, 48);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
             document.AddParagraph("After unsupported image");
             document.Save();
         }
@@ -201,7 +201,7 @@ public partial class Word {
             WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             WordTextBox textBox = cellParagraph.AddTextBox("Image box", WordImageTextWrapping.Square);
             Paragraph inner = textBox.Content!.Descendants<Paragraph>().First();
-            new WordParagraph(document, inner).AddImage(imagePath, 24, 24);
+            new WordParagraph(document, inner).AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24));
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
@@ -288,8 +288,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
             .Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddImage(imagePath, 32, 32);
-        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
+        paragraph.AddText(" between ").AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
@@ -301,8 +301,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordParagraph paragraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
-        paragraph.AddImage(imagePath, 32, 32);
-        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
+        paragraph.AddText(" between ").AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         document.AddParagraph("Body");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
@@ -315,9 +315,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
             .Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         WordParagraph deleted = paragraph.AddText("deleted");
-        deleted.AddImage(imagePath, 32, 32);
+        deleted.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         DocumentFormat.OpenXml.Wordprocessing.Run deletedRun = deleted._run!;
         deletedRun.Remove();
         paragraph._paragraph!.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(deletedRun));

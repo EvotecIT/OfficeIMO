@@ -167,7 +167,7 @@ public sealed class OfficeVbaSourcePolicyTests {
             switch (extension) {
                 case "docm": using (var doc = WordDocument.Create(path)) { doc.SetVbaProject(project); doc.Save(); } break;
                 case "xlsm": using (var doc = ExcelDocument.Create(path)) { doc.AddWorksheet("Data"); doc.SetVbaProject(project); doc.Save(); } break;
-                case "pptm": using (var doc = PowerPointPresentation.Create(path)) { doc.AddSlide(); doc.SetVbaProject(project); doc.Save(); } break;
+                case "pptm": using (var doc = PowerPointDocument.Create(path)) { doc.AddSlide(); doc.SetVbaProject(project); doc.Save(); } break;
             }
             using (OpenXmlPackage package = OpenPackage(path, extension)) {
                 VbaProjectPart part = GetProjectPart(package);
@@ -183,7 +183,7 @@ public sealed class OfficeVbaSourcePolicyTests {
             switch (extension) {
                 case "docm": using (var doc = WordDocument.Load(path)) { var edit = doc.ReadVbaProject()!; doc.SetVbaProject(edit); edit.SetModuleSource("Helpers", "'changed\r\n"); Assert.Throws<InvalidOperationException>(() => doc.SetVbaProject(edit)); Assert.Contains("'original", doc.ReadVbaProject()!.GetModule("Helpers").Source); doc.SetVbaProject(edit, new OfficeVbaWriteOptions { AllowSignatureRemoval = true }); doc.Save(); } break;
                 case "xlsm": using (var doc = ExcelDocument.Load(path)) { var edit = doc.ReadVbaProject()!; doc.SetVbaProject(edit); edit.SetModuleSource("Helpers", "'changed\r\n"); Assert.Throws<InvalidOperationException>(() => doc.SetVbaProject(edit)); Assert.Contains("'original", doc.ReadVbaProject()!.GetModule("Helpers").Source); doc.SetVbaProject(edit, new OfficeVbaWriteOptions { AllowSignatureRemoval = true }); doc.Save(); } break;
-                case "pptm": using (var doc = PowerPointPresentation.Load(path)) { var edit = doc.ReadVbaProject()!; doc.SetVbaProject(edit); edit.SetModuleSource("Helpers", "'changed\r\n"); Assert.Throws<InvalidOperationException>(() => doc.SetVbaProject(edit)); Assert.Contains("'original", doc.ReadVbaProject()!.GetModule("Helpers").Source); doc.SetVbaProject(edit, new OfficeVbaWriteOptions { AllowSignatureRemoval = true }); doc.Save(); } break;
+                case "pptm": using (var doc = PowerPointDocument.Load(path)) { var edit = doc.ReadVbaProject()!; doc.SetVbaProject(edit); edit.SetModuleSource("Helpers", "'changed\r\n"); Assert.Throws<InvalidOperationException>(() => doc.SetVbaProject(edit)); Assert.Contains("'original", doc.ReadVbaProject()!.GetModule("Helpers").Source); doc.SetVbaProject(edit, new OfficeVbaWriteOptions { AllowSignatureRemoval = true }); doc.Save(); } break;
             }
             using (OpenXmlPackage package = OpenPackage(path, extension)) {
                 VbaProjectPart part = GetProjectPart(package);

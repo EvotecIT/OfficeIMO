@@ -24,7 +24,7 @@ public sealed class CloseOfficePowerPointCommand : PSCmdlet {
     /// <summary>Presentation to close.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]
     [ValidateNotNull]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Persist changes before closing.</summary>
     [Parameter]
@@ -62,7 +62,7 @@ public sealed class CloseOfficePowerPointCommand : PSCmdlet {
                 var resolvedPath = !string.IsNullOrWhiteSpace(Path)
                     ? SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path)
                     : null;
-                PowerPointDocumentService.ClosePresentation(Presentation, shouldSave, Open.IsPresent, Password, resolvedPath);
+                PowerPointDocumentService.CloseDocument(Presentation, shouldSave, Open.IsPresent, Password, resolvedPath);
             }
         } catch (Exception ex) {
             WriteError(new ErrorRecord(ex, "PowerPointCloseFailed", ErrorCategory.InvalidOperation, Presentation));

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsProjectsAndInspectsClassicAnimations() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             Assert.Equal(2, legacy.CreateImportReport().AnimationCount);
             LegacyPptAnimation first = Assert.IsType<LegacyPptAnimation>(
                 legacy.Slides[0].Shapes[0].Animation);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0x08000002U, second.RawDimColor);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             Assert.Equal(2, projected.Slides[0].ClassicAnimations.Count);
             PowerPointClassicAnimation projectedSecond = projected.Slides[0]
                 .ClassicAnimations[1];
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PublicApi_RejectsEffectDirectionOutsideLegacyContract() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);
@@ -111,11 +111,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedAnimation_UnrelatedShapeEditPreservesExactSemantics() {
             byte[] sourceBytes = CreateBinaryAnimationPresentation();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 imported.Slides[0].Shapes[0].Left += 1588;
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptAnimation animation = Assert.IsType<LegacyPptAnimation>(
                 saved.Slides[0].Shapes[0].Animation);
             Assert.Equal(LegacyPptAnimationEffect.Wipe, animation.Effect);
@@ -138,11 +138,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedAnimation_EditRemoveAndAddUseIncrementalRecords() {
             byte[] sourceBytes = CreateBinaryAnimationPresentation();
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 PowerPointShape shape = slide.Shapes[0];
                 Assert.True(slide.RemoveClassicAnimation(shape));
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
+            LegacyPptDocument edited = LegacyPptDocument.Load(editedBytes);
             LegacyPptAnimation animation = Assert.IsType<LegacyPptAnimation>(
                 edited.Slides[0].Shapes[0].Animation);
             Assert.Equal(LegacyPptAnimationEffect.Wheel, animation.Effect);
@@ -173,29 +173,29 @@ namespace OfficeIMO.Tests {
 
             byte[] removedBytes;
             using (var input = new MemoryStream(editedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 Assert.True(imported.Slides[0].RemoveClassicAnimation(
                     imported.Slides[0].Shapes[0]));
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            Assert.Null(LegacyPptPresentation.Load(removedBytes)
+            Assert.Null(LegacyPptDocument.Load(removedBytes)
                 .Slides[0].Shapes[0].Animation);
         }
 
         [Fact]
         public void ImportedSlide_CanAddFirstClassicAnimationIncrementally() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1200000, 500000);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 slide.AddClassicAnimation(slide.Shapes[0],
                     PowerPointClassicAnimationEffect.Fade);
@@ -204,9 +204,9 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(LegacyPptAnimationEffect.Fade,
-                Assert.IsType<LegacyPptAnimation>(LegacyPptPresentation
+                Assert.IsType<LegacyPptAnimation>(LegacyPptDocument
                     .Load(savedBytes).Slides[0].Shapes[0].Animation).Effect);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
         public void AnimationSound_AuthorsProjectsAndReplacesIncrementally() {
             byte[] wave = CreateWavePayload();
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
             LegacyPptSound originalSound = Assert.Single(original.Sounds);
             LegacyPptAnimation originalAnimation = Assert.IsType<LegacyPptAnimation>(
                 original.Slides[0].Shapes[0].Animation);
@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
             byte[] replacement = wave.Concat(new byte[] { 0xA1, 0xA2 }).ToArray();
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 PowerPointShape shape = slide.Shapes[0];
                 PowerPointClassicAnimation projected =
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.Equal(2, saved.Sounds.Count);
             LegacyPptSound appended = saved.Sounds.Single(sound =>
                 sound.Name == "Replacement Animation");
@@ -280,8 +280,8 @@ namespace OfficeIMO.Tests {
         public void PptxTiming_MaterializesClassicSoundsAndAfterEffects() {
             byte[] wave = CreateWavePayload();
             byte[] pptx;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape dimmed = slide.AddRectangle(
                     100000, 100000, 800000, 400000);
@@ -358,8 +358,8 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(pptx, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(input);
             Assert.Equal(3, reopened.Slides[0].ClassicAnimations.Count);
             Assert.True(reopened.Slides[0].ClassicAnimations[0].StopsSound);
             Assert.Equal(wave, reopened.Slides[0]
@@ -371,8 +371,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PptxTiming_MultipleStopSoundCommandsRemainClassicForPptExport() {
             byte[] ppt;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape first = slide.AddRectangle(
@@ -398,7 +398,7 @@ namespace OfficeIMO.Tests {
                 ppt = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptAnimation[] animations = LegacyPptPresentation.Load(ppt)
+            LegacyPptAnimation[] animations = LegacyPptDocument.Load(ppt)
                 .Slides[0].Shapes.Select(shape => shape.Animation)
                 .OfType<LegacyPptAnimation>().ToArray();
             Assert.Equal(2, animations.Length);
@@ -409,7 +409,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_ConvertsPowerPointAuthoredClassicTiming() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointTextBox shape = slide.AddTextBox("One\nTwo\nThree",
                     100000, 100000, 1800000, 900000);
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptAnimation animationAtom = Assert.IsType<LegacyPptAnimation>(
-                LegacyPptPresentation.Load(bytes).Slides[0].Shapes[0].Animation);
+                LegacyPptDocument.Load(bytes).Slides[0].Shapes[0].Animation);
             Assert.Equal(LegacyPptAnimationEffect.Wipe,
                 animationAtom.Effect);
             Assert.Equal(3, animationAtom.EffectDirection);
@@ -456,8 +456,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksAdvancedTimingMixedWithClassicAnimation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);
@@ -478,8 +478,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_ConvertsAfterPreviousButBlocksWithPrevious() {
             byte[] automaticBytes;
-            using (PowerPointPresentation automatic =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument automatic =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = automatic.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
@@ -501,13 +501,13 @@ namespace OfficeIMO.Tests {
                 automaticBytes = automatic.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptAnimation atom = Assert.IsType<LegacyPptAnimation>(
-                LegacyPptPresentation.Load(automaticBytes).Slides[0]
+                LegacyPptDocument.Load(automaticBytes).Slides[0]
                     .Shapes[0].Animation);
             Assert.True(atom.Automatic);
             Assert.Equal(325, atom.DelayMilliseconds);
 
-            using PowerPointPresentation concurrent =
-                PowerPointPresentation.Create();
+            using PowerPointDocument concurrent =
+                PowerPointDocument.Create();
             PowerPointSlide concurrentSlide = concurrent.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape concurrentShape = concurrentSlide.AddRectangle(
                 100000, 100000, 1200000, 500000);
@@ -524,7 +524,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateBinaryAnimationPresentation() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);

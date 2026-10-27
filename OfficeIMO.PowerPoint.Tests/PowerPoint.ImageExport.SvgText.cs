@@ -16,7 +16,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Svg)]
     public void PowerPointSlide_ImageExportPreservesTextTableThemeAndClippedContent(OfficeImageExportFormat format) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(320, 180);
         presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "146C94");
         PowerPointSlide slide = presentation.AddSlide();
@@ -57,7 +57,7 @@ public partial class PowerPointImageExportTests {
         Assert.Equal(OfficeColor.FromRgb(255, 249, 232), image.GetPixel(60, 170));
     }
 
-    private static void AssertNativeImageRoute(PowerPointPresentation presentation, OfficeImageExportFormat format, double scale = 1D) {
+    private static void AssertNativeImageRoute(PowerPointDocument presentation, OfficeImageExportFormat format, double scale = 1D) {
         OfficeImageExportResult actual = presentation.Slides[0].ExportImage(format, new PowerPointImageExportOptions { Scale = scale });
         PowerPointSlideVisualInfo snapshot = presentation.Slides[0].CreateVisualSnapshot();
         Assert.Equal(format, actual.Format);

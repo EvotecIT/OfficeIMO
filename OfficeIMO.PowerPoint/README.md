@@ -39,7 +39,7 @@ dotnet add package OfficeIMO.PowerPoint
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointPresentation.Create("deck.pptx");
+using var presentation = PowerPointDocument.Create("deck.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
 var slide = presentation.AddSlide();
@@ -59,7 +59,7 @@ editing deterministic; there is no hidden placeholder slide to reuse.
 For a deck from an untrusted source, use the bounded load profile:
 
 ```csharp
-using var incoming = PowerPointPresentation.Load("upload.pptx", PowerPointLoadOptions.UntrustedDefaults);
+using var incoming = PowerPointDocument.Load("upload.pptx", PowerPointLoadOptions.UntrustedDefaults);
 ```
 
 It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with decks containing those parts; set `PackageSecurity` explicitly for another policy.
@@ -70,7 +70,7 @@ Retain a structural report of the exact input used by the loader:
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointPresentation.Load("review.pptx", new PowerPointLoadOptions {
+using var presentation = PowerPointDocument.Load("review.pptx", new PowerPointLoadOptions {
     AccessMode = DocumentAccessMode.ReadOnly,
     PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
     CaptureSourcePackageSecurity = true
@@ -90,15 +90,15 @@ Load operations are detached from their source. Persistence is explicit by defau
 save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
 
 ```csharp
-using var edited = PowerPointPresentation.Load("deck.pptx");
+using var edited = PowerPointDocument.Load("deck.pptx");
 edited.ReplaceText("Draft", "Approved");
 edited.Save();
 
-using var inspected = PowerPointPresentation.Load("deck.pptx",
+using var inspected = PowerPointDocument.Load("deck.pptx",
     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 
 using var output = new MemoryStream();
-using var streamed = PowerPointPresentation.Create(output);
+using var streamed = PowerPointDocument.Create(output);
 streamed.AddSlide().AddTitle("Stream-backed deck");
 streamed.Save();
 ```
@@ -109,7 +109,7 @@ Normal loading detects the OLE document streams, so callers do not need a separa
 `.pot`, or `.pps` input. Supported binary content is projected into the same editable model used for PPTX:
 
 ```csharp
-using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
+using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
 
 Console.WriteLine(presentation.SourceFormat); // Ppt
 presentation.ReplaceText("Draft", "Approved");
@@ -121,7 +121,7 @@ Use `LoadLegacyPptWithReport(...)` when an import gate needs parser diagnostics 
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using PowerPointPresentation presentation = PowerPointPresentation.Load("legacy-deck.ppt", null,
+using PowerPointDocument presentation = PowerPointDocument.Load("legacy-deck.ppt", null,
     out OfficeIMO.OfficeConversionReport report);
 foreach (OfficeIMO.OfficeDiagnostic diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
@@ -143,7 +143,7 @@ macro-enabled package type and VBA as well.
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using var presentation = PowerPointPresentation.Create("simple-deck.ppt");
+using var presentation = PowerPointDocument.Create("simple-deck.ppt");
 var slide = presentation.AddSlide();
 slide.AddTitle("Binary PowerPoint");
 slide.AddTextBox("Written without PowerPoint automation.");
@@ -179,7 +179,7 @@ CryptoAPI for PowerPoint 97-2003 compatibility; it is a legacy interoperability 
 cryptography:
 
 ```csharp
-using var encrypted = PowerPointPresentation.Load(
+using var encrypted = PowerPointDocument.Load(
     "protected.ppt", new PowerPointLoadOptions { Password = "open-password" });
 
 encrypted.Save("protected-copy.ppt",
@@ -287,16 +287,16 @@ paragraph.SetTabStops(new[] {
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
-slide.AddPicture("logo.png",
+slide.AddImage("logo.png",
     PowerPointUnits.FromCentimeters(23), PowerPointUnits.FromCentimeters(1.2),
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
 using var logo = File.OpenRead("logo.png");
-slide.AddPicture(logo, OfficeImageFormat.Png,
+slide.AddImage(logo, OfficeImageFormat.Png,
     PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
     PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
-slide.AddPicture("diagram.svg",
+slide.AddImage("diagram.svg",
     PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(5),
     PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(4));
 ```
@@ -549,7 +549,7 @@ duplicate.Notes.Text = "Backup slide for Q&A.";
 Use `InspectFeatures()` before broad edits or automated round trips when input decks may contain package features outside the editable OfficeIMO surface:
 
 ```csharp
-using var presentation = PowerPointPresentation.Load("incoming.pptx");
+using var presentation = PowerPointDocument.Load("incoming.pptx");
 
 PowerPointFeatureReport report = presentation.InspectFeatures();
 report.EnsureNoUnsupportedFeatures();
@@ -564,7 +564,7 @@ foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
 Generated and imported decks can be inspected with structured policies before they enter CI or a publishing workflow:
 
 ```csharp
-using var presentation = PowerPointPresentation.Load("incoming.pptx",
+using var presentation = PowerPointDocument.Load("incoming.pptx",
     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 
 var options = new PowerPointInspectionOptions {
@@ -644,10 +644,10 @@ The visual proof report records structural and extraction evidence, accessibilit
 ### Designer composition
 
 Use a semantic plan when a deck needs readable business composition without hand-positioning every object.
-`PowerPointDeckPlan` owns intent and `PowerPointPresentation.Compose(...)` is the only public rendering operation:
+`PowerPointDeckPlan` owns intent and `PowerPointDocument.Compose(...)` is the only public rendering operation:
 
 ```csharp
-using var presentation = PowerPointPresentation.Create("proposal.pptx");
+using var presentation = PowerPointDocument.Create("proposal.pptx");
 
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
@@ -736,10 +736,10 @@ presentation.Save();
 
 Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image)` when placing a native image, chart, table, or text box into authored placeholder bounds. `CreateDesignBrief(...)` maps the imported brand into designer tokens; `ApplyBrandTo(...)` applies the same colors and fonts to native theme parts in another presentation.
 
-Concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
+Concrete `PowerPointDocument`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
 no separate PowerPoint builder vocabulary to learn or keep synchronized.
 
-The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
+The concrete `PowerPointDocument`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
 
 ## PDF export
 
@@ -749,7 +749,7 @@ Forward PDF conversion lives in `OfficeIMO.PowerPoint.Pdf`:
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("deck.pptx");
+using var presentation = PowerPointDocument.Load("deck.pptx");
 presentation.SaveAsPdf("deck.pdf");
 using var pdf = presentation.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
 byte[] pdfBytes = pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -787,7 +787,7 @@ PowerPoint PDF and slide images use the same layout and font policy through `Off
 
 Add the `OfficeIMO` front-door package for the shared inspection entry point.
 
-`OfficeIMO.OfficeDocument.Inspect("input.pptx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+`OfficeIMO.OfficeDocument.Inspect("input.pptx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointDocument.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
 When the presentation is already in memory, inspect its encoded package bytes directly. This overload validates the package and inspects supported provenance without accessing the filesystem:
 
@@ -802,7 +802,7 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 
 ## Concealed-content inspection and cleanup
 
-`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointPresentation.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
+`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointDocument.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
 
 ## Adjacent packages
 

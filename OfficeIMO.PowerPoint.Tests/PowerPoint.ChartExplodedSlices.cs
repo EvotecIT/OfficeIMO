@@ -15,10 +15,10 @@ public sealed class PowerPointChartExplodedSlicesTests {
         var authored = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddChart(kind, authored);
         using var bytes = new MemoryStream(presentation.ToBytes());
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         PowerPointChart chart = reopened.Slides.Single().Charts.Single();
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);

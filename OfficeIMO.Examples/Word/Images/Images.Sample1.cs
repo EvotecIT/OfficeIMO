@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
             // lets add image to paragraph
-            var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WordImageTextWrapping.BehindText);
+            var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.BehindText });
 
             var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the inserted image.");
             var paragraphImageImage = Guard.NotNull(paragraphImage.Image, "Paragraph should contain the inserted image.");
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This adds another picture with 500x500");
             var paragraph3 = document.AddParagraph();
-            paragraph3.AddImage(filePathImage, 500, 500);
+            paragraph3.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(500), OfficeIMO.OfficeLength.Pixels(500));
             var paragraph3Image = Guard.NotNull(paragraph3.Image, "Paragraph should contain the large image.");
             //paragraph3Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
             paragraph3Image.Rotation = 180;
@@ -43,12 +43,12 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This adds another picture with 100x100");
             var paragraph4 = document.AddParagraph();
-            paragraph4.AddImage(filePathImage, 100, 100);
+            paragraph4.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
 
             document.AddParagraph("This adds another picture via Stream with 100x100");
             var paragraph5 = document.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
-                paragraph5.AddImage(imageStream, fileNameImage, 100, 100);
+                paragraph5.AddImage(imageStream, fileNameImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
             }
 
             // we add paragraph with an image

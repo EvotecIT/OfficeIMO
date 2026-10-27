@@ -69,8 +69,8 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "background-image:linear-gradient(red,blue)'>Gradient</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Single(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Gradient");
         Assert.Contains(result.Report.Diagnostics, diagnostic =>

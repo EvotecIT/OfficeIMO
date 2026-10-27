@@ -87,7 +87,7 @@ public static partial class OfficeConverter {
             }
             case "ppt-pdf":
             case "pptx-pdf": {
-                using PowerPointPresentation document = await PowerPointPresentation.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 PowerPointPdfExportOptions options = settings.PowerPoint ?? new PowerPointPdfExportOptions().UseProfile(ExportProfile(settings.OutputProfile)); options.FailOnLoss |= settings.FailOnLoss;

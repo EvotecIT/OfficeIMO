@@ -13,7 +13,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
     [InlineData(false)]
     [InlineData(true)]
     public void InheritedShapeSlideLinksResolveAndEditTheirActualOwner(bool master) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("Inherited shape", 30, 30, 240, 60);
@@ -26,7 +26,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         box.Element.Remove();
         Tree(owner).Append(box.Element);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PowerPointShape inherited = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport(), shape => shape.Name == box.Name);
         Assert.Equal("#slide-2", inherited.Hyperlink?.OriginalString);
         inherited.SetHyperlink(reopened.Slides[1]);
@@ -44,7 +44,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
     [InlineData(false, "next")]
     [InlineData(true, "next")]
     public void InheritedTableCellLinksKeepRelationshipAndActiveSlideContexts(bool master, string kind) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointTable table = first.AddTablePoints(1, 1, 30, 30, 240, 60);
@@ -59,7 +59,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         });
         table.Element.Remove(); Tree(owner).Append(table.Element);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         string expected = kind == "external" ? "https://example.com/correct-owner" : "#slide-2";
         PowerPointTable inherited = Assert.Single(reopened.Slides[0].GetInheritedShapesForExport().OfType<PowerPointTable>());
         Assert.Equal(expected, inherited.GetCell(0, 0).Paragraphs[0].Runs.Single(r => r.Text == "Inherited link").Hyperlink?.OriginalString);

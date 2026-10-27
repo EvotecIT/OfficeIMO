@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class AddOfficePowerPointSectionCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Name of the section to add.</summary>
     [Parameter(Mandatory = true)]
@@ -38,7 +38,7 @@ public sealed class AddOfficePowerPointSectionCommand : PSWriteOffice.Cmdlets.Of
     protected override void ProcessRecord() {
         try {
             var context = PowerPointDslContext.Current;
-            var presentation = Presentation ?? context?.Presentation
+            var presentation = Presentation ?? context?.Document
                 ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             int startIndex = ResolveStartSlideIndex(presentation, context);
@@ -48,7 +48,7 @@ public sealed class AddOfficePowerPointSectionCommand : PSWriteOffice.Cmdlets.Of
         }
     }
 
-    private int ResolveStartSlideIndex(PowerPointPresentation presentation, PowerPointDslContext? context) {
+    private int ResolveStartSlideIndex(PowerPointDocument presentation, PowerPointDslContext? context) {
         if (StartSlideIndex.HasValue) {
             return StartSlideIndex.Value;
         }

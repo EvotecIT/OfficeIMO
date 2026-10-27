@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Reader.PowerPoint;
 
 internal static class PowerPointInspectionProjection {
-    internal static OfficeDocumentReadResult Apply(PowerPointPresentation presentation, ReaderOptions options,
+    internal static OfficeDocumentReadResult Apply(PowerPointDocument presentation, ReaderOptions options,
         OfficeDocumentReadResult result, CancellationToken cancellationToken) {
         if (options.Inspection == null) return result;
         var builder = new ReaderInspectionMetadataBuilder(options, "powerpoint", cancellationToken);

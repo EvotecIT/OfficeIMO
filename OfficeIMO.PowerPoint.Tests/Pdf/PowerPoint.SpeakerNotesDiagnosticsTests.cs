@@ -16,7 +16,7 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, true)]
     public void Pdf_reports_present_speaker_notes_when_the_selected_layout_omits_them(
         PowerPointPdfPageLayout layout, bool includeNotes) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
         slide.Notes.Text = "PRESENTER-NOTE";
@@ -43,7 +43,7 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, 6, 10)]
     public void Pdf_reports_enabled_notes_that_exceed_their_rendered_frame(
         PowerPointPdfPageLayout layout, int slidesPerPage, int lines) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
         slide.Notes.Text = string.Join("\n", Enumerable.Range(1, lines).Select(index => $"PRESENTER-NOTE-{index:000}"));
@@ -71,7 +71,7 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Pdf_note_omission_diagnostics_follow_the_selected_slides(bool includeHidden) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
         PowerPointSlide hidden = presentation.AddSlide();
         hidden.Hidden = true;

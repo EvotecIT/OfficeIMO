@@ -124,8 +124,8 @@
       </TableControl>
     </View>
     <View>
-      <Name>OfficeIMO.PowerPoint.PowerPointPresentation</Name>
-      <ViewSelectedBy><TypeName>OfficeIMO.PowerPoint.PowerPointPresentation</TypeName></ViewSelectedBy>
+      <Name>OfficeIMO.PowerPoint.PowerPointDocument</Name>
+      <ViewSelectedBy><TypeName>OfficeIMO.PowerPoint.PowerPointDocument</TypeName></ViewSelectedBy>
       <TableControl>
         <TableHeaders>
           <TableColumnHeader><Label>FilePath</Label></TableColumnHeader>

@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             const double rowHeightPoints = 30;
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(2, 2, 914400L, 1828800L, 5000000L, 2000000L);
                     table.SetColumnWidthPoints(0, columnWidthPoints);

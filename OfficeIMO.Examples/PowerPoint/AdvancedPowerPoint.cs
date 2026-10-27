@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_AdvancedPowerPoint(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Advanced features");
             string filePath = Path.Combine(folderPath, "Advanced PowerPoint.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
             const double titleHeightCm = 1.4;
@@ -80,7 +80,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                slide2.AddPicture(imagePath, mediaBox);
+                slide2.AddImage(imagePath, mediaBox);
                 PowerPointTextBox caption = slide2.AddTextBox("Illustration scaled to fit.", captionBox);
                 caption.FontSize = 12;
                 caption.Color = "666666";

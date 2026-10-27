@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public class PowerPointTabStopsTests {
     [Fact]
     public void ParagraphTabStopsReplaceAtomicallyAndSurviveSave() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var paragraph = presentation.AddSlide().AddTextBox("A\tB").Paragraphs.Single();
         paragraph.SetTabStops(new[] { new PowerPointTabStop(18), new PowerPointTabStop(72, PowerPointTabAlignment.Decimal) });
         Assert.Throws<ArgumentException>(() => paragraph.SetTabStops(new PowerPointTabStop[] { new(36), null! }));
@@ -17,7 +17,7 @@ public class PowerPointTabStopsTests {
         Assert.Empty(presentation.ValidateDocument());
         using var output = new MemoryStream();
         presentation.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         var restored = reopened.Slides.Single().TextBoxes.Single().Paragraphs.Single();
         Assert.Equal(PowerPointTabAlignment.Decimal, restored.TabStops[1].Alignment);
         restored.SetTabStops(Array.Empty<PowerPointTabStop>());

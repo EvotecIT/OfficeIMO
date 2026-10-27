@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void StackShapes_Horizontal_AlignsBottom() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 2000, 1000);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void StackShapes_Vertical_AlignsCenter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 600);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 2000, 800);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
         public void StackShapesToSlideContent_UsesMargin() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 700);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 1000, 900);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         public void StackShapes_Horizontal_JustifiesCenter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 2000, 500);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         public void StackShapes_ClampSpacingToBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 2500, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 2500, 500);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
         public void StackShapes_ScalesToFitBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 3000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 3000, 500);

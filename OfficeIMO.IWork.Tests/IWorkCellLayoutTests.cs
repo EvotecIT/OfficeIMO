@@ -114,10 +114,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(result.Report.IsPartialEditableReconstruction);
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var table = Assert.Single(reopened.Slides[0].Tables);
             foreach (int column in new[] { 0, 1 }) {
                 var cell = table.GetCell(0, column);
@@ -167,7 +167,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(result.IsVisualFallback);
             Assert.Equal(padding, result.Projection.Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(padding, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
         }
@@ -192,7 +192,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
             }
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(!partial, result.IsVisualFallback);
             Assert.Equal(native, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
             if (partial) {

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void CanReadLayoutPlaceholders() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 
                 var placeholders = slide.GetLayoutPlaceholders();
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         public void CanCreateNativeLayoutHeaderFooterPlaceholders() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
                     PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(PlaceholderValues.SlideNumber, placeholderTypes);
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
 
                     Assert.NotNull(slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Footer, 10U));

@@ -100,8 +100,7 @@ public partial class Word {
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "Before";
         using var image = new MemoryStream(Convert.FromBase64String(CellDirectionImagePng));
-        paragraph.AddImage(image, "direction.png", 40D * 4D / 3D, 20D * 4D / 3D,
-            description: "Red left half and blue right half");
+        paragraph.AddImage(image, "direction.png", OfficeIMO.OfficeLength.Pixels(40D * 4D / 3D), OfficeIMO.OfficeLength.Pixels(20D * 4D / 3D), options: new OfficeIMO.Word.WordImageOptions { Description = "Red left half and blue right half" });
         paragraph.AddText("After");
         byte[] bytes = document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -156,8 +155,7 @@ public partial class Word {
         paragraph.Text = string.Empty;
         paragraph.ParagraphAlignment = alignment;
         using var imageStream = new MemoryStream(Convert.FromBase64String(CellDirectionImagePng));
-        paragraph.AddImage(imageStream, "direction.png", 40D * 4D / 3D, 20D * 4D / 3D,
-            description: "Red left half and blue right half");
+        paragraph.AddImage(imageStream, "direction.png", OfficeIMO.OfficeLength.Pixels(40D * 4D / 3D), OfficeIMO.OfficeLength.Pixels(20D * 4D / 3D), options: new OfficeIMO.Word.WordImageOptions { Description = "Red left half and blue right half" });
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

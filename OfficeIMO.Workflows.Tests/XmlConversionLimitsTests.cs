@@ -93,7 +93,7 @@ public sealed class XmlConversionLimitsTests {
                 using (var excel = ExcelDocument.Create(path)) { excel.AddWorksheet("Budget").CellValue(1, 1, marker); excel.Save(); }
                 break;
             case ".pptx":
-                using (var presentation = PowerPointPresentation.Create(path)) { presentation.AddSlide().AddTextBox(marker); presentation.Save(); }
+                using (var presentation = PowerPointDocument.Create(path)) { presentation.AddSlide().AddTextBox(marker); presentation.Save(); }
                 break;
         }
     }

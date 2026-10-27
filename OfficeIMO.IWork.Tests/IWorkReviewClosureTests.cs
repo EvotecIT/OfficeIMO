@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         PowerPointTextRun reopenedRun = Assert.Single(Assert.Single(
             Assert.Single(reopened.Slides).Notes.Paragraphs).Runs);
         Assert.Equal(target, reopenedRun.Hyperlink);
@@ -189,7 +189,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void PowerPoint_shape_hyperlinks_round_trip_through_the_owner_model() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextBox textBox = presentation.AddSlide()
             .AddTextBoxPoints("Linked", 10, 10, 100, 30);
         var target = new Uri("https://example.com/keynote-shape");

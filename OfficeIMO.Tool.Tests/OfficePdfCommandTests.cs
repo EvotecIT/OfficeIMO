@@ -395,7 +395,7 @@ public sealed class OfficePdfCommandTests {
                 }
                 break;
             case ".pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTextBox("Tool PowerPoint conversion");
                     presentation.Save();
                 }

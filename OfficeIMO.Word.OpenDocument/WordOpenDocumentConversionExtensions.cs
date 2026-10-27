@@ -431,7 +431,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         if (!notes.Images.TryReserve(bytes.Length)) break;
                         reservedImageBytes = bytes.Length;
                         using var stream = new MemoryStream(bytes, writable: false);
-                        target.AddImage(stream, fileName, image.Width.ToPoints(), image.Height.ToPoints());
+                        target.AddImage(stream, fileName, OfficeIMO.OfficeLength.Pixels(image.Width.ToPoints()), OfficeIMO.OfficeLength.Pixels(image.Height.ToPoints()));
                         images++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {

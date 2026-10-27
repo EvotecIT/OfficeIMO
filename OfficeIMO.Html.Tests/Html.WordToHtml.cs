@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_EnforcesImageBudgetBeforeMaterializingImage() {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             var options = new WordHtmlExportOptions { MaxEmbeddedImageBytes = 1 };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_RejectsBase64ImageBeforeBuildingAnOversizedDataUri() {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             var options = new WordHtmlExportOptions { MaxOutputCharacters = 4096 };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             doc.AddParagraph(new string('x', 2048));
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
             var options = new WordHtmlExportOptions { MaxOutputCharacters = imageDataUriCharacters + 100L };
@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_Base64ImageBudgetAccumulatesWithoutReserializingTheDocument() {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             long imageBytes = new FileInfo(assetPath).Length;
             long imageDataUriCharacters = "data:image/png;base64,".Length + ((imageBytes + 2L) / 3L) * 4L;
             var options = new WordHtmlExportOptions { MaxOutputCharacters = imageDataUriCharacters * 2L };
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
             doc.AddParagraph(new string('x', 32));
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
+            doc.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             var options = new WordHtmlExportOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
@@ -703,7 +703,7 @@ namespace OfficeIMO.Tests {
 
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
-            paragraph.AddImage(assetPath, 40, 40, description: "Company logo");
+            paragraph.AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Company logo" });
 
             Assert.NotNull(paragraph.Image);
             Assert.Equal("Company logo", paragraph.Image!.Description);
@@ -723,7 +723,7 @@ namespace OfficeIMO.Tests {
 
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
-            paragraph.AddImage(assetPath, 20, 20);
+            paragraph.AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
 
             string html = doc.ToHtml(new WordHtmlExportOptions { EmbedImagesAsBase64 = false });
 

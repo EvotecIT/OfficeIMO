@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         [Fact]
         public void NormalAutoFit_IsExplicitlyBlockedAsNonRepresentable() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide(
                     PowerPointSlideLayoutType.Blank)
                 .AddTextBox("Shrink me");
@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExplicitLineBreak_FreshEditAndRemove_RoundTripsNatively() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox(string.Empty);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, preflight.Findings));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation sourceLegacy = LegacyPptPresentation.Load(
+            LegacyPptDocument sourceLegacy = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptShape sourceShape = Assert.Single(
                 Assert.Single(sourceLegacy.Slides).Shapes);
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 A.Break lineBreak = Assert.Single(imported.Slides[0]
                     .SlidePart.Slide!.Descendants<A.Break>());
                 Assert.True(lineBreak.RunProperties!.Bold!.Value);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 editedBytes);
             LegacyPptCharacterRun editedBreak = Assert.Single(
                 Assert.Single(Assert.Single(edited.Slides).Shapes)
@@ -99,14 +99,14 @@ namespace OfficeIMO.Tests {
             byte[] removedBytes;
             using (var input = new MemoryStream(editedBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 Assert.Single(imported.Slides[0].SlidePart.Slide!
                     .Descendants<A.Break>()).Remove();
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+            LegacyPptDocument removed = LegacyPptDocument.Load(
                 removedBytes);
             Assert.Equal("BeforeAfter", Assert.Single(
                 Assert.Single(removed.Slides).Shapes).Text);

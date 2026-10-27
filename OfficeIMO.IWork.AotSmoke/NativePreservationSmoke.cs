@@ -39,7 +39,7 @@ internal static class NativePreservationSmoke {
         using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(translated.GetPackageBytes()),
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction(); using var saved = new MemoryStream(); conversion.Value.Save(saved); saved.Position = 0;
-        using var presentation = PowerPointPresentation.Load(saved);
+        using var presentation = PowerPointDocument.Load(saved);
         Require(presentation.Slides.Count == 3 && !presentation.ValidateDocument().Any(), "Translated source failed saved PowerPoint reconstruction.");
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         byte[] before = saved.ToArray();

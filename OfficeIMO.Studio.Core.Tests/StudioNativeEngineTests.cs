@@ -829,7 +829,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             document.Save();
         }
         string deck = Path.Combine(_root, "deck.pptx");
-        using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Create(deck)) {
+        using (var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Create(deck)) {
             presentation.AddSlide().AddTextBox("Quarterly review");
             presentation.Save();
         }

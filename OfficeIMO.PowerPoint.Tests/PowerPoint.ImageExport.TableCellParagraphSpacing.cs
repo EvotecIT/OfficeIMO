@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsDefaultMultiParagraphTableCellInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsScaledGroupedTableCellTextMetricsInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellListMarkersInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 180);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsSingleTableCellBulletInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
             PowerPointSlide slide = presentation.AddSlide();
 

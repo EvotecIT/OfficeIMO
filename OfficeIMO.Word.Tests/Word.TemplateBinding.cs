@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 byte[] png = OfficeIMO.Drawing.OfficePngWriter.Encode(
                     new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 using (var image = new MemoryStream(png, writable: false)) {
-                    repeated.AddImage(image, "marker.png", 8, 8);
+                    repeated.AddImage(image, "marker.png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8));
                 }
                 document.AddParagraph("{{/each Items}}");
                 WordParagraph externalLink = document.AddParagraph("Jump to ");

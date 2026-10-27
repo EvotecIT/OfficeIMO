@@ -12,8 +12,8 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var apple = PowerPointPresentation.Load(Fixture("keynote-created-rich-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var apple = PowerPointDocument.Load(Fixture("keynote-created-rich-v15.4.pptx"));
         Assert.Equal(3, saved.Slides.Count);
         Assert.Empty(saved.ValidateDocument());
         Assert.Empty(saved.Slides[2].TextBoxes);
@@ -56,7 +56,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("reset", reopened.Slides[1].TextBoxes.Single().Text);
     }
@@ -94,7 +94,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         PowerPointTextRun[] saved = Assert.Single(reopened.Slides[0].TextBoxes).Paragraphs
             .SelectMany(paragraph => paragraph.Runs).ToArray();

@@ -51,7 +51,7 @@ public partial class Word {
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "N1";
 
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-            document.AddParagraph().AddImage(imagePath, 50, 50);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             document.Save();
             document.SaveAsPdf(pdfPath);
@@ -70,8 +70,8 @@ public partial class Word {
             document.AddHeadersAndFooters();
             var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-            header.AddParagraph().AddImage(imagePath, 20, 20);
-            footer.AddParagraph().AddImage(imagePath, 400, 400);
+            header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
+            footer.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(400), OfficeIMO.OfficeLength.Pixels(400));
             document.Save();
             document.SaveAsPdf(pdfPath);
         }

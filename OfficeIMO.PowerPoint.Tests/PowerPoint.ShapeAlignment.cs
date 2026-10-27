@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void AlignShapes_Left_UsesSelectionBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(1000, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(3000, 0, 1000, 1000);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         public void AlignShapesToSlide_Center_HonorsSlideBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(0, 0, 1000000, 1000000);
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         public void AlignShapesToSlideContent_Center_RespectsMargin() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(0, 0, 1000000, 1000000);
                 long margin = PowerPointUnits.FromCentimeters(1);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapes_Horizontal_EvenSpacing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(4000, 0, 1000, 1000);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapes_Horizontal_AnchorsLastShapeToBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1111, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(3000, 0, 2222, 1000);
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapes_Horizontal_AlignsBottom() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 200, 1000, 700);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapesToSlideContent_Horizontal_UsesMargin() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapes_Horizontal_AllowsOverlapToFitBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
         public void DistributeShapes_Vertical_AllowsOverlapToFitBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(0, 2000, 1000, 1000);

@@ -12,12 +12,12 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointPresentation_BatchEncodingConsumesOneSharedByteBudget() {
+        public void PowerPointDocument_BatchEncodingConsumesOneSharedByteBudget() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.AddSlide().AddTextBox("First slide");
             presentation.AddSlide().AddTextBox("Second slide");
-            var baselineOptions = new PowerPointPresentationImageExportOptions {
+            var baselineOptions = new PowerPointDocumentImageExportOptions {
                 MaximumDegreeOfParallelism = 1
             };
             IReadOnlyList<OfficeImageExportResult> baseline = presentation.ExportImages(
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 presentation.ExportImages(
                     OfficeImageExportFormat.Png,
-                    new PowerPointPresentationImageExportOptions {
+                    new PowerPointDocumentImageExportOptions {
                         MaximumDegreeOfParallelism = 1,
                         MaximumTotalEncodedBytes = maximumBytes
                     }));
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var options = new PowerPointImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ExportsSolidBackgroundToPngAndSvgThroughSharedDrawing() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ToImageFluentSavesSvgThroughSharedBuilder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ToImageUsesConfiguredFormatForBytes() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_FitWithinAndTypedContentOptionsApplyToRasterAndSvg() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
         [InlineData(-1)]
         public void PowerPointSlide_GroupDepthFluentAcceptsZeroAndUnlimitedDepth(int maximumDepth) {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
 
             OfficeImageExportResult result = slide.ToImage()
@@ -166,9 +166,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointPresentation_ToImagesFluentSavesVisibleSlidesAndCanIncludeHiddenSlides() {
+        public void PowerPointDocument_ToImagesFluentSavesVisibleSlidesAndCanIncludeHiddenSlides() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
 
             PowerPointSlide visible = presentation.AddSlide();
@@ -212,9 +212,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointPresentation_ToImagesFluentSelectsSlidesAndRangesThroughSharedBatchBuilder() {
+        public void PowerPointDocument_ToImagesFluentSelectsSlidesAndRangesThroughSharedBatchBuilder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
 
             PowerPointSlide first = presentation.AddSlide();
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ExportsGradientBackgroundThroughDrawingGradient() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45D);
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_SharedSnapshotStopsAtConfiguredGroupDepth() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape first = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 20, 20);
             PowerPointAutoShape second = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 40, 10, 20, 20);
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersRectangleAndTextBoxThroughSharedDrawing() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 60, 30);
@@ -327,11 +327,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersPictureThroughSharedDrawingImageElement() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
             OfficeImageExportResult pngResult = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -348,10 +348,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_BoundsEmbeddedPictureReads() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
+            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -369,13 +369,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_BoundsAggregateEmbeddedPictureReads() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
+            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
-            slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
+            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -393,10 +393,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ChargesGroupedPicturesOnceAgainstAggregateBudget() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            PowerPointPicture picture = slide.AddPicture(new MemoryStream(png), OfficeImageFormat.Png,
+            PowerPointPicture picture = slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
                 PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
             PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_BoundsEmbeddedBackgroundImageReads() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.SetBackgroundImage(new MemoryStream(png), OfficeImageFormat.Png);
@@ -433,14 +433,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RasterizesExistingSvgPictureWithoutAPlaceholder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] svg = Encoding.UTF8.GetBytes(
                 "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\">" +
                 "<rect x=\"0\" y=\"0\" width=\"10\" height=\"10\" fill=\"#D7263D\"/>" +
                 "</svg>");
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(svg),
                 OfficeImageFormat.Svg,
                 PowerPointUnits.FromPoints(20),
@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(imagePath, png);
 
                 using var stream = new MemoryStream();
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+                using PowerPointDocument presentation = PowerPointDocument.Create(stream);
                 presentation.SlideSize.SetSizePoints(80, 60);
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.SetBackgroundImage(imagePath);
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersTableCellsThroughSharedDrawing() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -534,7 +534,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ExportsListMarkersInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 260);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -565,7 +565,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ExportsAutoNumberSchemesInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(340, 260);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_KeepsLayoutOnlyPlaceholderTextInTheTemplate() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
@@ -635,7 +635,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_SuppressesInheritedLayoutPlaceholderWhenSlidePlaceholderOverridesIt() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
@@ -683,7 +683,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.25D, options.Scale);
             Assert.Equal(OfficeColor.AliceBlue, options.BackgroundColor);
 
-            PowerPointPresentationImageExportOptions presentationOptions = new PowerPointPresentationImageExportOptions {
+            PowerPointDocumentImageExportOptions presentationOptions = new PowerPointDocumentImageExportOptions {
                 Scale = 1.5D,
                 BackgroundColor = OfficeColor.White,
                 IncludeHiddenSlides = true,
@@ -697,13 +697,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 1, 3 }, presentationOptions.SlideNumbers);
 
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddSlide().ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions { SlideNumbers = new[] { 0 } }));
+                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 0 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions { SlideNumbers = new[] { 2 } }));
+                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 2 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlides(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlideRange(2, 1));
         }
@@ -712,9 +712,9 @@ namespace OfficeIMO.Tests {
         public void PresentationImageExportPropagatesAllSlideContentFilters() {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicture(imagePath);
+            slide.AddImage(imagePath);
             PowerPointAutoShape shape = slide.AddRectanglePoints(12, 12, 30, 20, "Filtered shape");
             shape.FillColor = "ABCDEF";
             slide.AddTextBoxPoints("FILTERED TEXT", 48, 12, 100, 24);
@@ -726,7 +726,7 @@ namespace OfficeIMO.Tests {
                 }), 150, 44, 120, 80);
 
             OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
-                OfficeImageExportFormat.Svg, new PowerPointPresentationImageExportOptions {
+                OfficeImageExportFormat.Svg, new PowerPointDocumentImageExportOptions {
                     IncludeSlideBackground = false,
                     IncludePictures = false,
                     IncludeAutoShapes = false,
@@ -740,7 +740,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("ABCDEF", svg, StringComparison.OrdinalIgnoreCase);
             // A blank render proves filtering even when SVG contains glyph outlines rather than text.
             OfficeImageExportResult png = Assert.Single(presentation.ExportImages(
-                OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions {
+                OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions {
                     IncludeSlideBackground = false, IncludePictures = false, IncludeAutoShapes = false,
                     IncludeTextBoxes = false, IncludeTables = false, IncludeCharts = false,
                     BackgroundColor = OfficeColor.White

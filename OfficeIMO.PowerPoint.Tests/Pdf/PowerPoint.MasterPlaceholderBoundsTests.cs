@@ -11,7 +11,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LayoutPlaceholderPromptsAreNotContentAndConcreteSlidePlaceholdersStillRender(bool concrete) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSizePoints(400, 250);
         var slide = deck.AddSlide();
         var tree = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
@@ -40,7 +40,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         using var saved = new MemoryStream();
         deck.Save(saved);
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = pdf.GetPage(1).Text;
         Assert.DoesNotContain("TEMPLATE PROMPT", text, StringComparison.Ordinal);
@@ -52,7 +52,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
     [Fact]
     public void TitleWithoutSlideOrLayoutTransformUsesMasterBoundsAfterReopen() {
         using var bytes = new MemoryStream();
-        using (var deck = PowerPointPresentation.Create()) {
+        using (var deck = PowerPointDocument.Create()) {
             deck.SlideSize.SetSizePoints(400, 250);
             var slide = deck.AddSlide();
             var title = slide.AddTextBoxPoints("MASTER INHERITED TITLE", 10, 10, 200, 50);
@@ -74,7 +74,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
             deck.Save(bytes);
         }
         bytes.Position = 0;
-        using var reopened = PowerPointPresentation.Load(bytes);
+        using var reopened = PowerPointDocument.Load(bytes);
         var conversion = reopened.ConvertToPdfWithEvidence();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(conversion.ToBytes());
         Assert.Contains("MASTER INHERITED TITLE", pdf.GetPage(1).Text, StringComparison.Ordinal);

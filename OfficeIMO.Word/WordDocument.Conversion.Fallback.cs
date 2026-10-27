@@ -142,9 +142,9 @@ public partial class WordDocument {
             fallback.AddParagraph().AddImage(
                 image,
                 $"compatibility-page-{index + 1:D4}.png",
-                page.Width * (96D / 72D),
-                page.Height * (96D / 72D),
-                description: $"Static visual compatibility fallback page {index + 1}");
+                OfficeLength.Points(page.Width),
+                OfficeLength.Points(page.Height),
+                new WordImageOptions { Description = $"Static visual compatibility fallback page {index + 1}" });
             if (index + 1 < plan.Pages.Count) fallback.AddPageBreak();
         }
 

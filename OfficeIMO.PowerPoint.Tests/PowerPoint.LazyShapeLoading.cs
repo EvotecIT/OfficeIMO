@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint.Tests {
         [Fact]
         public void LoadedSlidesMaterializeShapesOnlyWhenAccessedOrEdited() {
             byte[] source;
-            using (var created = PowerPointPresentation.Create(new MemoryStream())) {
+            using (var created = PowerPointDocument.Create(new MemoryStream())) {
                 created.AddSlide().AddTextBoxPoints("First", 20, 20, 120, 30);
                 created.AddSlide().AddTextBoxPoints("Second", 20, 20, 120, 30);
                 PowerPointSlide third = created.AddSlide();
@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.Tests {
                 source = created.ToBytes();
             }
 
-            using var presentation = PowerPointPresentation.Load(
+            using var presentation = PowerPointDocument.Load(
                 new MemoryStream(source, writable: false));
             Assert.All(presentation.Slides,
                 slide => Assert.False(slide.SlidePart.IsRootElementLoaded));
@@ -41,7 +41,7 @@ namespace OfficeIMO.PowerPoint.Tests {
             Assert.Equal("1", presentation.ApplicationProperties.HiddenSlides);
             Assert.False(presentation.Slides[2].SlidePart.IsRootElementLoaded);
             output.Position = 0;
-            using var reopened = PowerPointPresentation.Load(output);
+            using var reopened = PowerPointDocument.Load(output);
             Assert.Equal(new[] { 1, 2, 1 },
                 reopened.Slides.Select(slide => slide.Shapes.Count));
             Assert.True(reopened.Slides[2].Hidden);
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint.Tests {
         [Fact]
         public void SaveStillNormalizesLegacySlideVisibilityMarkup() {
             byte[] source;
-            using (var created = PowerPointPresentation.Create(new MemoryStream())) {
+            using (var created = PowerPointDocument.Create(new MemoryStream())) {
                 created.AddSlide().AddTextBoxPoints("Legacy hidden", 20, 20, 160, 30);
                 source = created.ToBytes();
             }
@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint.Tests {
             }
 
             legacy.Position = 0;
-            using var presentation = PowerPointPresentation.Load(legacy);
+            using var presentation = PowerPointDocument.Load(legacy);
             Assert.False(presentation.Slides[0].SlidePart.IsRootElementLoaded);
             using var output = new MemoryStream();
             presentation.Save(output);
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint.Tests {
         [InlineData(true)]
         public void MetadataSaveHonorsConfiguredLimitForUnloadedSlide(bool commentAfterRoot) {
             byte[] source;
-            using (var created = PowerPointPresentation.Create(new MemoryStream())) {
+            using (var created = PowerPointDocument.Create(new MemoryStream())) {
                 created.AddSlide();
                 source = created.ToBytes();
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.PowerPoint.Tests {
                 stream.Write(bytes, 0, bytes.Length);
             }
 
-            using var loaded = PowerPointPresentation.Load(new MemoryStream(packageStream.ToArray()),
+            using var loaded = PowerPointDocument.Load(new MemoryStream(packageStream.ToArray()),
                 new PowerPointLoadOptions {
                     OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 1_048_576 }
                 });

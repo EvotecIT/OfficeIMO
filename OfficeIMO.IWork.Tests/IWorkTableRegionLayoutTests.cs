@@ -52,9 +52,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("bottom", reopened.Sheets[0].GetCellStyle(4, 1).VerticalAlignment);
             Assert.Equal("top", reopened.Sheets[0].GetCellStyle(1, 2).VerticalAlignment);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
+            using var result = source.ToPowerPointDocumentResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
             foreach (var expected in defaults) {
                 var cell = target.GetCell(expected.Row - 1, expected.Column - 1);

@@ -54,12 +54,12 @@ public sealed class IWorkCharacterTrackingCorpusTests {
         IWorkTextStyle style = Assert.Single(source.ReadKeynote().Slides).TitleBox!.Content.Paragraphs[0].Runs[0].Style;
         Assert.Equal(-0.02, style.CharacterTrackingEm!.Value, 6);
         Assert.Equal(-2.32, style.CharacterSpacingPoints!.Value, 6);
-        using var converted = source.ToPowerPointPresentationResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = source.ToPowerPointDocumentResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream();
         converted.Value.Save(bytes);
         bytes.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         PowerPointTextRun title = Assert.Single(reopened.Slides[0].TextBoxes.First(box => box.Text == "Image Test").Paragraphs[0].Runs);
         Assert.Equal(-2.32, title.CharacterSpacingPoints);
         using PresentationDocument apple = PresentationDocument.Open(Path.Combine(root, "native-exports", "keynote-image-tracking-v15.4.pptx"), false);

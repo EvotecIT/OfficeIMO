@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportFormat format,
             OfficeImageFormat expected) {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSizePoints(160, 90);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
@@ -52,9 +52,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointPresentation_BatchSaveUsesWebpExtension() {
+        public void PowerPointDocument_BatchSaveUsesWebpExtension() {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
             presentation.SlideSize.SetSizePoints(160, 90);
             presentation.AddSlide().BackgroundColor = "123456";
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersMediaPosterInRasterAndSvg() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             PowerPointSlide slide = presentation.AddSlide();
             using MemoryStream video = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
@@ -103,14 +103,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersBmpPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86),
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86)
             });
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
@@ -131,14 +131,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersTopDownBmpPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144),
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144)
             }, topDown: true);
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
@@ -159,14 +159,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersBmp32AlphaPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp32(2, 2, new[] {
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
             });
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
                 PowerPointUnits.FromPoints(20),
@@ -191,11 +191,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersGifPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "000000";
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(CreateSinglePixelGif()),
                 OfficeImageFormat.Gif,
                 PowerPointUnits.FromPoints(20),

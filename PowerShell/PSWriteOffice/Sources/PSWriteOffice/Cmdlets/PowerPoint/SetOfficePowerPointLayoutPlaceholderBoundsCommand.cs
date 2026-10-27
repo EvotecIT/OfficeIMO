@@ -30,7 +30,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderBoundsCommand : PSCmdlet
 {
     /// <summary>Presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index.</summary>
     [Parameter]
@@ -78,11 +78,11 @@ public sealed class SetOfficePowerPointLayoutPlaceholderBoundsCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PowerPointPresentation? presentation = null;
+        PowerPointDocument? presentation = null;
         try
         {
             var bounds = PowerPointLayoutBox.FromPoints(Left, Top, Width, Height);
-            presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             presentation.SetLayoutPlaceholderBounds(Master, Layout, PlaceholderType, bounds, Index, CreateIfMissing.IsPresent);
 
             if (PassThru.IsPresent)

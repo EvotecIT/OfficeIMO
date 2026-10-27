@@ -119,8 +119,8 @@ if ($excelProduct -notmatch 'sheet\.SetTableTotalsByName\(') {
 
 $powerPointImageExportPath = Join-Path $docsRoot 'powerpoint\image-export\index.md'
 $powerPointImageExport = Get-Content -LiteralPath $powerPointImageExportPath -Raw
-if ($powerPointImageExport -notmatch 'PowerPointPresentation\.Load\("Quarterly-Review\.pptx"\)') {
-    Add-Failure 'The PowerPoint image-export guide must load existing presentations through PowerPointPresentation.Load.'
+if ($powerPointImageExport -notmatch 'PowerPointDocument\.Load\("Quarterly-Review\.pptx"\)') {
+    Add-Failure 'The PowerPoint image-export guide must load existing presentations through PowerPointDocument.Load.'
 }
 
 $showcasePath = Join-Path $SiteRoot 'data\showcase.json'

@@ -1067,7 +1067,7 @@ public sealed class OfficeWorkflowRunnerTests {
             }
             case "pptx-pdf": {
                 string path = System.IO.Path.Combine(root, "source.pptx");
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+                using PowerPointDocument presentation = PowerPointDocument.Create(path);
                 presentation.AddSlide().AddTextBoxPoints("OfficeIMO workflow PowerPoint source", 40, 40, 500, 60);
                 presentation.Save();
                 return path;

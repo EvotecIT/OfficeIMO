@@ -11,12 +11,12 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>
     /// Converts a presentation to HTML.
     /// </summary>
-    public static string ToHtml(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
+    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null) {
         return presentation.ToHtmlResult(options).Value;
     }
 
     /// <summary>Converts a presentation to HTML with operation-scoped visual diagnostics.</summary>
-    public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
+    public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
         operation.Validate();
@@ -31,12 +31,12 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>
     /// Saves a presentation as HTML.
     /// </summary>
-    public static void SaveAsHtml(this PptCore.PowerPointPresentation presentation, string path, PowerPointHtmlSaveOptions? options = null) {
+    public static void SaveAsHtml(this PptCore.PowerPointDocument presentation, string path, PowerPointHtmlSaveOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
         HtmlTextIO.Write(path, presentation.ToHtml(options));
     }
 
-    private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options,
+    private static string ConvertSemantic(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
         IList<HtmlDiagnostic> diagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
@@ -61,7 +61,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetTitle(options, "PowerPoint Presentation"));
     }
 
-    private static string ConvertVisual(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options,
+    private static string ConvertVisual(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
         IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
@@ -100,7 +100,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</section>");
     }
 
-    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointPresentation presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
+    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointDocument presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
         IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
         double width = Math.Max(1D, presentation.SlideSize.WidthPoints);
         double height = Math.Max(1D, presentation.SlideSize.HeightPoints);
@@ -733,7 +733,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("</pre></details>");
     }
 
-    private static IReadOnlyList<string> GetExtractionProof(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
+    private static IReadOnlyList<string> GetExtractionProof(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options) {
         if (!options.IncludeExtractionProof) {
             return Array.Empty<string>();
         }

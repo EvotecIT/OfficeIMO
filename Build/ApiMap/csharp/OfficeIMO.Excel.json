@@ -5079,6 +5079,11 @@
       "phase": "B",
       "status": "applied",
       "note": "The shared enum includes chart families with separate native authoring routes. Unsupported general chart requests and bubble requests without explicit X/Y/size ranges fail before creating hidden data sheets, chart parts or drawing parts."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The maintained website quickstart, workbook and table guides replace retired fluent examples with native typed tables, cell handles and document properties. Touched cell/table examples use the existing SetValue/SetFormula and ExcelTableStyle contracts."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointSlide_ResolvesFixedThemeReferenceColors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape source = slide.AddRectanglePoints(
                 20, 20, 80, 40);
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(100, 0),
                 OfficePathCommand.LineTo(100, 100),
                 OfficePathCommand.Close());
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             const long MinimumCoordinate = -27273042329600L;
             const long MaximumCoordinate = 27273042316900L;

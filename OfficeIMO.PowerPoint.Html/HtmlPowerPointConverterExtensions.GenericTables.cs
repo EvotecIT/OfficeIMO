@@ -43,7 +43,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PowerPointHtmlTableGrid grid,
         IReadOnlyList<double> rowHeights,
         double tableWidth,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,

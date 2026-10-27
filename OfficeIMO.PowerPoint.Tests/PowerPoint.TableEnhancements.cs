@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void SetRowHeightsEvenly_UsesTableHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void AddTable_InitializesRowHeightsFromRequestedHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void SetRowHeightsByRatio_UsesTableHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 2, columns: 1, left: 0, top: 0, width: 4000, height: 9000);
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         public void TableSizeGetters_ReturnUnits() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void SetCellAlignment_AppliesToRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 2, columns: 2, left: 0, top: 0, width: 4000, height: 3000);
 
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
         public void SetCellPaddingCm_AppliesToAllCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1, columns: 2, left: 0, top: 0, width: 4000, height: 2000);
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         public void SetCellBorders_AppliesToAllCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
         public void SetCellBorders_WithDash_WritesPresetDash() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 

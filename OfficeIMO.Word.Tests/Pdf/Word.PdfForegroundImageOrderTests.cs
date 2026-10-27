@@ -79,7 +79,7 @@ public sealed class PdfForegroundImageOrderTests {
 
     private static void AddImage(WordParagraph paragraph, OfficeColor color, uint order, int position) {
         using var stream = new MemoryStream(OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, color), OfficeImageExportFormat.Png));
-        var image = paragraph.AddImage(stream, "layer.png", 72, 72, WordImageTextWrapping.InFrontOfText);
+        var image = paragraph.AddImage(stream, "layer.png", OfficeIMO.OfficeLength.Pixels(72), OfficeIMO.OfficeLength.Pixels(72), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = position * 12700;

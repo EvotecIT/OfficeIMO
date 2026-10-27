@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ProductPageQuickStart_UsesTheSupportedPublicApi() {
             string filePath = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                     PowerPointSlide intro = presentation.AddSlide();
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 Assert.Equal(2, reopened.Slides.Count);
                 Assert.Single(reopened.Slides[1].Charts);
             } finally {

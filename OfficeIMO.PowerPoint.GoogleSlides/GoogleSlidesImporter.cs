@@ -31,8 +31,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             EnsureDownloadable(source, id);
             byte[] bytes = await drive.ExportAsync(id, GoogleDriveMimeTypes.MicrosoftPowerPoint, options.Progress, report, cancellationToken).ConfigureAwait(false);
             var stream = new MemoryStream(bytes, writable: true);
-            PowerPointPresentation presentation;
-            try { presentation = PowerPointPresentation.Load(stream, options.LoadOptions); } catch { stream.Dispose(); throw; }
+            PowerPointDocument presentation;
+            try { presentation = PowerPointDocument.Load(stream, options.LoadOptions); } catch { stream.Dispose(); throw; }
             report.Add(TranslationSeverity.Info, "DriveExportImport", "The Google presentation was exported to PPTX through Drive and loaded by OfficeIMO.", code: "SLIDES.IMPORT.DRIVE_EXPORT", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report), report);
         }
@@ -50,14 +50,14 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,
                 $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
                 GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);
-            PowerPointPresentation presentation = await ProjectAsync(response,
+            PowerPointDocument presentation = await ProjectAsync(response,
                 transport, token.AccessToken, options, report,
                 cancellationToken).ConfigureAwait(false);
             report.Add(TranslationSeverity.Info, "NativeImport", "Slides, text boxes, core text styles, tables, images, geometry, and speaker-note text were projected into OfficeIMO.", code: "SLIDES.IMPORT.NATIVE", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report, response), report);
         }
 
-        private static async Task<PowerPointPresentation> ProjectAsync(
+        private static async Task<PowerPointDocument> ProjectAsync(
             GoogleSlidesApiPresentationResponse source,
             GoogleWorkspaceHttpTransport transport,
             string token,
@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             TranslationReport report,
             CancellationToken cancellationToken) {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointDocument presentation = PowerPointDocument.Create(stream);
             try {
                 if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSizePoints(ToPoints(source.PageSize.Width), ToPoints(source.PageSize.Height));
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     includeAuthorization: false,
                                     maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                PowerPointPicture picture = slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
+                                PowerPointPicture picture = slide.AddImagePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
                                 ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);

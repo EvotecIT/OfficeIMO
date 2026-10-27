@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Google {
         public static void Example_Plan(string folderPath) {
             Console.WriteLine("[*] Google Slides - Building translation plan");
             string filePath = Path.Combine(folderPath, "GoogleSlides.Plan.pptx");
-            using PowerPointPresentation deck = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument deck = PowerPointDocument.Create(filePath);
             PowerPointSlide slide = deck.AddSlide();
             slide.AddTextBoxPoints("OfficeIMO Google Slides plan", 30, 40, 500, 80);
             slide.Notes.Text = "This note remains editable in Google Slides.";
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Google {
             GoogleWorkspaceSession? session = GoogleWorkspaceExampleSession.TryCreateSession();
             if (session == null) { GoogleWorkspaceExampleSession.PrintMissingTokenMessage(); return; }
             string filePath = Path.Combine(folderPath, "GoogleSlides.Export.pptx");
-            using PowerPointPresentation deck = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument deck = PowerPointDocument.Create(filePath);
             deck.AddSlide().AddTextBoxPoints("OfficeIMO Google Slides export", 30, 40, 500, 80);
             deck.Save();
             try {

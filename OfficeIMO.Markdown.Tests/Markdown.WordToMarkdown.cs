@@ -960,7 +960,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_Emits_ExternalImages_As_Links_Instead_Of_Failing() {
             using var doc = WordDocument.Create();
-            doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), 50, 50, description: "Linked image");
+            doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50), options: new OfficeIMO.Word.WordImageOptions { Description = "Linked image" });
             var warnings = new List<string>();
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
@@ -977,7 +977,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             using (var stream = File.OpenRead(imagePath)) {
-                doc.AddParagraph().AddImage(stream, "Picture 1", width: 32, height: 32, description: "Logo");
+                doc.AddParagraph().AddImage(stream, "Picture 1", width: OfficeIMO.OfficeLength.Pixels(32), height: OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
             }
 
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());

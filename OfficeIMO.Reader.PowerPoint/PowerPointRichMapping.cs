@@ -13,7 +13,7 @@ namespace OfficeIMO.Reader.PowerPoint;
 
 internal static class PowerPointRichMapping {
     internal static OfficeDocumentReadResult Apply(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         ReaderOptions readerOptions,
         ReaderPowerPointOptions options,
         OfficeDocumentReadResult result,

@@ -489,7 +489,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a designer slide and exposes reusable primitives for custom composition.
         /// </summary>
-        public static PowerPointSlide ComposeDesignerSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide ComposeDesignerSlide(this PowerPointDocument presentation,
             Action<PowerPointSlideCompositionContext> compose, PowerPointDesignTheme? theme = null,
             PowerPointDesignerSlideOptions? options = null, bool dark = false) {
             if (presentation == null) {

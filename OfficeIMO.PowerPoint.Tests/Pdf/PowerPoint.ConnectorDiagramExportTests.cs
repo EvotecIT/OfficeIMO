@@ -95,8 +95,8 @@ public sealed class PowerPointConnectorDiagramExportTests {
 
     static bool IsWhite(OfficeColor color) => color.R > 245 && color.G > 245 && color.B > 245;
 
-    static PowerPointPresentation CreateDiagram() {
-        var presentation = PowerPointPresentation.Create();
+    static PowerPointDocument CreateDiagram() {
+        var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(720, 540);
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Title);
         // PowerPoint authors these editing prompts into the layout placeholders.

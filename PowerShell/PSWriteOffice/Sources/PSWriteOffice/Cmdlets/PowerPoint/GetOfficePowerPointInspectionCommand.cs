@@ -23,7 +23,7 @@ public sealed class GetOfficePowerPointInspectionCommand : PSCmdlet
 
     /// <summary>Open presentation instance.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Presentation")]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Optional report selection and inspection policies.</summary>
     [Parameter]
@@ -32,13 +32,13 @@ public sealed class GetOfficePowerPointInspectionCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PowerPointPresentation? owned = null;
+        PowerPointDocument? owned = null;
         try
         {
             var presentation = Presentation;
             if (ParameterSetName == "Path")
             {
-                owned = PowerPointDocumentService.LoadPresentation(
+                owned = PowerPointDocumentService.LoadDocument(
                     OfficeFileCommandUtilities.ResolvePath(this, Path),
                     readOnly: true);
                 presentation = owned;
@@ -49,7 +49,7 @@ public sealed class GetOfficePowerPointInspectionCommand : PSCmdlet
         {
             if (owned != null)
             {
-                PowerPointDocumentService.ClosePresentation(owned, save: false, show: false);
+                PowerPointDocumentService.CloseDocument(owned, save: false, show: false);
             }
         }
     }

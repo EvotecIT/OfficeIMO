@@ -201,7 +201,7 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         for (int index = 0; index < 2; index++) {
             using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-            paragraph.AddImage(image, "picture" + index + ".png", 16D, 32D);
+            paragraph.AddImage(image, "picture" + index + ".png", OfficeIMO.OfficeLength.Pixels(16D), OfficeIMO.OfficeLength.Pixels(32D));
         }
         var options = new WordPdfExportOptions { IncludePageNumbers = false, MaxImagesPerParagraph = limit };
         if (limit <= 0) Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

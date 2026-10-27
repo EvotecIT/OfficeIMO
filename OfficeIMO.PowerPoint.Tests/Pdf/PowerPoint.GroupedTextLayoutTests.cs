@@ -16,7 +16,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(-20D, 60D, 100D, 40D, true)]
     [InlineData(-50D, 20D, 40D, 160D, true)]
     public void RotatedGroupsAtSlideEdgeRetainTextAndPageSpaceClip(double x, double y, double width, double height, bool nested) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 220);
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("EDGE", x, y, width, height);
@@ -43,7 +43,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(true)]
     public void GroupLocalFontDiscoveryReportsMappedVisibleText(bool nested) {
         const string family = "OfficeIMO Missing Group Font 81C2";
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 220);
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("MAPPED", 1000, 1000, 160, 50);
@@ -69,7 +69,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     public void GroupedPdfAndSnapshotRetainMatchingTextPositionAndSize(double scaleX, double scaleY, bool nested) {
         var profile = new OfficeRenderingProfile("group-text", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(600, 500);
         PowerPointSlide slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("INK", 40, 40, 200, 60);
@@ -113,7 +113,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     public void GroupTransformsPreserveSearchableGlyphGeometry(double rotation, bool horizontalFlip, bool verticalFlip) {
         var profile = new OfficeRenderingProfile("group-transform", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 220);
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("TRANSFORM", 40, 40, 200, 60);

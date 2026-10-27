@@ -52,8 +52,8 @@ internal static class PowerPointRoadmapVisualCorpus {
         string vectorsDirectory = Path.Combine(root, "vectors");
         Directory.CreateDirectory(vectorsDirectory);
 
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create(deckPath)) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create(deckPath)) {
             presentation.SlideSize.SetSizePoints(960, 540);
             var visualSlides = new List<PowerPointSlide>();
             foreach ((PowerPointSmartArtType type, string title) in SmartArtScenarios) {
@@ -77,7 +77,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             presentation.Save();
         }
 
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(deckPath);
+        using PowerPointDocument reopened = PowerPointDocument.Load(deckPath);
         IReadOnlyList<string> validation = reopened.ValidateDocument()
             .Select(error => error.Description ?? error.ToString() ?? string.Empty)
             .ToArray();
@@ -266,7 +266,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static void ValidateScenarioSemantics(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         int expectedSlideCount = SmartArtScenarios.Length + 2;
         if (presentation.Slides.Count != expectedSlideCount) {
             throw new InvalidOperationException(
@@ -351,7 +351,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static PowerPointSlide AddSmartArtSlide(
-        PowerPointPresentation presentation, PowerPointSmartArtType type,
+        PowerPointDocument presentation, PowerPointSmartArtType type,
         string title) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
@@ -366,7 +366,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static PowerPointSlide AddCustomGeometrySlide(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
         AddTitle(slide, "Shared custom geometry");
@@ -399,7 +399,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static PowerPointSlide AddChartAndTableSlide(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
         AddTitle(slide, "Chart and table authoring");

@@ -72,9 +72,9 @@ public class NewOfficePowerPointCommand : PSCmdlet {
             Directory.CreateDirectory(directory);
         }
 
-        PowerPointPresentation? presentation = null;
+        PowerPointDocument? presentation = null;
         try {
-            presentation = PowerPointDocumentService.CreatePresentation(resolvedPath);
+            presentation = PowerPointDocumentService.CreateDocument(resolvedPath);
 
             if (Content != null) {
                 using (PowerPointDslContext.Enter(presentation)) {
@@ -91,12 +91,12 @@ public class NewOfficePowerPointCommand : PSCmdlet {
                 return;
             }
 
-            var savedPath = PowerPointDocumentService.SavePresentation(
+            var savedPath = PowerPointDocumentService.SaveDocument(
                 presentation,
                 show: false,
                 Password,
                 filePath: null);
-            PowerPointDocumentService.ClosePresentation(presentation, save: false, show: false);
+            PowerPointDocumentService.CloseDocument(presentation, save: false, show: false);
             presentation = null;
 
             if (Open.IsPresent) {
@@ -108,7 +108,7 @@ public class NewOfficePowerPointCommand : PSCmdlet {
             }
         } catch (Exception ex) {
             if (presentation != null) {
-                PowerPointDocumentService.ClosePresentation(presentation, save: false, show: false);
+                PowerPointDocumentService.CloseDocument(presentation, save: false, show: false);
             }
             WriteError(new ErrorRecord(ex, "PowerPointCreateFailed", ErrorCategory.InvalidOperation, Path));
         }

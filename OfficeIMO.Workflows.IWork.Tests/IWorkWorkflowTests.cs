@@ -26,7 +26,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }, File.ReadAllBytes(files.Output).Take(8));
         if (target == "docx") { using var model = OfficeIMO.Word.WordDocument.Load(files.Output, new OfficeIMO.Word.WordLoadOptions { Password = password }); Assert.NotEmpty(model.Sections); }
         else if (target == "xlsx") { using var model = OfficeIMO.Excel.ExcelDocument.Load(files.Output, new OfficeIMO.Excel.ExcelLoadOptions { Password = password }); Assert.NotEmpty(model.Sheets); }
-        else { using var model = OfficeIMO.PowerPoint.PowerPointPresentation.Load(files.Output, new OfficeIMO.PowerPoint.PowerPointLoadOptions { Password = password }); Assert.NotEmpty(model.Slides); }
+        else { using var model = OfficeIMO.PowerPoint.PowerPointDocument.Load(files.Output, new OfficeIMO.PowerPoint.PowerPointLoadOptions { Password = password }); Assert.NotEmpty(model.Slides); }
     }
 
     [Theory]

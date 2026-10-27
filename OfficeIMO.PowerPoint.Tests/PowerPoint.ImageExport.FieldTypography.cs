@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ImageExportPreservesFieldOnlyTypographyForTextBoxesAndTableCells() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(340, 150);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
         public void FieldInlineRunMutationsPersistToThePresentationPackage() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Before").Paragraphs.Single();
                     paragraph.AddField("Field", "custom");
                     PowerPointParagraphInline authoredField = Assert.Single(paragraph.InlineNodes,
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reloaded = PowerPointPresentation.Load(path);
+                using PowerPointDocument reloaded = PowerPointDocument.Load(path);
                 PowerPointParagraphInline reloadedField = Assert.Single(reloaded.Slides.Single().TextBoxes.Single()
                     .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
                 Assert.Equal("Changed", reloadedField.Text);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ImageExportMaterializesNativeCapsForTextBoxesAndTableCells() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 140);
             PowerPointSlide slide = presentation.AddSlide();
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ImageExportResolvesParagraphCapsAndReportsNoncanonicalBaselines() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 150);
             PowerPointSlide slide = presentation.AddSlide();
 

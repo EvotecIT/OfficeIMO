@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         public void UnreadBinaryCommentIsReportedAsAnOmission(string malformedPart, string code) {
             byte[] bytes = CreatePresentationWithMalformedComment(malformedPart);
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             Assert.Empty(Assert.Single(legacy.Slides).Comments);
             LegacyPptImportReport report = legacy.CreateImportReport();
             OfficeConversionFidelityDiagnostic omission = Assert.Single(report.FidelityDiagnostics,
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             DateTime firstDate = new(2026, 7, 15, 10, 11, 12, 345, DateTimeKind.Utc);
             DateTime secondDate = new(2025, 12, 24, 8, 9, 10, 120, DateTimeKind.Utc);
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide firstSlide = source.AddSlide();
                 PowerPointSlide secondSlide = source.AddSlide();
                 AddAuthors(source,
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptComment first = Assert.Single(legacy.Slides[0].Comments);
             Assert.Equal(3, first.Index);
             Assert.Equal("Alice Reviewer", first.Author);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, importReport.CommentAuthorCount);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             PowerPointReviewReport review = projected.InspectReviewComments();
             Assert.Equal(2, review.ClassicCount);
             Assert.Contains(review.Comments, comment => comment.AuthorName == "Alice Reviewer"
@@ -79,19 +79,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedClassicCommentEdit_AppendsPreservingRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 AddAuthors(source, (0U, "Original Author", "OA", 1U));
                 AddComment(slide, 0U, 1U, "Original review",
                     new DateTime(2026, 7, 1, 7, 0, 0, DateTimeKind.Utc), 120, 240);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             DateTime updatedDate = new(2026, 7, 15, 18, 30, 45, 678, DateTimeKind.Utc);
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 CommentAuthor author = imported.OpenXmlDocument.PresentationPart!
                     .CommentAuthorsPart!.CommentAuthorList!.Elements<CommentAuthor>().Single();
                 author.Name = "Updated Author";
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptComment commentResult = Assert.Single(Assert.Single(saved.Slides).Comments);
             Assert.Equal(9, commentResult.Index);
             Assert.Equal("Updated Author", commentResult.Author);
@@ -127,22 +127,22 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedClassicCommentAddAndRemove_AppendPreservingRecords() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide();
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] withComment;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 AddAuthors(imported, (0U, "Added Author", "AA", 4U));
                 AddComment(imported.Slides[0], 0U, 4U, "Added after import",
                     new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc), 500, 600);
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 withComment = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation added = LegacyPptPresentation.Load(withComment);
+            LegacyPptDocument added = LegacyPptDocument.Load(withComment);
             Assert.Equal("Added after import", Assert.Single(added.Slides[0].Comments).Text);
             Assert.True(added.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
 
             byte[] withoutComment;
             using (var input = new MemoryStream(withComment, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PresentationPart presentationPart = imported.OpenXmlDocument.PresentationPart!;
                 presentationPart.DeletePart(presentationPart.CommentAuthorsPart!);
                 SlidePart slidePart = imported.Slides[0].SlidePart;
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 withoutComment = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(withoutComment);
+            LegacyPptDocument removed = LegacyPptDocument.Load(withoutComment);
             Assert.Empty(removed.Slides[0].Comments);
             Assert.True(removed.Package.DocumentStream.AsSpan(0,
                     added.Package.DocumentStream.Length)
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksModernThreadedComments() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             source.AddSlide();
             PresentationPart presentationPart = source.OpenXmlDocument.PresentationPart!;
             PowerPointAuthorsPart modernAuthors = presentationPart.AddNewPart<PowerPointAuthorsPart>();
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksUnrepresentableClassicAuthorMetadata() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide();
             AddAuthors(source, (0U, "Author", "A", 1U));
             CommentAuthor author = source.OpenXmlDocument.PresentationPart!
@@ -204,8 +204,8 @@ namespace OfficeIMO.Tests {
         public void LegacyEncryption_LoadEncryptedPropagatesAggregateImportLimits() {
             const string password = "encrypted-limits";
             byte[] encryptedBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide first = source.AddSlide();
                 PowerPointSlide second = source.AddSlide();
                 AddAuthors(source, (0U, "Reviewer", "R", 2U));
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
 
             InvalidDataException exception = Assert.Throws<
                 InvalidDataException>(() =>
-                PowerPointPresentation.LoadEncrypted(input, password,
+                PowerPointDocument.LoadEncrypted(input, password,
                     new PowerPointLoadOptions {
                         LegacyPptImportOptions =
                             new LegacyPptImportOptions {
@@ -235,14 +235,14 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreatePresentationWithMalformedComment(string malformedPart) {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 AddAuthors(source, (0U, "Author", "A", 0U));
                 AddComment(slide, 0U, 0U, "Review", new DateTime(2026, 7, 15, 10, 0, 0, DateTimeKind.Utc), 100, 200);
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation original = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(bytes);
             LegacyPptPersistObject persist = original.Package.PersistObjects[Assert.Single(original.Slides).PersistId];
             var options = new LegacyPptImportOptions();
             LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persist.RecordBytes, 0, options);
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
             });
         }
 
-        private static void AddAuthors(PowerPointPresentation presentation,
+        private static void AddAuthors(PowerPointDocument presentation,
             params (uint Id, string Name, string Initials, uint LastIndex)[] authors) {
             CommentAuthorsPart part = presentation.OpenXmlDocument.PresentationPart!
                 .AddNewPart<CommentAuthorsPart>();

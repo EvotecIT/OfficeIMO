@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtClientAnchor = 0xF010;
         private const ushort OfficeArtClientData = 0xF011;
 
-        internal static byte[] WritePresentation(PowerPointPresentation presentation,
+        internal static byte[] WriteDocument(PowerPointDocument presentation,
             PowerPointSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
@@ -292,7 +292,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 layoutIsIndependentMaster);
         }
 
-        private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
+        private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointDocument presentation,
             IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterCustomShowCatalog customShows,
@@ -411,7 +411,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static void PatchDocumentSettings(byte[] atom,
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             uint notesMasterPersistId,
             uint handoutMasterPersistId) {
             if (atom.Length < 48) {

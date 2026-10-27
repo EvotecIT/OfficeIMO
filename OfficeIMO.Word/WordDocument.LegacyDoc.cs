@@ -555,10 +555,9 @@ namespace OfficeIMO.Word {
             paragraph.AddImage(
                 stream,
                 picture.FileName,
-                picture.WidthPixels,
-                picture.HeightPixels,
-                WordImageTextWrapping.InLineWithText,
-                "Imported legacy DOC inline picture");
+                OfficeLength.Pixels(picture.WidthPixels),
+                OfficeLength.Pixels(picture.HeightPixels),
+                new WordImageOptions { Description = "Imported legacy DOC inline picture" });
             if (picture.Crop.HasCrop) {
                 var addedPicture = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Last();
                 addedPicture.BlipFill!.SourceRectangle = new DocumentFormat.OpenXml.Drawing.SourceRectangle {

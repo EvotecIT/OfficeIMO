@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates an editable results chart and speaker notes that explain the decision behind the numbers.</summary>
 internal static class ResultsBriefing {
     internal static void Create(string folder) {
-        using var deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using var deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         var results = deck.AddSlide();
         Text(results, "Pilot results: faster first response", 1.5, 1, 30, 2, 31, "17365D");
         Text(results, "Illustrative median response time in hours / lower is better", 1.5, 3, 30, 1.3, 18, "526179");

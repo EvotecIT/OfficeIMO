@@ -129,7 +129,7 @@ public sealed class EmbeddedPayloadInspectionContracts {
             owner = excel.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
             inspect = excel.InspectEmbeddedPayloads; open = excel.OpenEmbeddedPayload;
         } else {
-            PowerPointPresentation presentation = PowerPointPresentation.Create(); presentation.AddSlide(); document = presentation;
+            PowerPointDocument presentation = PowerPointDocument.Create(); presentation.AddSlide(); document = presentation;
             owner = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single();
             inspect = presentation.InspectEmbeddedPayloads; open = presentation.OpenEmbeddedPayload;
         }

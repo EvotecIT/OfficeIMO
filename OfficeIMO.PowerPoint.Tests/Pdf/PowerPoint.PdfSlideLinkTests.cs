@@ -18,7 +18,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void StrokedLineLinksHaveUsableRegionsForZeroAndOneEmuExtents(bool vertical, bool helper) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 240);
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = helper
@@ -27,7 +27,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
         line.SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
         Assert.Equal("powerpoint-slide-2", link.DestinationName);
@@ -39,7 +39,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(30)]
     [InlineData(90)]
     public void RotatedLineLinksKeepTheStrokeCenterAndPageClip(double rotation) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 240);
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = first.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 200, 0);
@@ -60,7 +60,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void InheritedNextSlideRunsUseEachActiveSlideAndRetainTheRelationshipOwner(bool master) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide(); presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("Inherited next", 30, 30, 240, 90);
         box.PlaceholderType = null;
@@ -75,7 +75,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         (master ? layout.SlideMasterPart!.SlideMaster!.CommonSlideData!.ShapeTree!
             : layout.SlideLayout!.CommonSlideData!.ShapeTree!).Append(native);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         for (int index = 0; index < 2; index++) {
             PowerPointTextRun inherited = reopened.Slides[index].GetInheritedShapesForExport()
                 .OfType<PowerPointTextBox>().Single(b => b.Text == "Inherited next").Paragraphs[0].Runs[0];
@@ -94,7 +94,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     public void ApplePptxExportKeepsUuidResolvedAndNextActionLinkTargetsInPdf() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
             "keynote-slide-links-v15.4.pptx");
-        using var presentation = PowerPointPresentation.Load(path);
+        using var presentation = PowerPointDocument.Load(path);
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.Pages.Count);
         Assert.Equal(new int?[] { 2, 2, 1 }, pdf.LinkAnnotations.Select(link => pdf.NamedDestinations.Single(
@@ -105,7 +105,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NativeNextSlideActionsWithoutRelationshipsResolveOrReportAMissingTarget(bool finalSlide) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointTextBox box = (finalSlide ? second : first).AddTextBoxPoints("Next slide", 30, 30, 240, 90);
         ((P.Shape)box.Element).NonVisualShapeProperties!.NonVisualDrawingProperties!.Append(
@@ -116,7 +116,7 @@ public sealed class PowerPointPdfSlideLinkTests {
             Id = string.Empty, Action = "ppaction://hlinkshowjump?jump=nextslide"
         });
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(finalSlide ? "#slide-3" : "#slide-2",
             reopened.Slides[finalSlide ? 1 : 0].TextBoxes.Single().Hyperlink!.OriginalString);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
@@ -136,7 +136,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void HiddenSlidesKeepOriginalTargetIdentityAndOmittedTargetsRemainDiagnosed(bool includeHidden) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide hidden = presentation.AddSlide(); hidden.Hidden = true;
         PowerPointSlide visible = presentation.AddSlide();
@@ -169,7 +169,7 @@ public sealed class PowerPointPdfSlideLinkTests {
 
     [Fact]
     public void AdjacentIdenticallyStyledRunsKeepDifferentDestinationsAfterSaveAndWrapping() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(360, 240);
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
@@ -179,7 +179,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         byte[] bytes = conversion.ToBytes();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(bytes);
@@ -196,17 +196,17 @@ public sealed class PowerPointPdfSlideLinkTests {
 
     [Fact]
     public void PictureAndTableRunSlideLinksSurvivePptxSaveAndPdfReopen() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(400, 240);
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointPicture picture = first.AddPicturePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
+        PowerPointPicture picture = first.AddImagePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
             OfficeImageFormat.Png, 20, 20, 60, 40);
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTablePoints(1, 1, 20, 100, 220, 90).GetCell(0, 0);
         cell.Text = "Cell target"; cell.Paragraphs[0].Runs[0].SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         Assert.Equal(2, pdf.LinkAnnotations.Count);
@@ -223,7 +223,7 @@ public sealed class PowerPointPdfSlideLinkTests {
 
     [Fact]
     public void GroupTransformsMoveInternalLinkRectanglesWithTheLinkedGlyphs() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(320, 220);
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("GROUP LINK", 40, 40, 200, 60);

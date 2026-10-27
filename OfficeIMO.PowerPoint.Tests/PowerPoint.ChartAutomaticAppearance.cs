@@ -27,7 +27,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [Theory]
     [MemberData(nameof(ReferenceCharts))]
     public void AutomaticColorsMatchThePowerPointExport(int number) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
         PowerPointChart chart = presentation.Slides[number - 1].Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
@@ -38,7 +38,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void AutomaticLineSeriesUseOfficeMarkerSequence() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
         PowerPointChart chart = presentation.Slides[5].Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
@@ -51,7 +51,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     public void DenseLayoutReferenceDeckDrawsItsAutomaticColumnChart() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Pdf.Tests", "Pdf", "ReferenceBaselines",
             "native-powerpoint-dense-layout.pptx");
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(path);
+        using PowerPointDocument presentation = PowerPointDocument.Load(path);
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-chart");
@@ -66,7 +66,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [InlineData(false, true)]
     [InlineData(false, false)]
     public void FlatRibbonUsesItsBodyPaintAndRetainsAnInvisibleNativeSeries(bool fill, bool outline) {
-        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        using var presentation = PowerPointDocument.Load(RoadmapPath);
         var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
         var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
         foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
@@ -97,7 +97,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void FlatRibbonAutomaticBodyAcceptsCallerPaletteIndependentlyOfItsNativeBorder() {
-        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        using var presentation = PowerPointDocument.Load(RoadmapPath);
         var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
         var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
         foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
@@ -120,7 +120,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void SkippedChartWarningNamesTheUnsupportedAppearance() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Values", new[] { 2d, 3d }) }));
         ChartPart part = presentation.Slides.Single().SlidePart.ChartParts.Single();
@@ -139,7 +139,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void MicrosoftAdvancedChartFamiliesRenderAndReportFlatProjections() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code is "unsupported-chart" or "unsupported-smartart");

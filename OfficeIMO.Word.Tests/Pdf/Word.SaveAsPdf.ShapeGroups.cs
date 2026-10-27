@@ -152,7 +152,7 @@ public sealed class PdfShapeGroupTests {
         paragraph._paragraph!.ParagraphProperties ??= new W.ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.KeepLines = new W.KeepLines();
         using var imageStream = new MemoryStream(OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Blue), OfficeImageExportFormat.Png));
-        var image = paragraph.AddText(string.Empty).AddImage(imageStream, "fixed.png", 8, 8, WordImageTextWrapping.InFrontOfText);
+        var image = paragraph.AddText(string.Empty).AddImage(imageStream, "fixed.png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 40 * 12700;
@@ -274,7 +274,7 @@ public sealed class PdfShapeGroupTests {
         try {
             File.WriteAllBytes(imagePath, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Red), OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
-            var paragraph = word.AddParagraph().AddImageVml(imagePath, 20, 20).Paragraph;
+            var paragraph = word.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), options: new OfficeIMO.Word.WordImageOptions { Vml = true }).Paragraph;
             var shape = paragraph._run!.Descendants<V.Shape>().Single();
             var picture = paragraph._run.GetFirstChild<W.Picture>()!;
             shape.Remove();
@@ -307,7 +307,7 @@ public sealed class PdfShapeGroupTests {
         try {
             File.WriteAllBytes(imagePath, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Red), OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
-            var paragraph = word.AddParagraph().AddImageVml(imagePath, 20, 20).Paragraph;
+            var paragraph = word.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), options: new OfficeIMO.Word.WordImageOptions { Vml = true }).Paragraph;
             var picture = paragraph._run!.GetFirstChild<W.Picture>()!;
             var shape = picture.Descendants<V.Shape>().Single();
             shape.Remove();

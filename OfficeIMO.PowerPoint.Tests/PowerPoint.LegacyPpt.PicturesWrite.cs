@@ -14,15 +14,15 @@ namespace OfficeIMO.Tests {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 3, OfficeColor.FromRgb(37, 99, 235)));
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var first = new MemoryStream(image, writable: false)) {
-                    PowerPointPicture picture = slide.AddPicture(first,
+                    PowerPointPicture picture = slide.AddImage(first,
                         OfficeIMO.Drawing.OfficeImageFormat.Png, 158750, 317500, 635000, 476250);
                     picture.Crop(10D, 20D, 5D, 15D);
                 }
                 using (var second = new MemoryStream(image, writable: false)) {
-                    slide.AddPicture(second, OfficeIMO.Drawing.OfficeImageFormat.Png,
+                    slide.AddImage(second, OfficeIMO.Drawing.OfficeImageFormat.Png,
                         952500, 317500, 635000, 476250);
                 }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry entry = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal(OfficeArtBlipStorage.Delayed, entry.Storage);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                     StringComparison.Ordinal));
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             PowerPointPicture[] projectedPictures = projected.Slides[0].Pictures
                 .OrderBy(picture => picture.Left)
@@ -87,14 +87,14 @@ namespace OfficeIMO.Tests {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 3, OfficeColor.FromRgb(37, 99, 235)));
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointPicture picture;
                 using (var stream = new MemoryStream(image,
                            writable: false)) {
-                    picture = slide.AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Png,
+                    picture = slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png,
                         158750, 317500, 635000, 476250);
                 }
                 PowerPointAutoShape frame = slide.AddShape(
@@ -112,14 +112,14 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape group = Assert.Single(Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes);
+                LegacyPptDocument.Load(bytes).Slides).Shapes);
             Assert.Equal(LegacyPptShapeKind.Group, group.Kind);
             LegacyPptShape binaryPicture = Assert.Single(group.Children,
                 child => child.Kind == LegacyPptShapeKind.Picture);
             Assert.Equal(1, binaryPicture.PictureStoreIndex);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             PowerPointSlide projectedSlide = projected.Slides[0];
             PowerPointGroupShape projectedGroup = Assert.Single(
@@ -134,14 +134,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksUnsupportedRasterFormatAndPictureEffect() {
-            using PowerPointPresentation gifPresentation = PowerPointPresentation
+            using PowerPointDocument gifPresentation = PowerPointDocument
                 .Create();
             using (var gif = new MemoryStream(new byte[] {
                        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
                        0x01, 0x00
                    }, writable: false)) {
                 gifPresentation.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(gif, OfficeIMO.Drawing.OfficeImageFormat.Gif);
+                    .AddImage(gif, OfficeIMO.Drawing.OfficeImageFormat.Gif);
             }
             LegacyPptWritePreflightReport gifPreflight = gifPresentation
                 .AnalyzeLegacyPptWrite();
@@ -152,12 +152,12 @@ namespace OfficeIMO.Tests {
 
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(
                 2, 2, OfficeColor.CornflowerBlue));
-            using PowerPointPresentation effectPresentation = PowerPointPresentation
+            using PowerPointDocument effectPresentation = PowerPointDocument
                 .Create();
             using (var stream = new MemoryStream(png, writable: false)) {
                 PowerPointPicture picture = effectPresentation
                     .AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Png);
+                    .AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png);
                 P.Picture element = Assert.IsType<P.Picture>(picture.Element);
                 element.BlipFill!.Blip!.Append(new A.AlphaReplace {
                     Alpha = 50000
@@ -177,19 +177,19 @@ namespace OfficeIMO.Tests {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 3, OfficeColor.FromRgb(37, 99, 235)));
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointPicture first = AddPicture(slide, image, 0);
+                PowerPointPicture first = AddImage(slide, image, 0);
                 first.LuminanceBrightness = 25;
                 first.LuminanceContrast = -30;
-                PowerPointPicture second = AddPicture(slide, image, 700000);
+                PowerPointPicture second = AddImage(slide, image, 700000);
                 second.LuminanceContrast = 40;
-                PowerPointPicture third = AddPicture(slide, image, 1400000);
+                PowerPointPicture third = AddImage(slide, image, 1400000);
                 third.GrayScale = true;
-                PowerPointPicture fourth = AddPicture(slide, image, 2100000);
+                PowerPointPicture fourth = AddImage(slide, image, 2100000);
                 fourth.BlackWhiteThreshold = 50;
-                PowerPointPicture fifth = AddPicture(slide, image, 2800000);
+                PowerPointPicture fifth = AddImage(slide, image, 2800000);
                 fifth.TransparentColor = OfficeColor.CornflowerBlue;
                 fifth.Rotation = 15D;
                 fifth.HorizontalFlip = true;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
                 fifth.SetShadow("222222", blurPoints: 2D,
                     distancePoints: 2D, angleDegrees: 90D,
                     transparencyPercent: 40);
-                PowerPointPicture sixth = AddPicture(slide, image, 3500000);
+                PowerPointPicture sixth = AddImage(slide, image, 3500000);
                 sixth.RecolorColor = OfficeColor.Orange;
 
                 LegacyPptWritePreflightReport preflight = source
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             Assert.Equal(6U, Assert.Single(legacy.BlipStoreEntries)
                 .ReferenceCount);
             LegacyPptShape[] pictures = Assert.Single(legacy.Slides).Shapes
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
                 pictures[5].PictureRecolorColor);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             PowerPointPicture[] projectedPictureModels = projected.Slides[0]
                 .Pictures
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(editPreflight.CanWrite,
                 string.Join(Environment.NewLine, editPreflight.Findings));
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape[] editedPictures = Assert.Single(edited.Slides)
                 .Shapes.Where(shape =>
@@ -305,10 +305,10 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsAnEmfPicture() {
             byte[] emf = BuildMinimalEmf();
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 using var stream = new MemoryStream(emf, writable: false);
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Emf,
+                    .AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Emf,
                         PowerPointUnits.FromPoints(20D),
                         PowerPointUnits.FromPoints(30D),
                         PowerPointUnits.FromPoints(120D),
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry entry = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal(OfficeArtBlipStorage.Delayed, entry.Storage);
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
                 picture.Bounds);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Equal(emf,
                 Assert.Single(projected.Slides[0].Pictures).GetImageBytes());
@@ -362,10 +362,10 @@ namespace OfficeIMO.Tests {
             return result;
         }
 
-        private static PowerPointPicture AddPicture(PowerPointSlide slide,
+        private static PowerPointPicture AddImage(PowerPointSlide slide,
             byte[] image, long left) {
             using var stream = new MemoryStream(image, writable: false);
-            return slide.AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, left, 0,
+            return slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, left, 0,
                 600000, 450000);
         }
 

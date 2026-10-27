@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
     public void ShapeAndRunSlideLinksResolveToTheExportedPdfPage() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide first = presentation.AddSlide();
         presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("Linked", 10, 10, 200, 40);
@@ -34,7 +34,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void EmptyRunsDoNotReportCharacterSpacingLoss(bool visibleText, bool table) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         string text = visibleText ? "Visible" : string.Empty;
         PowerPointParagraph paragraph;
@@ -54,7 +54,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
     [Fact]
     public void FieldOnlyTextInheritsTrackingAndHonorsAZeroReset() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints(string.Empty, 10, 10, 200, 40);
         PowerPointParagraph paragraph = box.Paragraphs[0];
         paragraph.Paragraph.RemoveAllChildren<A.Run>();
@@ -70,7 +70,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
     public void NativeAppleLayoutTrackingIsReportedAndExplicitZeroClearsInheritance() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", "keynote-image-tracking-v15.4.pptx");
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(path);
+        using PowerPointDocument presentation = PowerPointDocument.Load(path);
         PowerPointTextBox title = presentation.Slides[0].TextBoxes.First(box => box.Paragraphs.Any(item => item.InlineNodes.Any(node => node.Run != null)));
         PowerPointParagraph paragraph = title.Paragraphs.First(item => item.InlineNodes.Any(node => node.Run != null));
         PowerPointTextRun run = paragraph.InlineNodes.First(node => node.Run != null).Run!;
@@ -88,7 +88,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [InlineData("list")]
     [InlineData("master")]
     public void InheritedTrackingParticipatesInRenderingEvidence(string owner) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("Inherited", 10, 10, 200, 40);
         A.DefaultRunProperties defaults = new() { Spacing = 125 };
         if (owner == "paragraph") box.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(defaults);
@@ -109,7 +109,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
     public void CharacterSpacingSurvivesSaveReopenAndRenderingReportsItsApproximation() {
         using var bytes = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions())) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions())) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBoxPoints("Spaced", 10, 10, 200, 40).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
             PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 80, 200, 60).GetCell(0, 0);
@@ -117,7 +117,7 @@ public sealed class PowerPointPdfTextFormattingTests {
             cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
             presentation.Save();
         }
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(bytes.ToArray()));
+        using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(bytes.ToArray()));
         Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacingPoints);
         Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacingPoints);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
@@ -128,7 +128,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
     [Fact]
     public void NativeRunFormattingProjectsToSharedDrawingRuns() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun authored = presentation.AddSlide()
             .AddTextBoxPoints("Styled", 10, 10, 200, 40)
@@ -163,7 +163,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
     [Fact]
     public void NativeRunCapitalizationUsesTheRunLanguage() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun authored = presentation.AddSlide()
             .AddTextBoxPoints("i", 10, 10, 200, 40)
@@ -182,7 +182,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
     [Fact]
     public void NoncanonicalBaselinePercentagesAreReportedForTextBoxesAndTables() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Text", 10, 10, 120, 40).Paragraphs[0].Runs[0].BaselinePercent = 5D;
@@ -201,7 +201,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [InlineData("paragraph", true)]
     [InlineData("list", true)]
     public void TableRunFormattingResolvesParagraphListAndThemeDefaults(string colorSource, bool useTableStyle) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
         table.StyleId = useTableStyle ? "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" : null;
@@ -278,7 +278,7 @@ public sealed class PowerPointPdfTextFormattingTests {
 
     [Fact]
     public void TextBoxRunsAndFieldsResolveParagraphListAndMasterDefaults() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox textBox = presentation.AddSlide()
             .AddTextBoxPoints("i", 10, 10, 200, 60);
@@ -332,7 +332,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     public void TableInheritedAndFieldFontsParticipateInPdfFontPreflight(bool useTableStyle) {
         const string inheritedFamily = "OfficeIMO Missing Inherited Table Face";
         const string fieldFamily = "OfficeIMO Missing Field Face";
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+        using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
         if (!useTableStyle) table.StyleId = null;

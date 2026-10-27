@@ -2218,8 +2218,8 @@ public sealed class PdfRenderingProfileTests {
         }
 
         byte[] powerPointPdf;
-        using (OfficeIMO.PowerPoint.PowerPointPresentation powerPoint =
-            OfficeIMO.PowerPoint.PowerPointPresentation.Create(new MemoryStream())) {
+        using (OfficeIMO.PowerPoint.PowerPointDocument powerPoint =
+            OfficeIMO.PowerPoint.PowerPointDocument.Create(new MemoryStream())) {
             powerPoint.AddSlide().AddTextBoxPoints(
                 "PowerPoint profile proof",
                 24,

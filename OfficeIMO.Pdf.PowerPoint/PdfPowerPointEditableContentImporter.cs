@@ -33,7 +33,7 @@ public static partial class PdfPowerPointConverterExtensions {
         }
 
         using var presentationOwner = new PresentationConstructionScope();
-        PptCore.PowerPointPresentation presentation = presentationOwner.Value;
+        PptCore.PowerPointDocument presentation = presentationOwner.Value;
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing? referenceDrawing = logical.Pages.Count == 0 || sourceDocument == null
             ? null
@@ -161,14 +161,14 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static void ConfigureEditableSlideSize(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         OfficeDrawing? drawing) {
         if (drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return;
         ConfigureEditableSlideSize(presentation, drawing.Width, drawing.Height);
     }
 
     private static void ConfigureEditableSlideSize(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         double sourceWidth,
         double sourceHeight) {
         if (sourceWidth <= 0D || sourceHeight <= 0D) return;
@@ -358,7 +358,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                PptCore.PowerPointPicture picture = slide.AddPicturePoints(
+                PptCore.PowerPointPicture picture = slide.AddImagePoints(
                     stream,
                     format,
                     bounds.Left,
@@ -612,7 +612,7 @@ public static partial class PdfPowerPointConverterExtensions {
         int pageIndex,
         PdfCore.PdfLogicalPage page,
         IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PptCore.PowerPointSlide primarySlide,
         int primarySlideIndex,
         EditablePagePlacement placement,
@@ -687,7 +687,7 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static EditableBounds GetContinuationTableBounds(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PowerPointPdfImportOptions options) {
         double slideWidth = Math.Max(1D, presentation.SlideSize.WidthPoints);
         double slideHeight = Math.Max(1D, presentation.SlideSize.HeightPoints);

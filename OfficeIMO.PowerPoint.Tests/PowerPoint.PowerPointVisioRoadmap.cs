@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointPowerPointVisioRoadmapTests {
         [Fact]
         public void ThreeDimensionalSeriesShapeFlattensOnlyWithThreeDimensionalFamily() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AdvancedImportedChartEditsCachesWithoutReplacingNativeFamily() {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 PowerPointChart chart = presentation.AddSlide().AddChart();
                 ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
                 C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SmartArtTopologyCanReorderProcessButRejectsMeaningChangingParent() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicProcess, new[] { "Plan", "Build", "Ship" });
             Assert.True(smartArt.TryGetTopology(out PowerPointSmartArtTopology topology, out string diagnostic), diagnostic);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AdvancedChartWithoutEditableWorkbookIsDiagnosedAndLeftUnchanged() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AdvancedChartRejectsRicherReferencedWorkbookWithoutMutation() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MixedChartWithAdvancedGroupIsPreservationOnlyInsteadOfPartialProjection() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimelineEditsMotionRotationAndCommandWithoutRemovingUnknownSibling() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox shape = slide.AddTextBox("Animate me");
             var unknown = new AnimateColor();
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RemovingTypedAnimationPreservesUnknownSiblingInsideItsOwner() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTimelineAction motion = slide.AddMotionAnimation(
                 slide.AddTextBox("Target"), "M 0 0 L 1 0 E");
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SmartArtRejectsCustomLayoutAndPreservesRichTextOnTopologyOnlyEdit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess, new[] { "Plan", "Build" });
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlaybackValidationAndLinkedOlePreflightAreNonDestructive() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointMedia video = slide.AddLinkedVideo(
                 new Uri("https://example.test/video.mp4"));
@@ -356,7 +356,7 @@ namespace OfficeIMO.Tests {
         public void LinkedMediaAndOleRoundTripWithTypedPlaybackAndTargets() {
             string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointMedia video = slide.AddLinkedVideo(new Uri("https://example.test/video.mp4"));
                     video.SetPlaybackOptions(new PowerPointMediaPlaybackOptions {
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointMediaSourceKind.Linked, video.SourceKind);
                     Assert.True(ole.IsLinked);
                 }
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(path);
+                using PowerPointDocument loaded = PowerPointDocument.Load(path);
                 PowerPointMedia loadedVideo = Assert.Single(loaded.Slides[0].Media);
                 Assert.Equal(new Uri("https://example.test/video.mp4"), loadedVideo.LinkUri);
                 PowerPointMediaPlaybackOptions playback = loadedVideo.GetPlaybackOptions();

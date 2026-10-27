@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             const string vp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
             using var document = WordDocument.Create();
             using (var image = new MemoryStream(Convert.FromBase64String(vp8))) {
-                document.AddParagraph().AddImage(image, "sample.webp", 16, 16, description: "Red sample");
+                document.AddParagraph().AddImage(image, "sample.webp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Red sample" });
             }
 
             using var packageStream = new MemoryStream(document.ToBytes());
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Create(filePath)) {
-                document.AddParagraph().AddImage(imagePath, 50, 50);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 document.Save();
             }
 
@@ -60,12 +60,8 @@ namespace OfficeIMO.Tests {
         public void WordImage_RotationNullClearsInlineAndFloatingTransforms() {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             using WordDocument document = WordDocument.Create();
-            WordImage inline = document.AddParagraph().AddImage(imagePath, 50, 50);
-            WordImage floating = document.AddParagraph().AddImage(
-                imagePath,
-                50,
-                50,
-                WordImageTextWrapping.InFrontOfText);
+            WordImage inline = document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
+            WordImage floating = document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
 
             inline.Rotation = 30;
             floating.Rotation = 45;
@@ -96,7 +92,7 @@ namespace OfficeIMO.Tests {
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
             // lets add image to paragraph
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22));
             var paragraphImage = paragraph.Image;
             Assert.NotNull(paragraphImage);
             Assert.True(paragraphImage!.WrapText == WordImageTextWrapping.InLineWithText);
@@ -119,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             var filePathImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
             var paragraph2 = document.AddParagraph();
-            paragraph2.AddImage(filePathImage, 500, 500);
+            paragraph2.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(500), OfficeIMO.OfficeLength.Pixels(500));
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
             paragraph2Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
@@ -133,7 +129,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("This adds another picture with 100x100");
 
             var paragraph3 = document.AddParagraph();
-            paragraph3.AddImage(filePathImage, 100, 100);
+            paragraph3.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
 
             // we add paragraph with an image
             var paragraph4 = document.AddParagraph();
@@ -183,7 +179,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 using var stream = new NonSeekableReadStream(File.ReadAllBytes(imagePath));
-                paragraph.AddImage(stream, "Kulek.jpg", null, null);
+                paragraph.AddImage(stream,"Kulek.jpg",null,null);
 
                 Assert.Single(document.Images);
                 Assert.True(document.Images[0].Width > 0);
@@ -201,8 +197,8 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithMultipleImagesUsesUniqueDrawingIds() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithMultipleImagesUniqueDrawingIds.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 100, 40);
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 document.Save();
             }
 
@@ -237,10 +233,10 @@ namespace OfficeIMO.Tests {
 
 
             // add image to header, directly to paragraph
-            defaultHeader.AddParagraph().AddImage(image, 100, 100);
+            defaultHeader.AddParagraph().AddImage(image, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
 
             // add image to footer, directly to paragraph
-            defaultFooter.AddParagraph().AddImage(image, 200, 200);
+            defaultFooter.AddParagraph().AddImage(image, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             Assert.True(defaultHeader.Images.Count == 1);
             Assert.True(evenHeader.Images.Count == 0);
@@ -252,7 +248,7 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
             var paragraph = document.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
-                paragraph.AddImage(imageStream, fileNameImage, 300, 300);
+                paragraph.AddImage(imageStream, fileNameImage, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300));
             }
             Assert.True(defaultHeader.Images.Count == 1);
             Assert.True(evenHeader.Images.Count == 0);
@@ -270,7 +266,7 @@ namespace OfficeIMO.Tests {
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
             var paragraphHeader = evenHeader.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
-                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WordImageTextWrapping.InLineWithText, "This is a test");
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "This is a test" });
                 var headerImage = paragraphHeader.Image;
                 Assert.NotNull(headerImage);
                 Assert.True(headerImage!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -341,10 +337,10 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
 
             var paragraph1 = document.AddParagraph("This is a test document with images wraps");
-            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InLineWithText);
+            paragraph1.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText });
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
-            paragraph2.AddImage(filePathImage, 100, 100, WordImageTextWrapping.BehindText);
+            paragraph2.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.BehindText });
             var paragraph2Image = paragraph2.Image;
             Assert.NotNull(paragraph2Image);
             Assert.True(paragraph2Image!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -352,19 +348,19 @@ namespace OfficeIMO.Tests {
             Assert.True(paragraph2Image.CompressionQuality == WordImageCompressionQuality.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
-            paragraph3.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InFrontOfText);
+            paragraph3.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
 
             var paragraph4 = document.AddParagraph("This is a test document with images wraps");
-            paragraph4.AddImage(filePathImage, 100, 100, WordImageTextWrapping.TopAndBottom);
+            paragraph4.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.TopAndBottom });
 
             var paragraph5 = document.AddParagraph("This is a test document with images wraps");
-            paragraph5.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
+            paragraph5.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
 
             var paragraph6 = document.AddParagraph("This is a test document with images wraps");
-            paragraph6.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Tight);
+            paragraph6.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Tight });
 
             var paragraph7 = document.AddParagraph("This is a test document with images wraps");
-            paragraph7.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Through);
+            paragraph7.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Through });
 
             Assert.True(document.Paragraphs.Count == 7);
             Assert.NotNull(document.Paragraphs[0].Image);
@@ -397,10 +393,10 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
 
             var paragraph1 = document.AddParagraph("This is a test document with images wraps");
-            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.InLineWithText);
+            paragraph1.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText });
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
-            paragraph2.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
+            paragraph2.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
 
             Assert.True(document.Paragraphs.Count == 2);
             var firstParaImage = document.Paragraphs[0].Image;
@@ -463,21 +459,21 @@ namespace OfficeIMO.Tests {
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
 
             var table = document.AddTable(2, 2);
-            table.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+            table.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             // not really necessary to add new paragraph since one is already there by default
             var paragraph = table.Rows[0].Cells[1].AddParagraph();
-            paragraph.AddImage(filePathImage, 200, 200);
+            paragraph.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             document.AddHeadersAndFooters();
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var tableInHeader = defaultHeader.AddTable(2, 2);
-            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             // not really necessary to add new paragraph since one is already there by default
             var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
-            paragraphInHeader.AddImage(filePathImage, 200, 200);
+            paragraphInHeader.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
             Assert.True(document.Tables.Count == 1);
             Assert.True(document.Tables[0].Rows.Count == 2);
@@ -503,7 +499,7 @@ namespace OfficeIMO.Tests {
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
             // lets add image to paragraph
-            var imageParagraph = paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WordImageTextWrapping.InLineWithText);
+            var imageParagraph = paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText });
 
             Assert.True(document.Images[0].WrapText == WordImageTextWrapping.InLineWithText);
 
@@ -525,7 +521,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddImageFromBase64() {
+        public void Test_EmbedDecodedBase64Image() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentBase64Image.docx");
             using var document = WordDocument.Create(filePath);
 
@@ -533,7 +529,8 @@ namespace OfficeIMO.Tests {
             var base64 = Convert.ToBase64String(bytes);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImageFromBase64(base64, "Kulek.jpg", 50, 50);
+            using var decoded = new MemoryStream(Convert.FromBase64String(base64));
+            paragraph.AddImage(decoded, "Kulek.jpg", OfficeLength.Pixels(50), OfficeLength.Pixels(50));
 
             Assert.Single(document.Images);
             document.Save();
@@ -545,7 +542,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             var image = paragraph.Image;
             Assert.NotNull(image);
             image!.Transparency = 25;
@@ -570,7 +567,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             var image = paragraph.Image;
             Assert.NotNull(image);
             image!.Transparency = 50;
@@ -595,7 +592,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             document.Save();
 
@@ -617,7 +614,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-                paragraph.AddImage(pixels, "crop.png", 720, 480);
+                paragraph.AddImage(pixels, "crop.png", OfficeIMO.OfficeLength.Pixels(720), OfficeIMO.OfficeLength.Pixels(480));
                 var image = paragraph.Image;
                 Assert.NotNull(image);
 
@@ -649,7 +646,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillMode.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 image!.FillMode = WordImageFillMode.Tile;
@@ -678,7 +675,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeFit.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(50));
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 image!.FillMode = WordImageFillMode.Fit;
@@ -704,7 +701,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeCenter.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(50));
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 image!.FillMode = WordImageFillMode.Center;
@@ -729,7 +726,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentExternalImage.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(new Uri("http://example.com/image.png"), 50, 50);
+                paragraph.AddImage(new Uri("http://example.com/image.png"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 Assert.Single(document.Images);
                 var extImage = document.Images[0];
                 Assert.NotNull(extImage);
@@ -758,11 +755,11 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 WordParagraph paragraph = document.AddParagraph("External story images");
                 WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
-                footnoteReference.FootNote!.Paragraphs![1].AddImage(footnoteUri, 20, 16);
+                footnoteReference.FootNote!.Paragraphs![1].AddImage(footnoteUri, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(16));
                 WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
-                endnoteReference.EndNote!.Paragraphs![1].AddImage(endnoteUri, 24, 18);
+                endnoteReference.EndNote!.Paragraphs![1].AddImage(endnoteUri, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(18));
                 paragraph.AddComment("OfficeIMO", "OI", "Comment ");
-                Assert.Single(document.Comments).Paragraphs[0].AddImage(commentUri, 18, 14);
+                Assert.Single(document.Comments).Paragraphs[0].AddImage(commentUri, OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(14));
                 document.Save();
             }
 
@@ -784,7 +781,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageNvProps.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 Assert.Empty(document.ValidateDocument());
@@ -819,7 +816,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageEffects.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 var img = paragraph.Image;
                 Assert.NotNull(img);
                 img!.AlphaInversionColor = OfficeIMO.OfficeColor.Red;
@@ -888,7 +885,7 @@ namespace OfficeIMO.Tests {
             var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
 
             using (var document = WordDocument.Create(filePath)) {
-                document.AddParagraph().AddImage(imagePath, 100, 100);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 document.Save();
             }
 

@@ -109,11 +109,11 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         limits.MaxAbsoluteGeometry = 50D;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
-        using PowerPointPresentation presentation = result.Value;
+        using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
         Assert.DoesNotContain(slide.TextBoxes, box => box.Text == "Rejected flow");

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     string path = Path.Combine(output, fileName);
                     WriteRepresentativePresentation(path, marker);
 
-                    using LegacyPptLoadResult loaded = PowerPointPresentation
+                    using LegacyPptLoadResult loaded = PowerPointDocument
                         .LoadLegacyPptWithReport(path);
                     loaded.EnsureNoImportErrors();
                     Assert.False(loaded.HasConversionLoss,
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                     Path.GetFileName(candidate).Equals(expectedName,
                         StringComparison.OrdinalIgnoreCase));
 
-                using LegacyPptLoadResult loaded = PowerPointPresentation
+                using LegacyPptLoadResult loaded = PowerPointDocument
                     .LoadLegacyPptWithReport(path);
                 loaded.EnsureNoImportErrors();
                 Assert.False(loaded.HasConversionLoss,
@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
             string marker) {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 24, 16, OfficeColor.FromRgb(37, 99, 235)));
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(path);
             presentation.SlideSize.SetPreset(
                 PowerPointSlideSizePreset.Screen16x9);
 
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);
             using (var stream = new MemoryStream(image, writable: false)) {
-                first.AddPicture(stream, OfficeImageFormat.Png,
+                first.AddImage(stream, OfficeImageFormat.Png,
                     3600000, 2700000, 1800000, 1200000);
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
@@ -114,12 +114,12 @@ namespace OfficeIMO.Tests {
             presentation.Save();
         }
 
-        private static string ReadAllText(PowerPointPresentation presentation) =>
+        private static string ReadAllText(PowerPointDocument presentation) =>
             string.Join("\n", presentation.Slides.SelectMany(slide =>
                 slide.TextBoxes).Select(textBox => textBox.Text));
 
         private static void AssertRepresentativeSemantics(
-            PowerPointPresentation presentation, string marker) {
+            PowerPointDocument presentation, string marker) {
             Assert.Equal(2, presentation.Slides.Count);
             Assert.InRange(presentation.SlideSize.AspectRatio, 1.77D, 1.79D);
             string text = ReadAllText(presentation);

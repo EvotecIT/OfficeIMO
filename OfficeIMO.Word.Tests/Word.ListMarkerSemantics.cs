@@ -686,8 +686,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         before.Text = "BeforeNested " + string.Join(" ", Enumerable.Repeat("wrapped", 8));
         AttachToList(before, list.NumberId);
         if (useImage) {
-            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"),
-                20, 20, description: "Ordered image");
+            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20), options: new OfficeIMO.Word.WordImageOptions { Description = "Ordered image" });
         } else {
             WordTable nested = cell.AddTable(1, 1);
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";

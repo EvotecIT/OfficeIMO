@@ -278,7 +278,7 @@ public class PdfAdapterSecurityComplianceTests {
     }
 
     private static byte[] ConvertAutomaticPptx(string text) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBoxPoints(
             text + "\nAdapter proof",
             leftPoints: 36,
@@ -310,7 +310,7 @@ public class PdfAdapterSecurityComplianceTests {
     }
 
     private static byte[] ConvertPptx(PdfCore.PdfCreateOptions pdfOptions) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBoxPoints(
             Marker("pptx") + "\nAdapter proof",
             leftPoints: 36,

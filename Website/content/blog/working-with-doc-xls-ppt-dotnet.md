@@ -34,7 +34,7 @@ document.AddParagraph("Reviewed during archive migration");
 document.Save("archive-reviewed.docx");
 ```
 
-The equivalent conversion surfaces on `ExcelDocument` and `PowerPointPresentation` make the input and destination explicit.
+The equivalent conversion surfaces on `ExcelDocument` and `PowerPointDocument` make the input and destination explicit.
 
 ## Reading is not the same as faithful writing
 
@@ -59,7 +59,7 @@ For routine content, the default conversion path may be enough:
 ```csharp
 WordDocument.Convert("archive.doc", "archive.docx");
 ExcelDocument.Convert("forecast.xls", "forecast.xlsx");
-PowerPointPresentation.Convert("briefing.ppt", "briefing.pptx");
+PowerPointDocument.Convert("briefing.ppt", "briefing.pptx");
 ```
 
 For governed archives or business-critical documents, preview the conversion first:

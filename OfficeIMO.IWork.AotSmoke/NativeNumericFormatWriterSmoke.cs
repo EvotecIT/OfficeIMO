@@ -99,7 +99,7 @@ internal static class NativeNumericFormatWriterSmoke {
             VerifyText(root, edited, saved.MainDocumentPart!.Document!.Body!.Elements<W.Table>().Single()
                 .Elements<W.TableRow>().Select(row => row.Elements<W.TableCell>().Last().InnerText).ToArray());
         } else {
-            using var result = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction(); result.Value.Save(output); output.Position = 0;
             using var saved = PresentationDocument.Open(output, false);
             Require(!new OpenXmlValidator().Validate(saved).Any(), "Saved numeric PPTX is invalid.");

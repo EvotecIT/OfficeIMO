@@ -20,11 +20,11 @@ namespace OfficeIMO.Tests {
             const string password = "Pässw0rd!";
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(23, 91, 177);
             byte[] encryptedBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.AddTextBox("Encrypted binary deck", 100000, 100000,
                     2200000, 600000);
-                slide.AddPicture(new MemoryStream(imageBytes),
+                slide.AddImage(new MemoryStream(imageBytes),
                     OfficeIMO.Drawing.OfficeImageFormat.Png, 300000, 900000, 1800000, 1200000);
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
@@ -33,12 +33,12 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Throws<CryptographicException>(() =>
-                LegacyPptPresentation.Load(encryptedBytes));
+                LegacyPptDocument.Load(encryptedBytes));
             Assert.Throws<CryptographicException>(() =>
-                LegacyPptPresentation.Load(encryptedBytes,
+                LegacyPptDocument.Load(encryptedBytes,
                     new LegacyPptImportOptions { Password = "wrong" }));
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(
+            LegacyPptDocument legacy = LegacyPptDocument.Load(
                 encryptedBytes, new LegacyPptImportOptions {
                     Password = password
                 });
@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests {
                 .ImageBytes);
 
             using var input = new MemoryStream(encryptedBytes);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.LoadEncrypted(input, password);
+            using PowerPointDocument projected =
+                PowerPointDocument.LoadEncrypted(input, password);
             Assert.Equal(PowerPointFileFormat.Ppt, projected.SourceFormat);
             Assert.Contains(projected.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Encrypted binary deck");
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                 password);
 
             InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(
+                InvalidDataException>(() => LegacyPptDocument.Load(
                     encryptedBytes, new LegacyPptImportOptions {
                         Password = password,
                         MaxDecodedStorageBytes = 1
@@ -199,8 +199,8 @@ namespace OfficeIMO.Tests {
             };
 
             using var input = new MemoryStream(encryptedBytes);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(input, options);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(input, options);
 
             Assert.Equal(PowerPointFileFormat.Ppt, presentation.SourceFormat);
             Assert.Contains(presentation.LegacyPptImportDiagnostics,
@@ -212,21 +212,21 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task LegacyEncryption_LoadEncryptedRejectsPlainBinaryInput() {
             byte[] plainBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Plain binary deck");
                 plainBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using (var stream = new MemoryStream(plainBytes)) {
                 InvalidDataException failure = Assert.Throws<InvalidDataException>(
-                    () => PowerPointPresentation.LoadEncrypted(stream,
+                    () => PowerPointDocument.LoadEncrypted(stream,
                         "ignored-password"));
                 Assert.Contains("not password-encrypted", failure.Message);
             }
             using (var stream = new MemoryStream(plainBytes)) {
                 InvalidDataException failure = await Assert.ThrowsAsync<
-                    InvalidDataException>(() => PowerPointPresentation
+                    InvalidDataException>(() => PowerPointDocument
                     .LoadEncryptedAsync(stream, "ignored-password"));
                 Assert.Contains("not password-encrypted", failure.Message);
             }
@@ -236,13 +236,13 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllBytes(path, plainBytes);
                 InvalidDataException pathFailure = Assert.Throws<
-                    InvalidDataException>(() => PowerPointPresentation
+                    InvalidDataException>(() => PowerPointDocument
                     .LoadEncrypted(path, "ignored-password"));
                 Assert.Contains("not password-encrypted",
                     pathFailure.Message);
                 InvalidDataException asyncPathFailure = await Assert
                     .ThrowsAsync<InvalidDataException>(() =>
-                        PowerPointPresentation.LoadEncryptedAsync(path,
+                        PowerPointDocument.LoadEncryptedAsync(path,
                             "ignored-password"));
                 Assert.Contains("not password-encrypted",
                     asyncPathFailure.Message);
@@ -257,8 +257,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".ppt");
             try {
-                using (PowerPointPresentation source =
-                       PowerPointPresentation.Create()) {
+                using (PowerPointDocument source =
+                       PowerPointDocument.Create()) {
                     source.AddSlide().AddTextBox("Before encrypted edit");
                     source.SaveEncrypted(path, password,
                         new PowerPointSaveOptions {
@@ -267,8 +267,8 @@ namespace OfficeIMO.Tests {
                         });
                 }
 
-                using (PowerPointPresentation loaded =
-                       PowerPointPresentation.Load(path,
+                using (PowerPointDocument loaded =
+                       PowerPointDocument.Load(path,
                            new PowerPointLoadOptions {
                                LegacyPptImportOptions =
                                    new LegacyPptImportOptions {
@@ -283,9 +283,9 @@ namespace OfficeIMO.Tests {
 
                 byte[] savedBytes = File.ReadAllBytes(path);
                 Assert.Throws<CryptographicException>(() =>
-                    LegacyPptPresentation.Load(savedBytes));
-                LegacyPptPresentation reopened =
-                    LegacyPptPresentation.Load(savedBytes,
+                    LegacyPptDocument.Load(savedBytes));
+                LegacyPptDocument reopened =
+                    LegacyPptDocument.Load(savedBytes,
                         new LegacyPptImportOptions { Password = password });
                 Assert.Equal(56, reopened.EncryptionKeySizeBits);
                 Assert.False(reopened.EncryptedDocumentProperties);
@@ -302,8 +302,8 @@ namespace OfficeIMO.Tests {
             byte[] encryptedBytes = CreateEncryptedLegacyPresentation(
                 password);
             using var input = new MemoryStream(encryptedBytes);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(input,
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions {
                         LegacyPptImportOptions =
                             new LegacyPptImportOptions {
@@ -319,10 +319,10 @@ namespace OfficeIMO.Tests {
         public void LegacyEncryption_RespectsLegacySignatureMutationPolicy() {
             byte[] signedBytes = CreateLegacySignatureFixture();
             using var input = new MemoryStream(signedBytes);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(input);
 
-            Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
+            Assert.Throws<PowerPointSignedDocumentMutationException>(() =>
                 presentation.ToEncryptedBytes("signed-pass",
                     PowerPointFileFormat.Ppt));
 
@@ -331,8 +331,8 @@ namespace OfficeIMO.Tests {
                     .RemoveInvalidatedSignatures;
             byte[] encrypted = presentation.ToEncryptedBytes("signed-pass",
                 PowerPointFileFormat.Ppt);
-            LegacyPptPresentation reopened =
-                LegacyPptPresentation.Load(encrypted,
+            LegacyPptDocument reopened =
+                LegacyPptDocument.Load(encrypted,
                     new LegacyPptImportOptions {
                         Password = "signed-pass"
                     });
@@ -351,8 +351,8 @@ namespace OfficeIMO.Tests {
             const string password = "property-pass";
             const string title = "Confidential binary metadata";
             byte[] encryptedBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Visible slide text");
                 source.BuiltinDocumentProperties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
@@ -363,8 +363,8 @@ namespace OfficeIMO.Tests {
                 Encoding.Unicode.GetBytes(title)));
 
             using var input = new MemoryStream(encryptedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.LoadEncrypted(input, password);
+            using PowerPointDocument reopened =
+                PowerPointDocument.LoadEncrypted(input, password);
             Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
         }
 
@@ -373,8 +373,8 @@ namespace OfficeIMO.Tests {
             const string password = "clear-property-pass";
             const string title = "Public binary metadata";
             byte[] encryptedBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Encrypted slide text");
                 source.BuiltinDocumentProperties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
@@ -388,8 +388,8 @@ namespace OfficeIMO.Tests {
                 Encoding.Unicode.GetBytes(title)));
 
             using var input = new MemoryStream(encryptedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.LoadEncrypted(input, password);
+            using PowerPointDocument reopened =
+                PowerPointDocument.LoadEncrypted(input, password);
             Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
         }
 
@@ -398,12 +398,12 @@ namespace OfficeIMO.Tests {
             const string sourcePassword = "source-pass";
             const string targetPassword = "target-pass";
             byte[] plainBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Original secret", 100000,
                     100000, 2200000, 600000);
                 plainBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation plain = LegacyPptPresentation.Load(plainBytes);
+            LegacyPptDocument plain = LegacyPptDocument.Load(plainBytes);
             byte[] opaqueBytes = "opaque-vendor-stream"u8.ToArray();
             byte[] withOpaque = plain.Package.RewriteCompoundStreams(
                 new Dictionary<string, byte[]> {
@@ -420,8 +420,8 @@ namespace OfficeIMO.Tests {
 
             byte[] encryptedEdited;
             using (var input = new MemoryStream(encryptedSource))
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.LoadEncrypted(input,
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.LoadEncrypted(input,
                        sourcePassword)) {
                 Assert.Single(presentation.Slides[0].TextBoxes,
                     textBox => textBox.Text == "Original secret").Text =
@@ -437,9 +437,9 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Throws<CryptographicException>(() =>
-                LegacyPptPresentation.Load(encryptedEdited,
+                LegacyPptDocument.Load(encryptedEdited,
                     new LegacyPptImportOptions { Password = sourcePassword }));
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 encryptedEdited, new LegacyPptImportOptions {
                     Password = targetPassword
                 });
@@ -459,14 +459,14 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + extension);
             try {
-                using (PowerPointPresentation source =
-                       PowerPointPresentation.Create()) {
+                using (PowerPointDocument source =
+                       PowerPointDocument.Create()) {
                     source.AddSlide().AddTextBox("Encrypted variant");
                     source.SaveEncrypted(path, "variant-pass");
                 }
 
-                using PowerPointPresentation loaded =
-                    PowerPointPresentation.LoadEncrypted(path,
+                using PowerPointDocument loaded =
+                    PowerPointDocument.LoadEncrypted(path,
                         "variant-pass");
                 Assert.Equal(expectedFormat, loaded.SourceFormat);
                 Assert.Null(loaded.SourcePath);
@@ -483,22 +483,22 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".pps");
             try {
-                using (PowerPointPresentation source =
-                       PowerPointPresentation.Create()) {
+                using (PowerPointDocument source =
+                       PowerPointDocument.Create()) {
                     source.AddSlide().AddTextBox("Async encrypted binary");
                     source.SaveEncrypted(path, password);
                 }
 
-                using PowerPointPresentation fromPath =
-                    await PowerPointPresentation.LoadEncryptedAsync(path,
+                using PowerPointDocument fromPath =
+                    await PowerPointDocument.LoadEncryptedAsync(path,
                         password);
                 Assert.Equal(PowerPointFileFormat.Pps,
                     fromPath.SourceFormat);
 
                 byte[] bytes = File.ReadAllBytes(path);
                 using var encryptedStream = new MemoryStream(bytes);
-                using PowerPointPresentation fromStream =
-                    await PowerPointPresentation.LoadEncryptedAsync(
+                using PowerPointDocument fromStream =
+                    await PowerPointDocument.LoadEncryptedAsync(
                         encryptedStream, password);
                 Assert.Equal(PowerPointFileFormat.Ppt,
                     fromStream.SourceFormat);
@@ -506,8 +506,8 @@ namespace OfficeIMO.Tests {
                     textBox => textBox.Text == "Async encrypted binary");
 
                 using var normalStream = new MemoryStream(bytes);
-                using PowerPointPresentation normalFlow =
-                    await PowerPointPresentation.LoadAsync(normalStream,
+                using PowerPointDocument normalFlow =
+                    await PowerPointDocument.LoadAsync(normalStream,
                         new PowerPointLoadOptions {
                             LegacyPptImportOptions =
                                 new LegacyPptImportOptions {
@@ -528,8 +528,8 @@ namespace OfficeIMO.Tests {
             PowerPointFileFormat format) {
             const string password = "cancel-after-buffering";
             byte[] encrypted;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Cancellation boundary");
                 encrypted = source.ToEncryptedBytes(password, format);
             }
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
             using var input = new CancelAtEndAsyncReadStream(encrypted,
                 cancellation.Cancel);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                PowerPointPresentation.LoadEncryptedAsync(input, password,
+                PowerPointDocument.LoadEncryptedAsync(input, password,
                     cancellationToken: cancellation.Token));
         }
 
@@ -550,8 +550,8 @@ namespace OfficeIMO.Tests {
                 sourcePassword);
 
             using var input = new MemoryStream(encrypted);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.LoadEncrypted(input, sourcePassword);
+            using PowerPointDocument presentation =
+                PowerPointDocument.LoadEncrypted(input, sourcePassword);
             Assert.Equal(PowerPointFileFormat.Ppt,
                 presentation.SourceFormat);
             presentation.Slides[0].TextBoxes.Single(textBox =>
@@ -561,8 +561,8 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             presentation.SaveEncrypted(output, targetPassword);
             using var reopenedInput = new MemoryStream(output.ToArray());
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.LoadEncrypted(reopenedInput,
+            using PowerPointDocument reopened =
+                PowerPointDocument.LoadEncrypted(reopenedInput,
                     targetPassword);
             Assert.Contains(reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Re-encrypted stream");
@@ -573,8 +573,8 @@ namespace OfficeIMO.Tests {
         [InlineData(41)]
         [InlineData(136)]
         public void LegacyEncryption_RejectsInvalidRc4KeySizes(int keySizeBits) {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             source.AddSlide().AddTextBox("Invalid key size");
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -586,8 +586,8 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateEncryptedLegacyPresentation(
             string password) {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             source.AddSlide().AddTextBox("Original secret", 100000,
                 100000, 2200000, 600000);
             return source.ToEncryptedBytes(password, PowerPointFileFormat.Ppt);

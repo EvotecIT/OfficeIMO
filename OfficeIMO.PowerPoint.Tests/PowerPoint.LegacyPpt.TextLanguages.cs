@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         [Fact]
         public void NeutralReader_DecodesMicrosoftTextSpecialInfoRuns() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(
+            LegacyPptDocument legacy = LegacyPptDocument.Load(
                 FixturePath);
             LegacyPptTextBody[] bodies = legacy.Slides
                 .SelectMany(slide => slide.Shapes)
@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsProjectsAndPreservesTextLanguages() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints(string.Empty, 30, 30, 360, 120);
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptTextBody textBody = Assert.Single(Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes).TextBody;
+                LegacyPptDocument.Load(bytes).Slides).Shapes).TextBody;
             Assert.Equal("English Polski\nUnproofed", textBody.Text);
             Assert.True(textBody.HasTextSpecialInfoRecord);
             Assert.False(textBody.IsTextSpecialInfoTruncated);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             P.Shape projected = Assert.IsType<P.Shape>(Assert.Single(
                 reopened.Slides[0].TextBoxes).Element);
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_PreservesTrailingEmptyParagraphLanguage() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                       PowerPointDocument.Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("A", 30, 30, 240, 60);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptTextBody binary = Assert.Single(Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes).TextBody;
+                LegacyPptDocument.Load(bytes).Slides).Shapes).TextBody;
             Assert.Equal("A\n", binary.Text);
             Assert.False(binary.IsTextSpecialInfoTruncated);
             Assert.Collection(binary.LanguageRuns,
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(input);
             A.Paragraph[] paragraphs = Assert.IsType<P.Shape>(Assert.Single(
                     reopened.Slides[0].TextBoxes).Element).TextBody!
@@ -197,20 +197,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedTextLanguageAndLengthEdit_UsesIncrementalSpecialInfoRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBoxPoints("Editable language", 30, 30, 240, 60)
                     .SetLanguage("en-US");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox textBox = Assert.Single(
                     imported.Slides[0].TextBoxes);
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptTextBody savedText = Assert.Single(Assert.Single(
                 saved.Slides).Shapes).TextBody;
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             PowerPointTextBox reopenedText = Assert.Single(
                 reopened.Slides[0].TextBoxes);
@@ -271,8 +271,8 @@ namespace OfficeIMO.Tests {
         [InlineData("en-001")]
         public void NativeWriter_BlocksTextLanguageWithoutClassicLcid(
             string language) {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide(
                     PowerPointSlideLayoutType.Blank)
                 .AddTextBoxPoints("Neutral language", 30, 30, 240, 60);
@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedUnsupportedTextSpecialInfo_AllowsUnrelatedEditAndBlocksRewrite() {
             byte[] generatedBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
                 generatedBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation generated = LegacyPptPresentation.Load(
+            LegacyPptDocument generated = LegacyPptDocument.Load(
                 generatedBytes);
             LegacyPptShape generatedShape = Assert.Single(Assert.Single(
                 generated.Slides).Shapes);
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
                     ["PowerPoint Document"] = documentStream
                 });
 
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptTextBody originalText = Assert.Single(Assert.Single(
                 original.Slides).Shapes).TextBody;
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             byte[] movedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 Assert.Single(imported.Slides[0].TextBoxes).Left += 15875;
                 LegacyPptWritePreflightReport preflight = imported
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, preflight.Findings));
                 movedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation moved = LegacyPptPresentation.Load(
+            LegacyPptDocument moved = LegacyPptDocument.Load(
                 movedBytes);
             Assert.True(Assert.Single(Assert.Single(moved.Slides).Shapes)
                 .TextBody.HasUnprojectedTextSpecialInfo);
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
 
             using var rewriteInput = new MemoryStream(sourceBytes,
                 writable: false);
-            using PowerPointPresentation rewrite = PowerPointPresentation
+            using PowerPointDocument rewrite = PowerPointDocument
                 .Load(rewriteInput);
             Assert.Single(Assert.Single(rewrite.Slides[0].TextBoxes)
                 .Paragraphs[0].Runs).Language = "pl-PL";

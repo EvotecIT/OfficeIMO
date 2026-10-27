@@ -98,11 +98,11 @@ public sealed partial class OfficeVisualIntegrationTests {
                 Assert.Equal("Two measured requests.", image.Description);
             }
             string slidesPath = Path.Combine(folder, "fit.pptx");
-            using (var presentation = PowerPointPresentation.Create(slidesPath)) {
+            using (var presentation = PowerPointDocument.Create(slidesPath)) {
                 presentation.AddSlide().AddVisualArtifact(artifact, PowerPointLayoutBox.FromPoints(36D, 60D, 300D, 100D));
                 presentation.Save();
             }
-            using (var presentation = PowerPointPresentation.Load(slidesPath)) {
+            using (var presentation = PowerPointDocument.Load(slidesPath)) {
                 var picture = Assert.Single(presentation.Slides[0].Pictures);
                 Assert.Equal(200D, picture.WidthPoints, 3);
                 Assert.Equal(100D, picture.HeightPoints, 3);

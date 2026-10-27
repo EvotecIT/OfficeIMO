@@ -89,7 +89,7 @@ public partial class Word {
         WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable target = nested ? table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal) : table;
-        target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
+        target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(12));
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTable restoredTable = Assert.Single(restoredStory.Tables);

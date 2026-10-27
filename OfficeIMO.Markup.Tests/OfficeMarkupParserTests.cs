@@ -540,7 +540,7 @@ slide title="Roadmap"
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains("PowerPointPresentation.Create", code, StringComparison.Ordinal);
+        Assert.Contains("PowerPointDocument.Create", code, StringComparison.Ordinal);
         Assert.Contains("presentation.AddSlide", code, StringComparison.Ordinal);
         Assert.Contains("Roadmap", code, StringComparison.Ordinal);
     }
@@ -1067,7 +1067,7 @@ Q3,260
             });
 
             Assert.True(File.Exists(path));
-            using (var presentation = PowerPointPresentation.Load(path)) {
+            using (var presentation = PowerPointDocument.Load(path)) {
                 Assert.Equal(3, presentation.Slides.Count);
                 Assert.Equal(PowerPointSlideTransition.Fade, presentation.Slides[0].Transition);
                 Assert.Equal("Open with the top-line result.", presentation.Slides[0].Notes.Text);
@@ -1133,7 +1133,7 @@ profile: presentation
             });
 
             Assert.True(File.Exists(path));
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             Assert.Single(presentation.Slides);
             Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Quarterly Review", StringComparison.Ordinal));
         } finally {
@@ -1182,7 +1182,7 @@ Stay in semantic Markdown until the slide actually needs more control.
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             var slide = Assert.Single(presentation.Slides);
 
             Assert.Contains(slide.Shapes.OfType<PowerPointTextBox>(), box =>
@@ -1284,7 +1284,7 @@ Details
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             var sections = presentation.GetSections().ToArray();
 
             Assert.Equal(new[] { "Introduction", "Deep Dive" }, sections.Select(section => section.Name).ToArray());
@@ -1344,7 +1344,7 @@ Body
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             Assert.Equal(3, presentation.Slides.Count);
             Assert.Equal(PowerPointSlideTransition.PushLeft, presentation.Slides[0].Transition);
             Assert.Equal(PowerPointSlideTransitionSpeed.Fast, presentation.Slides[0].TransitionSpeed);
@@ -1394,7 +1394,7 @@ Background image slide
                 RenderMermaidDiagrams = false
             });
 
-            using (var presentation = PowerPointPresentation.Load(path)) {
+            using (var presentation = PowerPointDocument.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Background Overlay", StringComparison.Ordinal) == true);
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
@@ -1611,7 +1611,7 @@ profile: presentation
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             var slide = Assert.Single(presentation.Slides);
             var picture = Assert.Single(slide.Pictures);
             Assert.True(picture.WidthInches < 3.0, "Contained JPEG should not stretch to the full placement width.");
@@ -1687,7 +1687,7 @@ Scaled textbox
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Load(path);
+            using var presentation = PowerPointDocument.Load(path);
             Assert.Equal(13.333, presentation.SlideSize.WidthInches, 3);
             Assert.Equal(7.5, presentation.SlideSize.HeightInches, 3);
 
@@ -1746,7 +1746,7 @@ Gradient background slide
                 Assert.Equal(8100000, gradient.GetFirstChild<DocumentFormat.OpenXml.Drawing.LinearGradientFill>()?.Angle?.Value);
             }
 
-            using (var presentation = PowerPointPresentation.Load(path)) {
+            using (var presentation = PowerPointDocument.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
             }
@@ -1791,7 +1791,7 @@ Gradient angle slide
                 Assert.Equal(2700000, gradient.GetFirstChild<DocumentFormat.OpenXml.Drawing.LinearGradientFill>()?.Angle?.Value);
             }
 
-            using (var presentation = PowerPointPresentation.Load(path)) {
+            using (var presentation = PowerPointDocument.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
             }
@@ -1864,7 +1864,7 @@ profile: presentation
                 RenderMermaidDiagrams = false
             });
 
-            using (var presentation = PowerPointPresentation.Load(path)) {
+            using (var presentation = PowerPointDocument.Load(path)) {
                 var slides = presentation.Slides.ToArray();
                 Assert.Equal(6, slides.Length);
                 Assert.Equal(PowerPointSlideTransition.Fade, slides[0].Transition);

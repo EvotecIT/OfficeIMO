@@ -22,7 +22,7 @@ public sealed class IWorkPublicApiContracts {
 
         AssertSourceExtension(typeof(WordIWorkConverter), "ToWordDocumentResult");
         AssertSourceExtension(typeof(ExcelIWorkConverter), "ToExcelDocumentResult");
-        AssertSourceExtension(typeof(PowerPointIWorkConverter), "ToPowerPointPresentationResult");
+        AssertSourceExtension(typeof(PowerPointIWorkConverter), "ToPowerPointDocumentResult");
 
         MethodInfo[] converterMethods = new[] {
                 typeof(WordIWorkConverter),

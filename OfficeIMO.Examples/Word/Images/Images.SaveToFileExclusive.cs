@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word
             string imagePaths = Path.Combine(Directory.GetCurrentDirectory(), "Images");
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph();
-            var image = paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 50, 50);
+            var image = paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             string fileToSave = Path.Combine(folderPath, "LockedImage.jpg");
             using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
             {

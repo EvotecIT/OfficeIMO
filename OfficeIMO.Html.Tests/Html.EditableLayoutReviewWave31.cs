@@ -67,9 +67,9 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>Region"
             + "<img alt='Vector marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+        using PowerPointDocument presentation = result.Value;
 
         PowerPointPicture nativeImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         Assert.Equal("image/svg+xml", nativeImage.ContentType);
@@ -95,8 +95,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         Assert.Equal(0.25D, excelImage.CropRightRatio, precision: 3);
 
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = powerPointResult.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = powerPointResult.Value;
         PowerPointPicture powerPointImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         Assert.Equal(15D, powerPointImage.WidthPoints, precision: 3);
         Assert.Equal(15D, powerPointImage.HeightPoints, precision: 3);

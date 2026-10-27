@@ -488,7 +488,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsNativeRunTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun authored = source.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
         authored.Bold = true;
@@ -514,8 +514,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, semanticRun.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Double, semanticRun.StrikethroughStyle);
 
-        using PowerPointPresentation imported = prepared
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = prepared
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun actual = Assert.Single(imported.Slides).TextBoxes.Single()
             .Paragraphs.Single().Runs.Single();
@@ -532,7 +532,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsTableCellRunTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTableCell cell = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60).GetCell(0, 0);
         cell.Text = "First";
         PowerPointParagraph paragraph = Assert.Single(cell.Paragraphs);
@@ -566,8 +566,8 @@ public class HtmlTextFormattingConversionTests {
             block => block.Table != null).Table!.Rows).Cells);
         Assert.Equal(2, semanticCell.Runs.Count);
 
-        using PowerPointPresentation imported = prepared
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = prepared
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.Single().Runs.ToArray();
@@ -587,7 +587,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlDoesNotActivatePolicyRejectedRunHyperlinks() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Blocked")
             .Paragraphs.Single().Runs.Single();
         run.Hyperlink = new Uri("javascript:alert(1)", UriKind.Absolute);
@@ -605,8 +605,8 @@ public class HtmlTextFormattingConversionTests {
             "<span data-officeimo-powerpoint-run=\"true\" data-officeimo-powerpoint-hyperlink=\"https://example.com/safe\">Allowed</span>" +
             "</p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult().RequireValue();
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointDocumentResult().RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
 
@@ -624,9 +624,9 @@ public class HtmlTextFormattingConversionTests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
@@ -640,7 +640,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRetainsLanguageOnAnOtherwisePlainTableRun() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun authored = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60)
             .GetCell(0, 0).Paragraphs.Single().Runs.Single();
         authored.Text = "Polski";
@@ -649,9 +649,9 @@ public class HtmlTextFormattingConversionTests {
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun actual = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.Single().Runs.Single();
@@ -660,7 +660,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRecreatesDynamicFieldsInAuthoredOrder() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}");
         paragraph.AddRun(" after");
@@ -668,9 +668,9 @@ public class HtmlTextFormattingConversionTests {
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         IReadOnlyList<PowerPointParagraphInline> nodes = imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().InlineNodes;
@@ -683,7 +683,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsDynamicFieldTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}", run => {
             run.Bold = true;
@@ -700,9 +700,9 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains("data-officeimo-powerpoint-baseline-percent=\"30\"", html, StringComparison.Ordinal);
         Assert.Contains("<a href=\"https://example.com/field\">", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointParagraphInline field = Assert.Single(imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
@@ -733,13 +733,13 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult().RequireValue();
         Assert.All(Assert.Single(excel.Sheets).GetRichText(1, 1), run => Assert.Null(run.UnderlineStyle));
 
-        using PowerPointPresentation powerPointSource = PowerPointPresentation.Create();
+        using PowerPointDocument powerPointSource = PowerPointDocument.Create();
         powerPointSource.AddSlide().AddTextBox("PowerPoint");
         string powerPointHtml = powerPointSource.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile())
             .Replace("<span", "<span data-officeimo-powerpoint-underline=\"999\" data-officeimo-powerpoint-strike=\"999\" data-officeimo-powerpoint-capitalization=\"999\"");
-        using PowerPointPresentation powerPoint = HtmlConversionDocument.Parse(
+        using PowerPointDocument powerPoint = HtmlConversionDocument.Parse(
             powerPointHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult().RequireValue();
+            .ToPowerPointDocumentResult().RequireValue();
         PowerPointTextRun run = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Null(run.UnderlineStyle);
         Assert.Null(run.StrikeStyle);
@@ -759,7 +759,7 @@ public class HtmlTextFormattingConversionTests {
         string excelHtml = excel.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Create();
+        using PowerPointDocument powerPoint = PowerPointDocument.Create();
         powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontName = hostile;
         string powerPointHtml = powerPoint.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), powerPointHtml, StringComparison.Ordinal);

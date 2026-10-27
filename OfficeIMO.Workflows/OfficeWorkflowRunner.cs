@@ -585,7 +585,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 break;
             case ".pptx":
                 using (FileStream stream = OpenStagedArtifact(stagingPath))
-                using (PowerPointPresentation document = await PowerPointPresentation.LoadAsync(
+                using (PowerPointDocument document = await PowerPointDocument.LoadAsync(
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;

@@ -14,8 +14,8 @@ Use the PowerPoint image-export API to select slides, DPI or scale, destination 
 ```csharp
 using OfficeIMO.PowerPoint;
 
-using PowerPointPresentation presentation =
-    PowerPointPresentation.Load("Quarterly-Review.pptx");
+using PowerPointDocument presentation =
+    PowerPointDocument.Load("Quarterly-Review.pptx");
 
 presentation.ToImages()
     .ForSlideRange(1, presentation.Slides.Count)

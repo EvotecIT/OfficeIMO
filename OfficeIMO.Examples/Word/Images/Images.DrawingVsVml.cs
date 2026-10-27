@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
 
             string vmlFile = Path.Combine(folderPath, "DrawingVsVml.Vml.docx");
             using (WordDocument doc = WordDocument.Create(vmlFile)) {
-                doc.AddImageVml(img);
+                doc.AddImage(img,options:new OfficeIMO.Word.WordImageOptions { Vml = true });
                 doc.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
                 doc.AddShape(WordShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
                 doc.AddShape(WordShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);

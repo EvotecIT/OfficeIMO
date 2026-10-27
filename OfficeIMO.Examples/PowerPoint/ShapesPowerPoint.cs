@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Shape operations");
             string filePath = Path.Combine(folderPath, "Shape Operations.pptx");
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             label.Color = "1F4E79";
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture picture = slide.AddPicture(imagePath, rightColumn);
+                PowerPointPicture picture = slide.AddImage(imagePath, rightColumn);
                 picture.FitToBox(1200, 800, crop: true);
             } else {
                 PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)", rightColumn);

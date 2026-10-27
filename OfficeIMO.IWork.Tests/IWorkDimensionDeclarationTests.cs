@@ -234,13 +234,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal((40.5d * 96d / 72d - 5d) / 7d, double.Parse(sheet.Descendants(SpreadsheetNs + "col")
                 .Single().Attribute("width")!.Value, CultureInfo.InvariantCulture), 10);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             Assert.Equal(!unknownIndex, partial.Report.Diagnostics.Any(issue => issue.Code == "IWORK_KEYNOTE_TABLE_SIZING_SCALED"));
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             PowerPointTable table = Assert.Single(Assert.Single(reopened.Slides).Tables);
             // Existing PPTX policy scales recovered dimensions to the native drawable extent.
             double expectedHeight = unknownIndex ? 60.25d / 3d : 30d * 60.25d / 50d;

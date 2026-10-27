@@ -57,7 +57,7 @@ internal static class RichWordPdfCorpusGenerator {
                     smartArt.AddNode("Validate");
                     smartArt.AddNode("Publish");
                 } else if (page == 3) {
-                    document.AddParagraph().AddImage(imagePath, 120, 60);
+                    document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(60));
                     document.AddParagraph("Project link: ")
                         .AddHyperLink("OfficeIMO", new Uri("https://github.com/EvotecIT/OfficeIMO"), addStyle: true);
                 }

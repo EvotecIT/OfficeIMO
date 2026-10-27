@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsAndProjectsCustomShowAndAction() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointSlide actionSlide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointSlide third = source.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptCustomShow show = Assert.Single(legacy.CustomShows);
             Assert.Equal("Executive path", show.Name);
             Assert.Equal(new[] { legacy.Slides[2].SlideId,
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
                 OfficePackageContentPolicy.Reject;
             using (var secureInput = new MemoryStream(bytes,
                        writable: false))
-            using (PowerPointPresentation secure =
-                   PowerPointPresentation.Load(secureInput,
+            using (PowerPointDocument secure =
+                   PowerPointDocument.Load(secureInput,
                        new PowerPointLoadOptions {
                            PackageSecurity = security
                        })) {
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             P.CustomShow projectedShow = Assert.Single(projected.OpenXmlDocument
                 .PresentationPart!.Presentation!.CustomShowList!
                 .Elements<P.CustomShow>());
@@ -87,17 +87,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedCustomShow_AddEditAndRemoveAppendsPreservingRecords() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Destination");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] addedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 AddCustomShow(imported, 99, "Short path", imported.Slides[1]);
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
                     .Append(new A.HyperlinkOnClick {
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, report.Findings));
                 addedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation added = LegacyPptPresentation.Load(addedBytes);
+            LegacyPptDocument added = LegacyPptDocument.Load(addedBytes);
             LegacyPptCustomShow addedShow = Assert.Single(added.CustomShows);
             Assert.Equal("Short path", addedShow.Name);
             Assert.Equal(new[] { added.Slides[1].SlideId }, addedShow.SlideIds);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
             byte[] editedBytes;
             using (var input = new MemoryStream(addedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 P.CustomShow show = imported.OpenXmlDocument.PresentationPart!
                     .Presentation!.CustomShowList!.Elements<P.CustomShow>().Single();
                 show.Name = "Full path";
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, report.Findings));
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
+            LegacyPptDocument edited = LegacyPptDocument.Load(editedBytes);
             LegacyPptCustomShow editedShow = Assert.Single(edited.CustomShows);
             Assert.Equal("Full path", editedShow.Name);
             Assert.Equal(new[] { edited.Slides[0].SlideId,
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
             byte[] removedBytes;
             using (var input = new MemoryStream(editedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 imported.OpenXmlDocument.PresentationPart!.Presentation!
                     .CustomShowList = null;
                 GetDrawingProperties(Assert.Single(imported.Slides[0].Shapes))
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
                 removedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
+            LegacyPptDocument removed = LegacyPptDocument.Load(removedBytes);
             Assert.Empty(removed.CustomShows);
             Assert.Empty(removed.Slides[0].Shapes
                 .SelectMany(shape => shape.Interactions));
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksAmbiguousCustomShowNames() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             AddCustomShow(source, 1, "Duplicate", slide);
             P.CustomShow duplicate = new(new P.SlideList(
@@ -209,8 +209,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksMultipleSlideListsInCustomShow() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             AddCustomShow(source, 1, "Duplicated list", slide);
@@ -233,17 +233,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedCustomShow_TracksAppendedAndRemovedSlides() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide first = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 first.AddTextBox("First");
                 AddCustomShow(source, 7, "Mutable path", first);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] appendedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide appended = imported.AddSlide(PowerPointSlideLayoutType.Blank);
                 appended.AddTextBox("Appended");
                 P.CustomShow show = imported.OpenXmlDocument.PresentationPart!
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
-            LegacyPptPresentation withAppended = LegacyPptPresentation.Load(
+            LegacyPptDocument withAppended = LegacyPptDocument.Load(
                 appendedBytes);
             Assert.Equal(new[] { withAppended.Slides[0].SlideId,
                 withAppended.Slides[1].SlideId },
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
 
             byte[] removedBytes;
             using (var input = new MemoryStream(appendedBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 imported.RemoveSlide(1);
                 LegacyPptWritePreflightReport report = imported
                     .AnalyzeLegacyPptWrite();
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
-            LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
+            LegacyPptDocument removed = LegacyPptDocument.Load(removedBytes);
             Assert.Single(removed.Slides);
             Assert.Equal(new[] { removed.Slides[0].SlideId },
                 Assert.Single(removed.CustomShows).SlideIds);
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
                 .StartsWith(withAppended.Package.DocumentStream));
         }
 
-        private static void AddCustomShow(PowerPointPresentation presentation,
+        private static void AddCustomShow(PowerPointDocument presentation,
             uint id, string name, params PowerPointSlide[] slides) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertCustomShowSlides(
-            PowerPointPresentation presentation, P.CustomShow show,
+            PowerPointDocument presentation, P.CustomShow show,
             params PowerPointSlide[] expected) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;

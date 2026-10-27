@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ResizeShapes_Width_UsesLargest() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 2000);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 2000, 3000);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void ResizeShapes_Both_UsesAverage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 2000);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 3000, 4000);
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
         public void ResizeShapes_Height_UsesFirst() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 1000, 900);

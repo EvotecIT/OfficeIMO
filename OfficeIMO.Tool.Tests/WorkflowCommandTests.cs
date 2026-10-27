@@ -38,7 +38,7 @@ public sealed class WorkflowCommandTests {
             for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++)
                 image.SetPixel(x, y, new OfficeIMO.OfficeColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
             using var stream = new MemoryStream(OfficeIMO.Drawing.OfficeJpegCodec.Encode(image));
-            word.AddParagraph("Retained text").InsertImage(stream, "picture.jpg", 96, 48);
+            word.AddParagraph("Retained text").AddImage(stream, "picture.jpg", OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
             word.Save(input);
         }
         byte[] before = File.ReadAllBytes(input);

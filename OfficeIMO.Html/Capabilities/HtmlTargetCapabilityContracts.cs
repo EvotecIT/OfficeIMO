@@ -58,10 +58,10 @@ public static class HtmlTargetCapabilityContracts {
         Create(
             HtmlConversionTarget.PowerPoint,
             "OfficeIMO.PowerPoint.Html",
-            "PowerPointPresentation",
-            "HtmlConversionDocument.ToPowerPointPresentation",
+            "PowerPointDocument",
+            "HtmlConversionDocument.ToPowerPointDocument",
             "HtmlToPowerPointResult",
-            "PowerPointPresentation.ToHtml",
+            "PowerPointDocument.ToHtml",
             "PowerPointToHtmlResult",
             "Load or LoadAsync the shared document, then import it synchronously into the presentation model.",
             "Return HTML in memory or save it synchronously or asynchronously to a path or caller-owned stream.",

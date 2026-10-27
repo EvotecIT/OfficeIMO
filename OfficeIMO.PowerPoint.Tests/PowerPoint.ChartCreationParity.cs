@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 new[] { new PowerPointChartSeries("Updated Revenue", new[] { 15d, 25d, 35d }) });
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = doughnut
                         ? slide.AddDoughnutChartInches(data, 1, 1, 4, 3)
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 new[] { new PowerPointChartSeries("Revenue", new[] { 12d, 18d, 15d }) });
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(data);
 
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
             });
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart(initialData);
 

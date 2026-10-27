@@ -5,7 +5,7 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds an executive-summary slide with metric-led or decision-brief composition.</summary>
-        public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointExecutiveSummaryContent content,
             PowerPointDesignTheme? theme = null, PowerPointExecutiveSummarySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Adds a closing slide with statement or explicit action-panel composition.</summary>
-        public static PowerPointSlide AddDesignerClosingSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerClosingSlide(this PowerPointDocument presentation,
             string title, PowerPointClosingContent content, PowerPointDesignTheme? theme = null,
             PowerPointClosingSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

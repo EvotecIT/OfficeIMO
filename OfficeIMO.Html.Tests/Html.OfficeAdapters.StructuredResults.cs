@@ -20,8 +20,8 @@ public class HtmlOfficeAdaptersStructuredResults {
 
         HtmlToExcelResult excelResult = excelSource.ToExcelDocumentResult();
         using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Value;
-        HtmlToPowerPointResult powerPointResult = powerPointSource.ToPowerPointPresentationResult();
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPointResult.Value;
+        HtmlToPowerPointResult powerPointResult = powerPointSource.ToPowerPointDocumentResult();
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.True(excelResult.Succeeded);
         Assert.True(powerPointResult.Succeeded);
@@ -46,7 +46,7 @@ public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void PowerPointHtml_ConvenienceImportThrowsWhenSemanticEnvelopeIsMissing() {
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() =>
-            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not a PowerPoint envelope</p></main>").ToPowerPointPresentation());
+            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not a PowerPoint envelope</p></main>").ToPowerPointDocument());
 
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);

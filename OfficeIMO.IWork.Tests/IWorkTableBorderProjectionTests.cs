@@ -86,9 +86,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("thin", output.GetCellStyle(3, 2).Border!.Bottom!.Style);
             Assert.Equal("FF000000", output.GetCellStyle(3, 2).Border!.Bottom!.ColorArgb);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Slides).Tables); result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             saved.Position = 0; using var zip = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read, true);
             var entry = zip.Entries.Single(item => item.FullName.StartsWith("ppt/slides/", StringComparison.Ordinal) && item.FullName.EndsWith(".xml", StringComparison.Ordinal));
             using var xml = entry.Open(); var document = System.Xml.Linq.XDocument.Load(xml);
@@ -158,7 +158,7 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToWordDocumentResult(policy); Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("border widths", StringComparison.Ordinal));
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.True(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("border strokes", StringComparison.Ordinal));
         }
     }
@@ -249,11 +249,11 @@ public sealed partial class IWorkBoundaryTests {
             using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved); Assert.Equal(2U, reopened.Tables[0].Rows[0].Cells[0].Borders.TopSize);
         } else {
-            using var rejected = source.ToPowerPointPresentationResult(strict); Assert.True(rejected.IsVisualFallback);
-            using var converted = source.ToPowerPointPresentationResult(partial); Assert.False(converted.IsVisualFallback);
+            using var rejected = source.ToPowerPointDocumentResult(strict); Assert.True(rejected.IsVisualFallback);
+            using var converted = source.ToPowerPointDocumentResult(partial); Assert.False(converted.IsVisualFallback);
             Assert.Contains(converted.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
             using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
         }
     }
 

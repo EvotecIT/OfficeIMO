@@ -6,7 +6,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Enumerates slides or retrieves a specific slide.</summary>
-/// <para>Supports pipeline-friendly iteration over <see cref="PowerPointPresentation.Slides"/> or direct index selection.</para>
+/// <para>Supports pipeline-friendly iteration over <see cref="PowerPointDocument.Slides"/> or direct index selection.</para>
 /// <example>
 ///   <summary>List slide titles.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -24,7 +24,7 @@ public class GetOfficePowerPointSlideCommand : PSCmdlet
 {
     /// <summary>Presentation to inspect (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Optional zero-based index; omit to enumerate all slides.</summary>
     [Parameter]
@@ -33,7 +33,7 @@ public class GetOfficePowerPointSlideCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+        var presentation = Presentation ?? PowerPointDslContext.Current?.Document
             ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
         if (Index.HasValue)

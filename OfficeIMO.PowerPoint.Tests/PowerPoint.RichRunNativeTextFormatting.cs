@@ -11,7 +11,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
     public void RichRunNativeStylesRoundTripWithoutBooleanFlattening() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                 PowerPointTextRun authoredRun = presentation.AddSlide().AddTextBox("Styled")
                     .Paragraphs.Single().Runs.Single();
                 authoredRun.Bold = true;
@@ -27,7 +27,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
                 presentation.Save();
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+            using PowerPointDocument reopened = PowerPointDocument.Load(path);
             PowerPointTextRun actual = reopened.Slides.Single().TextBoxes.Single()
                 .Paragraphs.Single().Runs.Single();
             Assert.Equal("sTYLED", actual.Text);
@@ -49,7 +49,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
 
     [Fact]
     public void BaselineRejectsOutOfRangeValues() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
 
@@ -59,7 +59,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
 
     [Fact]
     public void SetBaselineWritesAnExplicitNormalValue() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
         run.SetSuperscript();

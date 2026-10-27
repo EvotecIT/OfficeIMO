@@ -210,9 +210,7 @@ public static partial class WordIWorkConverter {
                 WordSection section = document.Sections[0];
                 (double contentWidth, double contentHeight) = ContentBox(section);
                 (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
-                document.AddParagraph().AddImage(image, PreviewFileName(preview),
-                    Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
-                    description: "Visual fallback from the source Pages package");
+                document.AddParagraph().AddImage(image, PreviewFileName(preview), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Description = "Visual fallback from the source Pages package" });
             }
 
             IWorkProjectionKind kind = editable
@@ -267,9 +265,7 @@ public static partial class WordIWorkConverter {
         if (source.Geometry == null) {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
-        WordImage target = (pageHost ?? document.AddParagraph()).InsertImage(image, source.FileName,
-            Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height), WordImageTextWrapping.Square,
-            source.AccessibilityDescription ?? "Image imported from Pages");
+        WordImage target = (pageHost ?? document.AddParagraph()).AddImage(image, source.FileName, OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = source.AccessibilityDescription ?? "Image imported from Pages" });
         if (source.Geometry is { } geometry) {
             target.horizontalPosition.RelativeFrom =
                 DrawingWordprocessing.HorizontalRelativePositionValues.Page;

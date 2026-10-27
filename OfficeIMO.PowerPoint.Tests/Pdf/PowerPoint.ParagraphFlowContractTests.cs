@@ -18,7 +18,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void EmptyParagraphOutsideTheFrameRetainsFollowingTextAndDiagnosesTextBoxOverflow(bool table, bool followingText) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         var slide = presentation.AddSlide();
         if (table) {
@@ -51,7 +51,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CondensedDescendersRemainVisibleBeyondTheTextBoxBoundary(bool rich) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 40);
         box.FontSize = 24; box.FontName = "Helvetica";
@@ -78,7 +78,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, true, false)]
     [InlineData(true, true, true)]
     public void CondensedParagraphLeadingSurvivesNativeRendering(bool table, bool rich, bool trailingParagraph) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         var slide = presentation.AddSlide();
         PowerPointParagraph paragraph;
@@ -111,7 +111,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("end", false)]
     [InlineData("end", true)]
     public void BlankParagraphUsesEffectiveFontSize(string source, bool differentAlignment) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
@@ -132,7 +132,7 @@ public sealed class PowerPointParagraphFlowContractTests {
 
     [Fact]
     public void BlankTableCellParagraphRetainsItsLineAndSpacing() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
@@ -150,7 +150,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("master")]
     [InlineData("end")]
     public void BlankTableCellParagraphUsesEffectiveFontSize(string source) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
@@ -181,7 +181,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("master", false)]
     [InlineData("master", true)]
     public void SingleEffectiveRunRetainsInheritedCapitalization(string source, bool flow) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = presentation.AddSlide().AddTextBoxPoints("mixed case", 20, 20, 240, 120);
         box.FontName = "Helvetica"; box.FontSize = 12;
         if (flow) box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
@@ -211,7 +211,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(false)]
     [InlineData(true)]
     public void EmptyParagraphRetainsItsLineAndSpacingInPdfSpans(bool bullet) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSizePoints(300, 220);
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
@@ -234,7 +234,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("list")]
     [InlineData("master")]
     public void PlainParagraphUsesItsEffectiveInheritedColor(string source) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("INHERITED", 20, 20, 240, 100);
         box.FontName = "Helvetica";
@@ -254,7 +254,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         var text = Span(Read(presentation).Pages[0], "INHERITED");
         Assert.Equal(OfficeColor.FromRgb(192, 32, 96), text.Color);
     }
-    private static PdfCore.PdfReadDocument Read(PowerPointPresentation presentation) =>
+    private static PdfCore.PdfReadDocument Read(PowerPointDocument presentation) =>
         PdfCore.PdfReadDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
     private static PdfCore.PdfTextSpan Span(PdfCore.PdfReadPage page, string text) =>

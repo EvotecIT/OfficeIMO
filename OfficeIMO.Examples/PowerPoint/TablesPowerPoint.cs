@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointTables(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Table operations");
             string filePath = Path.Combine(folderPath, "Table Operations.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
             const double titleHeightCm = 1.4;
@@ -248,7 +248,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             imageSlide.AddTitleCm("Brand Assets", marginCm, marginCm, content.WidthCm, titleHeightCm);
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                imageSlide.AddPictureCm(imagePath, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
+                imageSlide.AddImageCm(imagePath, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
             } else {
                 imageSlide.AddTextBoxCm("(image placeholder)", marginCm, bodyTopCm, content.WidthCm, 2.5);
             }

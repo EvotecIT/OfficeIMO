@@ -64,7 +64,7 @@ public sealed class BrowserPdfImportTests {
                 }
                 break;
             case "pdf-pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(new MemoryStream(result.Bytes))) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(result.Bytes))) {
                     Assert.NotEmpty(presentation.Slides);
                 }
                 using (PresentationDocument package = PresentationDocument.Open(new MemoryStream(result.Bytes), false)) {

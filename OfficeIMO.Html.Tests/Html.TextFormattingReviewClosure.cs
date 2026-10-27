@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlTextFormattingReviewClosureTests {
     [Fact]
     public void PowerPointSemanticHtmlResolvesInheritedTypographyAndDirectOffOverrides() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Inherited")
             .Paragraphs.Single();
         A.ParagraphProperties paragraphProperties = paragraph.Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -59,9 +59,9 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Contains("data-officeimo-powerpoint-underline=\"None\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-strike=\"None\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs)
             .Runs.ToArray();
@@ -86,7 +86,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesMappedThemeColors() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointSlide slide = source.AddSlide();
         PowerPointParagraph paragraph = slide.AddTextBox("Theme text").Paragraphs[0];
         PowerPointTextRun run = paragraph.Runs[0];
@@ -116,7 +116,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesThemeFontTokensToRealFamilies() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         source.SetThemeLatinFonts("Theme Major", "Theme Minor");
         PowerPointTextRun run = source.AddSlide().AddTextBox("Theme font").Paragraphs[0].Runs[0];
         run.Run.RunProperties = new A.RunProperties();
@@ -130,7 +130,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesEastAsianAndComplexScriptThemeFonts() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         source.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
             majorLatin: "Major Latin",
             minorLatin: "Minor Latin",
@@ -156,7 +156,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlSplitsMixedScriptRunsAcrossFontSlots() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
         run.Run.RunProperties = new A.RunProperties();
         run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
@@ -175,16 +175,16 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");
         textBox.Paragraphs[0].Runs[0].Bold = true;
         PowerPointParagraph second = textBox.AddParagraph("Second");
         second.Runs[0].Italic = true;
 
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
 
         PowerPointTextBox actual = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -197,7 +197,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlIncludesExplicitLineBreaksAndFieldsInOrder() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before")
             .Paragraphs.Single();
         paragraph.AddLineBreak();
@@ -210,9 +210,9 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Contains("data-officeimo-powerpoint-field-type=\"datetime1\"", html, StringComparison.Ordinal);
         Assert.Contains(">27 August 2026</span>", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointParagraph actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs);
         Assert.Collection(actual.InlineNodes,
@@ -223,7 +223,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlKeepsUnderlineStrikeAndEscapedFontFamilyIndependent() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Styled").Paragraphs.Single().Runs.Single();
         run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
         run.StrikeStyle = PowerPointStrikeStyle.Double;
@@ -235,9 +235,9 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Contains("text-decoration-line:underline;text-decoration-style:wavy", html, StringComparison.Ordinal);
         Assert.Contains("text-decoration-line:line-through;text-decoration-style:double", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextRun actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs).Runs.Single();
         Assert.Equal(PowerPointUnderlineStyle.Wavy, actual.UnderlineStyle);
@@ -249,8 +249,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     public void PowerPointSemanticHtmlFallsBackForMixedAndNestedOrdinarySpanContent() {
         const string html = "<section class='officeimo-slide'><p><span><strong>Bold</strong></span> tail</p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointDocumentResult()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -262,8 +262,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     public void PowerPointOrdinaryHtmlDistributesStyledRunsAcrossExplicitBreakParagraphs() {
         const string html = "<section class='officeimo-slide'><p><strong>one</strong><br><em>two</em></p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointDocumentResult()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -376,8 +376,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointDocumentResult()
             .RequireValue();
 
         string[] texts = Assert.Single(imported.Slides).TextBoxes.Select(box => box.Text).ToArray();

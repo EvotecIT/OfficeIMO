@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public class HtmlOfficeAdaptersPowerPointOrder {
     [Fact]
     public void PowerPointHtml_RoundTripsShapesAtTheSlideOrigin() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Origin text", 0, 0, 180, 35);
         PowerPointTable table = slide.AddTablePoints(1, 1, 0, 0, 220, 60);
@@ -17,8 +17,8 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
 
         Assert.Contains("data-officeimo-left=\"0\" data-officeimo-top=\"0\"", html, StringComparison.Ordinal);
@@ -33,12 +33,12 @@ public class HtmlOfficeAdaptersPowerPointOrder {
 
     [Fact]
     public void PowerPointHtml_RoundTripsUnifiedShapeReadingOrderAndGeometry() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox firstText = slide.AddTextBoxPoints("First text", 30, 40, 180, 35);
         using (var image = new MemoryStream(Convert.FromBase64String(
                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=="))) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 60, 90, 70, 50).Name = "Middle picture";
+            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 60, 90, 70, 50).Name = "Middle picture";
         }
 
         PowerPointTable table = slide.AddTablePoints(1, 1, 90, 150, 220, 60);
@@ -49,8 +49,8 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         PowerPointShape[] orderedShapes = importedSlide.Shapes.OrderBy(shape => shape.DrawingOrder).ToArray();
 
@@ -75,8 +75,8 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = "<section class='officeimo-slide'><pre class='officeimo-source-markdown'>"
             + falseCandidates + "\n### Notes\nBounded presenter notes</pre></section>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation presentation = result.Value;
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Equal("Bounded presenter notes", Assert.Single(presentation.Slides).Notes.Text);
     }

@@ -24,8 +24,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             + ".pptx");
         try {
             AssertProducerTitlesAreFrontmost(FixturePath);
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Load(FixturePath)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Load(FixturePath)) {
                 AssertMicrosoftPowerPointProducer(presentation);
                 Assert.Equal(11, presentation.Slides.Count);
 
@@ -88,8 +88,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
 
             AssertProducerTitlesAreFrontmost(roundTrip);
 
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(roundTrip);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(roundTrip);
             PowerPointChart reopenedChart = reopened.Slides
                 .SelectMany(slide => slide.Charts).Single(chart =>
                     chart.InspectImportedContent().Family == "bar3DChart");
@@ -155,8 +155,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
 
     [Fact]
     public void ImportedAdvancedChartPreservesWorkbookAndCacheNumberFormats() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Load(FixturePath);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Load(FixturePath);
         PowerPointChart chart = GetBar3DChart(presentation);
         ChartPart chartPart = GetBar3DChartPart(presentation);
         Assert.True(chart.TryGetOfficeSnapshot(
@@ -181,8 +181,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
 
     [Fact]
     public void FailedImportedAdvancedChartUpdateLeavesChartAndWorkbookUnchanged() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Load(FixturePath);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Load(FixturePath);
         PowerPointChart chart = GetBar3DChart(presentation);
         ChartPart chartPart = GetBar3DChartPart(presentation);
         EmbeddedPackagePart package = Assert.Single(
@@ -252,8 +252,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             Assert.Equal(11, result.ImagePaths.Count);
 
             string roundTrip = Path.Combine(root, "roundtrip.pptx");
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Load(FixturePath)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Load(FixturePath)) {
                 ApplyRepresentativeTypedEdits(presentation);
                 presentation.Save(roundTrip);
             }
@@ -271,7 +271,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
     }
 
     private static void ApplyRepresentativeTypedEdits(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         PowerPointChart[] editableCharts = presentation.Slides
             .SelectMany(slide => slide.Charts)
             .Where(chart => chart.InspectImportedContent().Support ==
@@ -326,12 +326,12 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
     }
 
     private static PowerPointChart GetBar3DChart(
-        PowerPointPresentation presentation) => presentation.Slides
+        PowerPointDocument presentation) => presentation.Slides
         .SelectMany(slide => slide.Charts).Single(chart =>
             chart.InspectImportedContent().Family == "bar3DChart");
 
     private static ChartPart GetBar3DChartPart(
-        PowerPointPresentation presentation) => presentation.OpenXmlDocument
+        PowerPointDocument presentation) => presentation.OpenXmlDocument
         .PresentationPart!.SlideParts.SelectMany(slidePart =>
             slidePart.ChartParts).Single(part =>
                 part.ChartSpace.Descendants<Bar3DChart>().Any());
@@ -420,7 +420,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
     }
 
     private static Dictionary<string, string> CaptureBar3DWorkbookShell(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         ChartPart chartPart = GetBar3DChartPart(presentation);
         EmbeddedPackagePart package = Assert.Single(
             chartPart.GetPartsOfType<EmbeddedPackagePart>());
@@ -448,7 +448,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
     }
 
     private static string[] GetPersistedSmartArtNodeTextsByHorizontalPosition(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         DiagramPersistLayoutPart drawingPart = Assert.Single(presentation
             .OpenXmlDocument.PresentationPart!.SlideParts
             .SelectMany(slidePart =>
@@ -474,7 +474,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
     }
 
     private static void AssertMicrosoftPowerPointProducer(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         string? application = presentation.OpenXmlDocument
             .ExtendedFilePropertiesPart?.Properties?.Application?.Text;
         string? version = presentation.OpenXmlDocument

@@ -23,8 +23,8 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html, documentOptions)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = powerPointResult.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Empty(Assert.Single(workbook.Sheets).Images);
         Assert.Empty(Assert.Single(presentation.Slides).Pictures);
@@ -39,8 +39,8 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
             + "background-image:url('" + image + "');background-repeat:no-repeat;background-size:24px 18px\">Layered</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape backingFill = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
             shape => shape.FillColor == "123456");
@@ -62,11 +62,11 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
-        using PowerPointPresentation presentation = result.Value;
+        using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
         Assert.Empty(slide.Pictures);

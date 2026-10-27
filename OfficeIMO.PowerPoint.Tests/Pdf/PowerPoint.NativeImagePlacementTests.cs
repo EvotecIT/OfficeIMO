@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PowerPointSaveAsPdfTests {
     [Fact]
     public void SaveAsPdf_InheritsAuthoredLayoutTextBoxWithoutTreatingItAsAnEditingPrompt() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox text = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
         var source = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
@@ -25,14 +25,14 @@ public partial class PowerPointSaveAsPdfTests {
 
     [Fact]
     public void SaveAsPdf_UnsupportedSvgPictureReportsOmissionWithoutAbortingTheSlide() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(160, 100);
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>"
             + "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Visible HTML</div></foreignObject></svg>");
-        slide.AddPicture(new MemoryStream(svg), OfficeImageFormat.Svg, 0, 0,
+        slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, 0, 0,
             PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(30));
         slide.AddShapePoints(OfficePresetShapeType.Rectangle, 80, 20, 30, 20).FillColor = "D7263D";
 
@@ -46,9 +46,9 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
+    public void SaveAsPdf_PowerPointDocument_RotatesPictureCropWithImageFrame() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeImagePlacement");
-        using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));
+        using var presentation = PowerPointDocument.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));
         byte[] actual = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         byte[] reference = File.ReadAllBytes(Path.Combine(folder, "microsoft-powerpoint-16.113.4-picture-crop-rotation.pdf"));
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(actual).Pages[0].ToDrawing(), 1D, OfficeColor.White);

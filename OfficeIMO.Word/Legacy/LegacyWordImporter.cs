@@ -171,7 +171,7 @@ public static partial class LegacyWordImporter {
             if (sourceRun.NoteIndex.HasValue) ProjectNote(model, sourceRun.NoteIndex.Value, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
             else if (sourceRun.Image != null) {
                 using var stream = new MemoryStream(sourceRun.Image.PngBytes, writable: false);
-                paragraph.AddText(string.Empty).AddImage(stream, "recovered.png", sourceRun.Image.WidthPoints * 96d / 72d, sourceRun.Image.HeightPoints * 96d / 72d);
+                paragraph.AddText(string.Empty).AddImage(stream, "recovered.png", OfficeLength.Points(sourceRun.Image.WidthPoints), OfficeLength.Points(sourceRun.Image.HeightPoints));
             }
             else ProjectRun(sourceRun, paragraph, recoveredStyle, document, cancellationToken);
         }

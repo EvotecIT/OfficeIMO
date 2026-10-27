@@ -15,7 +15,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         // Minimal reproduction of p3-dense-layout: 76/56pt columns, 18/22pt
         // rows, empty tcPr/bodyPr and unsized runs using Medium Style 2 Accent 1.
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
+        using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSizePoints(300, 200);
             presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
             var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 30, 132, 40);
@@ -32,7 +32,7 @@ public sealed class PowerPointPdfTableFidelityTests {
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         var conversion = reopened.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
@@ -64,7 +64,7 @@ public sealed class PowerPointPdfTableFidelityTests {
     [InlineData(8)]
     [InlineData(24)]
     public void WrappedMergedCellGrowsItsRowsAndKeepsExplicitMarginsAndRunOverrides(int fontSize) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSizePoints(400, 300);
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
         var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 240, 24);
@@ -105,7 +105,7 @@ public sealed class PowerPointPdfTableFidelityTests {
 
     [Fact]
     public void PlainTableHasNoPdfPresetFillAndLaterRunsDoNotInheritFirstRunsDirectFormatting() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
         var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 60);
         table.ApplyStyle(PowerPointTableStylePreset.Plain);
@@ -139,7 +139,7 @@ public sealed class PowerPointPdfTableFidelityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LegacyTablePreviewRetainsRowsThatGrowBeyondTheAuthoredFrame(bool onMaster) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
         var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 120, 12);
         table.StyleId = null;

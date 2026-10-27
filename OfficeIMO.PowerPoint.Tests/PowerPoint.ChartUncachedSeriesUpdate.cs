@@ -12,7 +12,7 @@ public sealed class PowerPointChartUncachedSeriesUpdateTests {
     [InlineData(OfficeChartType.Line)]
     [InlineData(OfficeChartType.Scatter)]
     public void UpdateDataReplacesUncachedFormulaSeriesNameWithoutLosingStaticQualification(OfficeChartType kind) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         double[]? x = kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null;
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Original", new[] { 1d, 2d }, x) }));

@@ -8,11 +8,11 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     internal static class GoogleSlidesBatchCompiler {
-        internal static GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions options) =>
+        internal static GoogleSlidesTranslationPlan BuildPlan(PowerPointDocument presentation, GoogleSlidesSaveOptions options) =>
             Build(presentation, options, materializeRasterImages: false).Plan;
 
         internal static GoogleSlidesBatch Build(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             GoogleSlidesSaveOptions options,
             bool materializeRasterImages = true) {
             var report = new TranslationReport();

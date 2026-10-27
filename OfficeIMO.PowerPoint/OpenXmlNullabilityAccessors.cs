@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         private Presentation PresentationRoot {
             get => _presentationPart.Presentation ??= new Presentation();
             set => _presentationPart.Presentation = value;

@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
             Directory.CreateDirectory(output);
 
             var lanes = new List<PowerPointCompatibilityLaneResult>();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(fullPath,
+            using (PowerPointDocument presentation = PowerPointDocument.Load(fullPath,
                        new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
                 var validation = presentation.ValidateDocument();
                 lanes.Add(new PowerPointCompatibilityLaneResult("OpenXml", validation.Count == 0

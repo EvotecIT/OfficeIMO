@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                     new OfficeSeries("Plan", new[] { 15D, 18D, 24D })
                 });
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointChart chart = slide.AddChartPoints(
                     OfficeChartType.ColumnClustered, data, 30D, 20D, 240D, 150D);
@@ -33,12 +33,12 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape legacyShape = Assert.Single(
-                Assert.Single(LegacyPptPresentation.Load(bytes).Slides).Shapes);
+                Assert.Single(LegacyPptDocument.Load(bytes).Slides).Shapes);
             Assert.Equal(LegacyPptShapeKind.Picture, legacyShape.Kind);
             Assert.Equal((LegacyPptAnimationBuildType)buildType,
                 legacyShape.Animation!.BuildType);
 
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 new MemoryStream(bytes, writable: false));
             PowerPointClassicAnimation animation = Assert.Single(
                 projected.Slides[0].ClassicAnimations);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                         color: OfficeColor.Orange)
                 });
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddChartPoints(OfficeChartType.ColumnClustered, data,
                         30D, 20D, 240D, 150D)
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry image = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal("image/png", image.ContentType);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, picture.PictureStoreIndex);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].Charts);
             PowerPointPicture projectedPicture = Assert.Single(

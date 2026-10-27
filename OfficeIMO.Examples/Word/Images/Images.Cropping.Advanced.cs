@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word
             var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Advanced crop with shape:");
-            var image = paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 300, 300, WordImageTextWrapping.Square);
+            var image = paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
             image.Shape = OfficePresetShapeType.Cube;
             image.CropTopCentimeters = 2;
             image.CropBottomCentimeters = 1.5;

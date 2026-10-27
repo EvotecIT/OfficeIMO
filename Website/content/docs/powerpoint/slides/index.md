@@ -12,7 +12,7 @@ This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Inste
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing;
 
-using var presentation = PowerPointPresentation.Create("presentation.pptx");
+using var presentation = PowerPointDocument.Create("presentation.pptx");
 const double marginCm = 1.5;
 
 var content = presentation.SlideSize.GetContentBoxCm(marginCm);
@@ -150,7 +150,7 @@ intro.AddTitleCm("Intro", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
 var duplicate = presentation.DuplicateSlide(0);
 duplicate.Hidden = true;
 
-using var source = PowerPointPresentation.Create("source-deck.pptx");
+using var source = PowerPointDocument.Create("source-deck.pptx");
 source.AddSlide().AddTitleCm("Imported slide", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
 source.Save();
 

@@ -56,7 +56,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
-        PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointDocument presentation = PowerPointDocument.Create();
         try {
             presentation.SlideSize.SetSizeInches(metrics.Width, metrics.Height);
             var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);

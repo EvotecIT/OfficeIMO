@@ -48,7 +48,7 @@ internal static partial class FixtureCorpus {
             excel.Save(Path.Combine(output, "service-review.xlsx"));
             excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
         }
-        using (var presentation = PowerPointPresentation.Create()) {
+        using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.WidthCm = 12.7;
             presentation.SlideSize.HeightCm = 8.4666666667;
             for (int page = 1; page <= 2; page++) {

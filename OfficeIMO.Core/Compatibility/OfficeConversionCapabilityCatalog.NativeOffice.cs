@@ -17,7 +17,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         routes.Add(Route("xlsb-pdf", "XLSB", "PDF", OfficeConversionInputKind.File, new[] { ".xlsb" }, ".pdf", "OfficeIMO.Excel.Pdf",
             "ExcelDocument.Load(source, options, out var importReport).SaveAsPdf(destination)", "Project supported XLSB records and render workbook content with import and PDF findings.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"));
         routes.Add(Route("ppt-pdf", "PPT", "PDF", OfficeConversionInputKind.File, new[] { ".ppt", ".pot", ".pps", ".ppa" }, ".pdf", "OfficeIMO.PowerPoint.Pdf",
-            "PowerPointPresentation.Load(source, options, out var importReport).SaveAsPdf(destination)", "Project supported binary presentation content and render slides with import and PDF findings.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"));
+            "PowerPointDocument.Load(source, options, out var importReport).SaveAsPdf(destination)", "Project supported binary presentation content and render slides with import and PDF findings.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"));
     }
 
     private static void AddNativeFamily(List<OfficeConversionCapability> routes, string id, string name, string[] sources, string[] targets) {

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsAutoShapeStylesTransformsAndShadow() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape[] shapes = Assert.Single(binary.Slides).Shapes
                 .OrderBy(shape => shape.Bounds.Top)
                 .ThenBy(shape => shape.Bounds.Left)
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Styled text", textShape.Text);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             Assert.Equal(30D, projected.Slides[0].Shapes
                 .Single(shape => shape.FillColor == "C0504D").Rotation);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ReportsOversizedShadowOffsetsWithoutOverflowing() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank)
                 .AddShapePoints(OfficePresetShapeType.Rectangle, 24, 24, 120, 70);
             shape.SetShadow("222222", blurPoints: 1D, distancePoints: 1D,
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsUnattachedConnectorsWithLineFormatting() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape connectorShape = Assert.Single(Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes);
+                LegacyPptDocument.Load(bytes).Slides).Shapes);
             Assert.Equal(LegacyPptShapeKind.Connector,
                 connectorShape.Kind);
             Assert.Equal(34, connectorShape.OfficeArtShapeType);
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
             Assert.True(connectorShape.Transform.FlipHorizontal);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             PowerPointConnectionShape projectedConnector = Assert.Single(
                 projected.Slides[0].Shapes
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksFreshConnectorAttachmentsUntilSolverRulesCanBeWritten() {
-            using PowerPointPresentation source = PowerPointPresentation
+            using PowerPointDocument source = PowerPointDocument
                 .Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsExactRoundRectangleAndDonutAdjustments() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -240,14 +240,14 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape[] shapes = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes.ToArray();
+                LegacyPptDocument.Load(bytes).Slides).Shapes.ToArray();
             Assert.Equal(6480, shapes.Single(shape =>
                 shape.OfficeArtShapeType == 2).Geometry.AdjustmentValues[0]);
             Assert.Equal(8640, shapes.Single(shape =>
                 shape.OfficeArtShapeType == 23).Geometry.AdjustmentValues[0]);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             Assert.Contains(projected.Slides[0].Shapes
                 .OfType<PowerPointAutoShape>(), shape =>
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksInexactOfficeArtAdjustmentConversion() {
-            using PowerPointPresentation source = PowerPointPresentation
+            using PowerPointDocument source = PowerPointDocument
                 .Create();
             PowerPointAutoShape round = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsNestedGroupsAndChildAnchors() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptSlide binarySlide = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides);
+                LegacyPptDocument.Load(bytes).Slides);
             LegacyPptShape outerGroup = Assert.Single(binarySlide.Shapes);
             Assert.Equal(LegacyPptShapeKind.Group, outerGroup.Kind);
             Assert.Equal(12D, outerGroup.Transform.RotationDegrees);
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
                 child => child.Text == "Grouped label");
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             PowerPointGroupShape projectedOuter = Assert.Single(
                 projected.Slides[0].Shapes
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsGroupNestingBeyondSafetyLimit() {
-            using PowerPointPresentation source = PowerPointPresentation
+            using PowerPointDocument source = PowerPointDocument
                 .Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksShapeEffectWithoutOfficeArtEquivalent() {
-            using PowerPointPresentation source = PowerPointPresentation
+            using PowerPointDocument source = PowerPointDocument
                 .Create();
             PowerPointAutoShape shape = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
@@ -392,7 +392,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedShapeStyleAndTransformEdit_UsesIncrementalFoptRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointAutoShape shape = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
@@ -404,10 +404,10 @@ namespace OfficeIMO.Tests {
                     transparencyPercent: 40);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation
+            using PowerPointDocument imported = PowerPointDocument
                 .Load(input);
             PowerPointAutoShape edited = Assert.Single(imported.Slides[0]
                 .Shapes.OfType<PowerPointAutoShape>());
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             LegacyPptShape savedShape = Assert.Single(Assert.Single(saved.Slides)
@@ -450,7 +450,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsAndProjectsHiddenShapesAndGroups() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -474,7 +474,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptShape binaryGroup = Assert.Single(Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides).Shapes);
+                LegacyPptDocument.Load(bytes).Slides).Shapes);
             Assert.True(binaryGroup.Style.Hidden);
             Assert.True(Assert.Single(binaryGroup.Children,
                 child => child.Metadata.Name == "Hidden child").Style.Hidden);
@@ -483,7 +483,7 @@ namespace OfficeIMO.Tests {
                 ?? false);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation
+            using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             PowerPointGroupShape projectedGroup = Assert.Single(projected
                 .Slides[0].Shapes.OfType<PowerPointGroupShape>());
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedShapeVisibilityEdit_UsesIncrementalFoptRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
@@ -515,12 +515,12 @@ namespace OfficeIMO.Tests {
                 hidden.Hidden = true;
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox visible = Assert.Single(imported.Slides[0]
                     .TextBoxes, shape => shape.Name == "Initially visible");
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 editedBytes);
             Assert.True(Assert.Single(saved.Slides[0].Shapes,
                 shape => shape.Metadata.Name == "Initially visible")
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
 
             using var editedInput = new MemoryStream(editedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(editedInput);
             Assert.True(Assert.Single(reopened.Slides[0].TextBoxes,
                 shape => shape.Name == "Initially visible").Hidden);
@@ -567,12 +567,12 @@ namespace OfficeIMO.Tests {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 3, OfficeColor.FromRgb(37, 99, 235)));
             byte[] generatedBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var stream = new MemoryStream(image, writable: false);
-                PowerPointPicture picture = slide.AddPicture(stream,
+                PowerPointPicture picture = slide.AddImage(stream,
                     OfficeIMO.Drawing.OfficeImageFormat.Png, 158750, 317500, 635000, 476250);
                 picture.Name = "Tertiary visibility picture";
                 picture.Hidden = true;
@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests {
                 generatedBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation generated = LegacyPptPresentation.Load(
+            LegacyPptDocument generated = LegacyPptDocument.Load(
                 generatedBytes);
             LegacyPptSlide generatedSlide = Assert.Single(generated.Slides);
             LegacyPptShape generatedPicture = Assert.Single(
@@ -607,14 +607,14 @@ namespace OfficeIMO.Tests {
                     ["PowerPoint Document"] = documentStream
                 });
 
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             Assert.False(Assert.Single(Assert.Single(original.Slides).Shapes)
                 .Style.Hidden ?? true);
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointPicture picture = Assert.Single(imported.Slides[0]
                     .Pictures);
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests {
                 editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 editedBytes);
             Assert.True(Assert.Single(Assert.Single(saved.Slides).Shapes)
                 .Style.Hidden);
@@ -640,7 +640,7 @@ namespace OfficeIMO.Tests {
 
             using var editedInput = new MemoryStream(editedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(editedInput);
             Assert.True(Assert.Single(reopened.Slides[0].Pictures).Hidden);
             Assert.Equal(editedBytes,

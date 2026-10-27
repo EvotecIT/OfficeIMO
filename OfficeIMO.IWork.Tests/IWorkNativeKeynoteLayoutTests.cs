@@ -21,7 +21,7 @@ public sealed class IWorkNativeKeynoteLayoutTests {
             sourceBoxes.Single(box => box.Content.PlainText == "Go to slide two").Content.Paragraphs[0].Runs[0].Hyperlink);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PowerPointTextBox frame = reopened.Slides[0].TextBoxes.Single(box => box.Text == "Frame to next slide");
         Assert.Equal("#slide-2", frame.Hyperlink!.OriginalString);
         Assert.Equal(3.6, frame.TextMarginLeftPoints);

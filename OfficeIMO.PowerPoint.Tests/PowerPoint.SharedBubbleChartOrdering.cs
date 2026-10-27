@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests;
 public class PowerPointSharedBubbleChartOrderingTests {
     [Fact]
     public void BubbleChart_SnapshotUsesNativeSeriesOrder() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         var data = new OfficeChartData(new[] { "1" }, new[] {
             OfficeSeries.CreateBubble(
                 "First", new[] { 1D }, new[] { 10D }, new[] { 4D }),

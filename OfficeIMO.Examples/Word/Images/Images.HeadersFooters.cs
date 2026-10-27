@@ -24,13 +24,13 @@ namespace OfficeIMO.Examples.Word
                 var header = document.HeaderDefaultOrCreate;
                 var paragraphHeader = header.AddParagraph("This is header");
                 // add image to header, directly to paragraph
-                header.AddParagraph().AddImage(filePathImage, 100, 100);
+                header.AddParagraph().AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 // add image to footer, directly to paragraph
-                document.FooterDefaultOrCreate.AddParagraph().AddImage(filePathImage, 100, 100);
+                document.FooterDefaultOrCreate.AddParagraph().AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 // add image to header, but to a table
                 var table = header.AddTable(2, 2);
                 GetOrAddParagraph(table, 1, 1).Text = "Test123";
-                GetOrAddParagraph(table, 1, 0).AddImage(filePathImage, 50, 50);
+                GetOrAddParagraph(table, 1, 0).AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 table.Alignment = WordTableAlignment.Right;
                 var paragraph = document.AddParagraph("This paragraph starts with some text");
                 paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
@@ -38,21 +38,21 @@ namespace OfficeIMO.Examples.Word
                 // add table with an image, but to document
                 var table1 = document.AddTable(2, 2);
                 GetOrAddParagraph(table1, 1, 1).Text = "Test - In document";
-                GetOrAddParagraph(table1, 1, 0).AddImage(filePathImage, 50, 50);
+                GetOrAddParagraph(table1, 1, 0).AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 // lets add image to paragraph
-                paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
+                paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22));
                 //paragraph.Image.WrapText = true; // WrapSideValues.Both;
                 var paragraph5 = paragraph.AddText("and more text");
                 paragraph5.Bold = true;
                 document.AddParagraph("This adds another picture with 500x500");
                 WordParagraph paragraph2 = document.AddParagraph();
-                var paragraph2Image = paragraph2.AddImage(filePathImage, 500, 500);
+                var paragraph2Image = paragraph2.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(500), OfficeIMO.OfficeLength.Pixels(500));
                 //paragraph2Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
                 paragraph2Image.Rotation = 180;
                 paragraph2Image.Shape = OfficePresetShapeType.ActionButtonMovie;
                 document.AddParagraph("This adds another picture with 100x100");
                 WordParagraph paragraph3 = document.AddParagraph();
-                paragraph3.AddImage(filePathImage, 100, 100);
+                paragraph3.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 // we add paragraph with an image
                 WordParagraph paragraph4 = document.AddParagraph();
                 var paragraph4Image = paragraph4.AddImage(filePathImage);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Examples.Word
                 var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
                 using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec))
                 {
-                    paragraphHeaderEven.AddImage(imageStream, fileNameImageEvotec, 100, 100);
+                    paragraphHeaderEven.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 }
 
                 //var filePathImageEvotecSave = System.IO.Path.Combine(imagePaths, "savedFile.png");

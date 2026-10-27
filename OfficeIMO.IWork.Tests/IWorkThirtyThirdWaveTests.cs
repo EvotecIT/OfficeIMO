@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Source table", Assert.Single(Assert.Single(

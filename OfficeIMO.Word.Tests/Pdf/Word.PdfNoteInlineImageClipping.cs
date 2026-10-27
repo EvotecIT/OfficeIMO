@@ -32,7 +32,7 @@ public partial class Word {
         note.Append(paragraph);
         var authored = new WordParagraph(source, paragraph);
         using (var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80)))
-            authored.AddText(string.Empty).AddImage(pixels, "owned-note-image.png", 64, 32);
+            authored.AddText(string.Empty).AddImage(pixels, "owned-note-image.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32));
         authored.AddText(" AFTERIMAGE").Italic = true;
         note.Append(new W.Paragraph(RichNoteRun("FOLLOWINGNOTEPARAGRAPH")));
         Assert.Empty(source.ValidateDocument());

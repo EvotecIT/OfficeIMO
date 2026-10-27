@@ -101,7 +101,7 @@ internal sealed record PdfFormatConversionScenario(
     }
 
     private static byte[] ConvertPptx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream);
         return textFallbacksOverride.HasValue
             ? presentation.ToPdfBytes(new PowerPointPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : presentation.ToPdfBytes();
@@ -174,7 +174,7 @@ internal sealed record PdfFormatConversionScenario(
     }
 
     private static byte[] CreatePptx() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         for (int slideIndex = 0; slideIndex < 12; slideIndex++) {
             PowerPointSlide slide = presentation.AddSlide();
             int first = (slideIndex * 10) + 1;

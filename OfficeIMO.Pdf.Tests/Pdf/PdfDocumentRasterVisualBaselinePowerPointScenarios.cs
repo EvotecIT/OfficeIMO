@@ -21,7 +21,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static byte[] CreateNativePowerPointSlide() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSizePoints(320, 180);
         PowerPointSlide slide = presentation.AddSlide();
 
@@ -46,7 +46,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         body.FillTransparency = 100;
         body.SetBullets(new[] { "Text placement", "Tables and charts" });
 
-        slide.AddPicture(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
+        slide.AddImage(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
         table.ApplyToCells(cell => cell.FontSize = 8);
@@ -96,7 +96,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static byte[] CreateNativePowerPointDenseLayout() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSizePoints(320, 180);
         PowerPointSlide slide = presentation.AddSlide();
 
@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddPicture(new MemoryStream(logoBytes), OfficeImageFormat.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
+        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(

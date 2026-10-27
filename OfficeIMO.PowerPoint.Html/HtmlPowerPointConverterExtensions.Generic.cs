@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.Html;
 public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportGenericDocument(
         HtmlSemanticDocument document,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
@@ -198,7 +198,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static bool TryAddGenericSlide(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         out PptCore.PowerPointSlide slide) {
@@ -270,7 +270,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static void GetGenericResourcePictureSize(
         HtmlSemanticResource resource,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlImportBudget budget,
         out double width,
         out double height,
@@ -293,7 +293,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static void ReportGenericOffSlideShapes(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
         var options = new PptCore.PowerPointDeckPreflightOptions {
@@ -330,7 +330,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportEditableLayoutRegions(
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         IReadOnlyList<int> firstSlideIndexes,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
@@ -608,7 +608,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture height");
             using var stream = new MemoryStream(image.Bytes);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
+            PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imageType,
                 pictureLeft, pictureTop, pictureWidth, pictureHeight);
             nativeRegionShapes.Add(picture);
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
@@ -672,7 +672,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportSemanticResourcePicture(
         HtmlSemanticResource resource,
         PptCore.PowerPointSlide slide,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlToPowerPointOptions options,
@@ -700,7 +700,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         GetGenericResourcePictureSize(resource, presentation, budget,
             out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
+        PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imagePartType, 64D, top, width, height);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         result.Pictures++;

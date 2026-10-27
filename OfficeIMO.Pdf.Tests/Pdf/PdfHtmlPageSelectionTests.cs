@@ -189,7 +189,7 @@ public sealed class PdfHtmlPageSelectionTests {
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
             PowerPointPdfImportOptions.CreateEditableContent());
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);
         Assert.Equal(1, tableScope.PagesWithOptionalContent);
@@ -218,7 +218,7 @@ public sealed class PdfHtmlPageSelectionTests {
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
             PowerPointPdfImportOptions.CreateEditableContent());
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.Equal(selectLayeredAppearance, page.HasOptionalContentUsage);
         Assert.Equal(selectLayeredAppearance ? 1 : 0, tableScope.PagesWithOptionalContent);
@@ -246,7 +246,7 @@ public sealed class PdfHtmlPageSelectionTests {
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
             PowerPointPdfImportOptions.CreateEditableContent());
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.Equal(expectedOptionalContent, page.HasOptionalContentUsage);
         Assert.Equal(expectedOptionalContent ? 1 : 0, tableScope.PagesWithOptionalContent);
@@ -270,7 +270,7 @@ public sealed class PdfHtmlPageSelectionTests {
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
             PowerPointPdfImportOptions.CreateEditableContent());
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPoint.Value;
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);
         Assert.Equal(1, tableScope.PagesWithOptionalContent);

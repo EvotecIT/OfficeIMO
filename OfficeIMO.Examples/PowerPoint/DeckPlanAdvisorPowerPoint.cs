@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .ThenBy(alternative => alternative.Index)
                 .First();
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             plan.AddCustom("Why this alternative wins", composer => {
                 composer.AddTitle("Why this alternative wins", selected.Design.DirectionName);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "advisor-capability");
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

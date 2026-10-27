@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word
             string filePath = Path.Combine(folderPath, "FluentImageFromUrlAsync.docx");
             using (WordDocument document = WordDocument.Create(filePath))
             {
-                var image = await document.AddImageFromUrlAsync("https://raw.githubusercontent.com/EvotecIT/OfficeIMO/master/OfficeIMO.Examples/Images/Kulek.jpg");
+                var image = await document.AddImageAsync(new Uri("https://raw.githubusercontent.com/EvotecIT/OfficeIMO/master/OfficeIMO.Examples/Images/Kulek.jpg"));
                 image.WrapText = WordImageTextWrapping.Tight;
                 image.Paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 document.Save();

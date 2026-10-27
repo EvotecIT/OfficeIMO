@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests;
 public class HtmlPowerPointBubbleChartTests {
     [Fact]
     public void PowerPointHtml_RoundTripsBubbleChartLegendLayout() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         presentation.AddSlide().AddChart(
                 OfficeChartType.Bubble, CreateBubbleData())
             .SetTitle("Positioned")
@@ -38,8 +38,8 @@ public class HtmlPowerPointBubbleChartTests {
             System.StringComparison.Ordinal);
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            .ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         Assert.True(imported.Slides[0].Charts.Single().TryGetOfficeSnapshot(
             out OfficeChartSnapshot positionedSnapshot));
         Assert.True(positionedSnapshot.Layout.ShowLegend);

@@ -196,23 +196,6 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void WordRemoteImageApisAreAsyncOnly() {
-        string[] documentMethodNames = typeof(WordDocument)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Select(static method => method.Name)
-            .ToArray();
-        string[] builderMethodNames = typeof(ImageBuilder)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Select(static method => method.Name)
-            .ToArray();
-
-        Assert.Contains("AddImageFromUrlAsync", documentMethodNames);
-        Assert.DoesNotContain("AddImageFromUrl", documentMethodNames);
-        Assert.Contains("AddFromUrlAsync", builderMethodNames);
-        Assert.DoesNotContain("AddFromUrl", builderMethodNames);
-    }
-
-    [Fact]
     public void ExcelRemoteImageApisAreAsyncOnly() {
         MethodInfo[] sheetMethods = typeof(ExcelSheet).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -285,7 +268,7 @@ public sealed class PublicApiNamingContracts {
         Assembly[] assemblies = {
             typeof(WordDocument).Assembly,
             typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly
         };
 
         PropertyInfo[] launchProperties = assemblies
@@ -337,7 +320,7 @@ public sealed class PublicApiNamingContracts {
             static type => type.Name == "HtmlConversionLossKind");
         Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownConversionReport).Assembly.GetExportedTypes(),
             static type => type.Name == "WordMarkdownConversionLossKind");
-        Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "PowerPointSignatureMutationPolicy");
     }
 
@@ -480,7 +463,7 @@ public sealed class PublicApiNamingContracts {
         Assembly[] assemblies = {
             typeof(WordDocument).Assembly,
             typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly,
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly,
             typeof(HtmlConversionDocument).Assembly,
             typeof(PdfDocument).Assembly
         };

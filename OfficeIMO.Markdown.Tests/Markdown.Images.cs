@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             using var source = WordDocument.Create();
             source.AddParagraph("Before ");
-            source.AddParagraph().AddImage(imagePath, description: "Logo");
+            source.AddParagraph().AddImage(imagePath,options:new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
             source.AddParagraph("After");
 
             string markdown = ((source.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
