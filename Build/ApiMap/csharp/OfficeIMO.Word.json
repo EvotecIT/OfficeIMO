@@ -1172,51 +1172,51 @@
       "old": "OfficeIMO.Word.WordDocument.AddMacro(string filePath)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : WordMacroProject",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.Macros.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the attached VBA package project without parsing or executing it. ToBytes, Save, Modules and Remove operate on that attachment; using a removed or replaced handle throws.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddMacro(byte[] data)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : WordMacroProject",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.Macros.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the attached VBA package project without parsing or executing it. ToBytes, Save, Modules and Remove operate on that attachment; using a removed or replaced handle throws.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddMacro(Stream stream, long? maxBytes = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : WordMacroProject",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.PackagePayloads.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the attached VBA package project without parsing or executing it. ToBytes, Save, Modules and Remove operate on that attachment; using a removed or replaced handle throws.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1240,51 +1240,51 @@
       "old": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(WordNumberFormat? numberingFormat = null, WordFootnotePosition? position = null, WordNoteNumberRestart? restartNumbering = null, int? startNumber = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(...) : WordFootnoteSettings",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns an editable view attached to the first section; the section overload returns the same model. Settings handles observe later reconfiguration and save directly to the document.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddEndnoteProperties(WordNumberFormat? numberingFormat = null, WordEndnotePosition? position = null, WordNoteNumberRestart? restartNumbering = null, int? startNumber = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddEndnoteProperties(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddEndnoteProperties(...) : WordEndnoteSettings",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns an editable view attached to the first section; the section overload returns the same model. Settings handles observe later reconfiguration and save directly to the document.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddPageNumbering(...) : the created object",
+      "new": "OfficeIMO.Word.WordDocument.AddPageNumbering(...) : WordPageNumberSettings",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns an editable view attached to the first section; the section overload returns the same model. Settings handles observe later reconfiguration and save directly to the document.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -5878,6 +5878,27 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The Word image guide uses the existing percentage inputs for LuminanceBrightness and LuminanceContrast (20 and 10), replacing out-of-range raw DrawingML values. This is an example correction; the effect API semantics are unchanged."
+    },
+    {
+      "change": "Section numbering Add methods return editable attached settings instead of WordSection; existing settings properties now expose the same live model.",
+      "reason": "Add returns the configured object rather than its parent. The owner reference keeps previously returned handles valid across native numbering-node replacement.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordSectionNumberingSettings.cs",
+        "OfficeIMO.Word/WordSection.PublicMethods.cs",
+        "OfficeIMO.Word/WordDocument.SectionProperties.cs"
+      ]
+    },
+    {
+      "change": "WordMacroProject represents the VBA project returned by AddMacro.",
+      "reason": "The supplied binary is a whole project and may contain several modules or opaque data. Returning a module or eagerly parsing the project would change existing behavior. The attached handle delegates native payload operations to their existing owners.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordMacroProject.cs",
+        "OfficeIMO.Word/WordDocument.Macros.cs",
+        "OfficeIMO.Word/WordDocument.PackagePayloads.cs",
+        "OfficeIMO.Word/WordMacro.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

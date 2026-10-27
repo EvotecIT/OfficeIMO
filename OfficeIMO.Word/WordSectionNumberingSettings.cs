@@ -1,86 +1,176 @@
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>Read-only view of a section's page-numbering configuration.</summary>
+    /// <summary>Editable pagenumber configuration attached to a section.</summary>
     public sealed class WordPageNumberSettings {
-        internal WordPageNumberSettings(W.PageNumberType? value) {
-            StartNumber = value?.Start?.Value;
-            NumberingFormat = value?.Format?.Value.ToOfficeEnum();
+        private readonly WordSection _section;
+        internal WordPageNumberSettings(WordSection section) => _section = section;
+        private W.PageNumberType? Value => _section._sectionProperties.GetFirstChild<W.PageNumberType>();
+
+        private W.PageNumberType Ensure() {
+            var value = Value;
+            if (value == null) {
+                value = new W.PageNumberType();
+                _section._sectionProperties.AddChild(value, true);
+            }
+            return value;
         }
 
-        /// <summary>Gets the first page number, or <see langword="null"/> when numbering continues.</summary>
-        public int? StartNumber { get; }
+        /// <summary>Gets or sets the first page number, or null when numbering continues.</summary>
+        public int? StartNumber {
+            get => Value?.Start?.Value;
+            set {
+                Ensure().Start = value;
+            }
+        }
 
-        /// <summary>Gets the page-number format.</summary>
-        public WordNumberFormat? NumberingFormat { get; }
+        /// <summary>Gets or sets the page-number format.</summary>
+        public WordNumberFormat? NumberingFormat {
+            get => Value?.Format?.Value.ToOfficeEnum();
+            set {
+                Ensure().Format = value?.ToOpenXml();
+            }
+        }
+
     }
 
-    /// <summary>Read-only view of a section's footnote configuration.</summary>
+    /// <summary>Editable footnote configuration attached to a section.</summary>
     public sealed class WordFootnoteSettings {
-        internal WordFootnoteSettings(W.FootnoteProperties? value) {
-            Position = value?.FootnotePosition?.Val?.Value.ToOfficeEnum();
-            NumberingRestart = value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
-            StartNumber = value?.NumberingStart?.Val?.Value;
-            NumberingFormat = value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
+        private readonly WordSection _section;
+        internal WordFootnoteSettings(WordSection section) => _section = section;
+        private W.FootnoteProperties? Value => _section._sectionProperties.GetFirstChild<W.FootnoteProperties>();
+
+        private W.FootnoteProperties Ensure() {
+            var value = Value;
+            if (value == null) {
+                value = new W.FootnoteProperties();
+                _section._sectionProperties.AddChild(value, true);
+            }
+            return value;
         }
 
-        /// <summary>Gets the footnote placement.</summary>
-        public WordFootnotePosition? Position { get; }
+        private void Set<T>(T child, bool present) where T : DocumentFormat.OpenXml.OpenXmlElement {
+            if (!present) { Value?.RemoveAllChildren<T>(); return; }
+            var value = Ensure();
+            value.RemoveAllChildren<T>();
+            value.AddChild(child, true);
+        }
 
-        /// <summary>Gets when numbering restarts.</summary>
-        public WordNoteNumberRestart? NumberingRestart { get; }
+        /// <summary>Gets or sets the footnote placement.</summary>
+        public WordFootnotePosition? Position {
+            get => Value?.FootnotePosition?.Val?.Value.ToOfficeEnum();
+            set {
+                Set(new W.FootnotePosition { Val = value?.ToOpenXml() }, value.HasValue);
+            }
+        }
 
-        /// <summary>Gets the first footnote number.</summary>
-        public int? StartNumber { get; }
+        /// <summary>Gets or sets the numbering format.</summary>
+        public WordNumberFormat? NumberingFormat {
+            get => Value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
+            set {
+                Set(new W.NumberingFormat { Val = value?.ToOpenXml() }, value.HasValue);
+            }
+        }
 
-        /// <summary>Gets the numbering format.</summary>
-        public WordNumberFormat? NumberingFormat { get; }
+        /// <summary>Gets or sets the numbering restart rule.</summary>
+        public WordNoteNumberRestart? NumberingRestart {
+            get => Value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
+            set {
+                Set(new W.NumberingRestart { Val = value?.ToOpenXml() }, value.HasValue);
+            }
+        }
+
+        /// <summary>Gets or sets the first note number.</summary>
+        public int? StartNumber {
+            get => Value?.NumberingStart?.Val?.Value;
+            set {
+                if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+                Set(new W.NumberingStart { Val = value.HasValue ? (ushort?)value.Value : null }, value.HasValue);
+            }
+        }
+
     }
 
-    /// <summary>Read-only view of section numbering and document-wide endnote placement.</summary>
+    /// <summary>Editable endnote configuration attached to a section.</summary>
     public sealed class WordEndnoteSettings {
-        internal WordEndnoteSettings(W.EndnoteProperties? value, W.EndnotePositionValues position) {
-            Position = position.ToOfficeEnum();
-            NumberingRestart = value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
-            StartNumber = value?.NumberingStart?.Val?.Value;
-            NumberingFormat = value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
+        private readonly WordSection _section;
+        internal WordEndnoteSettings(WordSection section) => _section = section;
+        private W.EndnoteProperties? Value => _section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
+
+        private W.EndnoteProperties Ensure() {
+            var value = Value;
+            if (value == null) {
+                value = new W.EndnoteProperties();
+                _section._sectionProperties.AddChild(value, true);
+            }
+            return value;
         }
 
-        /// <summary>Gets the effective document-wide placement, defaulting to document-end when omitted.</summary>
-        public WordEndnotePosition? Position { get; }
+        private void Set<T>(T child, bool present) where T : DocumentFormat.OpenXml.OpenXmlElement {
+            if (!present) { Value?.RemoveAllChildren<T>(); return; }
+            var value = Ensure();
+            value.RemoveAllChildren<T>();
+            value.AddChild(child, true);
+        }
 
-        /// <summary>Gets when numbering restarts.</summary>
-        public WordNoteNumberRestart? NumberingRestart { get; }
+        /// <summary>Gets or sets the document-wide endnote placement; null restores document-end.</summary>
+        public WordEndnotePosition? Position {
+            get => _section._document.DocumentEndnotePosition.ToOfficeEnum();
+            set {
+                Set(new W.EndnotePosition { Val = value?.ToOpenXml() }, value.HasValue);
+                _section._document.SetDocumentEndnotePosition(value?.ToOpenXml() ?? W.EndnotePositionValues.DocumentEnd);
+            }
+        }
 
-        /// <summary>Gets the first endnote number.</summary>
-        public int? StartNumber { get; }
+        /// <summary>Gets or sets the numbering format.</summary>
+        public WordNumberFormat? NumberingFormat {
+            get => Value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
+            set {
+                Set(new W.NumberingFormat { Val = value?.ToOpenXml() }, value.HasValue);
+            }
+        }
 
-        /// <summary>Gets the numbering format.</summary>
-        public WordNumberFormat? NumberingFormat { get; }
+        /// <summary>Gets or sets the numbering restart rule.</summary>
+        public WordNoteNumberRestart? NumberingRestart {
+            get => Value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
+            set {
+                Set(new W.NumberingRestart { Val = value?.ToOpenXml() }, value.HasValue);
+            }
+        }
+
+        /// <summary>Gets or sets the first note number.</summary>
+        public int? StartNumber {
+            get => Value?.NumberingStart?.Val?.Value;
+            set {
+                if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+                Set(new W.NumberingStart { Val = value.HasValue ? (ushort?)value.Value : null }, value.HasValue);
+            }
+        }
+
     }
 
     public partial class WordSection {
-        /// <summary>Gets an SDK-independent view of the section's page-numbering configuration.</summary>
+        /// <summary>Gets the editable configuration of the section's page-numbering configuration.</summary>
         public WordPageNumberSettings PageNumberSettings =>
-            new WordPageNumberSettings(_sectionProperties.GetFirstChild<W.PageNumberType>());
+            new WordPageNumberSettings(this);
 
-        /// <summary>Gets an SDK-independent view of the section's footnote configuration.</summary>
+        /// <summary>Gets the editable configuration of the section's footnote configuration.</summary>
         public WordFootnoteSettings FootnoteSettings =>
-            new WordFootnoteSettings(_sectionProperties.GetFirstChild<W.FootnoteProperties>());
+            new WordFootnoteSettings(this);
 
-        /// <summary>Gets an SDK-independent view of section numbering and document-wide endnote placement.</summary>
+        /// <summary>Gets the editable configuration of section numbering and document-wide endnote placement.</summary>
         public WordEndnoteSettings EndnoteSettings =>
-            new WordEndnoteSettings(_sectionProperties.GetFirstChild<W.EndnoteProperties>(), _document.DocumentEndnotePosition);
+            new WordEndnoteSettings(this);
     }
 
     public partial class WordDocument {
-        /// <summary>Gets an SDK-independent view of the first section's page-numbering configuration.</summary>
+        /// <summary>Gets the editable configuration of the first section's page-numbering configuration.</summary>
         public WordPageNumberSettings PageNumberSettings => Sections[0].PageNumberSettings;
 
-        /// <summary>Gets an SDK-independent view of the first section's footnote configuration.</summary>
+        /// <summary>Gets the editable configuration of the first section's footnote configuration.</summary>
         public WordFootnoteSettings FootnoteSettings => Sections[0].FootnoteSettings;
 
-        /// <summary>Gets an SDK-independent view of the first section's endnote configuration.</summary>
+        /// <summary>Gets the editable configuration of the first section's endnote configuration.</summary>
         public WordEndnoteSettings EndnoteSettings => Sections[0].EndnoteSettings;
     }
 }

@@ -71,6 +71,22 @@ header.AddParagraph("Quarterly report");
 footer.AddParagraph("Internal use");
 ```
 
+`AddPageNumbering`, `AddFootnoteProperties` and `AddEndnoteProperties` return
+editable settings for the document's first section. The section methods return
+settings for that section:
+
+```csharp
+var numbering = document.AddPageNumbering(startNumber: 1);
+numbering.NumberingFormat = WordNumberFormat.UpperRoman;
+var notes = document.AddFootnoteProperties(startNumber: 1);
+notes.NumberingRestart = WordNoteNumberRestart.EachSection;
+```
+
+`AddMacro(path, bytes or stream)` returns the attached `WordMacroProject`.
+Use its `ToBytes`, `Save`, `Modules` and `Remove` members while the document is
+open. Replacing or removing the project invalidates earlier project handles.
+Reading and attaching a project never executes its code.
+
 ## Printed reports
 
 `WordPaperStyle` applies shared typography, page chrome, covers, metric strips and quiet tables. Configure its colors, fonts and table density once, then use the same style across reports:

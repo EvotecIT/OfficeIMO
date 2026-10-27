@@ -66,11 +66,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Target document.</param>
         /// <param name="filePath">Path to a <c>vbaProject.bin</c> file.</param>
-        internal static void AddMacro(WordDocument document, string filePath) {
+        internal static WordMacroProject AddMacro(WordDocument document, string filePath) {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath)) throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
 
-            AddMacro(document, File.ReadAllBytes(filePath));
+            return AddMacro(document, File.ReadAllBytes(filePath));
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Target document.</param>
         /// <param name="data">VBA project data.</param>
-        internal static void AddMacro(WordDocument document, byte[] data) {
+        internal static WordMacroProject AddMacro(WordDocument document, byte[] data) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (data == null || data.Length == 0) throw new ArgumentNullException(nameof(data));
 
@@ -93,6 +93,7 @@ namespace OfficeIMO.Word {
             var vbaPart = main.AddNewPart<VbaProjectPart>();
             using var stream = new MemoryStream(data);
             vbaPart.FeedData(stream);
+            return new WordMacroProject(document, vbaPart);
         }
 
         /// <summary>

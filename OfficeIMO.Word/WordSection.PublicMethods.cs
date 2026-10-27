@@ -353,8 +353,8 @@ namespace OfficeIMO.Word {
         /// <param name="position">Footnote position.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordFootnoteSettings AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
             WordFootnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
@@ -385,7 +385,7 @@ namespace OfficeIMO.Word {
                 props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
-            return this;
+            return FootnoteSettings;
         }
 
         /// <summary>
@@ -395,8 +395,8 @@ namespace OfficeIMO.Word {
         /// <param name="position">Document-wide endnote position. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordEndnoteSettings AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
             WordEndnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
@@ -431,7 +431,7 @@ namespace OfficeIMO.Word {
                 props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
-            return this;
+            return EndnoteSettings;
         }
 
         /// <summary>
@@ -439,8 +439,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="startNumber">Starting page number.</param>
         /// <param name="format">Number format.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordPageNumberSettings AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
             var existing = _sectionProperties.GetFirstChild<PageNumberType>();
             existing?.Remove();
 
@@ -455,7 +455,7 @@ namespace OfficeIMO.Word {
                 _sectionProperties.AddChild(pageNumberType, true);
             }
 
-            return this;
+            return PageNumberSettings;
         }
 
         /// <summary>
