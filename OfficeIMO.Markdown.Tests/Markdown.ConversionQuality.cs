@@ -42,6 +42,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWordToMarkdown_KeepsHorizontalRulesAndInternalLinks() {
+            var markdown = Omd.MarkdownDocument.Parse("# Lumen\n\nSee [quick start](#quick-start).\n\n## Quick start\n\nText.\n\n---\n\nLicensed under MIT.\n");
+
+            using var document = markdown.ToWord();
+            string roundTrip = document.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
+
+            Assert.Contains("[quick start](#quick-start)", roundTrip);
+            Assert.Contains("\n---\n", roundTrip);
+            Assert.Contains("Licensed under MIT.", roundTrip);
+        }
+
+        [Fact]
         public void MarkdownToWord_InternalLinksTargetHeadingBookmarks() {
             var markdown = Omd.MarkdownDocument.Parse("# Lumen\n\nSee [the changelog](#changelog) and [quick start](#quick-start).\n\n## Quick start\n\nText.\n\n## Changelog\n\nText.\n");
 
