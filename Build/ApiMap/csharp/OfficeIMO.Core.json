@@ -48,6 +48,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "OfficeTableOptions absorbs the Markdown projection controls. Declared-row projection applies selection before bounds and supports generic/read-only dictionaries through the existing dictionary adapter. Projection snapshots copy formatter dictionaries so native table overrides do not mutate reusable options. Empty dictionary-interface sequences are rejected without exposing dictionary metadata as columns. Display headers remain independent of unique source member names."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Visibility analysis retains public value-type contracts, exposed model constructors and immutable With copies. The generated candidate list no longer proposes hiding OfficeLength unit conversions or OfficeTheme model construction; private native constructors remain private. This changes the candidate analysis, not the M1 public API."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

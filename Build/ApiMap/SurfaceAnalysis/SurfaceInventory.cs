@@ -81,16 +81,19 @@ internal static class SurfaceInventory {
             foreach (var member in PublicMembers(type)) {
                 bool data = member is IPropertySymbol or IFieldSymbol or IEventSymbol;
                 bool contract = type.TypeKind is TypeKind.Interface or TypeKind.Delegate || member.IsOverride || implementations.Contains(member);
-                bool optionsConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor }
-                    && (type.IsValueType || new[] { "Options", "Report", "Info", "Result", "Diagnostic" }.Any(suffix => type.Name.EndsWith(suffix, StringComparison.Ordinal)));
+                // Referenced models need their constructors even when their names do not end
+                // in Options/Info (for example, theme palettes and font definitions).
+                bool modelConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor };
+                bool valueContract = type.IsValueType;
+                bool modelTransformation = member is IMethodSymbol { IsStatic: false, MethodKind: MethodKind.Ordinary } method
+                    && method.Name.StartsWith("With", StringComparison.Ordinal)
+                    && SymbolEqualityComparer.Default.Equals(method.ReturnType.OriginalDefinition, type.OriginalDefinition);
                 contract |= member is IMethodSymbol { MethodKind: MethodKind.UserDefinedOperator or MethodKind.Conversion };
                 var memberEvidence = member is IMethodSymbol { MethodKind: MethodKind.Constructor }
                     ? documentation[type.ContainingAssembly].FindConstruction(type.Name) : documentation[type.ContainingAssembly].Find(member.Name);
                 if (memberEvidence.Count > 0) KeepMember(member, "Documented model member", memberEvidence);
                 bool generatedRecord = type.IsRecord && locations.Find(member).Count == 0;
-                bool dataConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor }
-                    && !PublicMembers(type).OfType<IMethodSymbol>().Any(method => !method.IsStatic && !method.IsOverride && method.MethodKind == MethodKind.Ordinary);
-                if (data || contract || optionsConstructor || generatedRecord || dataConstructor)
+                if (data || contract || modelConstructor || valueContract || modelTransformation || generatedRecord)
                     KeepMember(member, contract ? "Public type contract" : "Exposed model data");
             }
         }

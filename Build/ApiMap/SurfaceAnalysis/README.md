@@ -4,7 +4,9 @@ This tool proposes accessibility candidates for the Tier 1 libraries. It reads
 built Release assemblies, user guides, package READMEs and C# examples. One model
 signature closure spans the selected packages, so a documented Word API can retain
 its Core options and result models. Public interfaces, overrides, operators and
-exposed model data retain their contracts.
+exposed model data retain their contracts. Public constructors, value-type members
+and immutable `With...` copies that return the same model type also survive the
+signature closure.
 
 Build the selected packages for `net10.0` before analysis, then run:
 
@@ -19,8 +21,8 @@ Roslyn assemblies and adds no runtime package dependency.
 
 The output is a review list, not an automatic accessibility edit. Check each
 candidate's callers, public inheritance and signatures in adapters before changing
-it. Constructor evidence is separate from type references, so an editable image
-returned by `AddImage` does not make its package-internal construction public.
+it. Model closure retains existing public construction; it never promotes a
+package-internal constructor.
 Compiler-generated constructors can have no explicit source location. Overload
 locations are omitted when the source signature cannot be matched unambiguously.
 Generated API references and design documents are excluded as evidence; otherwise
