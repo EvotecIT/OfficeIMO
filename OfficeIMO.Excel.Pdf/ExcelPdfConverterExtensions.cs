@@ -15,6 +15,14 @@ namespace OfficeIMO.Excel.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
+            ExcelDocument? pivotCopy = CreatePivotRenderedCopy(document, options);
+            if (pivotCopy == null) return ConvertToPdfDocument(document, options, document.FilePath);
+            using (pivotCopy) {
+                return ConvertToPdfDocument(pivotCopy, options, document.FilePath);
+            }
+        }
+
+        private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options, string? workbookPath) {
             CancellationToken cancellationToken = options.CancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfCreateOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
@@ -32,6 +40,7 @@ namespace OfficeIMO.Excel.Pdf {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots, document.GetWorkbookDefaultFontInfo());
             ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, exportPlans);
             ApplyWorksheetColumnFontMetrics(document, pdfOptions, options, exportPlans);
+            ApplyWorksheetTextLayout(document, pdfOptions, options, exportPlans);
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
@@ -40,13 +49,13 @@ namespace OfficeIMO.Excel.Pdf {
                 WorksheetPdfExportPlan[] worksheetPlans = worksheet.ToArray();
                 WorksheetPdfExportPlan firstPlan = worksheetPlans[0];
                 if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
-                    AddWorksheetCanvasPages(pdf, document, worksheetPlans, options, sheetDestinations, cellDestinations, defaultFontFamily);
+                    AddWorksheetCanvasPages(pdf, document, worksheetPlans, options, sheetDestinations, cellDestinations, defaultFontFamily, workbookPath);
                     continue;
                 }
 
                 pdf.Section(page => {
                     ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
-                    ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
+                    ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, workbookPath, options, firstPlan.PageSetup);
                     page.Content(content => content.Item(item => {
                         for (int areaIndex = 0; areaIndex < worksheetPlans.Length; areaIndex++) {
                             WorksheetPdfExportPlan plan = worksheetPlans[areaIndex];
@@ -97,8 +106,12 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (exportPlans.Count == 0) {
-                pdf.H1("Workbook");
-                pdf.Table(new[] { new[] { "No worksheet data found." } }, style: CreateEmptyWorkbookTableStyle(options));
+                // A spreadsheet application prints nothing for an empty workbook. A PDF needs
+                // one page, so emit a blank page and say why instead of inventing content.
+                pdf.PageBreak(preserveEmptyPage: true);
+                AddWarning(options, string.Empty, "workbook-empty",
+                    "The workbook has no printable worksheet content, so the PDF contains one blank page.",
+                    OfficeConversionLossKind.None);
             }
 
             cancellationToken.ThrowIfCancellationRequested();

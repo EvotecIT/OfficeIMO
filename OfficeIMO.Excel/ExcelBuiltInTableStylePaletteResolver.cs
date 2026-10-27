@@ -30,9 +30,11 @@ namespace OfficeIMO.Excel {
                             stripeFill: paleColor,
                             bodyText: familyIndex == 0 ? dark : mutedColor,
                             border: familyIndex == 0 ? ResolveThemeRgb(document, 0U, -0.35D, "A6A6A6") : baseColor,
-                            headerBold: true);
+                            headerBold: true,
+                            borderLayout: ExcelTableStyleBorderLayout.OutlineHorizontal);
                     } else if (index <= 14) {
-                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, null, dark, baseColor, headerBold: true);
+                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, null, dark, baseColor, headerBold: true,
+                            borderLayout: ExcelTableStyleBorderLayout.Box);
                     } else {
                         palette = new ExcelBuiltInTableStylePalette(
                             headerFill: null,
@@ -47,12 +49,17 @@ namespace OfficeIMO.Excel {
 
                 case "Medium":
                     if (index <= 7) {
-                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, paleColor, dark, baseColor, headerBold: true);
+                        // Medium 1-7 draw horizontal hairlines in a light tint and no vertical lines.
+                        string rule = ResolveFamilyTintColor(document, familyIndex, 0.4D);
+                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, paleColor, dark, rule, headerBold: true,
+                            borderLayout: ExcelTableStyleBorderLayout.Horizontal);
                     } else if (index <= 14) {
-                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, paleColor, stripeColor, dark, baseColor, headerBold: true);
+                        // Medium 8-14 separate the filled cells with background-coloured lines.
+                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, paleColor, stripeColor, dark, light, headerBold: true);
                     } else if (index <= 21) {
                         string neutralStripe = ResolveThemeRgb(document, 0U, -0.15D, "D9D9D9");
-                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, neutralStripe, dark, baseColor, headerBold: true);
+                        palette = new ExcelBuiltInTableStylePalette(baseColor, light, null, neutralStripe, dark, baseColor, headerBold: true,
+                            borderLayout: ExcelTableStyleBorderLayout.OutlineHorizontal);
                     } else {
                         palette = new ExcelBuiltInTableStylePalette(paleColor, dark, paleColor, stripeColor, dark, baseColor, headerBold: true);
                     }
@@ -66,7 +73,8 @@ namespace OfficeIMO.Excel {
                         string bodyStripe = familyIndex == 0
                             ? ResolveThemeRgb(document, 1U, 0.25D, "404040")
                             : mutedColor;
-                        palette = new ExcelBuiltInTableStylePalette(dark, light, bodyFill, bodyStripe, light, baseColor, headerBold: true);
+                        palette = new ExcelBuiltInTableStylePalette(dark, light, bodyFill, bodyStripe, light, baseColor, headerBold: true,
+                            borderLayout: ExcelTableStyleBorderLayout.None);
                     } else if (index == 8) {
                         palette = new ExcelBuiltInTableStylePalette(
                             dark,
@@ -82,7 +90,8 @@ namespace OfficeIMO.Excel {
                         string header = ResolveThemeRgb(document, headerTheme, null, index == 9 ? "E97132" : index == 10 ? "0F9ED5" : "4EA72E");
                         string body = ResolveThemeRgb(document, bodyTheme, 0.8D, index == 9 ? "C0E6F5" : index == 10 ? "C1F0C8" : "F2CEEF");
                         string stripe = ResolveThemeRgb(document, bodyTheme, 0.6D, index == 9 ? "83CCEB" : index == 10 ? "83E28E" : "E49EDD");
-                        palette = new ExcelBuiltInTableStylePalette(header, light, body, stripe, dark, header, headerBold: false);
+                        palette = new ExcelBuiltInTableStylePalette(header, light, body, stripe, dark, header, headerBold: false,
+                            borderLayout: ExcelTableStyleBorderLayout.None);
                     }
                     return true;
             }
@@ -166,7 +175,8 @@ namespace OfficeIMO.Excel {
             string? stripeFill,
             string? bodyText,
             string? border,
-            bool headerBold) {
+            bool headerBold,
+            ExcelTableStyleBorderLayout borderLayout = ExcelTableStyleBorderLayout.Grid) {
             HeaderFill = headerFill;
             HeaderText = headerText;
             BodyFill = bodyFill;
@@ -174,6 +184,7 @@ namespace OfficeIMO.Excel {
             BodyText = bodyText;
             Border = border;
             HeaderBold = headerBold;
+            BorderLayout = borderLayout;
         }
 
         internal string? HeaderFill { get; }
@@ -183,5 +194,20 @@ namespace OfficeIMO.Excel {
         internal string? BodyText { get; }
         internal string? Border { get; }
         internal bool HeaderBold { get; }
+        internal ExcelTableStyleBorderLayout BorderLayout { get; }
+    }
+
+    /// <summary>Which lines a built-in table style draws.</summary>
+    internal enum ExcelTableStyleBorderLayout {
+        /// <summary>Every cell edge.</summary>
+        Grid,
+        /// <summary>Lines above and below every row, no vertical lines.</summary>
+        Horizontal,
+        /// <summary>The table's top and bottom edges and the rule under the header.</summary>
+        OutlineHorizontal,
+        /// <summary>The four outer edges of the table only.</summary>
+        Box,
+        /// <summary>No lines.</summary>
+        None
     }
 }

@@ -15,7 +15,7 @@ dotnet add package OfficeIMO
 | Everything below in one reference | `OfficeIMO` | `OfficeConverter`, any document type |
 | Word documents | `OfficeIMO.Word` | `WordDocument.Create` |
 | Excel workbooks, including streamed large exports | `OfficeIMO.Excel` | `ExcelDocument.Create`, `ExcelDocument.CreateWriter` |
-| PowerPoint decks | `OfficeIMO.PowerPoint` | `PowerPointPresentation.Create` |
+| PowerPoint decks | `OfficeIMO.PowerPoint` | `PowerPointDocument.Create` |
 | PDF creation and editing | `OfficeIMO.Pdf` | `PdfDocument.Create`, `PdfDocument.Load` |
 | Word, Excel or PowerPoint to PDF | `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf` | `doc.SaveAsPdf(path)` |
 | PDF back to Word, Excel or PowerPoint | `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint` | `pdf.ToWord()` |

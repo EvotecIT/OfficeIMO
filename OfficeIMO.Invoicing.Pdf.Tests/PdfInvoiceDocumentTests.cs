@@ -155,7 +155,7 @@ public class PdfInvoiceDocumentTests {
 
         foreach (string expected in new[] {
             "Document adjustments", "Document discount", "Delivery", "VAT category",
-            "S 19%", "S 7%", "Allowances", "5.00 EUR", "Charges", "2.00 EUR",
+            "Standard rate 19%", "Standard rate 7%", "Allowances", "5.00 EUR", "Charges", "2.00 EUR",
             "Total including", "254.64 EUR", "Rounding", "0.01 EUR"
         }) Assert.Contains(expected, text, StringComparison.Ordinal);
     }
@@ -334,7 +334,7 @@ public class PdfInvoiceDocumentTests {
         foreach (string expected in new[] { "Identifier (0088): seller-1", "Identifier (0088): buyer-id",
             "Identifier (0088): payee-1", "Legal registration (0002): HRB 12345", "Legal registration (0002): payee-register",
             "Electronic address (EM):", "seller@example.test", "buyer@example.test", "Location (0088): location-1",
-            "Gross price: 110 EUR / 1 C62", "Price discount: 10 EUR / 1 C62" })
+            "Gross price: 110 EUR / 1 piece", "Price discount: 10 EUR / 1 piece" })
             Assert.Contains(expected, text, StringComparison.Ordinal);
         Assert.Equal(xml, Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Attachments.Extract()).Bytes);
         WriteEvidence("identifiers-and-prices", pdf);
@@ -396,9 +396,9 @@ public class PdfInvoiceDocumentTests {
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] pdf = snapshot.ToPdfBytes(Options());
         string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
-        Assert.Contains("Gross price: 0.004 EUR / 1 C62", text, StringComparison.Ordinal);
-        Assert.Contains("Price discount: 0.001 EUR / 1 C62", text, StringComparison.Ordinal);
-        Assert.Contains("0.003 / 1 C62", text, StringComparison.Ordinal);
+        Assert.Contains("Gross price: 0.004 EUR / 1 piece", text, StringComparison.Ordinal);
+        Assert.Contains("Price discount: 0.001 EUR / 1 piece", text, StringComparison.Ordinal);
+        Assert.Contains("0.003 / 1 piece", text, StringComparison.Ordinal);
         Assert.Contains("3.57 EUR", text, StringComparison.Ordinal);
         Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Attachments.Extract()).Bytes);
         WriteEvidence("fractional-prices", pdf);
@@ -467,7 +467,7 @@ public class PdfInvoiceDocumentTests {
         Assert.Contains("INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains((credit ? "Credit note " : "Invoice ") + "INV-2026-001", text, StringComparison.Ordinal);
         Assert.DoesNotContain("MUTATED", text, StringComparison.Ordinal);
-        Assert.Contains(due.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " EUR", text, StringComparison.Ordinal);
+        Assert.Contains(due.ToString("#,##0.00", System.Globalization.CultureInfo.InvariantCulture) + " EUR", text, StringComparison.Ordinal);
         Assert.Contains("Consulting", text, StringComparison.Ordinal);
         Assert.Contains("DE79000000001234567890", text, StringComparison.Ordinal);
         if (longInvoice) Assert.Contains("Service line 35", text, StringComparison.Ordinal);

@@ -256,6 +256,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
+        bool[] numericColumns = ResolveNumericColumns();
         sb.Append("<table").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append(">");
         AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
         var headerCells = HeaderCells;
@@ -273,7 +274,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, preparedStructuredHeaders);
             for (int i = 0; i < headerRenderCount; i++) {
                 var h = preparedHeaders[i];
-                var style = GetAlignment(i);
+                var style = GetHtmlAlignment(i, numericColumns);
                 TableCell? structuredCell = preparedStructuredHeaders?[i];
                 sb.Append($"<th{RenderCellAttributes(structuredCell, style)}>");
                 sb.Append(RenderCellHtml(h, structuredCell, preparedParsedHeaders?[i]));
@@ -297,7 +298,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
                 for (int i = 0; i < renderCellCount; i++) {
                     var cell = cells[i];
-                    var style = GetAlignment(i);
+                    var style = GetHtmlAlignment(i, numericColumns);
                     TableCell? structuredCell = structuredCells?[i];
                     sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
                     sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
@@ -398,6 +399,41 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         return ColumnWidthWeights.Count > 0;
+    }
+
+    private MarkdownColumnAlignment GetHtmlAlignment(int index, bool[] numericColumns) {
+        MarkdownColumnAlignment authored = GetAlignment(index);
+        return authored == MarkdownColumnAlignment.None && index < numericColumns.Length && numericColumns[index]
+            ? MarkdownColumnAlignment.Right
+            : authored;
+    }
+
+    // Styled HTML right-aligns columns of numbers that the source left unaligned, as the visual design asks.
+    // Plain and GitHub-compatible output keep the source alignment exactly.
+    private bool[] ResolveNumericColumns() {
+        var options = HtmlRenderContext.Options;
+        if (options == null || options.Style == MarkdownHtmlStyle.Plain || options.GitHubTaskListHtml || Rows.Count == 0) {
+            return Array.Empty<bool>();
+        }
+
+        int columnCount = GetEffectiveColumnCount();
+        var numeric = new bool[columnCount];
+        for (int column = 0; column < columnCount; column++) {
+            bool any = false;
+            bool all = true;
+            foreach (IReadOnlyList<string> row in Rows) {
+                string value = column < row.Count ? row[column] ?? string.Empty : string.Empty;
+                if (value.Trim().Length == 0) continue;
+                any = true;
+                if (!global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(value.Replace("\\", string.Empty).Replace("*", string.Empty))) {
+                    all = false;
+                    break;
+                }
+            }
+            numeric[column] = any && all;
+        }
+
+        return numeric;
     }
 
     private static string RenderCellAttributes(TableCell? cell, MarkdownColumnAlignment alignment) {

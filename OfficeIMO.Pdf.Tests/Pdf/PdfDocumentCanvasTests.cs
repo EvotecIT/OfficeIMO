@@ -1454,7 +1454,7 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Score" },
                 new[] { "OfficeIMO", "99" }
-            }, 30, 30, 120, 60, rotationAngle: 90D))
+            }, 30, 30, 120, 60, PdfTableStyles.Light(), rotationAngle: 90D))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1749,7 +1749,7 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { PdfTableCell.Span("Merged", 2) },
                 new[] { PdfTableCell.TextCell("Left"), PdfTableCell.TextCell("Right") }
-            }, 30, 30, 120, 60))
+            }, 30, 30, 120, 60, PdfTableStyles.Light()))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

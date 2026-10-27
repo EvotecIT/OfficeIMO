@@ -563,6 +563,11 @@ public static partial class HtmlExcelConverterExtensions {
             }
         }
         if (isHeader) cell.SetBold();
+        // Header and body cells share the inherited font chain (body font, table font, cell font), so a
+        // table authored in one family imports in one family instead of mixing it with the workbook default.
+        string cellFont = HtmlRenderCssValues.FirstFontFamily(style?.GetValue("font-family")) ?? string.Empty;
+        if (cellFont.Length > 0) cell.SetFontName(cellFont);
+        if (TryParseCssPixels(style?.GetValue("font-size"), out double cellFontPixels)) cell.SetFontSize(cellFontPixels * 0.75D);
         string fontColor = NormalizeHexColor(style?.GetValue("color"));
         if (fontColor.Length > 0) cell.SetFontColor(fontColor);
         string fillColor = NormalizeHexColor(style?.GetValue("background-color"));

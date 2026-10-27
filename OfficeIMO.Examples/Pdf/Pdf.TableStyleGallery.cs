@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Pdf {
                 style.CaptionSpacingAfter = 4;
                 style.SpacingBefore = 6;
                 style.SpacingAfter = 6;
-                style.ColumnWidthPoints = new List<double?> { 76, 70, 300 };
+                style.ColumnWidthWeights = new List<double> { 76, 70, 300 };
                 style.AutoFitColumns = false;
                 style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,

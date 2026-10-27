@@ -229,6 +229,16 @@ PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `Po
 
 Layout and master placeholder prompts are not slide content. Create a concrete slide placeholder to display its text or field; it inherits the template's geometry and style. Ordinary layout and master artwork remains visible.
 
+## Markdown, Word and HTML conversion output
+
+Regenerate visual baselines for Markdown to HTML, Markdown to Word, Word to HTML and HTML rendering; the defaults below change layout and markup.
+
+- `MarkdownDocument.SaveAsHtml(path)` and `SaveAsHtmlAsync(path)` without options write a complete HTML document with a stylesheet. Pass `new MarkdownHtmlExportOptions()` to keep writing a fragment.
+- `MarkdownHtmlStyle.Clean`, the default style, no longer switches to the Word stylesheet when no `Theme` is set. It declares the `--office-*` theme tokens and uses them. Set `Style = MarkdownHtmlStyle.Word` for the previous look. Styled output right-aligns table columns of numbers that have no authored alignment; `Plain` keeps the source alignment.
+- Markdown to Word writes code blocks with a `CodeLang_<language>` paragraph style, wraps headings in bookmarks and turns `#fragment` links into in-document links. Relative image paths resolve against `BaseUri` or the Markdown file's folder. Images that cannot be embedded are reported as `image-skipped-by-policy` or `image-load-failed` omissions, so `HasLoss` and `FailOnLoss` see them; set `AllowLocalImages = true` to embed local files. `WordMarkdownImageLayoutOptions.FitMode` defaults to `ContextContentWidth`; set `None` for natural image size. New documents get theme heading and Normal styles, quotes get a left rule and table columns are sized from their content.
+- Word to HTML rebuilds a table of contents from the headings and reports `toc-regenerated-from-headings`. Monospace runs become `<code>`, and the default stylesheet uses the theme tokens.
+- HTML rendering keeps the monospace default for `code`, `pre`, `kbd` and `samp` when an ancestor sets a font family, in Document mode as well; set `font-family: inherit` on them for the previous result. `font-variant: small-caps` is synthesized from smaller capitals. An image that does not load and has no size takes the space of its alternative text. HTML to PDF loads `file:` resources when `PdfResourcePolicy.AllowLocalFileAccess` is true. `HtmlRenderMathMlSourceNormalized` is now an `Info` diagnostic.
+
 ## HTML default-font metrics
 
 Raw HTML rendering retains the configured default font when installed-font fallback is permitted. Its selected face can change advances, baselines, wrapping and page counts compared with the earlier estimated layout. Register complete font bytes and set `AllowSystemFontFallback = false` for a fixed font selection across hosts.

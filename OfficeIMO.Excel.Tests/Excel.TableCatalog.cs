@@ -51,7 +51,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Name", "Value" }, tableOne.Columns.Select(column => column.Name).ToArray());
 
                 var tableTwo = tables.Single(t => t.Name == "TableTwo");
-                Assert.Equal("A1:C2", tableTwo.Range);
+                // SetTableTotalsByName added the totals row below the single data row.
+                Assert.Equal("A1:C3", tableTwo.Range);
                 Assert.Equal("SheetTwo", tableTwo.SheetName);
                 Assert.Equal(1, tableTwo.SheetIndex);
                 Assert.True(tableTwo.TotalsRowShown);

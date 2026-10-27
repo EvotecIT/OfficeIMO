@@ -7,8 +7,9 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Selects how container width should constrain markdown images.
+        /// Default: <see cref="WordMarkdownImageFitMode.ContextContentWidth"/>, so large images never run off the page.
         /// </summary>
-        public WordMarkdownImageFitMode FitMode { get; set; } = WordMarkdownImageFitMode.None;
+        public WordMarkdownImageFitMode FitMode { get; set; } = WordMarkdownImageFitMode.ContextContentWidth;
 
         /// <summary>
         /// Defines whether markdown width/height hints are applied before or after layout constraints.

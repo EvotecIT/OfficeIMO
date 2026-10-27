@@ -462,7 +462,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] {
                     PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Direct table Times", font: PdfStandardFont.TimesRoman) })
                 }
-            })
+            }, style: PdfTableStyles.Light())
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
@@ -472,7 +472,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     new[] {
                                         PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
                                     }
-                                }))))))
+                                }, style: PdfTableStyles.Light()))))))
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);

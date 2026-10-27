@@ -35,6 +35,33 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Adds a document title above the heading hierarchy, sized from the theme title scale.</summary>
+    internal PdfDocument Title(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfHeadingStyle? style = null) {
+        OfficeTheme theme = _options.EffectiveTheme;
+        PdfHeadingStyle resolved = style ?? new PdfHeadingStyle {
+            FontSize = theme.TypeScale.Title.ToPoints(),
+            LineHeight = 1.1D,
+            SpacingBefore = 0D,
+            SpacingAfter = theme.Spacing.ParagraphAfter.ToPoints(),
+            Color = PdfColor.FromOfficeColor(theme.Palette.Text),
+            KeepWithNext = true
+        };
+        AddBlock(new HeadingBlock(1, text, align, color, style: resolved) { IsTitle = true });
+        return this;
+    }
+
+    /// <summary>Adds a subtitle paragraph in the theme accent colour at the third heading size.</summary>
+    internal PdfDocument Subtitle(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNullOrWhiteSpace(text, nameof(text));
+        OfficeTheme theme = _options.EffectiveTheme;
+        PdfColor resolved = color ?? PdfColor.FromOfficeColor(theme.Palette.Accent1);
+        double size = theme.TypeScale.Heading3.ToPoints();
+        return Paragraph(p => p.Color(resolved).FontSize(size).Text(text), align, resolved, new PdfParagraphStyle {
+            SpacingAfter = theme.Spacing.ParagraphAfter.ToPoints() * 1.5D,
+            KeepWithNext = true
+        });
+    }
+
     /// <summary>Adds a level-1 heading.</summary>
     internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(1, text, align, color, linkUri, style, linkContents, linkDestinationName);

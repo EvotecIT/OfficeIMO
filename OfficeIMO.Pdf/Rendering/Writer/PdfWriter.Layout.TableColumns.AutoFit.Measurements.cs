@@ -305,6 +305,19 @@ internal static partial class PdfWriter {
                     }
                 }
 
+                // Runs in their own face, such as inline code in a monospace font, are wider than the
+                // row font suggests; their words set the column minimum so they do not break mid-word.
+                for (int runIndex = 0; runIndex < cell.Runs.Count; runIndex++) {
+                    PdfTextRun run = cell.Runs[runIndex];
+                    if (!run.Font.HasValue && !run.FontSize.HasValue) continue;
+                    PdfStandardFont runFont = run.Font ?? rowStandardFont;
+                    if (run.Bold) runFont = ChooseBold(runFont);
+                    double runSize = run.FontSize ?? rowSize;
+                    foreach (string runToken in GetAutoFitMinimumWidthTokens(run.Text, splitCamelCase: splitMinimumCamelCase)) {
+                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
+                    }
+                }
+
                 bool qualifiedIdentifierText = textProfile.IsQualifiedIdentifier;
                 bool singleLetterNumericDelimitedCode = textProfile.IsSingleLetterNumericDelimitedCode;
                 bool singleLetterNumericDelimitedCodeList = textProfile.IsSingleLetterNumericDelimitedCodeList;

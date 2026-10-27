@@ -76,9 +76,14 @@ namespace OfficeIMO.Excel.Pdf {
 
                 IReadOnlyList<double> candidateValues = candidates.Select(candidate => candidate.Value).ToArray();
                 (double min, double max) = ExcelConditionalFormatThresholds.ResolveDataBarRange(candidateValues, rule.DataBarThresholds);
+                // Excel paints data bars as a gradient that fades to white, so the value on
+                // top stays readable. A flat fill takes the gradient's average tint.
+                string barColor = rule.DataBarGradient != false ? BlendTowardWhite(rule.DataBarColor!, 0.5D) : rule.DataBarColor!;
                 foreach (var candidate in candidates) {
                     (double startRatio, double ratio) = ExcelConditionalFormatThresholds.GetDataBarGeometry(candidate.Value, min, max);
-                    dataBars[(candidate.Row, candidate.Column)] = new ConditionalDataBarCell(rule.DataBarColor!, startRatio, ratio);
+                    var key = (candidate.Row, candidate.Column);
+                    dataBars[key] = new ConditionalDataBarCell(barColor, startRatio, ratio);
+                    if (!rule.DataBarShowValue) hiddenValues.Add(key);
                 }
             }
 
@@ -166,6 +171,12 @@ namespace OfficeIMO.Excel.Pdf {
 
             numericValue = 0D;
             return false;
+        }
+
+        private static string BlendTowardWhite(string color, double amount) {
+            if (!TryGetRgb(color, out byte r, out byte g, out byte b)) return color;
+            byte Blend(byte channel) => (byte)Math.Round(channel + (255 - channel) * amount);
+            return "#" + Blend(r).ToString("X2", CultureInfo.InvariantCulture) + Blend(g).ToString("X2", CultureInfo.InvariantCulture) + Blend(b).ToString("X2", CultureInfo.InvariantCulture);
         }
 
         private static bool TryGetRgb(string value, out byte r, out byte g, out byte b) =>

@@ -595,6 +595,12 @@ namespace OfficeIMO.Word.Html {
 
                     // Ensure null-safe text handling
                     INode node = htmlDoc.CreateTextNode(run.Text ?? string.Empty);
+                    if (IsInlineCodeRun(run, para._document.Settings.FontFamily)
+                        && !string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
+                        var inlineCode = CreateOutputElement(htmlDoc, "code");
+                        inlineCode.AppendChild(node);
+                        node = inlineCode;
+                    }
 
                     if (run.Bold) {
                         var strong = CreateOutputElement(htmlDoc, "strong");
@@ -776,7 +782,94 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            bool IsCodeParagraph(WordParagraph para) {
+            var tableOfContentsLinks = new List<(IElement Anchor, Paragraph Heading)>();
+            // Headings get ids only when a table of contents needs link targets, so other output is unchanged.
+            bool documentHasTableOfContents = document.TableOfContent != null;
+            var renderedHeadingIds = new Dictionary<Paragraph, string>();
+            var usedHeadingIds = new HashSet<string>(StringComparer.Ordinal);
+
+            void RecordHeadingId(IElement element, Paragraph heading) {
+                string? id = element.GetAttribute("id");
+                if (string.IsNullOrEmpty(id)) {
+                    int counter = renderedHeadingIds.Count + 1;
+                    do {
+                        id = "heading-" + counter.ToString(CultureInfo.InvariantCulture);
+                        counter++;
+                    } while (!usedHeadingIds.Add(id) || htmlDoc.GetElementById(id) != null);
+                    SetOutputAttribute(element, "id", id, "Heading:id");
+                } else {
+                    usedHeadingIds.Add(id!);
+                }
+
+                renderedHeadingIds[heading] = id!;
+            }
+
+            // A Word TOC is a field whose stored result may be stale or empty. HTML cannot update fields, so the
+            // table of contents is regenerated from the document headings, the same way the PDF export builds it.
+            void AppendTableOfContents(IElement parent, WordTableOfContent tableOfContent) {
+                int minLevel = Math.Max(1, tableOfContent.MinLevel);
+                int maxLevel = Math.Max(minLevel, tableOfContent.MaxLevel);
+                var nav = CreateOutputElement(htmlDoc, "nav");
+                SetOutputAttribute(nav, "class", "toc", "TableOfContents:class");
+                string title = tableOfContent.Text;
+                if (!string.IsNullOrWhiteSpace(title)) {
+                    var heading = CreateOutputElement(htmlDoc, "p");
+                    SetOutputAttribute(heading, "class", "toc-title", "TableOfContents:class");
+                    heading.TextContent = title;
+                    nav.AppendChild(heading);
+                    SetOutputAttribute(nav, "aria-label", title, "TableOfContents:label");
+                }
+
+                var root = CreateOutputElement(htmlDoc, "ul");
+                nav.AppendChild(root);
+                var stack = new List<(int Level, IElement List, IElement? LastItem)> { (minLevel, root, null) };
+                int entries = 0;
+                foreach (WordParagraph headingParagraph in document.Paragraphs) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!headingParagraph.Style.HasValue) continue;
+                    int level = WordHeadingStyleMapper.GetLevelForHeadingStyle(headingParagraph.Style.Value);
+                    if (level < minLevel || level > maxLevel) continue;
+                    Paragraph headingElement = headingParagraph._paragraph;
+                    if (tableOfContentsLinks.Any(link => ReferenceEquals(link.Heading, headingElement))) continue;
+                    string text = string.Concat(headingElement.Descendants<Text>().Select(item => item.Text)).Trim();
+                    if (text.Length == 0) continue;
+
+                    while (stack.Count > 1 && stack[stack.Count - 1].Level > level) stack.RemoveAt(stack.Count - 1);
+                    while (stack[stack.Count - 1].Level < level && stack[stack.Count - 1].LastItem != null) {
+                        var nested = CreateOutputElement(htmlDoc, "ul");
+                        stack[stack.Count - 1].LastItem!.AppendChild(nested);
+                        stack.Add((stack[stack.Count - 1].Level + 1, nested, null));
+                    }
+
+                    var item = CreateOutputElement(htmlDoc, "li");
+                    var anchor = CreateOutputElement(htmlDoc, "a");
+                    anchor.TextContent = text;
+                    item.AppendChild(anchor);
+                    stack[stack.Count - 1].List.AppendChild(item);
+                    stack[stack.Count - 1] = (stack[stack.Count - 1].Level, stack[stack.Count - 1].List, item);
+                    tableOfContentsLinks.Add((anchor, headingElement));
+                    entries++;
+                }
+
+                if (entries == 0) {
+                    root.Remove();
+                }
+
+                parent.AppendChild(nav);
+                AddExportDiagnostic(options, "toc-regenerated-from-headings",
+                    "The table of contents field was rebuilt from the document headings because HTML cannot update Word fields; page numbers are not shown.",
+                    OfficeConversionLossKind.Approximation);
+            }
+
+            void ResolveTableOfContentsLinks() {
+                foreach (var (anchor, heading) in tableOfContentsLinks) {
+                    if (renderedHeadingIds.TryGetValue(heading, out var id)) {
+                        SetOutputAttribute(anchor, "href", "#" + id, "TableOfContents:href");
+                    }
+                }
+            }
+
+            bool IsCodeParagraph(WordParagraph para, bool inTableCell = false) {
                 // A text-only code block cannot carry rendered inline artifacts.
                 if (para.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage ||
                     run.IsStructuredDocumentTag || run.IsEquation ||
@@ -784,11 +877,37 @@ namespace OfficeIMO.Word.Html {
                     (options.ExportEndnotes && run.EndNote != null) ||
                     (options.ExportComments && run._run?.Elements<CommentReference>().Any() == true))) return false;
                 if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase)) {
+                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase) ||
+                    (para.StyleId?.StartsWith("CodeLang_", StringComparison.Ordinal) ?? false)) {
                     return true;
                 }
                 var runs = para.GetFormattedRuns().ToList();
-                return runs.Count > 0 && runs.All(r => r.Code);
+                if (runs.Count == 0) return false;
+                string? documentFont = para._document.Settings.FontFamily;
+                bool allMonospace = runs.All(r => r.Code) ||
+                    para.GetRuns().Where(run => !string.IsNullOrEmpty(run.Text)).All(run => IsInlineCodeRun(run, documentFont));
+                if (!allMonospace) return false;
+                inTableCell |= para._paragraph.Ancestors<TableCell>().Any();
+                // Inside a table cell a single monospace line is inline code (a setting name, a value), not a
+                // code block; only multi-line monospace content becomes <pre>.
+                return !inTableCell || (para.Text?.IndexOf('\n') ?? -1) >= 0;
+            }
+
+            bool IsCodeParagraphInCell(WordParagraph para) => IsCodeParagraph(para, inTableCell: true);
+
+            // The whole paragraph, not only its first run; line breaks inside the paragraph stay line breaks.
+            static string GetCodeParagraphText(WordParagraph para) {
+                var text = new StringBuilder();
+                foreach (Run run in para._paragraph.Descendants<Run>()) {
+                    if (run.Ancestors<DocumentFormat.OpenXml.Wordprocessing.DeletedRun>().Any()) continue;
+                    foreach (var child in run.ChildElements) {
+                        if (child is Text value) text.Append(value.Text);
+                        else if (child is TabChar) text.Append('\t');
+                        else if (child is Break lineBreak && (lineBreak.Type == null || lineBreak.Type.Value == BreakValues.TextWrapping)) text.Append('\n');
+                        else if (child is CarriageReturn) text.Append('\n');
+                    }
+                }
+                return text.ToString();
             }
 
             bool TryAppendPlainParagraph(IElement parent, WordParagraph para) {
@@ -872,7 +991,7 @@ namespace OfficeIMO.Word.Html {
                     var pre = CreateOutputElement(htmlDoc, "pre");
                     ApplyBookmarkId(pre, para);
                     var code = CreateOutputElement(htmlDoc, "code");
-                    code.TextContent = para.Text ?? string.Empty;
+                    code.TextContent = GetCodeParagraphText(para);
                     pre.AppendChild(code);
                     parent.AppendChild(pre);
                     return;
@@ -886,6 +1005,9 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(element, "cite", blockquoteCite, "Paragraph:cite");
                 }
                 ApplyBookmarkId(element, para);
+                if (level > 0 && !isBlockQuote && documentHasTableOfContents) {
+                    RecordHeadingId(element, para._paragraph);
+                }
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     SetOutputAttribute(element, "class", GetSafeStyleClassName(para.StyleId), "Paragraph:class");
                     paragraphStyles.Add(para.StyleId!);
@@ -1033,6 +1155,7 @@ namespace OfficeIMO.Word.Html {
                 IElement? thead = null;
                 IElement? tbody = null;
                 IElement? tfoot = null;
+                bool[] numericColumns = options.UseSharedDocumentShell ? Array.Empty<bool>() : ResolveNumericColumns(table, headerRowCount);
 
                 for (int r = 0; r < table.Rows.Count; r++) {
                     var row = table.Rows[r];
@@ -1078,6 +1201,10 @@ namespace OfficeIMO.Word.Html {
                         }
                         var cellAlignment = GetCellAlignment(cell);
                         var align = GetTextAlignCss(cellAlignment);
+                        if (string.IsNullOrEmpty(align) && c < numericColumns.Length && numericColumns[c] && colSpan == 1) {
+                            // Columns of numbers read right-aligned; only cells without an authored alignment change.
+                            align = "right";
+                        }
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
@@ -1160,15 +1287,20 @@ namespace OfficeIMO.Word.Html {
                             if (cellListInfo != null) {
                                 cellDefinitionList = null;
                                 AppendListParagraph(cellElement, p, cellListInfo.Value, cellListStack, cellItemStack, cellListNumberStack);
-                            } else if (IsCodeParagraph(p)) {
+                            } else if (IsCodeParagraphInCell(p)) {
                                 ClearListStacks(cellListStack, cellItemStack, cellListNumberStack);
                                 cellDefinitionList = null;
                                 List<string> lines = new();
-                                lines.Add(p.Text);
+                                lines.Add(GetCodeParagraphText(p));
+                                WordParagraph lastCodeParagraph = p;
                                 while (elementIndex + 1 < cellElements.Count &&
                                        cellElements[elementIndex + 1] is WordParagraph nextCodeParagraph &&
-                                       IsCodeParagraph(nextCodeParagraph)) {
-                                    lines.Add(nextCodeParagraph.Text);
+                                       IsCodeParagraphInCell(nextCodeParagraph)) {
+                                    // Several run wrappers share one Word paragraph; its text is already in the block.
+                                    if (!SameParagraphElement(nextCodeParagraph, lastCodeParagraph)) {
+                                        lines.Add(GetCodeParagraphText(nextCodeParagraph));
+                                        lastCodeParagraph = nextCodeParagraph;
+                                    }
                                     elementIndex++;
                                 }
                                 var pre = CreateOutputElement(htmlDoc, "pre");
@@ -1512,9 +1644,15 @@ namespace OfficeIMO.Word.Html {
                             } else if (IsCodeParagraph(paragraph)) {
                                 activeDefinitionList = null;
                                 List<string> lines = new();
-                                lines.Add(paragraph.Text);
+                                lines.Add(GetCodeParagraphText(paragraph));
+                                WordParagraph lastCodeParagraph = paragraph;
                                 while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && GetCachedListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
-                                    lines.Add(nextPara.Text);
+                                    // Several run wrappers share one Word paragraph; its text is already in the block.
+                                    if (!SameParagraphElement(nextPara, lastCodeParagraph)) {
+                                        lines.Add(GetCodeParagraphText(nextPara));
+                                        lastCodeParagraph = nextPara;
+                                    }
+                                    processedParagraphs.Add(nextPara);
                                     idx++;
                                 }
                                 var pre = CreateOutputElement(htmlDoc, "pre");
@@ -1528,6 +1666,10 @@ namespace OfficeIMO.Word.Html {
                                 AppendParagraph(sectionParent, paragraph);
                             }
                         }
+                    } else if (element is WordTableOfContent tableOfContent) {
+                        CloseLists();
+                        activeDefinitionList = null;
+                        AppendTableOfContents(sectionParent, tableOfContent);
                     } else if (element is WordTable table) {
                         CloseLists();
                         activeDefinitionList = null;
@@ -1565,6 +1707,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             CloseLists();
+            ResolveTableOfContentsLinks();
 
             DiscoverTransitiveNotes(footnotes, footnoteMap, endnotes, endnoteMap, options, cancellationToken);
             AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);

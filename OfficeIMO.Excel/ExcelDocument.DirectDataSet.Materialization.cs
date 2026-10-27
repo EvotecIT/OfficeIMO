@@ -187,6 +187,10 @@ namespace OfficeIMO.Excel {
 
         internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheet != null;
 
+        /// <summary>The workbook will be written by a direct package writer that bypasses the cell model.</summary>
+        internal bool UsesDirectPackageWriter => _directDataSetSaveCandidate?.IsValid == true
+            || HasDeferredDirectDataSetImport || HasUnmaterializedDirectDataSetRows;
+
         internal ExcelSheet? PendingDirectCellValueSheet => _pendingDirectCellValueSheet;
 
         internal void RefreshDeferredDirectDataSetDateSystem(ExcelDateSystem dateSystem) {

@@ -121,10 +121,11 @@ public class HtmlTextFormattingConversionTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
             new HtmlRenderOptions());
-        HtmlRenderText text = Assert.Single(Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>(),
-            item => item.Text == "LONGHAND");
+        HtmlRenderText[] text = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
+            .Where(item => item.Text.Length > 0).ToArray();
 
-        Assert.Equal("LONGHAND", text.Text);
+        Assert.Equal("LONGHAND", string.Concat(text.Select(item => item.Text)));
+        Assert.True(Assert.Single(text, item => item.Text == "ONGHAND").Font.Size < Assert.Single(text, item => item.Text == "L").Font.Size);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
             && diagnostic.Detail.Contains("font-variant-caps=small-caps", StringComparison.Ordinal));
@@ -161,7 +162,8 @@ public class HtmlTextFormattingConversionTests {
         HtmlRenderText styled = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Styled");
         HtmlRenderText superscript = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Super");
         HtmlRenderText subscript = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Sub");
-        HtmlRenderText smallCaps = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "SMALLCAPS");
+        // Synthetic small caps: capitals keep their size, lowercase letters become smaller capitals.
+        HtmlRenderText[] visibleTexts = page.Visuals.OfType<HtmlRenderText>().Where(item => item.Text.Trim().Length > 0).ToArray();
 
         Assert.Equal(OfficeTextDecorationStyle.Wavy, styled.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Wavy, styled.StrikethroughStyle);
@@ -169,7 +171,9 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, superscript.UnderlineStyle);
         Assert.Equal(OfficeTextBaseline.Subscript, subscript.Baseline);
         Assert.Equal(OfficeTextDecorationStyle.Dotted, subscript.StrikethroughStyle);
-        Assert.Equal("SMALLCAPS", smallCaps.Text);
+        Assert.Contains("SMALLCAPS", string.Concat(visibleTexts.Select(item => item.Text.Trim())));
+        Assert.True(Assert.Single(visibleTexts, item => item.Text.Trim() == "MALL").Font.Size
+            < Assert.Single(visibleTexts, item => item.Text.Trim() == "S").Font.Size);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -871,7 +875,7 @@ public class HtmlTextFormattingConversionTests {
         OneNoteSection imported = HtmlConversionDocument.Parse(exported.Value).ToOneNoteSectionResult().RequireValue();
         OneNoteTextRun actual = Assert.Single(imported.Pages.SelectMany(importedPage => importedPage.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteParagraph>()
-            .SelectMany(item => item.Runs), item => item.Text == "Styled" && item.Style.FontFamily == "Aptos");
+            .SelectMany(item => item.Runs), item => item.Text == "Styled" && item.Style.ColorArgb == 0xFF336699U);
         Assert.Equal("Aptos", actual.Style.FontFamily);
         Assert.Equal(14D, actual.Style.FontSize);
         Assert.Equal(0xFF336699U, actual.Style.ColorArgb);

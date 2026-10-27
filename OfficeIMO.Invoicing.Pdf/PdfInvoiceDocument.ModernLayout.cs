@@ -22,7 +22,7 @@ public sealed partial class PdfInvoiceDocument {
                             linkContents: null,
                             alternativeText: _layout.LogoAlternativeText);
                     } else {
-                        column.H2(_invoice.Seller.Name, PdfAlign.Left, theme.Text);
+                        column.H2(_invoice.Seller.Name, PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
                     }
                 })
                 .PercentColumn(56D, column => {
@@ -158,6 +158,7 @@ public sealed partial class PdfInvoiceDocument {
                     CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                         [(summary.Count - 1, 1)] = PdfColumnAlign.Right
                     },
+                    AutoFitColumns = true,
                     Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
                 });
             }));
@@ -171,11 +172,12 @@ public sealed partial class PdfInvoiceDocument {
             var adjustments = _invoice.AllowancesAndCharges.Select(item => new[] {
                 Label(item.IsCharge ? InvoicePdfText.Charge : InvoicePdfText.Allowance),
                 AdjustmentDetails(item),
-                item.Tax!.Code + (item.Tax.Rate.HasValue ? " " + NumberText(item.Tax.Rate.Value) + "%" : string.Empty),
+                VatCategory(item.Tax!.Code, item.Tax.Rate),
                 Money(item.Amount)
             });
-            content.H2(Label(InvoicePdfText.DocumentAdjustments), PdfAlign.Left, theme.Text);
-            content.Table(adjustments, style: ModernFinancialTableStyle(theme, false));
+            content.H2(Label(InvoicePdfText.DocumentAdjustments), PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
+            content.Table(adjustments, style: ModernFinancialTableStyle(theme, false,
+                PdfColumnAlign.Left, PdfColumnAlign.Left, PdfColumnAlign.Left, PdfColumnAlign.Right));
         }
 
         if (_amounts.Taxes.Count != 0) {
@@ -183,21 +185,22 @@ public sealed partial class PdfInvoiceDocument {
                 new[] { Label(InvoicePdfText.VatCategory), Label(InvoicePdfText.TaxableAmount), Label(InvoicePdfText.VatAmount), Label(InvoicePdfText.Exemption) }
             };
             taxes.AddRange(_amounts.Taxes.Select(tax => new[] {
-                tax.CategoryCode + (tax.Rate.HasValue ? " " + NumberText(tax.Rate.Value) + "%" : string.Empty),
+                VatCategory(tax.CategoryCode, tax.Rate),
                 Money(tax.TaxableAmount),
                 Money(tax.TaxAmount),
                 Join(tax.ExemptionReasonCode, tax.ExemptionReason)
             }));
-            content.Table(taxes, style: ModernFinancialTableStyle(theme, true));
+            content.Table(taxes, style: ModernFinancialTableStyle(theme, true,
+                PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left));
         }
     }
 
-    private static PdfTableStyle ModernFinancialTableStyle(InvoicePdfTheme theme, bool hasHeader) => new PdfTableStyle {
+    private static PdfTableStyle ModernFinancialTableStyle(InvoicePdfTheme theme, bool hasHeader, params PdfColumnAlign[] alignments) => new PdfTableStyle {
         HeaderRowCount = hasHeader ? 1 : 0,
         HeaderFill = theme.Text,
         HeaderTextColor = PdfColor.White,
-        HeaderFontSize = 8.5D,
-        FontSize = 8.5D,
+        HeaderFontSize = 9D,
+        FontSize = 9D,
         BorderColor = theme.Border,
         BorderWidth = 0.5D,
         CornerRadius = theme.CornerRadius,
@@ -205,18 +208,14 @@ public sealed partial class PdfInvoiceDocument {
         CellPaddingX = 7D,
         CellPaddingY = 6D,
         SpacingAfter = 12D,
-        ColumnWidthWeights = new List<double> { 1.2D, 2.8D, 1.2D, 1.5D },
-        Alignments = new List<PdfColumnAlign> {
-            PdfColumnAlign.Left,
-            PdfColumnAlign.Left,
-            PdfColumnAlign.Right,
-            PdfColumnAlign.Right
-        }
+        ColumnWidthWeights = new List<double> { 1.6D, 1.4D, 1.4D, 1.6D },
+        AutoFitColumns = true,
+        Alignments = new List<PdfColumnAlign>(alignments)
     };
 
     private void ComposeApprovals(PdfContentBuilder content, InvoicePdfTheme theme) {
         if (_layout.Approvals.Count == 0) return;
-        content.H2(Label(InvoicePdfText.Approvals), PdfAlign.Left, theme.Text);
+        content.H2(Label(InvoicePdfText.Approvals), PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
         content.Row(row => {
             row.Style(new PdfRowStyle { Gap = 12D });
             foreach (InvoicePdfApproval approval in _layout.Approvals) {

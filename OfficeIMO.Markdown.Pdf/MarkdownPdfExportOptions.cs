@@ -28,10 +28,18 @@ public sealed class MarkdownPdfExportOptions {
     /// </summary>
     public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
 
-    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    internal bool ResourcePolicyAssigned { get; private set; }
+
+    /// <summary>
+    /// Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed and remote reads are denied.
+    /// Local images are read only for a document loaded from a file, from that file's folder, unless a policy is assigned.
+    /// </summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {
         get => _resourcePolicy;
-        set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+        set {
+            _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+            ResourcePolicyAssigned = true;
+        }
     }
 
     /// <summary>When true, supported image references are rendered. Resource access is still governed by <see cref="ResourcePolicy"/>.</summary>
@@ -202,6 +210,7 @@ public sealed class MarkdownPdfExportOptions {
         clone._theme = _theme?.Clone();
         clone._style = _style?.Clone();
         clone.ResourcePolicy = ResourcePolicy.Clone();
+        clone.ResourcePolicyAssigned = ResourcePolicyAssigned;
         clone.Warnings = new List<MarkdownPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;

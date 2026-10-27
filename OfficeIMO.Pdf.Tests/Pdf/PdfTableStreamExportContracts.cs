@@ -343,7 +343,7 @@ public class PdfTableStreamExportContracts {
                 new[] { "$8,901.00+", "8,901.500 KWD+" },
                 new[] { "-$0.00", "(0.000 KWD)" },
                 new[] { "$0.00-", "0.000 KWD-" }
-            })
+            }, style: PdfTableStyles.Light())
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -465,7 +465,7 @@ public class PdfTableStreamExportContracts {
                 new[] { "Rate", "Description" },
                 new[] { "$5%", "First" },
                 new[] { "€10%", "Second" }
-            })
+            }, style: PdfTableStyles.Light())
             .ToBytes(new PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 

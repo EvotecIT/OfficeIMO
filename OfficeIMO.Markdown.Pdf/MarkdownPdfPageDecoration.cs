@@ -149,23 +149,8 @@ public sealed class MarkdownPdfPageDecoration {
             strokeOpacity: 0.45,
             fillGradient: HorizontalGradient(PdfCore.PdfColor.FromRgb(239, 246, 255), PdfCore.PdfColor.White));
 
-        yield return PdfCore.PdfPageBackgroundShape.RightBand(
-            options.PageWidth,
-            options.PageHeight,
-            54,
-            fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
-            insetY: 58,
-            offsetX: 34,
-            cornerRadius: 20,
-            fillOpacity: 0.24);
-
-        yield return PdfCore.PdfPageBackgroundShape.Ellipse(
-            Math.Max(0, options.PageWidth - 160),
-            Math.Max(0, options.PageHeight - 152),
-            112,
-            112,
-            fill: PdfCore.PdfColor.FromRgb(191, 219, 254),
-            fillOpacity: 0.22);
+        // Only the header band remains: side bands and ornaments sat behind body text and code,
+        // and filled blocks such as quotes cut visible holes into them.
     }
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {

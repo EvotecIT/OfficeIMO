@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
-            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot ?? PdfTableStyles.Light();
             if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
                 throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true, PdfTableStyle? preparedPairedStyle = null, StringBuilder? deferredPairedBorders = null) {
-            PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            PdfTableStyle style = AlignNumericColumnHeaders(tb, tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light());
             if (HasContainedCellBlocks(tb)) {
                 if (skipInitialHeaderRows || bodyRowOffset != 0 || !logicalTopBoundary || !logicalBottomBoundary || !restoreVerticalFlow)
                     throw new NotSupportedException("Ordered cell content requires an eager inline table.");
@@ -231,6 +231,7 @@ internal static partial class PdfWriter {
                 initialAtomicFootnoteAfter = style.SpacingAfter;
             }
 
+            double keepFinalRowsWithNextHeight = 0D;
             if (style.KeepWithNext && nextBlock != null && style.Position == null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
                 bool restoresFlow = RestoresMeasuredTableFlow(style, tableHeight, y - TableBottom());
@@ -238,7 +239,21 @@ internal static partial class PdfWriter {
                     currentOpts.DefaultFontSize, restoresFlow ? 0D : tableHeight);
                 double keepHeight = restoresFlow ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
                 double groupTop = y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
-                if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 &&
+                // A table that can split keeps only its final rows with the following block, as Word does,
+                // instead of leaving the current page empty by moving the whole table.
+                int bodyRowCount = Math.Max(0, footerStartRowIndex - headerRowCount);
+                // A following block that keeps together moves as a whole, so the final rows must travel with all of it.
+                double wholeNextHeight = nextHeight;
+                if (!restoresFlow && KeepsTogetherAsWhole(nextBlock) &&
+                    MeasureWholeBlockHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) is double measuredNext)
+                    wholeNextHeight = Math.Max(nextHeight, measuredNext);
+                bool splitKeepsFinalRows = !style.KeepTogether && !restoresFlow && nextHeight > 0.001 &&
+                    style.MinimumBodyRowsOnLastPage > 0 &&
+                    bodyRowCount >= style.MinimumBodyRowsOnFirstPage + style.MinimumBodyRowsOnLastPage &&
+                    tableHeight <= y - TableBottom() + 0.001 && y - (tableHeight + wholeNextHeight) < TableBottom() &&
+                    !tableHasFootnotes && !HasPageFootnotes;
+                if (splitKeepsFinalRows) keepFinalRowsWithNextHeight = style.SpacingAfter + wholeNextHeight;
+                if (!splitKeepsFinalRows && nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 &&
                     (y < GetCurrentFramePageStartY() - 0.001 || HasPageFootnotes) &&
                     (y - keepHeight < TableBottom() || !TryReserveTableGroup(0, tb.Rows.Count, groupTop, y - keepHeight, commit: false))) {
                     NewInitialTablePage();
@@ -549,7 +564,7 @@ internal static partial class PdfWriter {
                 }
 
                 double currentRowHeight = rowHeights[rowIndex] + GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
-                double finalGroupHeight = remainingRowHeights[rowIndex];
+                double finalGroupHeight = remainingRowHeights[rowIndex] + keepFinalRowsWithNextHeight;
                 return ShouldBreakBeforeFinalTableBodyRows(
                     rowIndex,
                     headerRowCount,

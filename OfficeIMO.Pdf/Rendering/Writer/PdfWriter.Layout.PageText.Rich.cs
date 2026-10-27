@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double) {
             extra += Math.Max(width * 1.8D, 0.8D) / 2D;
         } else if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
-            extra += Math.Max(width * 1.5D, 0.75D);
+            extra += WavyDecorationAmplitude(width);
         }
 
         bottom = Math.Min(bottom, y - extra);
@@ -190,6 +190,10 @@ internal static partial class PdfWriter {
         }
     }
 
+    // A wave reads as a wave at text size only when it is clearly taller than the stroke.
+    internal static double WavyDecorationAmplitude(double width) => Math.Max(width * 2.5D, 1.2D);
+    internal static double WavyDecorationStep(double width) => Math.Max(width * 6D, 2.8D);
+
     private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, PdfColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.None || x2 <= x1) {
             return;
@@ -216,8 +220,8 @@ internal static partial class PdfWriter {
             // Round joins keep every zigzag tip inside the amplitude plus half
             // stroke width used by page and drawing paint-bound measurements.
             content.LineJoin(1);
-            double step = Math.Max(width * 5D, 2D);
-            double amplitude = Math.Max(width * 1.5D, 0.75D);
+            double step = WavyDecorationStep(width);
+            double amplitude = WavyDecorationAmplitude(width);
             content.MoveTo(x1, y);
             double cursor = x1;
             bool raised = true;

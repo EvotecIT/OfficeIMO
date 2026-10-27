@@ -190,6 +190,8 @@ public partial class PdfDocumentReadResultTests {
                 .Spacer(18)
                 .Bookmark("Details")
                 .H2("Details")), new PdfCreateOptions {
+                // Built-in heading metrics keep this reading fixture independent of the document theme.
+                DefaultHeadingStyles = new PdfHeadingStyles(),
                 PageWidth = 360,
                 PageHeight = 240,
                 MarginLeft = 36,

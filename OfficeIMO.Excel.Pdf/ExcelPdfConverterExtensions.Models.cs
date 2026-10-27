@@ -35,6 +35,8 @@ namespace OfficeIMO.Excel.Pdf {
             public string BookmarkName { get; }
             public WorksheetGeometryData Geometry { get; }
             public bool ClipToExportRange { get; }
+            public WorksheetTextMeasurer? TextMeasurer { get; set; }
+            public Dictionary<WorksheetChartExportData, OfficeChartRenderingResult> ChartRenderings { get; } = new();
         }
 
         private sealed class SheetExportData {
@@ -171,6 +173,8 @@ namespace OfficeIMO.Excel.Pdf {
             public bool HasExplicitDefaultColumnWidth { get; }
             public double BaseColumnWidth { get; }
             public double? MaximumDigitWidthPoints { get; set; }
+            /// <summary>Excel's automatic heights for rows without a stored height, keyed by source row.</summary>
+            public Dictionary<int, double>? AutoRowHeights { get; set; }
             public double DefaultRowHeight { get; }
             public IReadOnlyList<ExcelColumnInfo> Columns { get; }
             public IReadOnlyList<ExcelRowInfo> Rows { get; }

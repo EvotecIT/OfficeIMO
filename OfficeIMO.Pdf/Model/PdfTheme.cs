@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Reusable bundle of default PDF styles for document or page composition.
 /// </summary>
-public sealed class PdfTheme {
+public sealed partial class PdfTheme {
     private PdfTextStyle? _textStyle;
     private PdfParagraphStyle? _paragraphStyle;
     private PdfTableStyle? _tableStyle;
@@ -316,6 +316,12 @@ public sealed class PdfTheme {
             RowStyle = _rowStyle?.Clone()
         };
     }
+
+    internal PdfTableStyle? TableStyleSnapshot => _tableStyle;
+    internal PdfHeadingStyles? HeadingStylesSnapshot => _headingStyles;
+    internal PdfListStyle? ListStyleSnapshot => _listStyle;
+    internal PdfPanelStyle? PanelStyleSnapshot => _panelStyle;
+    internal PdfHorizontalRuleStyle? HorizontalRuleStyleSnapshot => _horizontalRuleStyle;
 
     internal void ApplyTo(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));

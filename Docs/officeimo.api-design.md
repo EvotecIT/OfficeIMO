@@ -20,7 +20,7 @@ The goal is an API we can show on the first screen of the README and be proud of
 ## Principles
 
 1. **One vocabulary, two languages.** A concept has one name in C# and PowerShell: `Heading`, `Paragraph`, `Text`, `List`, `Table`, `Chart`, `Image`, `Theme`, `Sheet`, `Slide`, `Page`. A C# developer reading a PowerShell script, or the reverse, recognizes every word.
-2. **Designed by default.** Every new document starts from a theme. A plain `Export-OfficeExcel`, `WordTable` or `PptSlide -Title` result is presentable without extra parameters. Styling is for brand and intent, not for repairing defaults.
+2. **Designed by default.** Every new document starts from a theme. A plain `Export-OfficeExcel`, `WordTable` or `PowerPointSlide -Title` result is presentable without extra parameters. Styling is for brand and intent, not for repairing defaults.
 3. **One way to do each thing.** Duplicate entry points, twin aliases and parallel builder APIs are removed rather than kept for compatibility.
 4. **Small and large jobs share one API.** The one-liner and the 100,000-file batch use the same commands. Scale comes from streaming, parallelism and resumable batches, not from a separate expert API.
 5. **No silent surprises.** Failures throw or write errors. Conversions report what they could not carry. File-changing commands support `-WhatIf`. Nothing silently becomes a folder or overwrites a file the user did not ask to replace.
@@ -119,6 +119,7 @@ doc.Save("Copy.docx");
 await doc.SaveAsync(stream);
 ```
 
+- The document type is `{Format}Document` in every format: `WordDocument`, `ExcelDocument`, `PowerPointDocument`, `PdfDocument`, `MarkdownDocument`, `VisioDocument`, `ProjectDocument`, `RtfDocument`, `EpubDocument`. `PowerPointPresentation` is renamed to `PowerPointDocument` with no alias for the old name.
 - Options are `{Format}CreateOptions`, `{Format}LoadOptions` and `{Format}SaveOptions`. Each load options type has `UntrustedDefaults` for files from outside.
 - `PdfDocument` joins this shape: `Create`, `Load`, `Save`, `IDisposable`, `PdfCreateOptions` and `PdfLoadOptions.UntrustedDefaults`. Its immutable internal pipeline stays an implementation detail.
 - Static inspection helpers (`PdfInspector.Inspect` and similar) move onto the document as `Inspect()`, plus `OfficeDocument.Inspect(path)` for any format.
@@ -277,6 +278,9 @@ One name, one meaning, everywhere. The set below is fixed; a new command does no
 | `-NoClobber` | Make `Export-` and `Convert-` refuse to replace an existing output. By default they replace it, like `Export-Csv` |
 | `-Show` | Open the result in its default application |
 | `-Category` / `-Value` | The properties a chart reads from `-InputObject`. Replaces `-CategoryProperty` / `-SeriesProperty` |
+| `-Name` / `-Table` / `-TableName` | `-Name` names the object the command creates or gets (`ExcelTable -Name`, `Get-OfficeExcelTable -Name`). `-Table` refers to an existing table. `-TableName` names a table that a command creates on the way (`Export-OfficeExcel -TableName`) |
+| `-Property` | The columns a table or export takes from `-InputObject`, in this order. Without it, objects with a default display property set (`Get-Process`, `Get-Service`) use that set, other objects use all their properties |
+| `-SkipUpToDate` | Make `Convert-` skip an input whose output exists and is newer. Skipped items are reported with their reason, as `-NoClobber` skips are |
 
 Other rules:
 
@@ -293,20 +297,20 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 
 | Concept | Word | PowerPoint (inside a slide) | PDF | Markdown | Excel |
 | --- | --- | --- | --- | --- | --- |
-| Heading | `WordHeading` | `PptSlide -Title` | `PdfHeading` | `MarkdownHeading` | — |
-| Paragraph | `WordParagraph` | `PptParagraph` | `PdfParagraph` | `MarkdownParagraph` | — |
-| Styled text | `WordText` | `PptText` | `PdfText` | `MarkdownText` | `ExcelText` (rich text inside a cell) |
-| List | `WordList` / `WordListItem` | `PptList` / `PptListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `ListItem` | — |
-| Table | `WordTable` | `PptTable` | `PdfTable` | `MarkdownTable` | `ExcelTable` |
-| Chart | `WordChart` | `PptChart` | `PdfChart` | — | `ExcelChart` |
-| Image | `WordImage` | `PptImage` | `PdfImage` | `MarkdownImage` | `ExcelImage` |
-| Header and footer | `WordHeader` / `WordFooter` | `PptFooter` | `PdfHeader` / `PdfFooter` | — | `ExcelHeader` / `ExcelFooter` |
-| Page number | `WordPageNumber` | `PptSlideNumber` | `PdfPageNumber` | — | — |
-| Speaker notes | — | `PptNotes` | — | — | — |
+| Heading | `WordHeading` | `PowerPointSlide -Title` | `PdfHeading` | `MarkdownHeading` | — |
+| Paragraph | `WordParagraph` | `PowerPointParagraph` | `PdfParagraph` | `MarkdownParagraph` | — |
+| Styled text | `WordText` | `PowerPointText` | `PdfText` | `MarkdownText` | `ExcelText` (rich text inside a cell) |
+| List | `WordList` / `WordListItem` | `PowerPointList` / `PowerPointListItem` | `PdfList` / `PdfListItem` | `MarkdownList` / `ListItem` | — |
+| Table | `WordTable` | `PowerPointTable` | `PdfTable` | `MarkdownTable` | `ExcelTable` |
+| Chart | `WordChart` | `PowerPointChart` | `PdfChart` | — | `ExcelChart` |
+| Image | `WordImage` | `PowerPointImage` | `PdfImage` | `MarkdownImage` | `ExcelImage` |
+| Header and footer | `WordHeader` / `WordFooter` | `PowerPointFooter` | `PdfHeader` / `PdfFooter` | — | `ExcelHeader` / `ExcelFooter` |
+| Page number | `WordPageNumber` | `PowerPointSlideNumber` | `PdfPageNumber` | — | — |
+| Speaker notes | — | `PowerPointNotes` | — | — | — |
 
-- The same concept takes the same parameters in every format. `WordText`, `PptText`, `PdfText` and `MarkdownText` share `-Text`, `-Bold`, `-Italic`, `-Strikethrough`, `-Color`, `-Font`, `-Size` and `-Link`; `-Underline` takes the shared underline style where the format supports it. A list item takes `-Text` or a content block.
+- The same concept takes the same parameters in every format. `WordText`, `PowerPointText`, `PdfText` and `MarkdownText` share `-Text`, `-Bold`, `-Italic`, `-Strikethrough`, `-Color`, `-Font`, `-Size` and `-Link`; `-Underline` takes the shared underline style where the format supports it. A list item takes `-Text` or a content block.
 - Styled runs are written as child commands. The `-Run @{ Text = …; Bold = $true, $true, $false }` hashtables of parallel arrays are removed.
-- Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PptNotes`). `Ppt` is the only PowerPoint prefix.
+- Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PowerPointNotes`). Every alias spells out the format name, PowerPoint included (`PowerPointSlide`, `PowerPointKpi`); no format is abbreviated.
 - Aliases exist only for commands that add content inside a content block. Commands that change the current element (`Set-OfficeWordParagraph`) and deck- or document-level settings are called by their full name inside a block; their natural alias would collide with the command that creates the element. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
 - A test rejects aliases that break these rules or collide with commands in PowerShell itself.
 
@@ -388,7 +392,7 @@ Slides are built from theme layouts with designed placeholders:
 | `Logos` | A wall of four to twelve logos or product images |
 | `Coverage` | A map or diagram with pinned locations |
 
-- `-Layout` is optional. By default the layout is chosen from the content: a title only gives a section slide; one list, table, chart or image gives `TitleAndContent`; two blocks give `TwoContent`; `PptKpi` items give `Kpi`. The first slide of a deck uses `Title`.
+- `-Layout` is optional. By default the layout is chosen from the content: a title only gives a section slide; one list, table, chart or image gives `TitleAndContent`; two blocks give `TwoContent`; `PowerPointKpi` items give `Kpi`. The first slide of a deck uses `Title`.
 - Content that is too long for a slide is handled rather than overflowing: lists shrink to the theme's minimum size, then continue on a new slide; tables split across slides with the header repeated.
 - `-X`, `-Y`, `-Width` and `-Height` remain for deliberate placement. They take lengths and can snap to the theme grid (`-Column 1 -Span 6`).
 - The designer-deck engine becomes the implementation behind these layouts, so every slide in a deck shares one design. Corporate `.potx` templates supply their own layouts through `-Theme`.
@@ -437,13 +441,13 @@ New-OfficeWord -Path .\Status.docx -Theme Modern {
 
 # A deck without coordinates or layout names
 New-OfficePowerPoint -Path .\Review.pptx -Theme Boardroom {
-    PptSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
-    PptSlide -Title 'Performance trend' {
-        PptChart -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD m)'
-        PptChart -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Margin (%)'
-        PptNotes 'Explain the margin before revenue.'
+    PowerPointSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
+    PowerPointSlide -Title 'Performance trend' {
+        PowerPointChart -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD m)'
+        PowerPointChart -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Margin (%)'
+        PowerPointNotes 'Explain the margin before revenue.'
     }
-    PptSlide -Title 'Next-quarter priorities' { PptTable -InputObject $priorities }
+    PowerPointSlide -Title 'Next-quarter priorities' { PowerPointTable -InputObject $priorities }
 }
 ```
 

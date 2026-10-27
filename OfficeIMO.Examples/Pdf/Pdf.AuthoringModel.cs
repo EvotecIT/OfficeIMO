@@ -11,14 +11,15 @@ namespace OfficeIMO.Examples.Pdf {
                 .Settings(options => {
                     options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                     options.PageSize = PdfPageSizes.A4;
-                    options.Margins = PdfPageMargins.Uniform(42);
+                    options.Margins = PdfPageMargins.Uniform(64);
+                    options.Language = "en-GB";
                 })
                 .Content(content => content
                     .Element(element => element
                         .Semantic(PdfSemanticRole.Article)
                         .Background(PdfColor.FromRgb(248, 250, 252))
                         .Border(PdfColor.FromRgb(148, 163, 184))
-                        .Padding(vertical: 12, horizontal: 14)
+                        .Padding(vertical: 16, horizontal: 18)
                         .KeepTogether()
                         .Content(article => article
                             .H1("Operational summary")

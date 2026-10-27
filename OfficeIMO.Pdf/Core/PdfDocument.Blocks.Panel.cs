@@ -10,7 +10,19 @@ public sealed partial class PdfDocument {
     /// <summary>Adds a block-preserving decorated flow element.</summary>
     internal PdfDocument Panel(System.Action<PdfContentBuilder> compose, PdfPanelStyle? style = null) {
         Guard.NotNull(compose, nameof(compose));
-        AddBlock(new ContainerBlock(BuildFlowBlocks(compose), style, useDefaultPanelStyle: true));
+        AddBlock(new ContainerBlock(CollapseTrailingPanelSpacing(BuildFlowBlocks(compose)), style, useDefaultPanelStyle: true));
         return this;
+    }
+
+    // The panel padding is the space under its last paragraph; adding that paragraph's own
+    // spacing after makes the bottom inset visibly larger than the top one.
+    private System.Collections.Generic.List<IPdfBlock> CollapseTrailingPanelSpacing(System.Collections.Generic.IEnumerable<IPdfBlock> blocks) {
+        var list = new System.Collections.Generic.List<IPdfBlock>(blocks);
+        if (list.Count > 0 && list[list.Count - 1] is RichParagraphBlock last && last.Style?.SpacingAfter == null) {
+            PdfParagraphStyle collapsed = last.Style?.Clone() ?? _options.DefaultParagraphStyle ?? new PdfParagraphStyle();
+            collapsed.SpacingAfter = 0D;
+            list[list.Count - 1] = new RichParagraphBlock(last.Runs, last.Align, last.DefaultColor, collapsed);
+        }
+        return list;
     }
 }

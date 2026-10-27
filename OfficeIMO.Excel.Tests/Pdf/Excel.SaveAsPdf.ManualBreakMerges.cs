@@ -31,7 +31,7 @@ public partial class Excel {
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Contains("50", pdf.GetPage(4).Text);
         string content = PdfOperatorSearchText.From(bytes);
-        string color = bar ? "0.357 0.608 0.835 rg" : "0.502 0.502 0 rg";
+        string color = bar ? "0.678 0.804 0.918 rg" : "0.502 0.502 0 rg";
         Assert.Equal(bar ? 3 : 4, content.Split(new[] { color }, StringSplitOptions.None).Length - 1);
     }
 

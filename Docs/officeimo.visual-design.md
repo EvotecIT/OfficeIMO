@@ -167,7 +167,7 @@ Every content layout shares one header:
 - The subtitle follows the title's last line by 10 pt.
 - Content starts on the first row at least 36 pt below the last header line. Every slide keeps the same gap under its header, and content always starts on a row line.
 
-The footer shows the deck title (or `PptFooter`) on the left and the slide number on the right, in the footer style. Title, Section and Closing slides have no footer; Quote shows only the number; ImageFull draws both in white over the scrim. Footer text never wraps, and it is written to the native footer and slide-number placeholders. `PptSlideNumber -IncludeTotal` prints `9 / 24`; `-NoFooter` and `-NoSlideNumber` on `New-OfficePowerPoint` or `PptSlide` turn them off for the deck or one slide.
+The footer shows the deck title (or `PowerPointFooter`) on the left and the slide number on the right, in the footer style. Title, Section and Closing slides have no footer; Quote shows only the number; ImageFull draws both in white over the scrim. Footer text never wraps, and it is written to the native footer and slide-number placeholders. `PowerPointSlideNumber -IncludeTotal` prints `9 / 24`; `-NoFooter` and `-NoSlideNumber` on `New-OfficePowerPoint` or `PowerPointSlide` turn them off for the deck or one slide.
 
 ### Layouts
 
@@ -177,36 +177,36 @@ The footer shows the deck title (or `PptFooter`) on the left and the slide numbe
 | `Section` | title, subtitle | `ink` background. Title stack in cols 1–8; a 9 % two-digit section numeral fills cols 8–12 and bleeds off the bottom. |
 | `TitleAndContent` | one list, text, table, chart or image | Lists and text keep a 60–70 character measure (cols 1–8); tables, charts and images use all 12 columns. A paragraph before the block becomes its lede. |
 | `TwoContent` | two blocks | 6 + 6 columns; a text block beside a visual gets 4 columns and the visual 7, with one empty column between. |
-| `Comparison` | two `PptColumn` with titles | Column headings with a 3 pt rule in `accent1` and `accent2`, content below. |
-| `Kpi` | 1–6 `PptKpi`, optional takeaway paragraph | Equal tiles on one row (5 tiles divide the width in fifths; 6 make two rows of 3). Each tile has a top rule, the value, label and a coloured change indicator; the takeaway sits under a full-width hairline. |
-| `Cards` | 2–6 `PptCard` | Surface panels with a top accent rule and index number. Title and body sit on a shared line across the row, so tall cards read as deliberate rather than half-empty. |
-| `Process` | 2–8 `PptStep`, optional takeaway | Numbered circles joined by a hairline connector; the first step is filled. Five steps fit one row; six to eight make two rows. |
-| `Quote` | one `PptQuote` with `-Attribution` | `surface` background, a large accent quote mark, the quote in cols 2–10 and a short rule above the attribution. |
+| `Comparison` | two `PowerPointColumn` with titles | Column headings with a 3 pt rule in `accent1` and `accent2`, content below. |
+| `Kpi` | 1–6 `PowerPointKpi`, optional takeaway paragraph | Equal tiles on one row (5 tiles divide the width in fifths; 6 make two rows of 3). Each tile has a top rule, the value, label and a coloured change indicator; the takeaway sits under a full-width hairline. |
+| `Cards` | 2–6 `PowerPointCard` | Surface panels with a top accent rule and index number. Title and body sit on a shared line across the row, so tall cards read as deliberate rather than half-empty. |
+| `Process` | 2–8 `PowerPointStep`, optional takeaway | Numbered circles joined by a hairline connector; the first step is filled. Five steps fit one row; six to eight make two rows. |
+| `Quote` | one `PowerPointQuote` with `-Attribution` | `surface` background, a large accent quote mark, the quote in cols 2–10 and a short rule above the attribution. |
 | `ImageFull` | one photograph | Full-bleed cover crop around `-FocalPoint` (default centre) with a bottom and left `ink` scrim; title stack in cols 1–8. |
 | `Closing` | title, optional next-steps list (≤ 4) or contact paragraph | `accent1` background; title stack left, numbered next steps right, separated by fine rules. |
-| `CaseStudy` | `PptCard` narrative sections and `PptKpi` results | Challenge, approach and outcome in cols 1–7; a surface results panel with up to three metrics in cols 9–12. |
-| `Logos` | 3–12 image-only `PptCard` | Hairline tiles, four or six per row, logos contained and shown in greyscale. |
-| `Coverage` | up to 18 `PptLocation`, optional map `PptImage` | A dotted map surface (or the given map) in cols 1–8 with numbered pins and the `-MapLabel` caption; the numbered location list in cols 9–12. A `PptImage` on a Coverage slide is the map. |
+| `CaseStudy` | `PowerPointCard` narrative sections and `PowerPointKpi` results | Challenge, approach and outcome in cols 1–7; a surface results panel with up to three metrics in cols 9–12. |
+| `Logos` | 3–12 image-only `PowerPointCard` | Hairline tiles, four or six per row, logos contained and shown in greyscale. |
+| `Coverage` | up to 18 `PowerPointLocation`, optional map `PowerPointImage` | A dotted map surface (or the given map) in cols 1–8 with numbered pins and the `-MapLabel` caption; the numbered location list in cols 9–12. A `PowerPointImage` on a Coverage slide is the map. |
 
 ### Automatic layout selection
 
 `-Layout` wins when given. Otherwise the first matching rule chooses the layout:
 
 1. First slide of the deck with no content: `Title`.
-2. Any `PptLocation`: `Coverage`.
-3. `PptKpi` together with `PptCard`: `CaseStudy`.
-4. Any `PptKpi`: `Kpi`.
-5. `PptCard` items that all have `-Image` and no text: `Logos`; any other `PptCard`: `Cards`.
-6. Any `PptStep`: `Process`.
-7. Two `PptColumn`, both with `-Title`: `Comparison`.
+2. Any `PowerPointLocation`: `Coverage`.
+3. `PowerPointKpi` together with `PowerPointCard`: `CaseStudy`.
+4. Any `PowerPointKpi`: `Kpi`.
+5. `PowerPointCard` items that all have `-Image` and no text: `Logos`; any other `PowerPointCard`: `Cards`.
+6. Any `PowerPointStep`: `Process`.
+7. Two `PowerPointColumn`, both with `-Title`: `Comparison`.
 8. A single image close to the slide's aspect ratio and at least 1600 px wide: `ImageFull`.
-9. A `PptQuote`, or no title and one short paragraph: `Quote`.
+9. A `PowerPointQuote`, or no title and one short paragraph: `Quote`.
 10. Last slide of a deck of five or more, with no content or a short list: `Closing`.
 11. Title only: `Section`.
 12. Two blocks: `TwoContent`. One block: `TitleAndContent`.
 13. Three or more blocks: the first two stay on a `TwoContent` slide and the rest continue on the next slide.
 
-A block is a list, a run of paragraphs, a table, a chart, an image or a `PptColumn`. Notes and footers do not count. If content does not fit the requested layout, OfficeIMO reports `layout-content-mismatch` and selects automatically.
+A block is a list, a run of paragraphs, a table, a chart, an image or a `PowerPointColumn`. Notes and footers do not count. If content does not fit the requested layout, OfficeIMO reports `layout-content-mismatch` and selects automatically.
 
 `Test-OfficePowerPoint` and `Get-OfficePowerPointSlide -Summary` report the deck's rhythm: more than three consecutive slides of one layout, more than three dense slides in a row, more than seven slides without a Section, or a deck of eight or more slides without a Closing slide. These are reported, never applied silently.
 
@@ -239,7 +239,7 @@ Every table slide carries speaker notes with its row range, the source type and 
 
 ### Speaker notes
 
-`PptNotes` sets the notes of its slide and never affects the layout. Continuation slides start without notes. Converting a Markdown outline turns blockquotes into notes.
+`PowerPointNotes` sets the notes of its slide and never affects the layout. Continuation slides start without notes. Converting a Markdown outline turns blockquotes into notes.
 
 ### Corporate templates
 

@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel {
         /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.
         /// </summary>
         public void SetOrientation(OfficePageOrientation orientation) {
+            Persistence.OwnsTablePrintDefaults = false;
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = GetOrCreatePageSetup(ws);

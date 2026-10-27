@@ -11640,7 +11640,7 @@
         "Leader": null,
         "Alignment": null
       },
-      "hint": "Inside a block use the format's Text command: WordText, PptText, PdfText or ExcelText, e.g. WordParagraph { WordText 'Ready' -Bold -Color Success }",
+      "hint": "Inside a block use the format's Text command: WordText, PowerPointText, PdfText or ExcelText, e.g. WordParagraph { WordText 'Ready' -Bold -Color Success }",
       "reason": "Styled runs are child commands of each format (design: Styled text row). The cross-format run spec and its six aliases become WordText, PptText, PdfText and ExcelText with the shared -Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link; Kind, Baseline, BackgroundColor, LinkDestinationName, LinkContents, TabLeader and TabAlignment stay on the formats that support them. Table cells take the same Text children in their content block."
     },
     {
@@ -11648,7 +11648,7 @@
       "kind": "alias",
       "action": "merge",
       "new": "WordText",
-      "hint": "Use the Text command of the enclosing format: WordText, PptText, PdfText or ExcelText.",
+      "hint": "Use the Text command of the enclosing format: WordText, PowerPointText, PdfText or ExcelText.",
       "reason": "Unprefixed alias; each format has its own Text command."
     },
     {
@@ -11679,16 +11679,16 @@
       "old": "PptTextRun",
       "kind": "alias",
       "action": "rename",
-      "new": "PptText",
-      "hint": "PptText 'Ready' -Bold",
+      "new": "PowerPointText",
+      "hint": "PowerPointText 'Ready' -Bold",
       "reason": "Shared DSL vocabulary: styled runs are PptText."
     },
     {
       "old": "PowerPointTextRun",
       "kind": "alias",
       "action": "rename",
-      "new": "PptText",
-      "hint": "PptText 'Ready' -Bold",
+      "new": "PowerPointText",
+      "hint": "PowerPointText 'Ready' -Bold",
       "reason": "Ppt is the only PowerPoint prefix; styled runs are PptText."
     }
   ]

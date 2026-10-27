@@ -25,8 +25,16 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!string.Equals(tableAutoFilter.Reference?.Value, tableRange, StringComparison.OrdinalIgnoreCase)) {
-                    tableAutoFilter.Reference = tableRange;
+                // Excel's table filter covers the header and data rows, not the totals row.
+                string filterRange = tableRange!;
+                int totalsRows = (int)(table.TotalsRowCount?.Value ?? 0U);
+                if (totalsRows > 0 && ExcelA1.TryParseRange(tableRange!, out int filterFirstRow, out _, out int filterLastRow, out _) &&
+                    filterLastRow - totalsRows >= filterFirstRow) {
+                    filterRange = ExcelA1.CellReference(filterFirstRow, c1) + ":" + ExcelA1.CellReference(filterLastRow - totalsRows, c2);
+                }
+
+                if (!string.Equals(tableAutoFilter.Reference?.Value, filterRange, StringComparison.OrdinalIgnoreCase)) {
+                    tableAutoFilter.Reference = filterRange;
                 }
 
                 NormalizeAutoFilterColumns(tableAutoFilter, c2 - c1 + 1);

@@ -528,6 +528,18 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 
 Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. HTML defaults to `PdfResourcePolicy.CreateLibraryFontDefault()`: library-selected installed fonts, bounded data URIs and MHTML package parts are allowed; document-selected host fonts and local or remote resolver calls are disabled. Set `AllowDocumentFontEmbedding` explicitly to use installed families named by the document. Portable deterministic mode disables installed-font discovery explicitly.
 
+Local files need no resolver. When `AllowLocalFileAccess` is true, as in `CreateTrustedHost()`, `file:` images, stylesheets and fonts load in synchronous and asynchronous conversions; relative references resolve against the document's `BaseUri`, and each file is bounded by `MaxResourceBytes`. A configured `ResourceResolver` is asked first.
+
+```csharp
+HtmlConversionDocument page = HtmlConversionDocument.Load("site/index.html", new HtmlConversionDocumentOptions {
+    Trust = HtmlInputTrust.Trusted,
+    BaseUri = new Uri(Path.GetFullPath("site") + Path.DirectorySeparatorChar)
+});
+page.SaveAsPdf("index.pdf", new HtmlToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreateTrustedHost() });
+```
+
+An image that does not load and has no authored size takes the space of its alternative text, as in a browser, and the conversion report names it.
+
 Under the default policy, MathML can use the renderer's fixed mathematical font
 families when a supported installed face is available. CSS cannot use that fallback
 list to select another named host font. `AllowDocumentFontEmbedding` still gates

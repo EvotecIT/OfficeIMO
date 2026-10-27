@@ -143,6 +143,9 @@ namespace OfficeIMO.Word.Markdown {
             WordMarkdownImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             WordMarkdownImportOptions effectiveOptions = CopyOptions(options ?? new WordMarkdownImportOptions());
+            if (effectiveOptions.SourceDirectory == null && !string.IsNullOrWhiteSpace(markdown.FilePath)) {
+                effectiveOptions.SourceDirectory = Path.GetDirectoryName(markdown.FilePath);
+            }
             var diagnostics = new List<WordMarkdownConversionDiagnostic>();
             Action<WordMarkdownConversionDiagnostic>? callerDiagnostic = effectiveOptions.DiagnosticSink;
             effectiveOptions.DiagnosticSink = diagnostic => {
@@ -176,6 +179,7 @@ namespace OfficeIMO.Word.Markdown {
                 RawHtmlRenderer = source.RawHtmlRenderer,
                 RawHtmlParser = source.RawHtmlParser,
                 DiagnosticSink = source.DiagnosticSink,
+                SourceDirectory = source.SourceDirectory,
                 Theme = source.Theme,
                 ApplyDefaultTheme = source.ApplyDefaultTheme,
                 FailOnLoss = source.FailOnLoss,

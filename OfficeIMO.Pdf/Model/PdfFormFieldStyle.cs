@@ -40,6 +40,9 @@ public class PdfFormFieldStyle {
     /// <summary>When true, generated text fields emit the multiline field flag.</summary>
     public bool IsMultiline { get; set; }
 
+    /// <summary>Combo box widgets draw a drop-down marker at their right edge.</summary>
+    internal bool ShowDropDownArrow { get; set; }
+
     /// <summary>When true, generated text fields emit the password field flag.</summary>
     public bool IsPassword { get; set; }
 
@@ -199,6 +202,7 @@ public class PdfFormFieldStyle {
             IsRequired = IsRequired,
             IsNoExport = IsNoExport,
             IsMultiline = IsMultiline,
+            ShowDropDownArrow = ShowDropDownArrow,
             IsPassword = IsPassword,
             IsFileSelect = IsFileSelect,
             DoesNotSpellCheck = DoesNotSpellCheck,

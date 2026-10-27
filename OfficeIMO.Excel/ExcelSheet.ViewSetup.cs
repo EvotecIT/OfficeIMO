@@ -273,6 +273,7 @@ namespace OfficeIMO.Excel {
                 ValidatePaperSize(paperSize.Value);
             }
 
+            Persistence.OwnsTablePrintDefaults = false;
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = GetOrCreatePageSetup(ws);

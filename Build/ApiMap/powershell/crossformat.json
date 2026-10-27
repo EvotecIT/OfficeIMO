@@ -152,11 +152,19 @@
               "pipeline": "none"
             },
             {
+              "name": "SkipUpToDate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skips an input when its output exists and is newer than the input; skipped items are reported with Status Skipped."
+            },
+            {
               "name": "NoClobber",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -422,11 +430,19 @@
               "pipeline": "none"
             },
             {
+              "name": "SkipUpToDate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skips an input when its output exists and is newer than the input; skipped items are reported with Status Skipped."
+            },
+            {
               "name": "NoClobber",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -604,11 +620,19 @@
               "pipeline": "none"
             },
             {
+              "name": "SkipUpToDate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skips an input when its output exists and is newer than the input; skipped items are reported with Status Skipped."
+            },
+            {
               "name": "NoClobber",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -876,11 +900,19 @@
               "pipeline": "none"
             },
             {
+              "name": "SkipUpToDate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skips an input when its output exists and is newer than the input; skipped items are reported with Status Skipped."
+            },
+            {
               "name": "NoClobber",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -1058,7 +1090,8 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -1242,7 +1275,8 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Refuse to replace an existing output (default replaces, like Export-Csv)."
+              "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
+              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
             },
             {
               "name": "AutoRename",
@@ -1368,6 +1402,11 @@
           "title": "Turn a Markdown outline into a themed deck",
           "description": "Creates a new PowerPoint presentation from Markdown with a built-in theme, then opens it.",
           "code": "Convert-OfficeDocument -Path .\\Review.md -OutputPath .\\Review.pptx -Theme Boardroom -Show"
+        },
+        {
+          "title": "Convert only what changed",
+          "description": "Converts every .docx under a folder to PDF next to its source, skipping files whose PDF is already newer, and lists any conversion that lost content.",
+          "code": "Get-ChildItem -Path .\\Policies -Filter *.docx -Recurse |\n    Convert-OfficeDocument -To Pdf -SkipUpToDate -ThrottleLimit 8 |\n    Where-Object HasLoss |\n    Select-Object -Property Source, OutputPath, Diagnostics"
         }
       ]
     },
@@ -6405,7 +6444,7 @@
         {
           "title": "Reuse one visual in Word and PowerPoint",
           "description": "Converts the logo once and places the same visual in a Word brief and on a slide.",
-          "code": "$logo = Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm -AlternativeText 'Northwind logo'\nNew-OfficeWord -Path .\\Reports\\Brand-Update.docx {\n    WordImage -InputObject $logo\n    WordHeading 'Brand update'\n    WordParagraph 'The refreshed logo is used in every template from 1 November.'\n}\nNew-OfficePowerPoint -Path .\\Decks\\Brand-Update.pptx {\n    PptSlide -Title 'Our new logo' {\n        PptImage -InputObject $logo\n    }\n}"
+          "code": "$logo = Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm -AlternativeText 'Northwind logo'\nNew-OfficeWord -Path .\\Reports\\Brand-Update.docx {\n    WordImage -InputObject $logo\n    WordHeading 'Brand update'\n    WordParagraph 'The refreshed logo is used in every template from 1 November.'\n}\nNew-OfficePowerPoint -Path .\\Decks\\Brand-Update.pptx {\n    PowerPointSlide -Title 'Our new logo' {\n        PowerPointImage -InputObject $logo\n    }\n}"
         }
       ]
     },

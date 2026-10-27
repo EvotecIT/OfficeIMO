@@ -32,6 +32,11 @@ namespace OfficeIMO.Word.Markdown {
         internal Func<string, WordDocument, Action<WordMarkdownConversionDiagnostic>?, bool>? RawHtmlRenderer { get; set; }
         internal Func<string, Action<WordMarkdownConversionDiagnostic>?, OfficeIMO.Markdown.MarkdownDocument?>? RawHtmlParser { get; set; }
         internal Action<WordMarkdownConversionDiagnostic>? DiagnosticSink { get; set; }
+        /// <summary>Directory of the Markdown source file, used to resolve relative image paths when <see cref="BaseUri"/> is not set.</summary>
+        internal string? SourceDirectory { get; set; }
+        /// <summary>Heading slug to Word bookmark name map for the conversion in progress.</summary>
+        internal System.Collections.Generic.Dictionary<string, string>? HeadingBookmarks { get; set; }
+        internal int? NextBookmarkId { get; set; }
 
         private OfficeIMO.Markdown.MarkdownVisualTheme? _theme;
 

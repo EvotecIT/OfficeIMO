@@ -136,7 +136,8 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData(false, "A1:B3")]
-        [InlineData(true, "A1:B2")]
+        // The totals row is added below the data, so the filter still covers both data rows.
+        [InlineData(true, "A1:B3")]
         public void Test_AutoFilterCriteria_UsesTableOwnershipWithoutExistingFilter(
             bool totalsRow,
             string expectedFilterRange) {

@@ -60,6 +60,53 @@ namespace OfficeIMO.Word.Html {
                 StringComparison.Ordinal);
         }
 
+        private static readonly HashSet<string> KnownMonospaceFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "Consolas", "Courier", "Courier New", "Lucida Console", "Lucida Sans Typewriter", "Menlo", "Monaco",
+            "SF Mono", "SFMono-Regular", "DejaVu Sans Mono", "Liberation Mono", "Cousine", "Inconsolata",
+            "Source Code Pro", "Fira Code", "Fira Mono", "Cascadia Mono", "Cascadia Code", "JetBrains Mono",
+            "Roboto Mono", "Ubuntu Mono", "Noto Sans Mono", "Andale Mono", "monospace"
+        };
+
+        private static bool[] ResolveNumericColumns(WordTable table, int headerRowCount) {
+            static string CellText(WordTableCell cell) => string.Concat(cell._tableCell.Descendants<Text>().Select(value => value.Text)).Trim();
+            // A first row of labels is a header even when Word does not mark it as one.
+            if (headerRowCount == 0 && table.Rows.Count > 1
+                && table.Rows[0].Cells.All(cell => !global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(CellText(cell)))) {
+                headerRowCount = 1;
+            }
+            if (table.Rows.Count <= headerRowCount) return Array.Empty<bool>();
+            int columns = table.Rows.Max(row => row.Cells.Count);
+            var numeric = new bool[columns];
+            for (int column = 0; column < columns; column++) {
+                bool any = false;
+                bool all = true;
+                for (int rowIndex = headerRowCount; rowIndex < table.Rows.Count && all; rowIndex++) {
+                    var cells = table.Rows[rowIndex].Cells;
+                    if (column >= cells.Count) continue;
+                    string text = CellText(cells[column]);
+                    if (text.Length == 0) continue;
+                    any = true;
+                    all = global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(text);
+                }
+                numeric[column] = any && all;
+            }
+            return numeric;
+        }
+
+        // A monospace run is code unless monospace is simply the document's own default font.
+        private static bool IsInlineCodeRun(WordParagraph run, string? documentFont) =>
+            IsMonospaceFontFamily(run.FontFamily)
+            && !string.Equals(run.FontFamily, documentFont, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Recognises monospace families by name, independent of the fonts installed on this machine.</summary>
+        internal static bool IsMonospaceFontFamily(string? family) {
+            if (string.IsNullOrWhiteSpace(family)) return false;
+            string name = family!.Trim().Trim('"', '\'');
+            return KnownMonospaceFonts.Contains(name)
+                || name.IndexOf(" Mono", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.EndsWith("Mono", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsFollowedByContinuingListParagraph(
             IReadOnlyList<WordElement> elements,
             int tableIndex) {

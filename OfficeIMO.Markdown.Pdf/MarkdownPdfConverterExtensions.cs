@@ -60,6 +60,17 @@ public static partial class MarkdownPdfConverterExtensions {
 
         MarkdownPdfExportOptions operation = (options ?? new MarkdownPdfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;
+        // A README converted with Load(path).SaveAsPdf(...) shows its own relative images: they resolve
+        // inside the file's folder, while an assigned policy or base directory is kept as given.
+        if (operation.BaseDirectory == null && document.FilePath != null && operation.IncludeImages) {
+            operation.BaseDirectory = Path.GetDirectoryName(document.FilePath);
+            if (!operation.ResourcePolicyAssigned && operation.RestrictLocalImagesToBaseDirectory &&
+                !operation.ResourcePolicy.AllowLocalFileAccess) {
+                PdfCore.PdfResourcePolicy policy = operation.ResourcePolicy.Clone();
+                policy.AllowLocalFileAccess = true;
+                operation.ResourcePolicy = policy;
+            }
+        }
         PdfCore.PdfDocument pdf = ConvertToPdfDocument(document, operation);
         return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
     }
@@ -168,6 +179,14 @@ public static partial class MarkdownPdfConverterExtensions {
                 toc.IncludeTitle &&
                 IsSameNormalizedText(tocTitleHeading.Text, toc.Title)) {
                 options.Anchors?.Register(pdf, block);
+                continue;
+            }
+
+            // A lead-in such as "Build and preview:" stays on the page of the code block it introduces.
+            if (block is ParagraphBlock leadIn && i + 1 < materializedBlocks.Count &&
+                materializedBlocks[i + 1] is CodeBlock or SemanticFencedBlock && EndsWithColon(leadIn.Inlines)) {
+                options.Anchors?.Register(pdf, block);
+                RenderParagraph(pdf, leadIn.Inlines, options, visualTheme, keepWithNext: true);
                 continue;
             }
 

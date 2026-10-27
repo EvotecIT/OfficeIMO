@@ -39,16 +39,16 @@ New-OfficeExcel -Path .\Service-Status.xlsx -Theme $theme -Force {
 }
 
 New-OfficePowerPoint -Path .\Service-Status.pptx -Theme $theme -Force {
-    PptSlide -Title 'Weekly service status' -Subtitle 'Three services, one owner conversation' {
-        PptNotes 'Lead with the Remote access action and confirm its owner.'
+    PowerPointSlide -Title 'Weekly service status' -Subtitle 'Three services, one owner conversation' {
+        PowerPointNotes 'Lead with the Remote access action and confirm its owner.'
     }
-    PptSlide -Title 'Current status' -Subtitle 'Decision: assign the Remote access action before the next service review.' {
-        PptTable $services
-        PptNotes 'Use the table for exact values and confirm the action owner.'
+    PowerPointSlide -Title 'Current status' -Subtitle 'Decision: assign the Remote access action before the next service review.' {
+        PowerPointTable $services
+        PowerPointNotes 'Use the table for exact values and confirm the action owner.'
     }
-    PptSlide -Title 'Where to focus the review' -Subtitle 'Availability stays in the status table; this chart compares incident counts.' {
-        PptChart -InputObject $services -Category Service -Value Incidents -Type Column -Title 'Incidents by service'
-        PptNotes 'Discuss incident reduction separately from availability targets.'
+    PowerPointSlide -Title 'Where to focus the review' -Subtitle 'Availability stays in the status table; this chart compares incident counts.' {
+        PowerPointChart -InputObject $services -Category Service -Value Incidents -Type Column -Title 'Incidents by service'
+        PowerPointNotes 'Discuss incident reduction separately from availability targets.'
     }
 }
 

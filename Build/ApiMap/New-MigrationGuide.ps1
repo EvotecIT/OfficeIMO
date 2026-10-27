@@ -118,12 +118,12 @@ $CommonJobs = @(
     }
     [pscustomobject]@{
         Title = 'Write Word documents'
-        Intro = 'Styled runs are child commands. Replace `-Run @{ Text = ...; Bold = ... }` hashtables of parallel arrays with `WordText` commands inside `WordParagraph`. The same pattern applies to `PptText`, `PdfText` and `ExcelText`.'
+        Intro = 'Styled runs are child commands. Replace `-Run @{ Text = ...; Bold = ... }` hashtables of parallel arrays with `WordText` commands inside `WordParagraph`. The same pattern applies to `PowerPointText`, `PdfText` and `ExcelText`.'
         Old   = @('New-OfficeWord', 'Add-OfficeWordParagraph', 'Add-OfficeWordText')
     }
     [pscustomobject]@{
         Title = 'Build PowerPoint decks without coordinates'
-        Intro = 'Slides are built from theme layouts. `-Layout` is optional: the layout is chosen from the slide content, and the first slide uses the title layout. Deck plans and the designer deck fold into `New-OfficePowerPoint` and `PptSlide`. `-X`, `-Y`, `-Width` and `-Height` remain for deliberate placement and take lengths such as `2cm`.'
+        Intro = 'Slides are built from theme layouts. `-Layout` is optional: the layout is chosen from the slide content, and the first slide uses the title layout. Deck plans and the designer deck fold into `New-OfficePowerPoint` and `PowerPointSlide`. `-X`, `-Y`, `-Width` and `-Height` remain for deliberate placement and take lengths such as `2cm`.'
         Old   = @('New-OfficePowerPoint', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointBullets', 'Add-OfficePowerPointTextBox', 'New-OfficePowerPointDeckPlan', 'Add-OfficePowerPointDesignerDeck')
     }
     [pscustomobject]@{
@@ -613,7 +613,7 @@ Add-Paragraph 'For PowerShell scripts:'
     '- **Themes by default.** New documents start from the `Modern` theme; choose another with `-Theme` (a built-in name, a theme object or a template path). Opening an existing document never restyles it.'
     '- **Loss handling.** Converting to another format reports what could not be carried and continues; add `-FailOnLoss` to make loss an error. Saving a document in its own format fails if content would be lost; add `-AllowLoss` to accept it.'
     '- **Options.** Option objects come from `New-Office{Format}{Purpose}Options`, and every `-Options` parameter also accepts a hashtable of option property names. Unknown keys are errors.'
-    '- **Content blocks.** Styled text is written with child commands (`WordText`, `PptText`, `PdfText`, `ExcelText`); `-Run` hashtables of parallel arrays are removed. Each DSL command has exactly one alias, and `Ppt` is the only PowerPoint prefix. Plural, spelling, verb-last and unprefixed alias twins are removed.'
+    '- **Content blocks.** Styled text is written with child commands (`WordText`, `PowerPointText`, `PdfText`, `ExcelText`); `-Run` hashtables of parallel arrays are removed. Each DSL command has exactly one alias, and `Ppt` is the only PowerPoint prefix. Plural, spelling, verb-last and unprefixed alias twins are removed.'
     '- **`-WhatIf` and `-Confirm`** cover file-system effects: `New`, `Save`, `Export`, `Convert`, `Repair`, `Protect` and `Remove` commands.'
     ("- **Electronic invoices** are no longer part of PSWriteOffice ($(Get-Plural $invoiceEntries.Count 'command and alias' 'commands and aliases') removed). Use the `OfficeIMO.Invoicing` packages from .NET.")
     '- **Removed-command hints.** When a script calls a command or alias that no longer exists, PSWriteOffice prints its replacement, taken from the reference tables below.'
