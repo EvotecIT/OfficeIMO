@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Core' Or '$(MSBuildProjectName)' == 'OfficeIMO.Word' Or '$(MSBuildProjectName)' == 'OfficeIMO.Excel' Or '$(MSBuildProjectName)' == 'OfficeIMO.PowerPoint' Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf' Or '$(MSBuildProjectName)' == 'OfficeIMO.Markdown' Or '$(MSBuildProjectName)' == 'OfficeIMO'">
+    <OfficeIMOTrackPublicApi>true</OfficeIMOTrackPublicApi>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OfficeIMOTrackPublicApi)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.0.0" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- The analyzer package includes root baseline files automatically. Select a
+       framework-specific shipped file only when that framework has a distinct API. -->
+  <Target Name="SelectOfficeIMOPublicApiBaseline" BeforeTargets="CoreCompile"
+          Condition="'$(OfficeIMOTrackPublicApi)' == 'true' And Exists('$(MSBuildProjectDirectory)/PublicAPI/$(TargetFramework)/PublicAPI.Shipped.txt')">
+    <ItemGroup>
+      <AdditionalFiles Remove="PublicAPI.Shipped.txt;$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt" />
+      <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI/$(TargetFramework)/PublicAPI.Shipped.txt" />
+    </ItemGroup>
+  </Target>
+</Project>

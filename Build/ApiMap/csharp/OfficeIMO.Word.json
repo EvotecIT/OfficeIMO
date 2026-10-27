@@ -6374,6 +6374,17 @@
         "OfficeIMO.Reader.Tests",
         "OfficeIMO.Reader.Word"
       ]
+    },
+    {
+      "change": "Public API declarations and nullable annotations are enforced against shipped compiler baselines.",
+      "reason": "The private Microsoft.CodeAnalysis.PublicApiAnalyzers build asset rejects unrecorded additions and removals without adding a runtime dependency. Existing framework-specific APIs retain separate shipped baselines where needed; target declarations and restore locks are unchanged.",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ApiMap/PublicApi.targets",
+        "Directory.Build.targets",
+        "OfficeIMO.Word/PublicAPI.Shipped.txt",
+        "OfficeIMO.Word/PublicAPI.Unshipped.txt"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

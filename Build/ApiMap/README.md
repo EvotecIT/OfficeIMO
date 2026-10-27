@@ -88,3 +88,24 @@ Run `Test-ApiMap.ps1` after every change. It checks coverage, targets, parameter
 ```
 
 `kind` is `type`, `method`, `property`, `constructor`, `enum`, `namespace` or `package`. `action` is `rename`, `remove`, `move`, `merge`, `change` (signature or return type) or `internalize`.
+
+
+## Shipped public API baselines
+
+Core, Word, Excel, PowerPoint, Pdf, Markdown and the `OfficeIMO` front door use
+`Microsoft.CodeAnalysis.PublicApiAnalyzers` as a private build dependency. The
+compiler checks public declarations and their nullable annotations against each
+package's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`. Normal builds keep
+`TreatWarningsAsErrors` enabled, so unrecorded additions and removals fail.
+
+Review an intentional API change with its C# map entry. Record additions and
+removals in the unshipped file; promote accepted declarations to the shipped
+baseline for the release. `New-PublicApiBaseline.ps1` can bootstrap a baseline
+from the compiler's RS0016 SARIF declarations. It does not modify source or
+suppress other diagnostics.
+
+The common shipped file applies to every target. A deliberate framework-specific
+surface can use `PublicAPI/<target-framework>/PublicAPI.Shipped.txt`; the build
+selects it only for that framework. Run all supported framework builds when
+changing a public declaration. The Windows-only net472 target and the existing
+restore-lock selection remain unchanged.
