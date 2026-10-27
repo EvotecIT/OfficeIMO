@@ -7,12 +7,19 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointDeckContinuationOptions {
         private int _caseStudySectionsPerSlide = PowerPointDeckPlanLimits.MaxCaseStudySections;
         private int _caseStudyMetricsPerSlide = PowerPointDeckPlanLimits.MaxCaseStudyMetrics;
-        private int _processStepsPerSlide = PowerPointDeckPlanLimits.DenseProcessSteps;
+        private int _processStepsPerSlide = PowerPointDeckPlanLimits.MaxProcessSteps;
         private int _cardsPerSlide = 6;
         private int _logosPerSlide = PowerPointDeckPlanLimits.DenseLogoWallItems;
         private int _locationsPerSlide = PowerPointDeckPlanLimits.VisibleCoveragePins;
         private int _capabilitySectionsPerSlide = PowerPointDeckPlanLimits.DenseCapabilitySections;
-        private int _appendixRowsPerSlide = PowerPointDeckPlanLimits.MaxAppendixTableRows;
+        private int _appendixRowsPerSlide = DefaultAppendixRowsPerSlide;
+        internal const int DefaultAppendixRowsPerSlide = 8;
+
+        /// <summary>
+        ///     True when the caller chose a row limit. Otherwise appendix tables are left whole and the slide layout splits
+        ///     them from the measured row height, so every part fills the slide evenly.
+        /// </summary>
+        internal bool AppendixRowsPerSlideSet { get; private set; }
 
         /// <summary>Maximum narrative case-study sections per generated page.</summary>
         public int CaseStudySectionsPerSlide {
@@ -65,22 +72,28 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Maximum appendix-table data rows per generated page.</summary>
         public int AppendixRowsPerSlide {
             get => _appendixRowsPerSlide;
-            set => _appendixRowsPerSlide = RequireRange(value, 1,
-                PowerPointDeckPlanLimits.MaxAppendixTableRows, nameof(AppendixRowsPerSlide));
+            set {
+                _appendixRowsPerSlide = RequireRange(value, 1, PowerPointDeckPlanLimits.MaxAppendixTableRows, nameof(AppendixRowsPerSlide));
+                AppendixRowsPerSlideSet = true;
+            }
         }
 
         /// <summary>
         ///     Formats continuation titles. Parameters are the original title, one-based page number, and page count.
         ///     The first page retains the original title.
         /// </summary>
-        public string ContinuationTitleFormat { get; set; } = "{0} (continued {1}/{2})";
+        public string? ContinuationTitleFormat { get; set; }
 
         internal string CreateTitle(string title, int pageIndex, int pageCount) {
             if (pageIndex == 0 || pageCount <= 1) return title;
-            string format = string.IsNullOrWhiteSpace(ContinuationTitleFormat)
-                ? "{0} (continued {1}/{2})"
-                : ContinuationTitleFormat;
-            return string.Format(System.Globalization.CultureInfo.InvariantCulture, format, title,
+            if (string.IsNullOrWhiteSpace(ContinuationTitleFormat)) {
+                return pageCount == 2
+                    ? title + " (continued)"
+                    : title + " (continued " + (pageIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                      pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+            }
+
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, ContinuationTitleFormat, title,
                 pageIndex + 1, pageCount);
         }
 
@@ -90,13 +103,18 @@ namespace OfficeIMO.PowerPoint {
             return value.Trim() + "-continuation-" + (pageIndex + 1);
         }
 
+        /// <summary>Splits into the fewest pages of at most <paramref name="size" /> items, balanced (17 at 14 → 9 + 8).</summary>
         internal static IReadOnlyList<IReadOnlyList<T>> Chunk<T>(IReadOnlyList<T> source, int size) {
             var chunks = new List<IReadOnlyList<T>>();
-            for (int offset = 0; offset < source.Count; offset += size) {
-                int count = Math.Min(size, source.Count - offset);
-                var page = new List<T>(count);
-                for (int index = 0; index < count; index++) page.Add(source[offset + index]);
-                chunks.Add(new ReadOnlyCollection<T>(page));
+            if (source.Count == 0) return new ReadOnlyCollection<IReadOnlyList<T>>(chunks);
+            int pages = (source.Count + size - 1) / size;
+            int baseSize = source.Count / pages, extra = source.Count % pages, offset = 0;
+            for (int page = 0; page < pages; page++) {
+                int count = baseSize + (page < extra ? 1 : 0);
+                var items = new List<T>(count);
+                for (int index = 0; index < count; index++) items.Add(source[offset + index]);
+                chunks.Add(new ReadOnlyCollection<T>(items));
+                offset += count;
             }
             return new ReadOnlyCollection<IReadOnlyList<T>>(chunks);
         }

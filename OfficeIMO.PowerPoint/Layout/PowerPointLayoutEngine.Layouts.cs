@@ -408,8 +408,17 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointLayoutTheme.Blend("FFFFFF", theme.Ink, 0.8D), maxLines: 2));
             }
 
+            if (!string.IsNullOrWhiteSpace(slide.SourceNote)) {
+                if (items.Count > 0) items[items.Count - 1] = WithGap(items[items.Count - 1], 12D);
+                items.Add(Stacked(context, "Source", slide.SourceNote!, PowerPointTextRole.Caption, stack.Width, 0D,
+                    PowerPointLayoutTheme.Blend("FFFFFF", theme.Ink, 0.8D), balance: false));
+            }
+
             RenderStack(writer, stack, items);
         }
+
+        private static StackItem WithGap(StackItem item, double gapAfter) =>
+            new(item.Name, item.Paragraph, item.Height, gapAfter, item.Placeholder);
 
         // ------------------------------------------------------------------ CaseStudy, Logos, Coverage
 
