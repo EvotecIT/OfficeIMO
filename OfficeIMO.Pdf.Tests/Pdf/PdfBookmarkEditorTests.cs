@@ -7,7 +7,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfBookmarkEditorTests {
     [Fact]
     public void Edit_AddsRenamesMovesNestsRetargetsRemovesAndRebuilds() {
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
+        // The reading fixture keeps the built-in heading metrics; the reader's level heuristics are not what this test covers.
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true, DefaultHeadingStyles = new PdfHeadingStyles() })
             .H1("First")
             .Paragraph(p => p.Text("Page one"))
             .PageBreak()

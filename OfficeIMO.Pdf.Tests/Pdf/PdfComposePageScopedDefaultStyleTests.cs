@@ -133,7 +133,8 @@ namespace OfficeIMO.Tests.Pdf {
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneSize, 12.5, 13.5);
-            Assert.InRange(pageTwoSize, 17.5, 18.5);
+            // Page two falls back to the document theme.
+            Assert.InRange(pageTwoSize, OfficeTheme.Default.TypeScale.Heading2.ToPoints() - 0.5, OfficeTheme.Default.TypeScale.Heading2.ToPoints() + 0.5);
             Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
         }
 
@@ -184,7 +185,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.InRange(pageOneSize, 12.5, 13.5);
             Assert.InRange(pageTwoSize, 9.5, 10.5);
             Assert.InRange(pageOneBulletX, 43, 45);
-            Assert.InRange(pageTwoBulletX, 29.5, 30.5);
+            Assert.InRange(pageTwoBulletX, 29.5 + OfficeTheme.Default.Spacing.ListIndent.ToPoints(), 30.5 + OfficeTheme.Default.Spacing.ListIndent.ToPoints());
             Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
         }
 
@@ -233,7 +234,7 @@ namespace OfficeIMO.Tests.Pdf {
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneX, 105, 107);
-            Assert.InRange(pageTwoX, 35, 37);
+            Assert.InRange(pageTwoX - 30, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 2 - 1, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 2 + 1);
             Assert.Contains("0.941 0.973 1 rg", rawPdf, StringComparison.Ordinal);
         }
 
@@ -454,7 +455,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.InRange(pageOneSize, 15.5, 16.5);
             Assert.InRange(pageTwoSize, 9.5, 10.5);
             Assert.True(pageOneTableX - 30 >= 20, $"Expected page theme table style padding to apply to page one. Marker x: {pageOneTableX:0.##}.");
-            Assert.InRange(pageTwoTableX - 30, 4, 8);
+            Assert.InRange(pageTwoTableX - 30, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 - 1, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 + 1);
         }
 
         [Fact]
@@ -499,7 +500,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageTwoX = FindWordStartX(page2, "PageTwoPad");
 
             Assert.True(pageOneX - 30 >= 20, $"Expected page default table style padding to apply to page one. Marker x: {pageOneX:0.##}.");
-            Assert.InRange(pageTwoX - 30, 4, 8);
+            Assert.InRange(pageTwoX - 30, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 - 1, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 + 1);
         }
 
         [Fact]

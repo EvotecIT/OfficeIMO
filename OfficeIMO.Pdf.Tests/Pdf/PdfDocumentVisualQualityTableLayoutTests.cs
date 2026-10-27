@@ -175,7 +175,7 @@ public partial class PdfDocumentVisualQualityTests {
         cramped.SpacingBefore = 0;
         cramped.SpacingAfter = 0;
 
-        byte[] defaultBytes = CreateLightTableRhythmProbe(options, style: null);
+        byte[] defaultBytes = CreateLightTableRhythmProbe(options, defaultLight);
         byte[] crampedBytes = CreateLightTableRhythmProbe(options, cramped);
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));

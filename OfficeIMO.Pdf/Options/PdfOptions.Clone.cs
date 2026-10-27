@@ -200,6 +200,7 @@ public sealed partial class PdfCreateOptions {
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
         clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
+        clone._theme = _theme;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;

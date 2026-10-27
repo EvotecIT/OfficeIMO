@@ -107,6 +107,9 @@ internal static partial class PdfWriter {
                 EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings);
             double markerGap = GetListMarkerGap(style, spaceAdvance);
             double listLeftIndent = style?.LeftIndent ?? 0D;
+            // An indent never pushes the marker out of a frame too narrow for it and its text.
+            double minimumTextWidth = EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts);
+            listLeftIndent = Math.Max(0D, Math.Min(listLeftIndent, frameWidth - markerWidth - markerGap - minimumTextWidth));
             double rawTextWidth = frameWidth - listLeftIndent - markerWidth - markerGap;
             double availableWidth = System.Math.Max(
                 rawTextWidth,

@@ -307,7 +307,7 @@ internal static partial class PdfWriter {
 
                             if (hb2.Style?.AnchoredCanvas is { } headingCanvas) RenderParagraphCanvas(headingCanvas, yCol);
                             if (currentOpts.CreateOutlineFromHeadings) {
-                                currentPage!.Bookmarks.Add(new PageBookmark { Level = hb2.Level, Title = hb2.Text, Y = yCol });
+                                if (!hb2.IsTitle) currentPage!.Bookmarks.Add(new PageBookmark { Level = hb2.Level, Title = hb2.Text, Y = yCol });
                             }
                             var headingFont = ch.Bold ? ChooseBold(ChooseNormal(currentOpts.DefaultFont)) : ChooseNormal(currentOpts.DefaultFont);
                             double firstBaseline = FirstTextBaselineFromTop(headingFont, size, yCol);

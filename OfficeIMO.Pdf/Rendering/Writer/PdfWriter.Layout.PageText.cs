@@ -10,14 +10,14 @@ internal static partial class PdfWriter {
         var footerZones = opts.GetFooterZonesForPage(variantPage);
         var footerZoneSegments = opts.GetFooterZoneSegmentsForPage(variantPage);
         if (footerZoneSegments?.HasContent == true) {
-            return BuildPageTextSegmentZones(opts, footerZoneSegments, variantPage, page, pages, documentPages, footerFont, fontResources, namedFontResources, opts.FooterFontSize, opts.FooterTextColor, opts.FooterOffsetY, isHeader: false);
+            return BuildPageTextSegmentZones(opts, footerZoneSegments, variantPage, page, pages, documentPages, footerFont, fontResources, namedFontResources, opts.FooterFontSize, opts.EffectiveFooterTextColor, opts.FooterOffsetY, isHeader: false);
         } else if (HasPageTextZones(footerZones)) {
-            return BuildPageTextZones(opts, footerZones, variantPage, page, pages, documentPages, footerFont, fontResources, namedFontResources, opts.FooterFontSize, opts.FooterTextColor, opts.FooterOffsetY, isHeader: false);
+            return BuildPageTextZones(opts, footerZones, variantPage, page, pages, documentPages, footerFont, fontResources, namedFontResources, opts.FooterFontSize, opts.EffectiveFooterTextColor, opts.FooterOffsetY, isHeader: false);
         } else if (footerSegments != null && footerSegments.Count > 0) {
-            runs = BuildPageTextRunsFromSegments(footerSegments, page, pages, documentPages, footerFont, opts.FooterFontSize, opts.FooterTextColor, opts, opts.FooterFontFamily);
+            runs = BuildPageTextRunsFromSegments(footerSegments, page, pages, documentPages, footerFont, opts.FooterFontSize, opts.EffectiveFooterTextColor, opts, opts.FooterFontFamily);
         } else {
             string text = FormatPageText(opts.GetFooterFormatForPage(variantPage), page, pages, documentPages, opts.PageNumberStyle);
-            runs = BuildPageTextRuns(text, footerFont, opts.FooterFontSize, opts.FooterTextColor, opts, opts.FooterFontFamily);
+            runs = BuildPageTextRuns(text, footerFont, opts.FooterFontSize, opts.EffectiveFooterTextColor, opts, opts.FooterFontFamily);
         }
         double textWidth = MeasurePageTextRuns(runs, footerFont, opts.FooterFontSize, opts);
         double imagesWidth = MeasureHeaderFooterImagesWidth(opts.GetFooterImagesForPage(variantPage), opts.FooterAlign);
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
         if (textWidth > 0D && TryGetPageTextVerticalBounds(runs, footerFont, opts.FooterFontSize, opts, y, out double textBottom, out double textTop)) {
             ReportHeaderFooterBounds(opts, "Footer", "text", x, textBottom, textWidth, textTop - textBottom);
         }
-        PdfColor? footerColor = opts.FooterTextColor;
+        PdfColor? footerColor = opts.EffectiveFooterTextColor;
         var sb = new StringBuilder();
         AppendPageTextRuns(sb, runs, footerFont, footerFontResource, fontResources, namedFontResources, opts.FooterFontSize, footerColor, x, y, opts, textWidth, opts.FooterAlign);
         return sb.ToString();
