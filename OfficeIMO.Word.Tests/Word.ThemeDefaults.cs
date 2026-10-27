@@ -17,17 +17,50 @@ public partial class Word {
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
     public void Create_HeadingStylesFollowTheDefaultThemeTypeScale(int level) {
         using WordDocument document = WordDocument.Create();
         OfficeTheme theme = OfficeTheme.Default;
         Style heading = GetStyleDefinition(document, "Heading" + level);
-        OfficeLength expected = level == 1 ? theme.TypeScale.Heading1 : level == 2 ? theme.TypeScale.Heading2 : theme.TypeScale.Heading3;
+        OfficeLength expected = level switch {
+            1 => theme.TypeScale.Heading1, 2 => theme.TypeScale.Heading2, 3 => theme.TypeScale.Heading3,
+            4 => theme.TypeScale.Heading4, 5 => theme.TypeScale.Heading5, _ => theme.TypeScale.Heading6
+        };
 
         Assert.Equal(HalfPoints(expected), heading.StyleRunProperties!.FontSize!.Val!.Value);
         Assert.NotNull(heading.StyleRunProperties.Bold);
-        Assert.Equal(theme.Palette.Text.ToRgbHex(), heading.StyleRunProperties.Color!.Val!.Value);
+        Assert.Equal(theme.TextStyle.HeadingColor.Resolve(theme).ToRgbHex(), heading.StyleRunProperties.Color!.Val!.Value);
         Assert.NotNull(heading.StyleParagraphProperties!.KeepNext);
         Assert.NotEqual("0", heading.StyleParagraphProperties.SpacingBetweenLines!.After!.Value);
+        Assert.Equal((theme.TextStyle.GetHeadingSpacing(level).Before.ToPoints() * 20D).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            heading.StyleParagraphProperties.SpacingBetweenLines.Before!.Value);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void SavedHeadingCharacterStylesAndThemeFontsMatchTheirParagraphStyles(int level) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Heading text").SetCharacterStyle(
+            (WordCharacterStyles)Enum.Parse(typeof(WordCharacterStyles), "Heading" + level + "Char"));
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        Style heading = GetStyleDefinition(document, "Heading" + level);
+        Style character = GetStyleDefinition(document, "Heading" + level + "Char");
+
+        Assert.Equal(heading.StyleRunProperties!.FontSize!.Val!.Value, character.StyleRunProperties!.FontSize!.Val!.Value);
+        Assert.Equal(heading.StyleRunProperties.Color!.Val!.Value, character.StyleRunProperties.Color!.Val!.Value);
+        Assert.Equal(heading.StyleRunProperties.Bold!.Val?.Value, character.StyleRunProperties.Bold!.Val?.Value);
+        Assert.Equal(heading.StyleRunProperties.RunFonts!.AsciiTheme!.Value, character.StyleRunProperties.RunFonts!.AsciiTheme!.Value);
+        var fonts = document._wordprocessingDocument.MainDocumentPart!.ThemePart!.Theme.ThemeElements!.FontScheme!;
+        Assert.Equal(OfficeTheme.Default.Fonts.Heading.Family, fonts.MajorFont!.LatinFont!.Typeface!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, fonts.MinorFont!.LatinFont!.Typeface!.Value);
+        Assert.Empty(document.ValidateDocument());
     }
 
     [Fact]

@@ -846,6 +846,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Applies_Native_Font_And_Padding_Fallbacks_To_Explicit_Word_Styles() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitStyleFallbacks.docx"));
+        document.Settings.FontFamily = "Calibri";
         WordTable table = document.AddTable(1, 1, WordTableStyle.GridTable1Light);
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {

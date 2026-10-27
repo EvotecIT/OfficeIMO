@@ -11,16 +11,7 @@ namespace OfficeIMO.Word {
     internal static class WordThemeDefaults {
         internal const string TableStyleId = "OfficeIMOModern";
 
-        // Values the visual design defines that OfficeTheme does not model yet
-        // (themes.json "extensions"). Keep them here, in one place, until the
-        // theme model carries headingSpacing, headingBold, subtitleColor and the
-        // table header rule; then read them from the theme.
-        private static readonly (double Before, double After)[] HeadingSpacingPoints = {
-            (18D, 6D), (14D, 4D), (12D, 3D), (10D, 2D), (10D, 2D), (8D, 2D)
-        };
-        private static readonly (double Before, double After) TitleSpacingPoints = (0D, 6D);
-        private const bool HeadingBold = true;
-        private const double TableHeaderRulePoints = 1D;
+        // Horizontal padding gives text a little more room beside a cell rule.
         private const double TableHorizontalPaddingRatio = 1.4D;
 
         internal static OfficeTheme Theme => OfficeTheme.Default;
@@ -73,18 +64,18 @@ namespace OfficeIMO.Word {
         internal static Style CreateHeading(int level) {
             if (level < 1 || level > 6) throw new ArgumentOutOfRangeException(nameof(level));
             string levelText = level.ToString(CultureInfo.InvariantCulture);
-            (double before, double after) = HeadingSpacingPoints[level - 1];
+            OfficeThemeParagraphSpacing spacing = Theme.TextStyle.GetHeadingSpacing(level);
             var paragraphProperties = new StyleParagraphProperties(
                 new KeepNext(),
                 new KeepLines(),
-                new SpacingBetweenLines { Before = Twips(before), After = Twips(after) },
+                new SpacingBetweenLines { Before = Twips(spacing.Before.ToPoints()), After = Twips(spacing.After.ToPoints()) },
                 new OutlineLevel { Val = level - 1 });
             var runProperties = new StyleRunProperties(HeadingFonts());
-            if (HeadingBold) {
+            if (Theme.TextStyle.HeadingBold) {
                 runProperties.Append(new Bold());
                 runProperties.Append(new BoldComplexScript());
             }
-            runProperties.Append(new Color { Val = Hex(OfficeColor.Text) });
+            runProperties.Append(new Color { Val = Hex(Theme.TextStyle.HeadingColor) });
             runProperties.Append(new FontSize { Val = HalfPoints(HeadingSize(level)) });
             runProperties.Append(new FontSizeComplexScript { Val = HalfPoints(HeadingSize(level)) });
 
@@ -102,14 +93,31 @@ namespace OfficeIMO.Word {
             };
         }
 
+        /// <summary>Creates the linked character style from the same heading font, size and colour.</summary>
+        internal static Style CreateHeadingCharacter(int level) {
+            Style heading = CreateHeading(level);
+            return new Style(
+                new StyleName { Val = "Heading " + level.ToString(CultureInfo.InvariantCulture) + " Char" },
+                new BasedOn { Val = "DefaultParagraphFont" },
+                new LinkedStyle { Val = heading.StyleId },
+                new UIPriority { Val = 9 },
+                new SemiHidden(),
+                new UnhideWhenUsed(),
+                heading.StyleRunProperties!.CloneNode(true)) {
+                Type = StyleValues.Character,
+                CustomStyle = true,
+                StyleId = heading.StyleId + "Char"
+            };
+        }
+
         /// <summary>Creates the Title style: title size, heading font and text colour.</summary>
         internal static Style CreateTitle() {
             var runProperties = new StyleRunProperties(HeadingFonts());
-            if (HeadingBold) {
+            if (Theme.TextStyle.HeadingBold) {
                 runProperties.Append(new Bold());
                 runProperties.Append(new BoldComplexScript());
             }
-            runProperties.Append(new Color { Val = Hex(OfficeColor.Text) });
+            runProperties.Append(new Color { Val = Hex(Theme.TextStyle.TitleColor) });
             runProperties.Append(new Kern { Val = 28U });
             runProperties.Append(new FontSize { Val = HalfPoints(Theme.TypeScale.Title) });
             runProperties.Append(new FontSizeComplexScript { Val = HalfPoints(Theme.TypeScale.Title) });
@@ -121,7 +129,7 @@ namespace OfficeIMO.Word {
                 new PrimaryStyle(),
                 new StyleParagraphProperties(
                     new KeepNext(),
-                    new SpacingBetweenLines { Before = Twips(TitleSpacingPoints.Before), After = Twips(TitleSpacingPoints.After), Line = "240", LineRule = LineSpacingRuleValues.Auto },
+                    new SpacingBetweenLines { Before = Twips(Theme.TextStyle.TitleSpacing.Before.ToPoints()), After = Twips(Theme.TextStyle.TitleSpacing.After.ToPoints()), Line = "240", LineRule = LineSpacingRuleValues.Auto },
                     new ContextualSpacing()),
                 runProperties) {
                 Type = StyleValues.Paragraph,
@@ -141,7 +149,7 @@ namespace OfficeIMO.Word {
                     new KeepNext(),
                     new SpacingBetweenLines { Before = "0", After = Twips(Theme.Spacing.ParagraphAfter.ToPoints() * 1.5D) }),
                 new StyleRunProperties(
-                    new Color { Val = Hex(OfficeColor.Accent1) },
+                    new Color { Val = Hex(Theme.TextStyle.SubtitleColor) },
                     new FontSize { Val = HalfPoints(Theme.TypeScale.Heading3) },
                     new FontSizeComplexScript { Val = HalfPoints(Theme.TypeScale.Heading3) })) {
                 Type = StyleValues.Paragraph,
@@ -191,13 +199,14 @@ namespace OfficeIMO.Word {
             var header = new TableStyleProperties(
                 new StyleParagraphProperties(new KeepNext()),
                 new RunPropertiesBaseStyle(
-                    new Bold(),
-                    new BoldComplexScript(),
+                    new Bold { Val = table.HeaderBold },
+                    new BoldComplexScript { Val = table.HeaderBold },
                     new Color { Val = Hex(table.HeaderText) }),
                 new TableStyleConditionalFormattingTableRowProperties(new TableHeader()),
                 new TableStyleConditionalFormattingTableCellProperties(
                     new TableCellBorders(
-                        new BottomBorder { Val = BorderValues.Single, Color = Hex(OfficeColor.Accent1), Size = EighthPoints(TableHeaderRulePoints), Space = 0U }),
+                        new BottomBorder { Val = table.HeaderRule.IsVisible ? BorderValues.Single : BorderValues.Nil,
+                            Color = Hex(table.HeaderRule.Color), Size = EighthPoints(table.HeaderRule.Width.ToPoints()), Space = 0U }),
                     new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = Hex(table.HeaderFill) })) {
                 Type = TableStyleOverrideValues.FirstRow
             };
