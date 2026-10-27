@@ -189,6 +189,9 @@ public sealed class PdfConversionTypographyTests {
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
 
+        Assert.True(report.Warnings.Any(item => item.Code == "unsupported-script-specific-line-breaking"),
+            "Expected Thai line-breaking diagnostics. Actual: " + string.Join("; ", report.Warnings.Select(item => item.ToString())));
+
         PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings.Where(item =>
             item.Code == "unsupported-script-specific-line-breaking" &&
             item.Converter == expectedConverter).Take(1));
@@ -416,6 +419,7 @@ Zażółć gęślą jaźń
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(520, 320);
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
+        textBox.FontName = FamilyName;
         textBox.FontSize = 14;
 
         var options = new PowerPointPdfExportOptions {
@@ -473,9 +477,9 @@ Zażółć gęślą jaźń
                 PdfOptions = new PdfCore.PdfCreateOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar },
                 IncludeSheetHeadings = false
             };
-            PdfCore.PdfDocumentConversionResult? result = null;
-            AssertRenderAttempt(() => (result = document.ConvertToPdfWithEvidence(options)).ToBytes(), allowMissingGlyphFailure);
-            return result?.Report ?? new PdfCore.PdfConversionReport();
+            PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
+            AssertRenderAttempt(() => result.ToBytes(), allowMissingGlyphFailure);
+            return result.Report;
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);

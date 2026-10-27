@@ -385,6 +385,9 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds.Top,
                     bounds.Width,
                     bounds.Height);
+                // PDF placement already defines the frame, independently of the image's pixel ratio.
+                picture.SetSizePoints(bounds.Width, bounds.Height);
+                picture.SetPositionPoints(bounds.Left, bounds.Top);
                 if (pageRotation > 0.01D) {
                     picture.Rotation = pageRotation;
                 }

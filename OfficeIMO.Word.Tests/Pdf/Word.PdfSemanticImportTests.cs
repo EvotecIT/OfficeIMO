@@ -219,7 +219,10 @@ public partial class Word {
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Editable bullet item");
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Second Page");
         Assert.DoesNotContain(body.Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
-        Assert.Contains(body.Descendants<Text>(), text => text.Text.Contains("[PDF form Tx: Approval = Ready]", StringComparison.Ordinal));
+        SdtRun approval = Assert.Single(body.Descendants<SdtRun>(), control =>
+            control.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value == "Approval");
+        Assert.Equal("Approval", approval.SdtProperties?.GetFirstChild<SdtAlias>()?.Val?.Value);
+        Assert.Equal("Ready", string.Concat(approval.Descendants<Text>().Select(text => text.Text)));
         Assert.Equal(2, body.Descendants<SectionProperties>().Count());
 
         Paragraph heading = Assert.Single(body.Elements<Paragraph>(), paragraph => ReadParagraphText(paragraph) == "PDF Semantic Import");

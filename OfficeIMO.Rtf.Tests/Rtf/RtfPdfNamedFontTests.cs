@@ -115,7 +115,8 @@ public sealed class RtfPdfNamedFontTests {
         run.Bold = bold;
         run.Italic = italic;
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(CreateOptions(Target, substitute: true))));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(CreateOptions(Target, substitute: true)));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         var letters = actual.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters, letter => Assert.EndsWith("PortableSubstitute-" + face, letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -202,7 +203,8 @@ public sealed class RtfPdfNamedFontTests {
         if (explicitDefault) caller.DefaultFont = PdfCore.PdfStandardFont.Courier;
         byte[] sourceBefore = document.ToBytes();
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(caller)));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(caller));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         Assert.All(actual.GetPage(1).Letters, letter => Assert.Contains(
             explicitDefault ? "Courier" : "PortableSubstitute", letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -263,7 +265,8 @@ public sealed class RtfPdfNamedFontTests {
         PdfCore.PdfCreateOptions caller = CreateOptions(targetName, substitute: false);
         if (substitute) caller.RegisterFontFamilySubstitution(sourceName, targetName);
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(caller)));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(caller));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         var letters = actual.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters, letter => Assert.Contains("Portable", letter.FontName, StringComparison.OrdinalIgnoreCase));

@@ -183,6 +183,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_BoundsEncodedSemanticItemsDuringRendering() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                EmbedDefaultFonts = false,
                 PageWidth = 420,
                 PageHeight = 360,
                 DefaultFontSize = 10
@@ -1397,8 +1398,10 @@ public sealed class HtmlPdfTests {
         Assert.Contains("role=\"heading\" aria-level=\"2\"", appearanceHtml, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds(bool outsideLeft) {
         var pdfOptions = new PdfCore.PdfCreateOptions {
             PageWidth = 460,
             PageHeight = 360,
@@ -1425,22 +1428,25 @@ public sealed class HtmlPdfTests {
             .ToBytes();
         PdfCore.PdfLogicalPage baselinePage = PdfCore.PdfDocumentReadResult.Load(baselinePdf).Pages[0];
         PdfCore.PdfLogicalTable baselineTable = Assert.Single(baselinePage.Tables);
-        PdfCore.PdfLogicalTextBlock matchingRow = Assert.Single(
-            baselinePage.TextBlocks,
-            block => block.Text.Contains("Ready", StringComparison.Ordinal));
-        double outsideX = baselineTable.Columns[baselineTable.Columns.Count - 1].To + 18D;
-        double outsideY = baselinePage.Height - matchingRow.BaselineY - matchingRow.FontSize;
+        using var baselinePaint = PdfPigDocument.Open(baselinePdf);
+        var matchingWord = Assert.Single(baselinePaint.GetPage(1).GetWords(), word => word.Text == "Ready");
+        var matchingLetter = matchingWord.Letters[0];
+        double outsideX = outsideLeft ? 4D : baselineTable.Columns[baselineTable.Columns.Count - 1].To + 18D;
+        double outsideY = baselinePage.Height - matchingLetter.StartBaseLine.Y - matchingLetter.FontSize;
 
         byte[] pdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
             .Table(tableRows, style: tableStyle)
-            .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingRow.FontSize))
+            .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingLetter.FontSize))
             .ToBytes();
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);
-        double tableRight = table.Columns[table.Columns.Count - 1].To;
+        double tableLeft = table.Columns[0].From, tableRight = table.Columns[table.Columns.Count - 1].To;
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "HTML", "OfficeIMO.Html", "Ready" }, table.Rows[1]);
         Assert.Contains(page.TextBlocks, block =>
-            block.XStart > tableRight + 1D && block.Text.Contains("Ready", StringComparison.Ordinal));
+            (outsideLeft ? block.XEnd < tableLeft - 1D : block.XStart > tableRight + 1D) &&
+            block.Text.Contains("Ready", StringComparison.Ordinal));
 
         string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(
             PdfToHtmlOptions.CreatePositionedReviewProfile());

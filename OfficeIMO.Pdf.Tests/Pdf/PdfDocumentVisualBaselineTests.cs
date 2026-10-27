@@ -53,6 +53,7 @@ public class PdfDocumentVisualBaselineTests {
             .ToBytes();
 
         string snapshot = BuildVisualSnapshot(bytes);
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("representative-geometry", bytes);
         AssertVisualBaseline("officeimo-pdf-representative-report", snapshot);
     }
 
@@ -112,6 +113,7 @@ public class PdfDocumentVisualBaselineTests {
             .ToBytes();
 
         string snapshot = BuildVisualSnapshot(bytes);
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("professional-content", bytes);
         AssertVisualBaseline("officeimo-pdf-professional-report", snapshot);
     }
 

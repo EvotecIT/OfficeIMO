@@ -14,13 +14,11 @@ namespace OfficeIMO.Excel.Pdf {
         /// row heights, overflow and "####" decisions agree with the rendered glyphs.
         /// </summary>
         private sealed class WorksheetTextMeasurer {
-            private readonly PdfCore.PdfCreateOptions _pdfOptions;
+            private readonly Func<string?, double, string?, OfficeFontStyle, double> _measure;
             private readonly string? _defaultFamily;
-            private readonly Dictionary<(string Family, bool Bold, bool Italic), Func<string, double, double>> _measurers =
-                new(new FontKeyComparer());
 
             public WorksheetTextMeasurer(PdfCore.PdfCreateOptions pdfOptions, string? defaultFamily, double defaultFontSize, double defaultRowHeight, double workbookFontSize) {
-                _pdfOptions = pdfOptions;
+                _measure = PdfCore.PdfWriter.CreateDrawingTextMeasure(pdfOptions);
                 _defaultFamily = string.IsNullOrWhiteSpace(defaultFamily) ? null : defaultFamily;
                 DefaultFontSize = defaultFontSize > 0D ? defaultFontSize : 11D;
                 DefaultRowHeight = defaultRowHeight > 0D ? defaultRowHeight : 15D;
@@ -45,11 +43,10 @@ namespace OfficeIMO.Excel.Pdf {
             public double Measure(string text, ExcelCellStyleInfo? style) {
                 if (string.IsNullOrEmpty(text)) return 0D;
                 double size = GetFontSize(style);
-                string family = string.IsNullOrWhiteSpace(style?.FontName) ? _defaultFamily ?? string.Empty : style!.FontName!;
-                bool bold = style?.Bold == true;
-                bool italic = style?.Italic == true;
-                Func<string, double, double> measure = GetMeasurer(family, bold, italic);
-                double width = measure(text, size);
+                string? family = string.IsNullOrWhiteSpace(style?.FontName) ? _defaultFamily : style!.FontName;
+                OfficeFontStyle fontStyle = (style?.Bold == true ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+                    | (style?.Italic == true ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+                double width = _measure(text, size, family, fontStyle);
                 return double.IsNaN(width) || double.IsInfinity(width) || width < 0D ? text.Length * size * 0.6D : width;
             }
 
@@ -85,47 +82,6 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 return Math.Max(1, lines);
-            }
-
-            private Func<string, double, double> GetMeasurer(string family, bool bold, bool italic) {
-                var key = (family, bold, italic);
-                if (_measurers.TryGetValue(key, out Func<string, double, double>? cached)) return cached;
-                Func<string, double, double> measurer = CreateMeasurer(family, bold, italic);
-                _measurers[key] = measurer;
-                return measurer;
-            }
-
-            private Func<string, double, double> CreateMeasurer(string family, bool bold, bool italic) {
-                if (family.Length > 0 &&
-                    _pdfOptions.TryResolveNamedFontFace(family, bold, italic, out PdfCore.PdfNamedFontFace face)) {
-                    if (_pdfOptions.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType) && trueType != null) {
-                        return (text, size) => trueType.MeasureTextWidth(text, size);
-                    }
-
-                    if (_pdfOptions.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff) && cff != null) {
-                        return (text, size) => cff.MeasureTextWidth(text, size);
-                    }
-                }
-
-                PdfCore.PdfStandardFont standard = PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, bold, italic, out PdfCore.PdfStandardFont mapped)
-                    ? mapped
-                    : PdfCore.PdfStandardFontMapper.GetStyledFont(PdfCore.PdfStandardFont.Helvetica, bold, italic);
-                return (text, size) => {
-                    double units = 0D;
-                    foreach (char value in text) {
-                        units += PdfCore.PdfStandardFontWidths.TryGetWidth1000(standard, value, out int width) ? width : 556;
-                    }
-
-                    return units * size / 1000D;
-                };
-            }
-
-            private sealed class FontKeyComparer : IEqualityComparer<(string Family, bool Bold, bool Italic)> {
-                public bool Equals((string Family, bool Bold, bool Italic) x, (string Family, bool Bold, bool Italic) y) =>
-                    x.Bold == y.Bold && x.Italic == y.Italic && string.Equals(x.Family, y.Family, StringComparison.OrdinalIgnoreCase);
-
-                public int GetHashCode((string Family, bool Bold, bool Italic) obj) =>
-                    StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Family) ^ (obj.Bold ? 1 : 0) ^ (obj.Italic ? 2 : 0);
             }
         }
 

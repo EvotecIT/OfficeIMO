@@ -59,6 +59,8 @@ namespace OfficeIMO.Tests.Pdf {
         public void RowGridBeforeOffsetsCellsAndExpandsColumnCount() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(2, 3);
+            foreach (WordTableRow row in table.Rows)
+                foreach (WordTableCell cell in row.Cells) cell.Width = 720;
             table.GridColumnWidth = new List<int>();
             table.Rows[1].Cells[2].Remove();
             W.TableRowProperties rowProperties = table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();

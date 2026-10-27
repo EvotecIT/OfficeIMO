@@ -12,7 +12,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return PdfDocument.Create(options);
     }
 
-    private static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
+    internal static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
         WriteReviewArtifact(scenarioName + ".pdf", pdfBytes);
     }
 

@@ -70,6 +70,8 @@ internal static partial class TableDetector {
             if (row.Length != candidates.Length) continue;
             TextLayoutEngine.TextLine? header = row.Length == 1 ? row[0] : TryCombineSameBaselineLines(row.ToList());
             if (header is null) continue;
+            // A nearby list's marker and text are two spans, but they are not column labels.
+            if (ContentStructureExtractor.TryParseListItemText(header.Text, out _, out _, out _)) continue;
             string[] cells = AssignHeaderSpansToColumns(table, header);
             int filled = cells.Count(static cell => !string.IsNullOrWhiteSpace(cell));
             if (filled < 2 || filled * 2 < cells.Length || !LooksLikeHeaderLabels(cells)) continue;

@@ -44,8 +44,10 @@ public class RtfPdfConverterTests {
         Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(trusted.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void RtfDocument_ToPdfDocument_DocumentFontPolicyPreventsFontTableHostLookup() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RtfDocument_ToPdfDocument_DocumentFontPolicyKeepsLibraryEmbeddingIndependent(bool embedDefaultFonts) {
         string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         if (installedFamily == null) return;
@@ -58,10 +60,12 @@ public class RtfPdfConverterTests {
         policy.AllowDocumentFontEmbedding = false;
 
         PdfCore.PdfDocument converted = document.ToPdf(new RtfToPdfOptions {
-            ResourcePolicy = policy
+            ResourcePolicy = policy,
+            PdfOptions = new PdfCore.PdfCreateOptions { EmbedDefaultFonts = embedDefaultFonts }
         });
 
-        Assert.Empty(converted.Options.EmbeddedFonts);
+        if (embedDefaultFonts) Assert.NotEmpty(converted.Options.EmbeddedFonts);
+        else Assert.Empty(converted.Options.EmbeddedFonts);
         Assert.Contains("RTF document font boundary", PdfCore.PdfReadDocument.Open(converted.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 

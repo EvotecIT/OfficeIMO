@@ -1440,6 +1440,9 @@ public partial class HtmlOfficeAdapters {
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
             PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            // Exercise a deliberately stretched source frame rather than the contain default.
+            picture.SetSizePoints(120, 72);
+            picture.SetPositionPoints(80, 90);
             picture.Name = "Transformed picture";
             picture.AltText = "Transformed alt";
             picture.Rotation = 23.5D;

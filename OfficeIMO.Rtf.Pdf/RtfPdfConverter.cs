@@ -25,6 +25,11 @@ internal static partial class RtfPdfConverter {
             document,
             pdfOptions,
             normalized);
+        if (normalized.ResourcePolicy.AllowSystemFontEmbedding) {
+            pdfOptions.ApplyDefaultFontEmbedding(standardMetrics: true);
+        } else {
+            pdfOptions.EmbedDefaultFonts = false;
+        }
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
         PdfCore.PdfCreateOptions documentDefaults = pdfOptions.Clone();
         RtfPageSetup firstPageSetup = document.PageSetup;

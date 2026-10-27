@@ -799,7 +799,8 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.True(categoryTitle.Y > valueTitle.Y, "Expected horizontal axis title below the plot and value axis title near the value-axis labels.");
         Assert.Equal(OfficeTextAlignment.Center, categoryTitle.Alignment);
-        Assert.Equal(OfficeTextAlignment.Left, valueTitle.Alignment);
+        Assert.Equal(OfficeTextAlignment.Center, valueTitle.Alignment);
+        Assert.Equal(-90D, valueTitle.RotationDegrees);
     }
 
     [Fact]
@@ -2256,7 +2257,7 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.StrokeWidth == 0.5D &&
             shape.Shape.Width > 20D &&
             shape.Shape.Height <= 1D);
-        Assert.Equal(3, verticalGridLines);
+        Assert.Equal(2, verticalGridLines); // Nice ticks at 0, 5, 10 and 15 leave two inner gridlines.
         Assert.Equal(0, horizontalGridLines);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {

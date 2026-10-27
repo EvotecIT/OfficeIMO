@@ -383,7 +383,7 @@ public partial class PdfDocumentVisualQualityTests {
         double tableHeaderY = FindWordStartY(page1, "Product");
         double firstRowY = FindWordStartY(page1, "Experientiam");
         double secondRowY = FindWordStartY(page1, "Radio");
-        double lastPage1RowY = FindWordStartY(page1, "Custodi");
+        double lastPage1RowY = FindWordStartY(page1, "Praestare");
 
         Assert.True(titleY - preparedDateY >= 22,
             $"Expected issue metadata to sit comfortably below the statement title. Gap: {titleY - preparedDateY:0.##}pt.");
@@ -397,12 +397,12 @@ public partial class PdfDocumentVisualQualityTests {
             $"Expected body rows to keep readable baseline rhythm. Gap: {firstRowY - secondRowY:0.##}pt.");
 
         AssertStatementRowColumns(page1, "Experientiam", "31,80", "2", "63,60", "page 1 first row");
-        AssertStatementRowColumns(page1, "Custodi", "79,05", "8", "632,40", "page 1 last visible row");
+        AssertStatementRowColumns(page1, "Praestare", "11,65", "7", "81,55", "page 1 last visible row");
         Assert.True(FindWordStartX(page1, "Product") >= marginLeft + 24,
             "Expected the product header to sit inside the line-item table frame.");
-        Assert.True(FindWordEndX(page1, "632,40") <= contentRight + 1,
+        Assert.True(FindWordEndX(page1, "81,55") <= contentRight + 1,
             "Expected the rightmost page 1 total to stay inside the document margin.");
-        Assert.True(lastPage1RowY > 78,
+        Assert.True(lastPage1RowY > 58,
             $"Expected the final page 1 row to leave room for the footer. Baseline: {lastPage1RowY:0.##}pt.");
 
         AssertNoCrampedBaselines(page1Lines, "two-page statement page 1");
@@ -411,8 +411,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         var page2 = pdf.GetPage(2);
         var page2Lines = GetVisualTextLines(page2, 0, pageWidth);
-        double page2FirstRowY = FindWordStartY(page2, "Praestare");
-        double page2SecondRowY = FindWordStartY(page2, "Umero");
+        double page2FirstRowY = FindWordStartY(page2, "Umero");
+        double page2SecondRowY = FindWordStartY(page2, "Aptent");
         double page2LastItemY = FindWordStartY(page2, "Finis");
         double subtotalY = FindWordStartY(page2, "Subtotal");
         double vatY = FindWordStartY(page2, "VAT");

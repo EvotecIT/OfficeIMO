@@ -174,6 +174,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
+        // Reconstruction keeps the authored frame, including deliberate stretching and crop.
+        picture.SetSizePoints(width, height);
+        picture.SetPositionPoints(left, pictureTop);
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         string alt = NormalizeText(image.GetAttribute("alt"));
         if (label.Length > 0) {

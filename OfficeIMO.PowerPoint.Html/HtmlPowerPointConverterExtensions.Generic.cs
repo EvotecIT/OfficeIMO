@@ -610,6 +610,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             using var stream = new MemoryStream(image.Bytes);
             PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
                 pictureLeft, pictureTop, pictureWidth, pictureHeight);
+            // The HTML layout already resolved object-fit and the visible image frame.
+            picture.SetSizePoints(pictureWidth, pictureHeight);
+            picture.SetPositionPoints(pictureLeft, pictureTop);
             nativeRegionShapes.Add(picture);
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
             if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
@@ -701,6 +704,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
+        picture.SetSizePoints(width, height);
+        picture.SetPositionPoints(64D, top);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         result.Pictures++;

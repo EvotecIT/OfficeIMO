@@ -100,6 +100,7 @@ internal static partial class TableDetector {
             tables.AddRange(positionedTables);
         }
         List<TextLayoutEngine.TextLine> pageLines = nonLeaderBands.SelectMany(static band => band).ToList();
+        RecoverTablesWithPeripheralRowText(tables, pageLines, consumeWork, cancellationCheck);
         MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
         AbsorbWrappedRows(tables, pageLines, consumeWork, cancellationCheck);

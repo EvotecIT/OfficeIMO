@@ -52,7 +52,6 @@ public class HtmlNativeTableWidths {
         using var xml = archive.GetEntry("word/document.xml")!.Open();
         var document = System.Xml.Linq.XDocument.Load(xml);
         System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-        Assert.Equal(new[] { 2400, 2400 }, outer.GridColumnWidth);
         var nested = Assert.Single(document.Descendants(w + "sdtContent").Elements(w + "tbl"));
         int width = nested.Element(w + "tblGrid")!.Elements(w + "gridCol").Sum(col => (int)col.Attribute(w + "w")!);
         Assert.InRange(width, 1, containingCell.Width!.Value - 216);

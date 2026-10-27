@@ -854,6 +854,8 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);
             list.Numbering.Levels[0]._level.LevelText!.Val = "o";
+            // These are literal text markers, not character codes in a symbol font.
+            list.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
             list.AddItem("One");
             list.AddItem("Two");
 
@@ -911,6 +913,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);
             list.Numbering.Levels[0]._level.LevelText!.Val = "-";
+            list.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
             list.AddItem("One");
             list.AddItem("Two");
 
@@ -926,9 +929,11 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var starList = doc.AddList(WordListStyle.Bulleted);
             starList.Numbering.Levels[0]._level.LevelText!.Val = "*";
+            starList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
             starList.AddItem("Star");
             var plusList = doc.AddList(WordListStyle.Bulleted);
             plusList.Numbering.Levels[0]._level.LevelText!.Val = "+";
+            plusList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
             plusList.AddItem("Plus");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
