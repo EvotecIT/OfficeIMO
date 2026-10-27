@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Horizontal position of the shape in EMUs.
         /// </summary>
         public long Left {
-            get => GetOffset().X?.Value ?? 0L;
+            get => PeekOffset()?.X?.Value ?? 0L;
             set => GetOffset().X = value;
         }
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Vertical position of the shape in EMUs.
         /// </summary>
         public long Top {
-            get => GetOffset().Y?.Value ?? 0L;
+            get => PeekOffset()?.Y?.Value ?? 0L;
             set => GetOffset().Y = value;
         }
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Width of the shape in EMUs.
         /// </summary>
         public long Width {
-            get => GetExtents().Cx?.Value ?? 0L;
+            get => PeekExtents()?.Cx?.Value ?? 0L;
             set => GetExtents().Cx = value;
         }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Height of the shape in EMUs.
         /// </summary>
         public long Height {
-            get => GetExtents().Cy?.Value ?? 0L;
+            get => PeekExtents()?.Cy?.Value ?? 0L;
             set => GetExtents().Cy = value;
         }
 
@@ -452,6 +452,26 @@ namespace OfficeIMO.PowerPoint {
         public void MoveByInches(double offsetXInches, double offsetYInches) {
             MoveBy(PowerPointUnits.FromInches(offsetXInches), PowerPointUnits.FromInches(offsetYInches));
         }
+
+        // Reading a position must not write an empty transform: a placeholder without one inherits its layout's
+        // geometry, and an empty <a:off/> is invalid.
+        private A.Offset? PeekOffset() => Element switch {
+            Shape s => s.ShapeProperties?.Transform2D?.Offset,
+            ConnectionShape c => c.ShapeProperties?.Transform2D?.Offset,
+            Picture p => p.ShapeProperties?.Transform2D?.Offset,
+            GraphicFrame g => g.Transform?.Offset,
+            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Offset,
+            _ => GetOffset()
+        };
+
+        private A.Extents? PeekExtents() => Element switch {
+            Shape s => s.ShapeProperties?.Transform2D?.Extents,
+            ConnectionShape c => c.ShapeProperties?.Transform2D?.Extents,
+            Picture p => p.ShapeProperties?.Transform2D?.Extents,
+            GraphicFrame g => g.Transform?.Extents,
+            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Extents,
+            _ => GetExtents()
+        };
 
         private A.Offset GetOffset() {
             switch (Element) {
