@@ -92,6 +92,26 @@ public sealed class PdfReverseConversionQualityTests {
         Assert.Equal(8134.38D, double.Parse(cells[4].CellValue!.Text, CultureInfo.InvariantCulture), 2);
     }
 
+    [Fact]
+    public void RightAlignedFiguresNextToTextColumnsStaySeparateColumns() {
+        // Themed tables right-align numbers, so a figure ends close to the next left-aligned column.
+        byte[] pdf = PdfDocument.Create()
+            .H1("Quarterly results")
+            .Paragraph(paragraph => paragraph.Text("Revenue improved in the current quarter."))
+            .Table(new[] {
+                new[] { "Region", "Revenue", "Active" },
+                new[] { "North", "1250", "True" },
+                new[] { "South", "980", "False" },
+                new[] { "West", "1430", "True" }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfDocument.Load(pdf).Read().Tables);
+        Assert.Equal(3, table.Columns.Count);
+        Assert.Equal(new[] { "Region", "Revenue", "Active" }, table.Rows[0]);
+        Assert.Equal(new[] { "North", "1250", "True" }, table.Rows[1]);
+    }
+
     [Theory]
     [InlineData("31,80", false, 0D)]
     [InlineData("1,234.50", true, 1234.5D)]
@@ -138,6 +158,20 @@ public sealed class PdfReverseConversionQualityTests {
         Assert.DoesNotContain(body.Descendants<W.Paragraph>(), paragraph =>
             paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value?.StartsWith("Heading", StringComparison.Ordinal) == true &&
             !paragraph.InnerText.Any(char.IsLetter));
+    }
+
+    [Fact]
+    public void VectorChartIsPlacedAsAPictureWithoutLooseLabels() {
+        using var output = new MemoryStream();
+        OfficeConversionReport report = LoadFixture("Pdf.Showcase.Dashboard.pdf").SaveAsWord(output);
+        using WordprocessingDocument document = WordprocessingDocument.Open(new MemoryStream(output.ToArray()), false);
+        W.Body body = document.MainDocumentPart!.Document!.Body!;
+
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "pdf-vector-figure-rasterized");
+        Assert.NotEmpty(body.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline>());
+        // The axis and data labels are part of the picture, not separate paragraphs.
+        Assert.DoesNotContain(body.Elements<W.Paragraph>(), paragraph => paragraph.InnerText.Trim() == "September");
+        Assert.DoesNotContain(body.Elements<W.Paragraph>(), paragraph => paragraph.InnerText.Trim() == "812");
     }
 
     [Fact]

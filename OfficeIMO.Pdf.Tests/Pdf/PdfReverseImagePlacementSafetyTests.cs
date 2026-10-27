@@ -829,14 +829,16 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.NotEmpty(logical.Tables);
+        // Cells keep the source cell font size, scaled by the page user unit.
+        double sourceFontSize = logical.Pages[0].TextBlocks.First(static block => block.Text.Contains("Service", StringComparison.Ordinal)).FontSize;
 
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
-            Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+            Assert.All(table.Rows.SelectMany(static row => row.Cells), cell =>
+                Assert.All(cell.Paragraphs, paragraph => Assert.Equal(sourceFontSize * 2D, paragraph.FontSizePoints)));
         }
     }
 
