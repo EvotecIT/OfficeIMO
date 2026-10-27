@@ -136,7 +136,12 @@ var document = MarkdownDocument.Create()
 string fragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment });
 string fullPage = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 MarkdownHtmlParts parts = document.ToHtmlParts();
+
+// Without options, SaveAsHtml writes a complete, styled page.
+document.SaveAsHtml("status.html");
 ```
+
+The default `Clean` style follows the Office theme: it declares `--office-*` custom properties (colours, font stacks, type scale and table tokens) and uses tabular figures with right-aligned numeric columns. Choose `MarkdownHtmlStyle.Word`, a GitHub style or `Plain` for other looks.
 
 ### Parse, inspect, and rewrite a document
 

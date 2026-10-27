@@ -495,6 +495,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
+        // Form controls have no in-flow text to shrink to; their used width is the control's own
+        // default size, exactly as in normal flow (a positioned checkbox stays a checkbox).
+        if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) {
+            HtmlRenderBoxStyle controlStyle = CreateFormControlStyle(element, style);
+            double controlAvailable = Math.Max(1D, containingWidth - controlStyle.MarginLeft - controlStyle.MarginRight);
+            double controlContent = ResolveDefaultFormControlContentWidth(element, controlStyle, controlAvailable);
+            double controlBox = ResolveFormControlBoxWidth(controlStyle, controlContent, controlAvailable);
+            return Math.Max(1D, controlStyle.MarginLeft + controlBox + controlStyle.MarginRight);
+        }
         // Shrink-to-fit uses the same styled in-flow content as flex/grid sizing.
         // TextContent omits generated content and replaced descendants and loses child font styles.
         IReadOnlyList<IntrinsicTextRun> content = ResolveInFlowIntrinsicTextRuns(

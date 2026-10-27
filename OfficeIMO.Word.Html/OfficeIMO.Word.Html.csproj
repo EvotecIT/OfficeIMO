@@ -79,4 +79,7 @@
     </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Tests" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Html\OfficeThemeCssTokens.cs" Link="SharedSource\Html\OfficeThemeCssTokens.cs" />
+  </ItemGroup>
 </Project>

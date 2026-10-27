@@ -15,9 +15,83 @@ namespace OfficeIMO.Word.Markdown {
             return WordFontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
         }
 
+        internal const string CodeStylePrefix = "CodeLang_";
+
+        /// <summary>
+        /// Writes a code block as one monospace run whose lines are separated by line breaks, so every line,
+        /// including blank and indented ones, keeps the same font and size. The paragraph uses a real
+        /// <c>CodeLang_*</c> paragraph style that records the fence language for Word to Markdown export.
+        /// </summary>
+        private static void AddCodeText(WordParagraph paragraph, string? content, string? language) {
+            string code = (content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+            if (code.EndsWith("\n", StringComparison.Ordinal)) {
+                code = code.Substring(0, code.Length - 1);
+            }
+
+            string monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
+            WordParagraph run = paragraph.AddText(string.Empty);
+            run.Text = code;
+            foreach (WordParagraph codeRun in paragraph.GetRuns()) {
+                codeRun.SetFontFamily(monoFont);
+            }
+            string styleId = CodeStylePrefix + SanitizeCodeLanguage(language);
+            EnsureCodeParagraphStyle(paragraph._document, styleId, language, monoFont);
+            paragraph.SetStyleId(styleId);
+        }
+
+        private static string SanitizeCodeLanguage(string? language) {
+            if (string.IsNullOrWhiteSpace(language)) {
+                return string.Empty;
+            }
+
+            var builder = new System.Text.StringBuilder();
+            foreach (char c in language!.Trim()) {
+                if (c < 128 && (char.IsLetterOrDigit(c) || c == '-' || c == '+' || c == '#' || c == '_')) {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        private static void EnsureCodeParagraphStyle(WordDocument document, string styleId, string? language, string monoFont) {
+            document.EnsureStyleDefinitionsInitialized();
+            var styles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (styles == null || styles.Elements<Style>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))) {
+                return;
+            }
+
+            string name = string.IsNullOrWhiteSpace(language) ? "Code" : "Code (" + language!.Trim() + ")";
+            var style = new Style(
+                new StyleName { Val = name },
+                new BasedOn { Val = "Normal" },
+                new NextParagraphStyle { Val = "Normal" },
+                new UIPriority { Val = 99 },
+                new PrimaryStyle(),
+                new StyleParagraphProperties(
+                    new KeepLines(),
+                    new SpacingBetweenLines { Before = "60", After = "160", Line = "240", LineRule = LineSpacingRuleValues.Auto }),
+                new StyleRunProperties(
+                    new RunFonts { Ascii = monoFont, HighAnsi = monoFont, ComplexScript = monoFont, EastAsia = monoFont },
+                    new FontSize { Val = "19" },
+                    new FontSizeComplexScript { Val = "19" })) {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            };
+            styles.Append(style);
+        }
+
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment) {
             if (quoteDepth > 0) {
                 paragraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
+                // A quote reads as a quote, not just an indent: a rule on the left in the theme's border colour.
+                paragraph.Borders.LeftStyle = WordBorderStyle.Single;
+                paragraph.Borders.LeftColorHex = OfficeTheme.Default.TableStyle.BorderColor.IsThemeRole
+                    ? OfficeTheme.Default.TableStyle.BorderColor.Resolve(OfficeTheme.Default).ToRgbHex()
+                    : OfficeTheme.Default.TableStyle.BorderColor.ToRgbHex();
+                paragraph.Borders.LeftSize = 18;
+                paragraph.Borders.LeftSpace = 8;
             }
 
             ApplyAlignment(alignment, paragraph);

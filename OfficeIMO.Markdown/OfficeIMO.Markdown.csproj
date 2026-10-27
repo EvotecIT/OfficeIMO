@@ -73,4 +73,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
     </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Html\OfficeThemeCssTokens.cs" Link="SharedSource\Html\OfficeThemeCssTokens.cs" />
+  </ItemGroup>
 </Project>

@@ -54,7 +54,16 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            if (System.IO.File.Exists(imageSource)) {
+            string? localImagePath = ResolveLocalImagePath(imageSource, options);
+            if (localImagePath != null && !System.IO.File.Exists(localImagePath)) {
+                ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
+                    $"Image '{imageSource}' was not found at '{localImagePath}'; its alternative text was written instead.", imageSource);
+                AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
+                return;
+            }
+
+            if (localImagePath != null) {
+                imageSource = localImagePath;
                 if (options.AllowLocalImages && LocalPathAllowed(imageSource, options)) {
                     double? naturalW = null;
                     double? naturalH = null;
@@ -79,13 +88,25 @@ namespace OfficeIMO.Word.Markdown {
 
                     paragraph.AddImage(imageSource, finalW, finalH, description: alt ?? string.Empty);
                 } else {
+                    ReportImageLoss(options, OfficeDiagnosticCodes.ImageSkippedByPolicy,
+                        options.AllowLocalImages
+                            ? $"Local image '{pathOrUrl}' is outside AllowedImageDirectories; its alternative text was written instead."
+                            : $"Local image '{pathOrUrl}' was not embedded because AllowLocalImages is disabled; its alternative text was written instead.",
+                        pathOrUrl);
                     AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
                 }
 
                 return;
             }
 
-            if (System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out var uri)) {
+            System.Uri? uri;
+            if (!System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out uri)
+                && TryGetRemoteBase(options, out var remoteBase)
+                && !string.IsNullOrWhiteSpace(imageSource)) {
+                System.Uri.TryCreate(remoteBase, imageSource, out uri);
+            }
+
+            if (uri != null) {
                 if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
                     (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
                     if (options.RemoteImageResolver != null) {
@@ -149,7 +170,89 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
+            ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
+                $"Image source '{imageSource}' could not be resolved; its alternative text was written instead.", imageSource);
             AddImageFallbackText(paragraph, alt, imageSource, options);
+        }
+
+        private static void ReportImageLoss(WordMarkdownImportOptions options, string code, string message, string? location) {
+            if (options.DiagnosticSink != null) {
+                options.DiagnosticSink(new WordMarkdownConversionDiagnostic(code, message, OfficeConversionLossKind.Omission,
+                    OfficeDiagnosticSeverity.Warning, location, "Markdown"));
+            } else {
+                options.OnWarning?.Invoke(message);
+            }
+        }
+
+        /// <summary>
+        /// Resolves a Markdown image reference to a local file path. Absolute paths and <c>file:</c> URIs are used
+        /// as given; relative references resolve against <see cref="WordMarkdownImportOptions.BaseUri"/> when it is a
+        /// local directory or <c>file:</c> URI, otherwise against the directory of the Markdown source file.
+        /// Returns <see langword="null"/> for remote URLs, data URIs and relative references with no local base.
+        /// </summary>
+        private static string? ResolveLocalImagePath(string source, WordMarkdownImportOptions options) {
+            if (string.IsNullOrWhiteSpace(source)) {
+                return null;
+            }
+
+            string reference = source.Trim();
+            int fragment = reference.IndexOfAny(new[] { '?', '#' });
+            try {
+                if (System.Uri.TryCreate(reference, System.UriKind.Absolute, out var absolute) && !IsDrivePath(reference)) {
+                    return absolute.IsFile ? absolute.LocalPath : null;
+                }
+
+                if (System.IO.Path.IsPathRooted(reference)) {
+                    return System.IO.Path.GetFullPath(reference);
+                }
+
+                string relative = System.Uri.UnescapeDataString(fragment >= 0 ? reference.Substring(0, fragment) : reference)
+                    .Replace('/', System.IO.Path.DirectorySeparatorChar);
+                if (TryGetRemoteBase(options, out _)) {
+                    return null;
+                }
+
+                // Without a base URI or source file, relative paths keep resolving against the working directory.
+                string? baseDirectory = ResolveLocalBaseDirectory(options);
+                return baseDirectory == null
+                    ? System.IO.Path.GetFullPath(relative)
+                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDirectory, relative));
+            } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is System.IO.PathTooLongException || ex is UriFormatException) {
+                return null;
+            }
+        }
+
+        private static bool IsDrivePath(string value) =>
+            value.Length >= 3 && char.IsLetter(value[0]) && value[1] == ':' && (value[2] == '\\' || value[2] == '/');
+
+        private static bool TryGetRemoteBase(WordMarkdownImportOptions options, out System.Uri? remoteBase) {
+            remoteBase = null;
+            string? baseUri = options.BaseUri?.Trim();
+            if (string.IsNullOrEmpty(baseUri) || IsDrivePath(baseUri!)) {
+                return false;
+            }
+
+            if (System.Uri.TryCreate(baseUri, System.UriKind.Absolute, out var uri) && !uri.IsFile) {
+                remoteBase = uri;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string? ResolveLocalBaseDirectory(WordMarkdownImportOptions options) {
+            string? baseUri = options.BaseUri;
+            if (!string.IsNullOrWhiteSpace(baseUri)) {
+                string trimmed = baseUri!.Trim();
+                if (System.Uri.TryCreate(trimmed, System.UriKind.Absolute, out var uri) && !IsDrivePath(trimmed)) {
+                    // A remote base (https://...) cannot locate local files; relative images stay unresolved.
+                    return uri.IsFile ? uri.LocalPath : null;
+                }
+
+                return System.IO.Path.GetFullPath(trimmed);
+            }
+
+            return options.SourceDirectory;
         }
 
         private static bool TryRenderDataUriImage(

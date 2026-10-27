@@ -387,13 +387,16 @@ internal static class HtmlRenderer {
             return options.Theme.Clone();
         }
 
-        bool useDefaultTheme = options.ApplyDefaultTheme
-            && (options.Style == MarkdownHtmlStyle.Clean || options.Style == MarkdownHtmlStyle.Word);
+        // Clean is already the themed default (OfficeTheme tokens); the legacy default visual theme only
+        // decorates the Word style, which keeps its Word-like palette.
+        bool useDefaultTheme = options.ApplyDefaultTheme && options.Style == MarkdownHtmlStyle.Word;
         return MarkdownVisualTheme.ResolveOrDefault(null, useDefaultTheme);
     }
 
     private static MarkdownHtmlStyle GetEffectiveStyle(MarkdownHtmlExportOptions options, MarkdownVisualTheme? visualTheme) {
-        if (visualTheme != null && options.Style == MarkdownHtmlStyle.Clean) {
+        // Only an explicitly chosen theme selects its own stylesheet. The implicit default theme only tints
+        // the requested style, so Clean output stays Clean instead of silently becoming the Word look.
+        if (visualTheme != null && options.Theme != null && options.Style == MarkdownHtmlStyle.Clean) {
             return visualTheme.HtmlStyle;
         }
 

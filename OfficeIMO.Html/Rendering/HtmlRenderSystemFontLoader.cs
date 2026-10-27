@@ -38,7 +38,7 @@ internal static partial class HtmlRenderSystemFontLoader {
                 ? found : (options.DefaultFontFamily, OfficeFontFaceDescriptor.Regular);
             string tag = element.TagName.ToLowerInvariant();
             string fallback = HtmlRenderStyleResolver.UsesDocumentMonospaceFamily(tag, options) ? HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options) : parent.Families;
-            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback, HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options));
+            string families = HtmlRenderStyleResolver.ResolveElementFontFamily(tag, computed, fallback, options);
             OfficeFontFaceDescriptor descriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(tag, computed, parent.Descriptor);
             inherited[element] = (families, descriptor);
             DefaultFontVisibility parentVisibility = element.ParentElement != null

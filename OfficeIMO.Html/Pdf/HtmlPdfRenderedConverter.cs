@@ -148,6 +148,17 @@ internal static partial class HtmlPdfRenderedConverter {
         // current permissions for synchronous reads just as for asynchronous reads below.
         if (!options.ResourcePolicy.AllowEmbeddedPackageResources)
             renderOptions.SynchronousResourceResolver = null;
+        if (options.ResourcePolicy.AllowLocalFileAccess) {
+            // A host that allows local file access expects file: images, stylesheets and fonts next to
+            // the document to load, in synchronous and asynchronous saves alike.
+            HtmlRenderSynchronousResourceResolver? packageResolver = renderOptions.SynchronousResourceResolver;
+            long maximumBytes = renderOptions.MaxResourceBytes;
+            renderOptions.SynchronousResourceResolver = (HtmlRenderResourceRequest resource, CancellationToken token,
+                out HtmlResolvedResource? resolved) => {
+                if (packageResolver != null && packageResolver(resource, token, out resolved)) return true;
+                return TryReadLocalFileResource(resource, maximumBytes, token, out resolved);
+            };
+        }
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -182,8 +193,56 @@ internal static partial class HtmlPdfRenderedConverter {
                     : null;
             };
         }
+        if (options.ResourcePolicy.AllowLocalFileAccess) {
+            HtmlRenderResourceResolver? configuredResolver = renderOptions.ResourceResolver;
+            long maximumBytes = renderOptions.MaxResourceBytes;
+            renderOptions.ResourceResolver = async (resource, cancellationToken) => {
+                if (configuredResolver != null) {
+                    HtmlResolvedResource? configured = await configuredResolver(resource, cancellationToken).ConfigureAwait(false);
+                    if (configured != null) return configured;
+                }
+
+                return TryReadLocalFileResource(resource, maximumBytes, cancellationToken, out HtmlResolvedResource? local) ? local : null;
+            };
+        }
         return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
     }
+
+    private static bool TryReadLocalFileResource(HtmlRenderResourceRequest request, long maximumBytes,
+        CancellationToken cancellationToken, out HtmlResolvedResource? resource) {
+        cancellationToken.ThrowIfCancellationRequested();
+        resource = null;
+        if (!request.Uri.IsAbsoluteUri || !request.Uri.IsFile
+            || request.Kind is HtmlResourceKind.Script or HtmlResourceKind.Hyperlink) return false;
+        string contentType = GetLocalFileContentType(System.IO.Path.GetExtension(request.Uri.LocalPath));
+        if (contentType.Length == 0) return false;
+        try {
+            var file = new System.IO.FileInfo(request.Uri.LocalPath);
+            if (!file.Exists || maximumBytes >= 0 && file.Length > maximumBytes) return false;
+            resource = new HtmlResolvedResource(System.IO.File.ReadAllBytes(file.FullName), contentType);
+            return true;
+        } catch (System.IO.IOException) {
+            return false;
+        } catch (System.UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    private static string GetLocalFileContentType(string extension) => extension.ToLowerInvariant() switch {
+        ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".bmp" => "image/bmp",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
+        ".tif" or ".tiff" => "image/tiff",
+        ".css" => "text/css",
+        ".ttf" => "font/ttf",
+        ".otf" => "font/otf",
+        ".woff" => "font/woff",
+        ".woff2" => "font/woff2",
+        _ => string.Empty
+    };
 
     private static HtmlPdfRenderResult ConvertCore(
         HtmlConversionDocument document,
