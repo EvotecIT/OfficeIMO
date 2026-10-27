@@ -18,6 +18,23 @@ public class PdfPeripheralTableRecoveryTests {
         Assert.Empty(TableDetector.DetectTablesFromBands(bands));
     }
 
+    [Theory]
+    [InlineData("•", 4)]
+    [InlineData("1.", 3)]
+    [InlineData("1)", 3)]
+    [InlineData("(1)", 3)]
+    public void CompactListsRemainListsAcrossTableRecoveryPaths(string marker, int count) {
+        var bands = new List<List<TextLayoutEngine.TextLine>>();
+        string[] labels = { "Alpha", "Bravo", "Charlie", "Delta" };
+        for (int index = 0; index < count; index++) {
+            string font = index == 0 ? "Helvetica-Bold" : "Helvetica";
+            bands.Add(new() { Line(520D - index * 20D,
+                (marker, 40D, 10D, font), (labels[index], 80D, 35D, font)) });
+        }
+
+        Assert.Empty(TableDetector.DetectTablesFromBands(bands));
+    }
+
     [Fact]
     public void NumberedRowsWithARealColumnHeaderRemainATable() {
         var bands = new List<List<TextLayoutEngine.TextLine>> {

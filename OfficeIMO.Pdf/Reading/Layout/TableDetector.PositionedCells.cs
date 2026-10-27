@@ -485,7 +485,7 @@ internal static partial class TableDetector {
             .SelectMany(static cell => cell.SourceRuns)
             .Distinct()
             .ToArray();
-        if (!HasNarrativeColumnEvidence(table)) result.Add(table);
+        if (!HasHangingListColumnEvidence(table) && !HasNarrativeColumnEvidence(table)) result.Add(table);
     }
 
     private static bool TryPartitionPositionedRows(
