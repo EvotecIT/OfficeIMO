@@ -126,7 +126,9 @@ namespace OfficeIMO.Excel {
                     await enumerator.DisposeAsync().ConfigureAwait(false);
                 }
 
-                writer.Write("</sheetData></worksheet>");
+                writer.Write("</sheetData>");
+                if (sheet.HasTable) writer.Write("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
+                writer.Write("</worksheet>");
                 await writer.FlushAsync().ConfigureAwait(false);
                 ct.ThrowIfCancellationRequested();
                 return rowCount;

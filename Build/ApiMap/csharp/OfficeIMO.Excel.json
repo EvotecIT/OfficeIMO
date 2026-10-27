@@ -5016,6 +5016,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "Password-bearing Load retains encrypted SaveOnDispose without copying plaintext back into the decoder stream. Legacy XLS BOF and truncation classifiers use mapped lowercase diagnostic identifiers. Lazy reader admission tests access schema before asserting malformed styles, shared strings or XML text limits; private XLSB fixture assertions now exercise the public lazy reader boundary. XLSB unprojected record findings use the catalog code and preserve record locations in structured fields."
+    },
+    {
+      "phase": "B",
+      "applied": "implemented-streaming-writer-qualified",
+      "note": "ExcelDocument.CreateWriter returns ExcelWorkbookWriter. Multiple typed synchronous/asynchronous tables, explicit row callbacks, DataTable and IDataReader reuse the native XLSX row encoder with inline strings and deferred package metadata. OfficeTheme is emitted as native theme/font data. File output uses the existing atomic file commit owner, and failed row sources discard the staging file. Native package, cancellation and non-seekable ownership checks pass on net8.0/net10.0; legacy static entry-point consumer migration remains part of Phase B."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

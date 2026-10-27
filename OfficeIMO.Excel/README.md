@@ -49,6 +49,32 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+## Stream a large export
+
+The editable workbook model retains cells until saving. `CreateWriter` writes each
+row as it arrives and retains only column definitions and workbook metadata. Use
+inline strings and fixed column sizing; shared-string collection and automatic
+sizing are rejected because they require retaining values.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using System.Linq;
+
+var events = Enumerable.Range(1, 1000).Select(id => new { Id = id, Name = $"Event {id}" });
+using var writer = ExcelDocument.CreateWriter("events.xlsx", theme: OfficeTheme.Modern);
+writer.WriteTable("Events", events);
+```
+
+`WriteTable` also accepts an `IAsyncEnumerable<T>` (await the returned task),
+`DataTable`, or forward-only `IDataReader`. Readers remain caller-owned. An
+explicit header list and row callback supports schemas without reflection. Each
+call creates another worksheet; each source is consumed once. Dispose completes
+the package. File destinations are replaced atomically after successful output;
+a failed or cancelled source discards the staged file. No table calls leave a
+file destination unchanged. Stream destinations support non-seekable output;
+use `leaveOpen: true` to retain the stream after completion.
+
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
 
 ```csharp
