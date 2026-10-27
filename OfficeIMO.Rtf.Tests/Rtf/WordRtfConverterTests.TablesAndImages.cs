@@ -510,7 +510,7 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_Image_Diagnostics_Include_Hyperlink_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/hyperlink.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/hyperlink.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run imageRun = image._run!;
         imageRun.Remove();
         paragraph._paragraph.Append(new Hyperlink(imageRun) { Anchor = "linked-image" });
@@ -528,13 +528,13 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_Image_Diagnostics_Include_Deleted_And_MoveFrom_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph deletedParagraph = word.AddParagraph();
-        WordParagraph deletedImage = deletedParagraph.AddImage(new Uri("https://example.test/deleted.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        WordParagraph deletedImage = deletedParagraph.AddImage(new Uri("https://example.test/deleted.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run deletedRun = deletedImage._run!;
         deletedRun.Remove();
         deletedParagraph._paragraph.Append(new DeletedRun(deletedRun) { Author = "Reviewer" });
 
         WordParagraph movedParagraph = word.AddParagraph();
-        WordParagraph movedImage = movedParagraph.AddImage(new Uri("https://example.test/moved.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        WordParagraph movedImage = movedParagraph.AddImage(new Uri("https://example.test/moved.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run movedRun = movedImage._run!;
         movedRun.Remove();
         movedParagraph._paragraph.Append(new MoveFromRun(movedRun) { Author = "Reviewer" });
@@ -721,7 +721,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
-        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/field-instruction.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/field-instruction.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run imageRun = image._run!;
         imageRun.Remove();
         paragraph._paragraph.Append(imageRun);

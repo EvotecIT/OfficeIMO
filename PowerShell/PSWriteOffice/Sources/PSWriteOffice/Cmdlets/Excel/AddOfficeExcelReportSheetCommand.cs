@@ -1,9 +1,10 @@
+using OfficeIMO.Excel;
 using System.Management.Automation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.</summary>
+/// <summary>Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.</summary>
 /// <example>
 ///   <summary>Create a composed report sheet.</summary>
 ///   <prefix>PS&gt; </prefix>

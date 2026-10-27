@@ -132,12 +132,17 @@ public static partial class WordRtfConverterExtensions {
 
         using var stream = new MemoryStream(payload);
         if (!TryGetWordImageLayout(image, payload, fileName, out RtfImageLayout? layout)) return;
-        if (UsesOrdinaryRunningVmlImage(paragraph, image, layout!)) {
-            paragraph.AddImage(stream, fileName, OfficeLength.Points(layout!.VisibleWidthTwips / 20D),
-                OfficeLength.Points(layout.VisibleHeightTwips / 20D), new WordImageOptions { Vml = true, Description = image.Description ?? string.Empty });
+        OfficeLength? width = layout!.VisibleWidthTwips is { } widthTwips
+            ? OfficeLength.Points(widthTwips / 20D) : null;
+        OfficeLength? height = layout.VisibleHeightTwips is { } heightTwips
+            ? OfficeLength.Points(heightTwips / 20D) : null;
+        if (UsesOrdinaryRunningVmlImage(paragraph, image, layout)) {
+            paragraph.AddImage(stream, fileName, width, height,
+                new WordImageOptions { Vml = true, Description = image.Description ?? string.Empty });
             return;
         }
-        WordImage output = paragraph.AddImage(stream, fileName, OfficeIMO.OfficeLength.Pixels(layout!.VisibleWidthTwips * PixelsPerTwip), OfficeIMO.OfficeLength.Pixels(layout.VisibleHeightTwips * PixelsPerTwip), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = image.Description ?? string.Empty });
+        WordImage output = paragraph.AddImage(stream, fileName, width, height,
+            new WordImageOptions { Description = image.Description ?? string.Empty });
         output.CropLeft = ToWordCrop(image.CropLeftTwips, layout.WidthTwips);
         output.CropRight = ToWordCrop(image.CropRightTwips, layout.WidthTwips);
         output.CropTop = ToWordCrop(image.CropTopTwips, layout.HeightTwips);

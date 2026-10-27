@@ -9,6 +9,11 @@
         "OfficeIMO.Word.Rtf/WordRtfWorkflowExtensions.cs"
       ],
       "note": "Existing field, replacement, mail-merge and merge completion notices use the mapped Core diagnostic codes."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "RTF image import uses the canonical Word AddImage options for VML and DrawingML. Optional visible dimensions remain absent when the RTF layout does not provide them; known twip dimensions convert through OfficeLength.Points. Existing retained hyperlink, deleted/moved and complex-field image tests access the created image Paragraph instead of relying on the former paragraph return value."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
