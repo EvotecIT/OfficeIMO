@@ -161,7 +161,7 @@ Direct sink output avoids retaining the finished file. Blob exports and register
 
 DataTables and its DOM stay on the page. A host-owned worker can consume portable columns and bounded row batches from the source: request/acknowledge batches and output chunks rather than cloning the full matrix. Reconstruct `ExportCell` in the worker because structured cloning loses its brand. The [verification guide](../Build/BrowserExports/README.md#datatables-integration-and-comparisons) covers workers, cancellation, fallback and reproducible comparisons. Measurements describe the tested workload/browser, without a universal speed claim.
 
-## CanopyX record exports
+## CanopyX exports
 
 The optional `@evotecit/officeimo/integrations/canopyx` entry consumes CanopyX's immutable `prepareExport` capture. CanopyX owns the accepted query, column order, selection, source paging, revision checks and resolved presentation. OfficeIMO owns file generation. Neither package imports the other at runtime, and importing the main OfficeIMO package does not load the adapter.
 
@@ -198,10 +198,17 @@ const blob = await exportCanopy(capture, "xlsx", {
 | Safe resolved links | Native XLSX relationships and PDF annotations; a hidden source URL column is not required |
 | `recordCount` | Checked against enumeration and used for detail progress, independently of dataset `total` and live `matched` |
 | Captured grouping | Validated contiguous half-open ranges, typed group identities and declared numeric aggregates feed the existing grouped XLSX/PDF writers |
+| Explicit `request.pivot` | Preserves the frozen full-query projection, prefix summaries, descendants, Other and grand totals in captured order; never regroups or recomputes values |
 | No grouping snapshot | Flat records, even if the accepted query contains `groupBy` |
 | `about: true` | XLSX adds an `About` worksheet with captured revision, scope, UTC time, counts, selected IDs and the actual accepted export query |
 
 The width profile provides reproducible conversion; it does not promise pixel-identical rendering in native Excel. `columnOptions[id].width` overrides the XLSX character width, and `pdf.columnWidths` overrides PDF point widths. Right and nonleading pins retain their column order and require an explicit text fallback diagnostic. `columnOptions` applies only to selected IDs; native `columnOptions[id].format` remains the explicit Excel-format override.
+
+For a pivot table, pass the frozen `prepareExport({ pivot: true, scope: "filtered", values: "raw" })` capture through the same entry point. Numeric cells retain their already-computed `mode` and native `numberFormat`: a fractional share stays numeric and receives a percent format without multiplying or parsing its text. Empty intersections need neither field; an explicit empty column format selects `General`. Row and column identities are opaque. `recordCount` counts physical projected rows, including summaries; `matched` still describes the underlying accepted records.
+
+XLSX places pivot summaries above their descendants and to their left, preserving captured outline levels, hidden descendants and collapsed summaries. It does not add `SUBTOTAL` formulas, a table or an autofilter over the pre-aggregated projection. Captured pivot outlines and totals reject conflicting worksheet overrides. Pivot exports also reject XLSX `cellValueWriters` and PDF `footer.totals`, preserving frozen values and aggregates. PDF and CSV include the complete projection, including initially hidden descendants; `PIVOT_OUTLINES_XLSX_ONLY` reports that the interactive outline controls belong to Excel. PDF retains resolved display text, headings and normal fit/band policies. A malformed explicit pivot rejects instead of silently becoming an ordinary flat export.
+
+The worksheet engine also exposes `outlineSummaryBelow` and `outlineSummaryRight` (both default to `true`) and `columnOutlines: [{ firstColumn, columnCount, level?, hidden?, collapsed? }]`. Column ranges use zero-based positions, must be disjoint and remain within the declared columns; outline levels are zero through seven. These settings work through both `Workbook` and the portable XLSX writers. Row outlines continue to use the synchronous `rowOutline` callback with an explicit `maxOutlineLevel`.
 
 XLSX maps the declared rule subset to editable data bars, two/three-stop color scales and row/cell highlights. The first matching tone wins within each row or cell target, and a cell tone overrides a row tone. Native cell visuals take precedence over row tints; their own declaration order is retained. Predicates support `and`/`or`, numeric `eq`/`ne`/`gt`/`ge`/`lt`/`le`, and null tests, within four levels and 64 nodes. Numeric operands use numbers, booleans or plain invariant numeric strings. Each comparison excludes null cells. Equality and inequality with boolean or numeric operands on text columns retain the raw value's type; string comparisons on text columns and separator/culture profiles are unsupported.
 

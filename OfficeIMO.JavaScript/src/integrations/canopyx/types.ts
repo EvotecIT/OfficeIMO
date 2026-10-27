@@ -8,6 +8,9 @@ import type { PdfOptions, GroupedPdfOptions } from "../../pdf/index.js";
 export interface CanopyExportCell {
   readonly value: string | number | boolean | null;
   readonly text: string;
+  /** Frozen pivot display semantics; values are already computed by CanopyX. */
+  readonly mode?: "value" | "percentGrandTotal" | "percentParent" | "percentColumn" | "percentRow" | "runningTotal" | "rank" | "difference" | "percentChange";
+  readonly numberFormat?: string;
   readonly tone?: string;
   readonly link?: ExportLink;
   readonly diagnostics?: readonly string[];
@@ -19,7 +22,7 @@ export interface CanopyNumberFormat {
   readonly prefix?: string;
   readonly suffix?: string;
 }
-export interface CanopyExportColumn {
+export interface CanopyExportColumn extends Partial<CanopyPivotAxisPresentation> {
   readonly id: string;
   readonly title: string;
   readonly kind: "text" | "number" | "datetime";
@@ -30,11 +33,45 @@ export interface CanopyExportColumn {
   readonly alignment?: "left" | "right";
   readonly diagnostics?: readonly string[];
 }
-export interface CanopyExportRow {
+export interface CanopyExportRow extends Partial<CanopyPivotAxisPresentation> {
   readonly id: string;
   readonly cells: Readonly<Record<string, CanopyExportCell>>;
   readonly tone?: string;
   readonly diagnostics?: readonly string[];
+}
+/** Opaque accepted-axis identity and frozen presentation; titles never determine identity. */
+export interface CanopyPivotAxisPresentation {
+  readonly axisKey: string;
+  readonly outlineLevel: number;
+  readonly summary: boolean;
+  readonly grandTotal: boolean;
+  readonly collapsed: boolean;
+  readonly hidden: boolean;
+}
+export interface CanopyPivotAxis {
+  readonly key: string;
+  readonly parent?: string;
+  readonly path: readonly (string | number | boolean | null)[];
+  readonly other: boolean;
+}
+export interface CanopyPivotColumnGroup {
+  readonly key: string;
+  readonly parent?: string;
+  readonly firstColumn: number;
+  readonly columnCount: number;
+  readonly depth: number;
+  readonly collapsed: boolean;
+  readonly hidden: boolean;
+}
+/** Full-query pivot metadata. Projected columns and repeatable rows remain in the capture. */
+export interface CanopyPivotDescriptor {
+  readonly definition: { readonly rows: readonly object[]; readonly columns: readonly object[]; readonly values: readonly string[] };
+  readonly rowAxis: readonly CanopyPivotAxis[];
+  readonly columnAxis: readonly CanopyPivotAxis[];
+  readonly columnGroups: readonly CanopyPivotColumnGroup[];
+  readonly distinctColumns: number;
+  readonly retainedColumns: readonly (readonly (string | number | boolean | null)[])[];
+  readonly columnsLimited: boolean;
 }
 /** Captured half-open detail ranges, never ranges from a different export scope. */
 export interface CanopyExportGroup {
@@ -92,6 +129,8 @@ export interface CanopyCapture {
     readonly query?: object;
     readonly generatedAt?: string;
     readonly grouping?: CanopyExportGrouping;
+    /** Explicit pre-aggregated projection; never interpreted as ordinary grouped records. */
+    readonly pivot?: CanopyPivotDescriptor;
     readonly formatRules?: readonly CanopyFormatRule[];
   };
   /** Fresh serial enumeration. The signal must reach the source's in-flight page requests. */

@@ -35,6 +35,8 @@ import { qualifiedCell, qualifiedColumnRange, resolveDataColumn } from "./ranges
 import type { PreparedChartBinding } from "./chart-bindings.js";
 import { dataRowRanges, dataRowCount } from "./data-row-ranges.js";
 
+import { captureColumnOutlines, columnOutlineMap, validateOutlinePositions } from "./outlines.js";
+
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count: number): void {
   if (count > maximumHyperlinks) throw new RangeError("Excel supports at most 65,530 hyperlinks per worksheet; split the sheet.");
@@ -140,6 +142,8 @@ export class Worksheet<T = never> {
     if (options.alternatingRowStyle !== undefined) book.styles.compose(0, options.alternatingRowStyle);
     for (const callback of [options.rowStyle, options.cellStyle, options.rowOutline]) if (callback !== undefined && typeof callback !== "function") throw new TypeError("Row and style callbacks must be functions.");
     if (options.maxOutlineLevel !== undefined && (!Number.isInteger(options.maxOutlineLevel) || options.maxOutlineLevel < 0 || options.maxOutlineLevel > 7)) throw new RangeError("Maximum outline level must be an integer from zero through seven.");
+    validateOutlinePositions(options);
+    captureColumnOutlines(options.columnOutlines, columns.length);
     if (options.rowOutline && options.maxOutlineLevel === undefined) throw new TypeError("A row outline callback requires maxOutlineLevel before streamed rows are written.");
     if (!options.rowOutline && options.maxOutlineLevel !== undefined) throw new TypeError("maxOutlineLevel requires a row outline callback.");
     for (const height of [options.rowHeight, options.headerHeight])
@@ -338,16 +342,21 @@ export class Worksheet<T = never> {
     const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
     const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
     const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
+    const outlines = columnOutlineMap(opts.columnOutlines), hasOutline = !!opts.rowOutline || outlines.size > 0;
+    const maxColumnLevel = Math.max(0, ...Array.from(outlines.values(), value => value.level ?? 0));
     await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' +
-      (opts.print || opts.rowOutline ? '<sheetPr>' + (opts.rowOutline ? '<outlinePr summaryBelow="1" showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
+      (opts.print || hasOutline ? '<sheetPr>' + (hasOutline ? '<outlinePr summaryBelow="' + (opts.outlineSummaryBelow === false ? "0" : "1") + '"' + (opts.outlineSummaryRight === undefined ? "" : ' summaryRight="' + (opts.outlineSummaryRight ? "1" : "0") + '"') + ' showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
       (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>' +
-      (opts.rowOutline ? '<sheetFormatPr defaultRowHeight="15" outlineLevelRow="' + opts.maxOutlineLevel + '"/>' : ""));
+      (hasOutline ? '<sheetFormatPr defaultRowHeight="15"' + (opts.rowOutline ? ' outlineLevelRow="' + opts.maxOutlineLevel + '"' : "") + (outlines.size ? ' outlineLevelCol="' + maxColumnLevel + '"' : "") + '/>' : ""));
     const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
-    if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined)) {
+    if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined || outlines.has(i))) {
       await buffer.write('<cols>');
       for (let i = 0; i < this.columns.length; i++) {
-        const width = this.layout.widths[i] ?? defaultWidth;
-        if (width !== undefined) await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + width + '" customWidth="1"/>');
+        const width = this.layout.widths[i] ?? defaultWidth, outline = outlines.get(i);
+        if (width !== undefined || outline) await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '"' +
+          (width === undefined ? "" : ' width="' + width + '" customWidth="1"') +
+          (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") +
+          (outline?.collapsed ? ' collapsed="1"' : "") + '/>');
       }
       await buffer.write('</cols>');
     }

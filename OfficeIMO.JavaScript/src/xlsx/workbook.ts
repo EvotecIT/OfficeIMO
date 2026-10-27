@@ -11,6 +11,7 @@ import { StyleRegistry, spreadsheetNamespace } from "./styles.js";
 import { sheetName, assertXlsxValue, copyValue } from "./values.js";
 import { copyColumns } from "../internal/rows.js";
 import { captureFields } from "../internal/capture.js";
+import { captureColumnOutlines } from "./outlines.js";
 import { captureTableSpans } from "../internal/table-spans.js";
 import { assertExportValue } from "../core/presentation.js";
 import { Worksheet } from "./worksheet.js";
@@ -36,6 +37,7 @@ function captureSheet(options: SheetOptions, policy: InvalidCharacterPolicy): Sh
   const footer = captured.footer && captureFields(captured.footer, ["rows", "values", "totals", "style"]);
   const print = captured.print && captureFields(captured.print, ["paper", "orientation", "fitToWidth", "fitToHeight", "repeatHeaders", "margins", "header", "footer"]);
   return { ...captured, columns,
+    ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length)! }),
     ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
     ...(footer ? { footer: { ...footer,
       ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
