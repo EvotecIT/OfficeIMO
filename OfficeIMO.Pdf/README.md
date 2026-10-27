@@ -196,6 +196,12 @@ Height, `MaximumWidth` and `BaselineOffset` are in points. The baseline offset p
 
 Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(0.5, PdfColor.Black, maximumWidth: 144)` draws a band up to two inches wide without extending beyond its line frame.
 
+## Fonts and embedding
+
+Text set in a standard font slot (`Helvetica`, `Times` or `Courier`) uses an installed font from the default theme's fallback lists and embeds it as a subset: the body font chain (Aptos, Calibri, Carlito, Helvetica Neue, Arial, Liberation Sans) for `Helvetica`, Times-compatible faces (Times New Roman, Liberation Serif, Tinos) for `Times` and the monospace chain (Consolas, Menlo, Courier New, Liberation Mono) for `Courier`. Office converters back a slot they leave unregistered with a metric-compatible face first (Arial, Liberation Sans; Courier New, Liberation Mono), because such a slot stands for a source family like Arial. A family with real bold and italic faces is preferred, so emphasis survives the fallback. Fonts you register yourself (`UseFontFamily`, `RegisterFontFamily`, `UseOfficeFontFamily`) are never replaced, and sections that use the same face share one subset.
+
+Set `PdfCreateOptions.EmbedDefaultFonts = false` to write the non-embedded standard PDF fonts instead. When no font file from the fallback list is installed, the document still saves with the standard font and reports a `font-not-embedded` warning without loss, because only the appearance depends on the viewer. Slots reserved by a text fallback set stay free for the fallback fonts. Office converters follow their `ResourcePolicy`: when installed fonts are not allowed, they write the standard fonts.
+
 ## Literal text to PDF
 
 `PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:

@@ -518,7 +518,9 @@ public partial class Excel {
         Assert.DoesNotContain("DoNotExportHeader", text);
         Assert.DoesNotContain("DoNotExportFooter", text);
         Assert.DoesNotContain(Path.GetFileName(workbookPath), text);
-        Assert.DoesNotContain("/FontFile", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
+        // The body text may embed its own font; the disabled zones must not pull in a Unicode fallback face.
+        string raw = PdfOperatorSearchText.From(bytes);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(raw, "/FontFile").Count <= 1);
     }
 
 }

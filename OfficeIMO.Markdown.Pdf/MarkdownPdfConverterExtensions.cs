@@ -22,6 +22,8 @@ public static partial class MarkdownPdfConverterExtensions {
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Markdown.Pdf");
 
         ApplyMarkdownTextFallbackOptions(pdfOptions, options, document);
+        // The writer embeds theme fallback fonts for standard slots unless the resource policy forbids installed fonts.
+        if (!options.ResourcePolicy.AllowSystemFontEmbedding) pdfOptions.EmbedDefaultFonts = false;
 
         if (options.CreateOutlineFromHeadings) {
             pdfOptions.CreateOutlineFromHeadings = true;

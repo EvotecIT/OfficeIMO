@@ -10626,6 +10626,14 @@
         "OfficeIMO.Workflows/OfficeWorkflowRunner.cs"
       ],
       "note": "Completed registered conversion readback is retained in the shared report."
+    },
+    {
+      "oldCode": "font-not-embedded",
+      "catalogCode": "font-not-embedded",
+      "member": "FontNotEmbedded",
+      "origins": [
+        "OfficeIMO.Pdf/Options/PdfOptions.DefaultFontEmbedding.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

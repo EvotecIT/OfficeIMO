@@ -257,6 +257,9 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfCreateOptions documentOptions = options.PdfOptions.Clone();
         documentOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         documentOptions.UseContentStreamCompressionByDefault();
+        // The HTML engine lays text out with standard-font metrics for families it could not resolve, so the
+        // writer must not swap another face into those slots after layout.
+        documentOptions.EmbedDefaultFonts = false;
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
         var mathMlFiles = new HtmlPdfMathMlFiles(options.MathMlSourceModificationDate);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");

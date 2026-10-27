@@ -296,6 +296,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     private bool IsCoveredTextShapingDiagnostic(PdfTextShapingDiagnostic diagnostic, string? text = null, string? fontName = null, bool isOpenTypeCff = false) =>
+        IsDefaultEmbeddedFontSubstitutionDiagnostic(diagnostic, fontName) ||
         (_textShapingMode == PdfTextShapingMode.LatinLigatures &&
             diagnostic.IsCoveredByBuiltInShaping &&
             string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) ||

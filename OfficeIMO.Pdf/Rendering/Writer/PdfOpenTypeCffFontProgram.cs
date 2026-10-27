@@ -315,6 +315,17 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _textPins.MergeFrom(source._textPins);
     }
 
+    /// <summary>
+    /// Glyphs this program actually painted. Unlike <see cref="GetGlyphToUnicodeMappings"/>, an unused program
+    /// yields nothing, so merging usage between sections never pulls the whole cmap into a subset.
+    /// </summary>
+    internal IReadOnlyList<(int GlyphId, string UnicodeText)> GetUsedGlyphToUnicodeMappings() {
+        lock (_usageLock) {
+            if (_usedGlyphToUnicode.Count == 0) return Array.Empty<(int GlyphId, string UnicodeText)>();
+        }
+        return GetGlyphToUnicodeMappings();
+    }
+
     public IReadOnlyList<(int GlyphId, string UnicodeText)> GetGlyphToUnicodeMappings() {
         lock (_usageLock) {
             if (_usedGlyphToUnicode.Count > 0) {

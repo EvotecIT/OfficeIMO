@@ -31,6 +31,9 @@ public static partial class PowerPointPdfConverterExtensions {
 
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterPresentationFonts(pdfOptions, presentation, options, preserveConfiguredFontSlots);
         ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, presentation);
+        // Standard slots still without a font file take the theme fallback font, embedded, before slide text is measured.
+        if (options.ResourcePolicy.AllowSystemFontEmbedding) pdfOptions.ApplyDefaultFontEmbedding(standardMetrics: true);
+        else pdfOptions.EmbedDefaultFonts = false;
         return pdfOptions;
     }
 

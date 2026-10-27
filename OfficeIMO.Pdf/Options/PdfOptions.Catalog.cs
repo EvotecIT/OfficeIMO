@@ -308,6 +308,7 @@ public sealed partial class PdfCreateOptions {
         // Any explicit face registration claims the whole compatibility family,
         // even when its bytes and generated name already match the current face.
         _fallbackOwnedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
+        _defaultEmbeddedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
 
         string? normalizedFontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         if (_embeddedFonts != null &&
