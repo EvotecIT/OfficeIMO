@@ -83,7 +83,8 @@ internal static class SurfaceInventory {
                 bool contract = type.TypeKind is TypeKind.Interface or TypeKind.Delegate || member.IsOverride || implementations.Contains(member);
                 // Referenced models need their constructors even when their names do not end
                 // in Options/Info (for example, theme palettes and font definitions).
-                bool modelConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor };
+                bool modelConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor } constructor
+                    && !constructor.Parameters.Any(parameter => IsDocumentOwner(parameter.Type));
                 bool valueContract = type.IsValueType;
                 bool modelTransformation = member is IMethodSymbol { IsStatic: false, MethodKind: MethodKind.Ordinary } method
                     && method.Name.StartsWith("With", StringComparison.Ordinal)
@@ -118,6 +119,11 @@ internal static class SurfaceInventory {
                     .Select(item => item.Value).OrderBy(reference => reference.Id, StringComparer.Ordinal).ToArray());
         }).ToArray();
     }
+
+    private static bool IsDocumentOwner(ITypeSymbol type) => type.ToDisplayString() is
+        "OfficeIMO.Word.WordDocument" or "OfficeIMO.Excel.ExcelDocument" or
+        "OfficeIMO.PowerPoint.PowerPointDocument" or "OfficeIMO.Pdf.PdfDocument" or
+        "OfficeIMO.Markdown.MarkdownDocument";
 
     private static string Id(ISymbol symbol) => symbol.GetDocumentationCommentId() ?? symbol.ToDisplayString();
     private static SurfaceReference Reference(ISymbol symbol, string source, IReadOnlyList<string>? evidence) => new(Id(symbol), source, evidence ?? []);

@@ -22,7 +22,9 @@ Roslyn assemblies and adds no runtime package dependency.
 The output is a review list, not an automatic accessibility edit. Check each
 candidate's callers, public inheritance and signatures in adapters before changing
 it. Model closure retains existing public construction; it never promotes a
-package-internal constructor.
+package-internal constructor. Undocumented constructors that require a format
+document remain candidates: attaching a model belongs to the document authoring
+API. Explicitly documented construction still retains its contract.
 Compiler-generated constructors can have no explicit source location. Overload
 locations are omitted when the source signature cannot be matched unambiguously.
 Generated API references and design documents are excluded as evidence; otherwise

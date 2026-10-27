@@ -53,6 +53,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Visibility analysis retains public value-type contracts, exposed model constructors and immutable With copies. The generated candidate list no longer proposes hiding OfficeLength unit conversions or OfficeTheme model construction; private native constructors remain private. This changes the candidate analysis, not the M1 public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Visibility analysis distinguishes immutable model construction from attachment plumbing: an undocumented constructor requiring a format document remains a candidate. Explicit construction examples still retain their constructors. The generated Word image constructor candidates are reviewed against the canonical AddImage entry points; foundation model construction stays public."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
