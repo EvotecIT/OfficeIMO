@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeChartType.ColumnClustered)]
         public void PointColors_AppearInSlidePngAndRenderedPdf(OfficeChartType kind) {
             using PowerPointDocument authored = PowerPointDocument.Create();
-            authored.SlideSize.SetSizePoints(640, 360);
+            authored.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             authored.AddSlide().AddChartPoints(kind, CreateData(kind, Colors), 20, 20, 600, 320);
             using var bytes = new MemoryStream(authored.ToBytes());
             using PowerPointDocument reopened = PowerPointDocument.Load(bytes);

@@ -14,10 +14,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
             double bodyTopCm = content.Top.ToCentimeters() + 1.9;
             double bodyHeightCm = content.Height.ToCentimeters() - 1.9;
-            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
+            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyTopCm)),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyHeightCm)));
             PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyTopCm)),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyHeightCm)));
 

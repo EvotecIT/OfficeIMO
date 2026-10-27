@@ -19,7 +19,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(true, true)]
     public void StrokedLineLinksHaveUsableRegionsForZeroAndOneEmuExtents(bool vertical, bool helper) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 240);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = helper
             ? first.AddLinePoints(20, 40, vertical ? 20 : 220, vertical ? 200 : 40)
@@ -40,7 +40,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [InlineData(90)]
     public void RotatedLineLinksKeepTheStrokeCenterAndPageClip(double rotation) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 240);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = first.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 200, 0);
         line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
@@ -170,7 +170,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [Fact]
     public void AdjacentIdenticallyStyledRunsKeepDifferentDestinationsAfterSaveAndWrapping() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(360, 240);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
@@ -197,7 +197,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [Fact]
     public void PictureAndTableRunSlideLinksSurvivePptxSaveAndPdfReopen() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(400, 240);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointPicture picture = first.AddImagePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
@@ -224,7 +224,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     [Fact]
     public void GroupTransformsMoveInternalLinkRectanglesWithTheLinkedGlyphs() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBoxPoints("GROUP LINK", 40, 40, 200, 60);
         box.FontName = "Arial"; box.FontSize = 14;

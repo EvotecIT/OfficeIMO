@@ -18,7 +18,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
     public void ThumbnailLinksResolveToVisibleSlideLocationsAndReportUnavailableTargets(
         PowerPointPdfPageLayout layout, int perPage, bool includeHidden) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(400, 300);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide hidden = presentation.AddSlide(); hidden.Hidden = true;
         PowerPointSlide third = presentation.AddSlide();

@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsDocumentPageAndDisplaySettings() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.SlideSize.SetSizeEmus(9906000, 6858000, PowerPointSlideSizeType.A4);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Emus(9906000),OfficeIMO.OfficeLength.Emus(6858000),PowerPointSlideSizeType.A4);
             P.Presentation root = presentation.OpenXmlDocument.PresentationPart!.Presentation;
             root.NotesSize = new P.NotesSize { Cx = 6858000, Cy = 9906000 };
             root.FirstSlideNum = 7;

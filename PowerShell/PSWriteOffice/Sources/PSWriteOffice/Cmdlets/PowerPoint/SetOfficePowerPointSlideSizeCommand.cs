@@ -91,16 +91,16 @@ public sealed class SetOfficePowerPointSlideSizeCommand : PSWriteOffice.Cmdlets.
                     slideSize.SetPreset(Preset, Portrait.IsPresent);
                     break;
                 case ParameterSetCentimeters:
-                    slideSize.SetSizeCm(WidthCm, HeightCm);
+                    slideSize.SetSize(OfficeIMO.OfficeLength.Centimeters(WidthCm), OfficeIMO.OfficeLength.Centimeters(HeightCm));
                     break;
                 case ParameterSetInches:
-                    slideSize.SetSizeInches(WidthInches, HeightInches);
+                    slideSize.SetSize(OfficeIMO.OfficeLength.Inches(WidthInches), OfficeIMO.OfficeLength.Inches(HeightInches));
                     break;
                 case ParameterSetPoints:
-                    slideSize.SetSizePoints(WidthPoints, HeightPoints);
+                    slideSize.SetSize(OfficeIMO.OfficeLength.Points(WidthPoints), OfficeIMO.OfficeLength.Points(HeightPoints));
                     break;
                 case ParameterSetEmus:
-                    slideSize.SetSizeEmus(WidthEmus, HeightEmus);
+                    slideSize.SetSize(OfficeIMO.OfficeLength.Emus(WidthEmus), OfficeIMO.OfficeLength.Emus(HeightEmus));
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported parameter set '{ParameterSetName}'.");

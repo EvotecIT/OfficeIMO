@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             PowerPointSlide overview = presentation.AddSlide();
             AddTitleAndBody(

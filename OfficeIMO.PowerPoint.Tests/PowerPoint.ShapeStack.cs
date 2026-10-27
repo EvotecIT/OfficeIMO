@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 slide.StackShapesToSlideContent(slide.Shapes, PowerPointShapeStackDirection.Vertical,
                     spacingEmus: 200, marginEmus: margin);
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 Assert.Equal(content.Top.ToEmus(), a.Top.ToEmus());
                 Assert.Equal(content.Top.ToEmus() + a.Height.ToEmus() + 200, b.Top.ToEmus());
                 Assert.Equal(content.Left.ToEmus(), a.Left.ToEmus());

@@ -5,7 +5,7 @@ namespace OfficeIMO.ConversionConsistency;
 internal static partial class FixtureCorpus {
     private static void AddGroupedPowerPoint(string repository, string output, string family, List<ConsistencyCase> cases) {
         using var presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(600, 360);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(360));
         var variants = new[] {
             (ScaleX: 0.5D, ScaleY: 0.5D, Rotation: 0D, FlipX: false, FlipY: false, Nested: false),
             (ScaleX: 2D, ScaleY: 2D, Rotation: 0D, FlipX: false, FlipY: false, Nested: false),

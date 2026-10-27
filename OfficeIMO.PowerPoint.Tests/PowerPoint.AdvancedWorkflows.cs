@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
         public void ImportedSmartArtRejectsUnknownCategoryBeforeSemanticProjection() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(640, 360);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
             PowerPointSmartArtType type, OfficeDiagramKind expectedKind) {
             using var stream = new MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-                presentation.SlideSize.SetSizePoints(360, 220);
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
                 PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(type,
                     new[] { "Discover", "Build", "Validate", "Ship" },
                     PowerPointUnits.FromPoints(20),
@@ -521,7 +521,7 @@ namespace OfficeIMO.Tests {
         public void EmbeddedSmartArtRenderingKeepsSlideBackgroundVisible() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(360, 220);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
             slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
@@ -949,7 +949,7 @@ namespace OfficeIMO.Tests {
         public void DesktopReferenceLaneDerivesExpectedContentFromRenderedPaint() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(100, 100);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(100));
 
             PowerPointSlide offCanvas = presentation.AddSlide();
             PowerPointAutoShape offCanvasShape = offCanvas.AddRectanglePoints(
@@ -990,7 +990,7 @@ namespace OfficeIMO.Tests {
         public void DesktopReferenceLaneTreatsSkippedVisibleChartAsExpectedContent() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(640, 360);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart chart = slide.AddChartPoints(
                 OfficeChartType.ColumnClustered,

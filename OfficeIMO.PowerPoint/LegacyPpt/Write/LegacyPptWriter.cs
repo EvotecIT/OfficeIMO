@@ -318,8 +318,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     wroteFonts = true;
                 } else if (child.Type == RecordDocumentAtom) {
                     byte[] atom = child.CopyRecordBytes();
-                    WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
-                    WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
+                    WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.Width.ToEmus()));
+                    WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.Height.ToEmus()));
                     PatchDocumentSettings(atom, presentation,
                         topology.NotesMasterPersistId,
                         handoutMasterPersistId);

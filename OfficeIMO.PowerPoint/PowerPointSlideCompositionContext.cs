@@ -502,8 +502,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointDesignerSlideOptions resolvedOptions = options ?? new PowerPointDesignerSlideOptions();
             PowerPointSlide slide = presentation.AddSlide();
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
 
             slide.BackgroundColor = dark ? resolvedTheme.AccentDarkColor : resolvedTheme.BackgroundColor;
             if (dark && resolvedOptions.DesignIntent.VisualStyle == PowerPointVisualStyle.Geometric) {

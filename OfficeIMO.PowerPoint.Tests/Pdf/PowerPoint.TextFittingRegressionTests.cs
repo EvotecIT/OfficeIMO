@@ -83,7 +83,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [InlineData(PowerPointTextAutoFit.Normal)]
     public void FixedFrameOverflowRetainsEveryParagraphAndReportsOverflowWithoutClaimingOmission(PowerPointTextAutoFit mode) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(400, 300);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         var box = CreateBox(presentation, "FIRST", 220, 15);
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
@@ -178,7 +178,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     public void UnwrappedTextStaysOnOneLineAndShapeFitGrowsWidth(PowerPointTextAutoFit mode) {
         const string value = "UNWRAPPED TEXT STAYS COMPLETE";
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(600, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(200));
         var box = CreateBox(presentation, value, 80, 60);
         box.FillColor = "1264A3";
         box.TextAutoFit = mode;
@@ -217,7 +217,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [Fact]
     public void UnwrappedShapeFitGrowsBothDimensionsForAuthoredHardBreaks() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(600, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(200));
         var box = CreateBox(presentation, "FIRST LONG LINE\nSECOND LONG LINE", 80, 10);
         box.FillColor = "1264A3";
         box.TextAutoFit = PowerPointTextAutoFit.Shape;
@@ -264,7 +264,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     [Fact]
     public void PartlyOffLeftTextBoxRasterRetainsOverflowBeyondItsOriginalFrame() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(160, 100);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("OOOOOOOO", -12, 10, 24, 10);
         box.AddParagraph("OOOOOOOO");

@@ -411,8 +411,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointLayoutBox GetDefaultHeaderFooterBounds(PowerPointPlaceholderType placeholderType) {
-            long slideWidth = SlideSize.WidthEmus;
-            long slideHeight = SlideSize.HeightEmus;
+            long slideWidth = SlideSize.Width.ToEmus();
+            long slideHeight = SlideSize.Height.ToEmus();
             long margin = PowerPointUnits.FromCentimeters(0.6);
             long footerTop = slideHeight - PowerPointUnits.FromCentimeters(0.8);
             long footerHeight = PowerPointUnits.FromCentimeters(0.45);

@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                presentation.SlideSize.WidthCm = 25.4;
-                presentation.SlideSize.HeightCm = 14.0;
+                presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(25.4);
+                presentation.SlideSize.Height= OfficeIMO.OfficeLength.Centimeters(14.0);
                 presentation.Save();
             }
 
@@ -49,8 +49,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.WidthEmus = (long)int.MaxValue + 1);
-                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.HeightEmus = (long)int.MinValue - 1);
+                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.Width= OfficeIMO.OfficeLength.Emus((long)int.MaxValue + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.Height= OfficeIMO.OfficeLength.Emus((long)int.MinValue - 1));
             }
 
             File.Delete(filePath);
@@ -61,9 +61,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(1.0);
-                PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm: 1.0, gutterCm: 1.0);
-                PowerPointLayoutBox[] rows = presentation.SlideSize.GetRowsCm(2, marginCm: 1.0, gutterCm: 1.0);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(1.0));
+                PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,margin: OfficeIMO.OfficeLength.Centimeters(1.0),gutter: OfficeIMO.OfficeLength.Centimeters(1.0));
+                PowerPointLayoutBox[] rows = presentation.SlideSize.GetRows(2,margin: OfficeIMO.OfficeLength.Centimeters(1.0),gutter: OfficeIMO.OfficeLength.Centimeters(1.0));
 
                 Assert.Equal(content.Left.ToEmus(), columns[0].Left.ToEmus());
                 Assert.Equal(content.Right.ToEmus(), columns[1].Right.ToEmus());

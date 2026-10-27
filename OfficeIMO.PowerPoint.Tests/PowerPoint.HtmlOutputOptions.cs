@@ -79,7 +79,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
 
     static PowerPointDocument CreateWithOffSlideShape() {
         var presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(160, 100);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
         presentation.AddSlide().AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
         return presentation;
     }

@@ -22,8 +22,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
         CopyPowerPointMetadata(source, target, report);
-        target.PageWidth = OdfLength.Points(source.SlideSize.WidthPoints);
-        target.PageHeight = OdfLength.Points(source.SlideSize.HeightPoints);
+        target.PageWidth = OdfLength.Points(source.SlideSize.Width.ToPoints());
+        target.PageHeight = OdfLength.Points(source.SlideSize.Height.ToPoints());
 
         int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
@@ -311,7 +311,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         CopyOdpMetadata(source, target, report);
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
-            target.SlideSize.SetSizePoints(pageWidth, pageHeight);
+            target.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(pageWidth),OfficeIMO.OfficeLength.Points(pageHeight));
         } else {
             unsupportedMeasurements++;
         }

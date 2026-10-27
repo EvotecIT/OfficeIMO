@@ -20,8 +20,8 @@ public sealed class PowerPointOdpImageCropTests {
         double leftPoints, double rightPoints) {
         byte[] bytes = Grid(dpiX, dpiY);
         using PowerPointDocument source = PowerPointDocument.Create();
-        source.SlideSize.WidthPoints = 400;
-        source.SlideSize.HeightPoints = 300;
+        source.SlideSize.Width= OfficeIMO.OfficeLength.Points(400);
+        source.SlideSize.Height= OfficeIMO.OfficeLength.Points(300);
         PowerPointSlide slide = source.AddSlide();
         foreach (double width in new[] { 120D, 240D }) {
             using var stream = new MemoryStream(bytes);

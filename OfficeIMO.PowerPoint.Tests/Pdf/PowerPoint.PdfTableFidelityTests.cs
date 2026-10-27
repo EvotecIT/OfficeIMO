@@ -16,7 +16,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         // rows, empty tcPr/bodyPr and unsized runs using Medium Style 2 Accent 1.
         using var saved = new MemoryStream();
         using (var presentation = PowerPointDocument.Create()) {
-            presentation.SlideSize.SetSizePoints(300, 200);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
             presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
             var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 30, 132, 40);
             table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
@@ -65,7 +65,7 @@ public sealed class PowerPointPdfTableFidelityTests {
     [InlineData(24)]
     public void WrappedMergedCellGrowsItsRowsAndKeepsExplicitMarginsAndRunOverrides(int fontSize) {
         using var presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(400, 300);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
         var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 240, 24);
         table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";

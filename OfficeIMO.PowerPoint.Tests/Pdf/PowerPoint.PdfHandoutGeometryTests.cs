@@ -14,7 +14,7 @@ public sealed class PowerPointPdfHandoutGeometryTests {
     [InlineData(1600, 400)]
     public void ThreeSlideHandoutsPreserveAspectRatioAndTheNotesColumn(double slideWidth, double slideHeight) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(slideWidth, slideHeight);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(slideWidth),OfficeIMO.OfficeLength.Points(slideHeight));
         for (int index = 0; index < 3; index++) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddImagePoints(new MemoryStream(PdfPngTestImages.CreateRgbPng(210, 230, 245)),

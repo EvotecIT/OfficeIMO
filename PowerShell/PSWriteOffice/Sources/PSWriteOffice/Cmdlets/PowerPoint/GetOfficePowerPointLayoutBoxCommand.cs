@@ -79,19 +79,19 @@ public sealed class GetOfficePowerPointLayoutBoxCommand : PSCmdlet
             switch (ParameterSetName)
             {
                 case ParameterSetColumns:
-                    foreach (var box in presentation.SlideSize.GetColumnsCm(ColumnCount, MarginCm, GutterCm))
+                    foreach (var box in presentation.SlideSize.GetColumns(ColumnCount, OfficeIMO.OfficeLength.Centimeters(MarginCm), OfficeIMO.OfficeLength.Centimeters(GutterCm)))
                     {
                         WriteObject(box);
                     }
                     break;
                 case ParameterSetRows:
-                    foreach (var box in presentation.SlideSize.GetRowsCm(RowCount, MarginCm, GutterCm))
+                    foreach (var box in presentation.SlideSize.GetRows(RowCount, OfficeIMO.OfficeLength.Centimeters(MarginCm), OfficeIMO.OfficeLength.Centimeters(GutterCm)))
                     {
                         WriteObject(box);
                     }
                     break;
                 default:
-                    WriteObject(presentation.SlideSize.GetContentBoxCm(MarginCm));
+                    WriteObject(presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(MarginCm)));
                     break;
             }
         }

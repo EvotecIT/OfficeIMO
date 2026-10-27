@@ -125,8 +125,8 @@ internal static class PowerPointRichMapping {
             pages.Add(new OfficeDocumentPage {
                 Number = slideNumber,
                 Name = ResolvePowerPointSlideName(slideShapes, slideNumber),
-                Width = presentation.SlideSize.WidthPoints,
-                Height = presentation.SlideSize.HeightPoints,
+                Width = presentation.SlideSize.Width.ToPoints(),
+                Height = presentation.SlideSize.Height.ToPoints(),
                 Location = BuildPowerPointLocation(result.Source.Path, slideNumber, null, "slide", "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)),
                 Blocks = slideBlocks,
                 Tables = slideTables,

@@ -1688,8 +1688,8 @@ Scaled textbox
             });
 
             using var presentation = PowerPointDocument.Load(path);
-            Assert.Equal(13.333, presentation.SlideSize.WidthInches, 3);
-            Assert.Equal(7.5, presentation.SlideSize.HeightInches, 3);
+            Assert.Equal(13.333, presentation.SlideSize.Width.ToInches(), 3);
+            Assert.Equal(7.5, presentation.SlideSize.Height.ToInches(), 3);
 
             var slide = Assert.Single(presentation.Slides);
             var textBox = Assert.Single(slide.Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Scaled textbox", StringComparison.Ordinal));

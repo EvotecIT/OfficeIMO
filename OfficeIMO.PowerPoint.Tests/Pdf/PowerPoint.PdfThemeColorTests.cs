@@ -12,7 +12,7 @@ public class PowerPointPdfThemeColorTests {
     [Fact]
     public void PdfThemeColors_ResolveTransformedShapeFrameAndLineColors() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "5078A0");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "14283C");
         presentation.SetThemeColor(PowerPointThemeColor.Accent3, "285078");
@@ -58,7 +58,7 @@ public class PowerPointPdfThemeColorTests {
     [Fact]
     public void PdfThemeColors_ApplyStyleMatrixAndReferenceTransformsInOrder() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "5078A0");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         A.FormatScheme format = slide.ResolvedFormatScheme!;
@@ -178,7 +178,7 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(true)]
     public void PdfThemeColors_ResolveBackgroundStyleThroughThemeOverride(bool useSlideOverride) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
         A.ThemeElements master = layout.SlideMasterPart!.ThemePart!.Theme!.ThemeElements!;
@@ -223,7 +223,7 @@ public class PowerPointPdfThemeColorTests {
     [InlineData("layoutPhClr")]
     public void PdfThemeColors_ResolveOrdinaryTextWithConsumingSlideMapAndFontReference(string source) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
@@ -293,7 +293,7 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(true)]
     public void PdfThemeColors_UseSharedGradientStrokeAndEffectAppearance(bool textFrame) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "5078A0");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         var map = new A.OverrideColorMapping();

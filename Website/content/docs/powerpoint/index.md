@@ -67,19 +67,20 @@ presentation.Save();
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
 using var presentation = PowerPointDocument.Create("status-update.pptx");
 const double marginCm = 1.5;
 
-var content = presentation.SlideSize.GetContentBoxCm(marginCm);
+var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
 var title = slide.AddTitleCm(
     "Weekly Status",
-    content.LeftCm,
-    content.TopCm,
-    content.WidthCm,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters(),
+    content.Width.ToCentimeters(),
     1.4);
 
 if (title.Paragraphs.Count > 0)
@@ -89,10 +90,10 @@ if (title.Paragraphs.Count > 0)
 
 var agenda = slide.AddTextBoxCm(
     string.Empty,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
-    content.HeightCm - 2.0);
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters() + 2.0,
+    content.Width.ToCentimeters(),
+    content.Height.ToCentimeters() - 2.0);
 
 agenda.AddBullets(new[]
 {
@@ -140,7 +141,7 @@ conversions are blocked. Password-protected binary files use RC4 CryptoAPI for l
 
 ## Layout and content model
 
-- Use `SlideSize.GetContentBoxCm(...)` to reserve consistent margins around the live slide area.
+- Use `SlideSize.GetContentBox(OfficeLength.Centimeters(...))` to reserve consistent margins around the live slide area.
 - Use `GetColumnsCm(...)` when you want balanced two- or three-column compositions.
 - Work in centimeters, points, or EMUs through the built-in unit helpers depending on the scenario.
 - Add titles, text boxes, tables, charts, images, and notes to the same `PowerPointSlide` surface.

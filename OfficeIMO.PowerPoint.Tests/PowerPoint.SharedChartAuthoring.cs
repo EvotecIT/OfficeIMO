@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests {
         public void SharedChartContract_DrivesPngSvgHtmlAndPdfFromAuthoredSnapshots() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(360, 220);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
             foreach (OfficeChartType kind in new[] {
                          OfficeChartType.AreaStacked,
                          OfficeChartType.Radar,

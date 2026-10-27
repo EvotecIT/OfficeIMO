@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "Basic PowerPoint.pptx");
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             Console.WriteLine($"Theme: {presentation.ThemeName}");
             PowerPointSlide slide = presentation.AddSlide();

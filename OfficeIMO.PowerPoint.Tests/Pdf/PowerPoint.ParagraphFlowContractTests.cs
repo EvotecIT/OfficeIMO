@@ -19,7 +19,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, true)]
     public void EmptyParagraphOutsideTheFrameRetainsFollowingTextAndDiagnosesTextBoxOverflow(bool table, bool followingText) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         if (table) {
             var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 60).GetCell(0, 0);
@@ -52,7 +52,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true)]
     public void CondensedDescendersRemainVisibleBeyondTheTextBoxBoundary(bool rich) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 40);
         box.FontSize = 24; box.FontName = "Helvetica";
         box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
@@ -79,7 +79,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, true, true)]
     public void CondensedParagraphLeadingSurvivesNativeRendering(bool table, bool rich, bool trailingParagraph) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         PowerPointParagraph paragraph;
         if (table) {
@@ -112,7 +112,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("end", true)]
     public void BlankParagraphUsesEffectiveFontSize(string source, bool differentAlignment) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
             box.FontName = "Helvetica"; box.FontSize = 12;
@@ -133,7 +133,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [Fact]
     public void BlankTableCellParagraphRetainsItsLineAndSpacing() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
             cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
@@ -151,7 +151,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("end")]
     public void BlankTableCellParagraphUsesEffectiveFontSize(string source) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
             cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
@@ -212,7 +212,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true)]
     public void EmptyParagraphRetainsItsLineAndSpacingInPdfSpans(bool bullet) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
             box.FontName = "Helvetica";

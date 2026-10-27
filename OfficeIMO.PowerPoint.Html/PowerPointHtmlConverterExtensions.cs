@@ -102,8 +102,8 @@ public static partial class PowerPointHtmlConverterExtensions {
 
     private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointDocument presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
         IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
-        double width = Math.Max(1D, presentation.SlideSize.WidthPoints);
-        double height = Math.Max(1D, presentation.SlideSize.HeightPoints);
+        double width = Math.Max(1D, presentation.SlideSize.Width.ToPoints());
+        double height = Math.Max(1D, presentation.SlideSize.Height.ToPoints());
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
             .Append('"');

@@ -1024,8 +1024,8 @@ Describe 'PowerPoint cmdlets' {
         $updatedSlide.Transition | Should -Be $fadeTransition
 
         $slideSize = Set-OfficePowerPointSlideSize -Presentation $presentation -WidthCm 25.4 -HeightCm 14.0 -PassThru
-        [math]::Round($slideSize.WidthCm, 1) | Should -Be 25.4
-        [math]::Round($slideSize.HeightCm, 1) | Should -Be 14.0
+        [math]::Round($slideSize.Width.ToCentimeters(), 1) | Should -Be 25.4
+        [math]::Round($slideSize.Height.ToCentimeters(), 1) | Should -Be 14.0
 
         Save-OfficePowerPoint -Presentation $presentation
         $presentation.Dispose()
@@ -1039,8 +1039,8 @@ Describe 'PowerPoint cmdlets' {
         try {
             $reloadedSlide = Get-OfficePowerPointSlide -Presentation $reloaded -Index 0
             $reloadedSlide.Transition | Should -Be $fadeTransition
-            [math]::Round($reloaded.SlideSize.WidthCm, 1) | Should -Be 25.4
-            [math]::Round($reloaded.SlideSize.HeightCm, 1) | Should -Be 14.0
+            [math]::Round($reloaded.SlideSize.Width.ToCentimeters(), 1) | Should -Be 25.4
+            [math]::Round($reloaded.SlideSize.Height.ToCentimeters(), 1) | Should -Be 14.0
             $reloaded.SlideSize.IsLandscape | Should -BeTrue
         } finally {
             if ($reloaded) {
@@ -1056,8 +1056,8 @@ Describe 'PowerPoint cmdlets' {
 
         $presetSize = Set-OfficePowerPointSlideSize -Presentation $presentation -Preset Screen4x3 -Portrait -PassThru
         $presetSize.IsPortrait | Should -BeTrue
-        [math]::Round($presetSize.WidthInches, 1) | Should -Be 7.5
-        [math]::Round($presetSize.HeightInches, 1) | Should -Be 10.0
+        [math]::Round($presetSize.Width.ToInches(), 1) | Should -Be 7.5
+        [math]::Round($presetSize.Height.ToInches(), 1) | Should -Be 10.0
 
         Save-OfficePowerPoint -Presentation $presentation
         $presentation.Dispose()
@@ -1065,8 +1065,8 @@ Describe 'PowerPoint cmdlets' {
         $reloaded = Get-OfficePowerPoint -Path $path
         try {
             $reloaded.SlideSize.IsPortrait | Should -BeTrue
-            [math]::Round($reloaded.SlideSize.WidthInches, 1) | Should -Be 7.5
-            [math]::Round($reloaded.SlideSize.HeightInches, 1) | Should -Be 10.0
+            [math]::Round($reloaded.SlideSize.Width.ToInches(), 1) | Should -Be 7.5
+            [math]::Round($reloaded.SlideSize.Height.ToInches(), 1) | Should -Be 10.0
         } finally {
             if ($reloaded) {
                 $reloaded.Dispose()

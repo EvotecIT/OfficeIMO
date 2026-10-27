@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             var plan = new GoogleSlidesTranslationPlan(report) { SlideCount = presentation.Slides.Count };
             string? title = !string.IsNullOrWhiteSpace(options.Title) ? options.Title! : presentation.BuiltinDocumentProperties.Title;
             if (string.IsNullOrWhiteSpace(title)) title = "Presentation";
-            var batch = new GoogleSlidesBatch(title!, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints, plan);
+            var batch = new GoogleSlidesBatch(title!, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints(), plan);
 
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide source = presentation.Slides[slideIndex];

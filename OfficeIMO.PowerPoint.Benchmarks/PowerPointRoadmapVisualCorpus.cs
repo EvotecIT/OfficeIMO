@@ -54,7 +54,7 @@ internal static class PowerPointRoadmapVisualCorpus {
 
         using (PowerPointDocument presentation =
                PowerPointDocument.Create(deckPath)) {
-            presentation.SlideSize.SetSizePoints(960, 540);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(960),OfficeIMO.OfficeLength.Points(540));
             var visualSlides = new List<PowerPointSlide>();
             foreach ((PowerPointSmartArtType type, string title) in SmartArtScenarios) {
                 visualSlides.Add(AddSmartArtSlide(presentation, type, title));

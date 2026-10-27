@@ -22,7 +22,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static byte[] CreateNativePowerPointSlide() {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 180);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);
@@ -97,7 +97,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static byte[] CreateNativePowerPointDenseLayout() {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 180);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);

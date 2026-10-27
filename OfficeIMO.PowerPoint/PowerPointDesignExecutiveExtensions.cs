@@ -16,8 +16,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointExecutiveSummaryLayoutVariant variant = ResolveExecutiveVariant(resolved, content);
             ValidateExecutiveSummaryCapacity(content, variant);
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             if (variant == PowerPointExecutiveSummaryLayoutVariant.DecisionBrief) {
                 AddExecutiveDecisionBrief(slide, resolvedTheme, content, width, height, resolved);
@@ -37,8 +37,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointClosingSlideOptions resolved = options ?? new PowerPointClosingSlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PowerPointClosingLayoutVariant variant = ResolveClosingVariant(resolved, content);
             if (variant == PowerPointClosingLayoutVariant.ActionPanel) {
                 PrepareLightStorySlide(slide, resolvedTheme, resolved, title, null, width, height);

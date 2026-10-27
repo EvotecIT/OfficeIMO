@@ -19,7 +19,7 @@ public sealed class PowerPointNativeTextLayoutTests {
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
         var profile = new OfficeRenderingProfile("native-text-regression", fonts, managedShaping ? OfficeManagedTextShapingProvider.Instance : null);
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(440, 260);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(260));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox plain = slide.AddTextBoxPoints("PLAIN baseline", 20, 15, 175, 44);
         plain.FontName = "NativeFixture";

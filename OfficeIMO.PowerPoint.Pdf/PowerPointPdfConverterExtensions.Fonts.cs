@@ -19,8 +19,8 @@ public static partial class PowerPointPdfConverterExtensions {
             pdfOptions.PageWidth = 792D;
             pdfOptions.PageHeight = 612D;
         } else {
-            pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
-            pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
+            pdfOptions.PageWidth = presentation.SlideSize.Width.ToPoints();
+            pdfOptions.PageHeight = presentation.SlideSize.Height.ToPoints();
         }
         pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(0);
         bool preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
@@ -148,8 +148,8 @@ public static partial class PowerPointPdfConverterExtensions {
     private static HashSet<PdfCore.PdfStandardFont> RegisterPresentationFonts(PdfCore.PdfCreateOptions pdfOptions, PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options, bool preserveConfiguredFontSlots) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
-        double pageWidth = presentation.SlideSize.WidthPoints;
-        double pageHeight = presentation.SlideSize.HeightPoints;
+        double pageWidth = presentation.SlideSize.Width.ToPoints();
+        double pageHeight = presentation.SlideSize.Height.ToPoints();
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             PptCore.PowerPointSlide slide = slides[slideIndex];

@@ -10,8 +10,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlideSizeType sizeType = settings?.SlideSizeType is LegacyPptSlideSizeType type
                 ? MapLegacySlideSizeType(type, source.SlideWidth, source.SlideHeight)
                 : PowerPointSlideSizeType.Custom;
-            target.SlideSize.SetSizeEmus(ToEmus(source.SlideWidth),
-                ToEmus(source.SlideHeight), sizeType);
+            target.SlideSize.SetSize(OfficeIMO.OfficeLength.Emus(ToEmus(source.SlideWidth)),                OfficeIMO.OfficeLength.Emus(ToEmus(source.SlideHeight)),sizeType);
             if (settings == null) return;
 
             Presentation root = target.PresentationRoot;

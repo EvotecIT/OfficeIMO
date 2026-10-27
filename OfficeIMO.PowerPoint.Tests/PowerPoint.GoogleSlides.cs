@@ -635,7 +635,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Exporter_ScalesAndCentersElementsToTargetPageSize() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(960, 540);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(960),OfficeIMO.OfficeLength.Points(540));
             presentation.AddSlide().AddTextBoxPoints("Edge", 800, 400, 100, 100);
             string? batchBody = null;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -1232,7 +1232,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task DiffPlanner_RejectsEarlierInvariantCheckpointBeforeRemoteRead() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.SlideSize.WidthEmus = 1270;
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Emus(1270);
             GoogleSlidesSyncCheckpoint prior = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
             prior.HashFormatVersion = 2;
             int requests = 0;
@@ -1299,8 +1299,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DiffPlanner_CheckpointSizeHashIsPortableAcrossRuntimes() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.SlideSize.WidthEmus = 1234567;
-            presentation.SlideSize.HeightEmus = 2345678;
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Emus(1234567);
+            presentation.SlideSize.Height= OfficeIMO.OfficeLength.Emus(2345678);
 
             GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation);
 

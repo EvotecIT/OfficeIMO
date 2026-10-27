@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             };
             using var firstStream = new MemoryStream();
             using PowerPointDocument firstPresentation = PowerPointDocument.Create(firstStream);
-            firstPresentation.SlideSize.SetSizePoints(160, 100);
+            firstPresentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide firstSlide = firstPresentation.AddSlide();
             firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
 

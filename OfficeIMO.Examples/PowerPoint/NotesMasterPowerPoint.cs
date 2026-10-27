@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "NotesMaster.pptx");
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitleCm("Speaker Notes", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);

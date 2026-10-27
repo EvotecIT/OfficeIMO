@@ -38,8 +38,8 @@ public static partial class PowerPointPdfConverterExtensions {
             pdf.Canvas(canvas => {
                 double margin = 54D;
                 double availableWidth = pageWidth - margin * 2D;
-                double slideHeight = availableWidth * presentation.SlideSize.HeightPoints /
-                    presentation.SlideSize.WidthPoints;
+                double slideHeight = availableWidth * presentation.SlideSize.Height.ToPoints() /
+                    presentation.SlideSize.Width.ToPoints();
                 RenderSnapshotThumbnail(canvas, item.Slide, item.Number, margin, margin, availableWidth,
                     slideHeight, options);
                 canvas.Text("Slide " + item.Number.ToString(CultureInfo.InvariantCulture), margin,
@@ -85,9 +85,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 double top = margin + index * (rowHeight + gutter);
                 double thumbHeight = Math.Min(rowHeight - 18D, thumbColumnWidth *
-                    presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
-                double thumbWidth = thumbHeight * presentation.SlideSize.WidthPoints /
-                    presentation.SlideSize.HeightPoints;
+                    presentation.SlideSize.Height.ToPoints() / presentation.SlideSize.Width.ToPoints());
+                double thumbWidth = thumbHeight * presentation.SlideSize.Width.ToPoints() /
+                    presentation.SlideSize.Height.ToPoints();
                 RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
                     margin + (thumbColumnWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
                 string notes = string.Empty;
@@ -118,9 +118,9 @@ public static partial class PowerPointPdfConverterExtensions {
             double labelHeight = 14D;
             double thumbnailAreaHeight = cellHeight - labelHeight - notesHeight;
             double thumbHeight = Math.Min(thumbnailAreaHeight, cellWidth *
-                presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
-            double thumbWidth = thumbHeight * presentation.SlideSize.WidthPoints /
-                presentation.SlideSize.HeightPoints;
+                presentation.SlideSize.Height.ToPoints() / presentation.SlideSize.Width.ToPoints());
+            double thumbWidth = thumbHeight * presentation.SlideSize.Width.ToPoints() /
+                presentation.SlideSize.Height.ToPoints();
             RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
                 left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
             canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
@@ -141,11 +141,11 @@ public static partial class PowerPointPdfConverterExtensions {
         // Draw the canonical slide directly under a thumbnail transform. Reading
         // an image snapshot here would discard PDF links and text semantics.
         canvas.Clip(x, y, width, height, clipped =>
-            clipped.Effect(new OfficeTransform(width / size.WidthPoints, 0D, 0D, height / size.HeightPoints, x, y), 1D, target => {
-                RenderSlideBackground(target, slide, slideNumber, size.WidthPoints, size.HeightPoints, options);
-                RenderShapes(target, slide.GetInheritedShapesForExport(), slideNumber, size.WidthPoints, size.HeightPoints,
+            clipped.Effect(new OfficeTransform(width / size.Width.ToPoints(), 0D, 0D, height / size.Height.ToPoints(), x, y), 1D, target => {
+                RenderSlideBackground(target, slide, slideNumber, size.Width.ToPoints(), size.Height.ToPoints(), options);
+                RenderShapes(target, slide.GetInheritedShapesForExport(), slideNumber, size.Width.ToPoints(), size.Height.ToPoints(),
                     options, warnInvalidBounds: false, groupDepth: 0);
-                RenderShapes(target, slide.Shapes, slideNumber, size.WidthPoints, size.HeightPoints,
+                RenderShapes(target, slide.Shapes, slideNumber, size.Width.ToPoints(), size.Height.ToPoints(),
                     options, warnInvalidBounds: true, groupDepth: 0);
             }));
     }

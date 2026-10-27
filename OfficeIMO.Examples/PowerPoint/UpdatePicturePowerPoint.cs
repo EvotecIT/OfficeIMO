@@ -17,13 +17,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide = presentation.AddSlide();
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            double slideHeightCm = presentation.SlideSize.HeightCm;
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+            double slideHeightCm = presentation.SlideSize.Height.ToCentimeters();
             double bodyTopCm = 3.4;
             double bodyHeightCm = slideHeightCm - bodyTopCm - marginCm;
             long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
             long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
-            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
+            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
             PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
 

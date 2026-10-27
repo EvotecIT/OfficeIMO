@@ -107,7 +107,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
         var profile = new OfficeRenderingProfile("native-overflow", fonts);
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(400, 360);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(360));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBoxPoints(
             "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron TAIL", 20, 20, 120, 40);

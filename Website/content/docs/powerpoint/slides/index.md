@@ -9,41 +9,43 @@ This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Inste
 ## Start with a title and body region
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing;
 
 using var presentation = PowerPointDocument.Create("presentation.pptx");
 const double marginCm = 1.5;
 
-var content = presentation.SlideSize.GetContentBoxCm(marginCm);
+var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
 slide.AddTitleCm(
     "Quarterly Results",
-    content.LeftCm,
-    content.TopCm,
-    content.WidthCm,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters(),
+    content.Width.ToCentimeters(),
     1.4);
 
 slide.AddTextBoxCm(
     "Generated from the reporting pipeline.",
-    content.LeftCm,
-    content.TopCm + 1.8,
-    content.WidthCm,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters() + 1.8,
+    content.Width.ToCentimeters(),
     1.0);
 ```
 
 ## Add bullets and formatted text
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
 var text = slide.AddTextBoxCm(
     string.Empty,
-    content.LeftCm,
-    content.TopCm + 3.0,
-    content.WidthCm / 2,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters() + 3.0,
+    content.Width.ToCentimeters() / 2,
     4.5);
 
 text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
@@ -70,6 +72,7 @@ text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 ## Build tables and charts from data
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
 var rows = new[] {
@@ -79,7 +82,7 @@ var rows = new[] {
 };
 
 var tableSlide = presentation.AddSlide();
-tableSlide.AddTitleCm("Sales by Product", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+tableSlide.AddTitleCm("Sales by Product", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
 
 var table = tableSlide.AddTableCm(
     rows,
@@ -88,15 +91,15 @@ var table = tableSlide.AddTableCm(
         options.PinFirst("Product");
     },
     includeHeaders: true,
-    leftCm: content.LeftCm,
-    topCm: content.TopCm + 2.0,
-    widthCm: content.WidthCm,
+    leftCm: content.Left.ToCentimeters(),
+    topCm: content.Top.ToCentimeters() + 2.0,
+    widthCm: content.Width.ToCentimeters(),
     heightCm: 4.5);
 
 table.SetColumnWidthsEvenly();
 
 var chartSlide = presentation.AddSlide();
-chartSlide.AddTitleCm("Quarterly Performance", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+chartSlide.AddTitleCm("Quarterly Performance", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
 
 var chartData = new OfficeChartData(
     rows.Select(r => r.Product),
@@ -110,9 +113,9 @@ var chartData = new OfficeChartData(
 chartSlide.AddChartCm(
     OfficeChartType.ColumnClustered,
     chartData,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters() + 2.0,
+    content.Width.ToCentimeters(),
     4.8);
 chartSlide.Notes.Text = "Chart and table share the same source data.";
 ```
@@ -133,9 +136,9 @@ var bubbleData = new OfficeChartData(
 chartSlide.AddChartCm(
     OfficeChartType.Bubble,
     bubbleData,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
+    content.Left.ToCentimeters(),
+    content.Top.ToCentimeters() + 2.0,
+    content.Width.ToCentimeters(),
     4.8);
 ```
 
@@ -145,13 +148,13 @@ Bubble sizes must be finite and non-negative, with one size for every X/Y point.
 
 ```csharp
 var intro = presentation.AddSlide();
-intro.AddTitleCm("Intro", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+intro.AddTitleCm("Intro", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
 
 var duplicate = presentation.DuplicateSlide(0);
 duplicate.Hidden = true;
 
 using var source = PowerPointDocument.Create("source-deck.pptx");
-source.AddSlide().AddTitleCm("Imported slide", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+source.AddSlide().AddTitleCm("Imported slide", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
 source.Save();
 
 presentation.ImportSlide(source, 0, insertAt: 1);

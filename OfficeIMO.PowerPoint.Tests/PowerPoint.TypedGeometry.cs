@@ -10,6 +10,46 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public class PowerPointTypedGeometry {
         [Fact]
+        public void SlideLengthsDriveNativeSizeAndContentRegions() {
+            using var document = PowerPointDocument.Create();
+            document.SlideSize.SetSize(OfficeLength.Centimeters(25.4), OfficeLength.Points(500));
+            var columns = document.SlideSize.GetColumns(3, OfficeLength.Millimeters(5), OfficeLength.Points(6));
+            Assert.Equal(OfficeLength.Emus(180000), columns[0].Left);
+            Assert.Equal(OfficeLength.Emus(2877200), columns[0].Width);
+            Assert.Throws<ArgumentOutOfRangeException>(() => document.SlideSize.GetContentBox(OfficeLength.Emus(long.MaxValue)));
+            document.AddSlide();
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var native = PresentationDocument.Open(output, false);
+            Assert.Equal(9144000, native.PresentationPart!.Presentation.SlideSize!.Cx!.Value);
+            Assert.Equal(6350000, native.PresentationPart.Presentation.SlideSize.Cy!.Value);
+        }
+
+        [Fact]
+        public void ReturnedTableRowsAndColumnsKeepTheirNativeIdentityAfterInsertions() {
+            using var document = PowerPointDocument.Create();
+            var table = document.AddSlide().AddTable(2, 2);
+            var row = table.AddRow(0);
+            row.GetCell(0).Text = "Added row";
+            var column = table.AddColumn(1);
+            column.GetCell(1).Text = "Added column";
+            table.AddRow(0);
+            table.AddColumn(0);
+            Assert.Equal(1, row.Index);
+            Assert.Equal(2, column.Index);
+            Assert.Equal("Added row", row.GetCell(1).Text);
+            Assert.Equal("Added column", column.GetCell(2).Text);
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var loaded = PowerPointDocument.Load(output);
+            var saved = loaded.Slides[0].Tables.Single();
+            Assert.Equal("Added row", saved.GetCell(1, 1).Text);
+            Assert.Equal("Added column", saved.GetCell(2, 2).Text);
+        }
+
+        [Fact]
         public void MixedUnitBoundsWriteExactNativeCoordinates() {
             using var document = PowerPointDocument.Create();
             var shape = document.AddSlide().AddTextBox("Positioned");

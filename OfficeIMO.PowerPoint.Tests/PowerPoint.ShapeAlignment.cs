@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
 
                 slide.AlignShapesToSlide(new[] { shape }, PowerPointShapeAlignment.Center);
 
-                long expected = (presentation.SlideSize.WidthEmus - shape.Width.ToEmus()) / 2;
+                long expected = (presentation.SlideSize.Width.ToEmus() - shape.Width.ToEmus()) / 2;
                 Assert.Equal(expected, shape.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
                 slide.AlignShapesToSlideContent(new[] { shape }, PowerPointShapeAlignment.Center, margin);
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 long expected = content.Left.ToEmus() + (content.Width.ToEmus() - shape.Width.ToEmus()) / 2;
                 Assert.Equal(expected, shape.Left.ToEmus());
             } finally {
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
 
                 slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal, margin);
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 long totalWidth = a.Width.ToEmus() + b.Width.ToEmus() + c.Width.ToEmus();
                 double gap = (content.Width.ToEmus() - totalWidth) / 2d;
                 double current = content.Left.ToEmus();

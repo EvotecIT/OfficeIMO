@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(1.5);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(1.5));
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox title = slide.AddTitle("Direct presentation editing",
                     new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.6)));

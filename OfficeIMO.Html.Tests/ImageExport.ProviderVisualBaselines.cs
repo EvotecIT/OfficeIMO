@@ -65,7 +65,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
     private static byte[] RenderPowerPoint() {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(480, 270);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(270));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "F8FAFC";
         PowerPointTextBox title = slide.AddTextBoxPoints("Delivery dashboard", 28, 22, 300, 34);

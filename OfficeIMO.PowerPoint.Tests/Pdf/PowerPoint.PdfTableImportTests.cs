@@ -412,8 +412,8 @@ public class PowerPointPdfTableImportTests {
 
         using (result.Value) {
             Assert.True(result.Value.Slides.Count > 1);
-            double slideWidth = result.Value.SlideSize.WidthPoints;
-            double slideHeight = result.Value.SlideSize.HeightPoints;
+            double slideWidth = result.Value.SlideSize.Width.ToPoints();
+            double slideHeight = result.Value.SlideSize.Height.ToPoints();
             int primaryFontSize = Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).FontSize ?? 0;
             Assert.InRange(primaryFontSize, 1, 3);
             foreach (OfficeIMO.PowerPoint.PowerPointSlide slide in result.Value.Slides.Skip(1)) {

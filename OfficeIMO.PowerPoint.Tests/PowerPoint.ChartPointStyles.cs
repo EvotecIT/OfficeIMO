@@ -127,7 +127,7 @@ public sealed class PowerPointChartPointStylesTests {
         var hatch = new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.DiagonalCross,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(640, 360);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         presentation.AddSlide().AddChartPoints(kind, Data(kind, new[] { null, null, hatch }), 20, 20, 600, 320);
         Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToPng(), out OfficeRasterImage? raster));
         int hatchPixels = 0;

@@ -26,7 +26,7 @@ public partial class PowerPointSaveAsPdfTests {
     [Fact]
     public void SaveAsPdf_UnsupportedSvgPictureReportsOmissionWithoutAbortingTheSlide() {
         using var presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(160, 100);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(

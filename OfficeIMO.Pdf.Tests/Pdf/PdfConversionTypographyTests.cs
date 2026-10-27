@@ -322,7 +322,7 @@ Zażółć gęślą jaźń
     private static byte[] CreatePowerPointPdf(string fontPath) {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox title = slide.AddTextBoxPoints("Converter typography report", 32, 26, 280, 28);
         title.FontName = FamilyName;
@@ -414,7 +414,7 @@ Zażółć gęślą jaźń
     private static PdfCore.PdfConversionReport CreatePowerPointOpenTypeReport(string fontPath, bool scalar) {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
         textBox.FontSize = 14;
 
@@ -496,7 +496,7 @@ Zażółć gęślą jaźń
     private static PdfCore.PdfConversionReport CreatePowerPointComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(text, 32, 32, 220, 32);
         textBox.FontSize = 14;
 

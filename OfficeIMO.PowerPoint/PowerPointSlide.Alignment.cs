@@ -256,7 +256,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var slideSize = new PowerPointSlideSize(presentationPart);
-            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(slideSize.WidthEmus),OfficeIMO.OfficeLength.Emus(slideSize.HeightEmus));
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(slideSize.Width.ToEmus()),OfficeIMO.OfficeLength.Emus(slideSize.Height.ToEmus()));
         }
 
         private static void DistributeHorizontal(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds) {

@@ -25,7 +25,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
-        Assert.Equal(presentation.SlideSize.WidthPoints - 128D, table.Width.ToPoints(), 3);
+        Assert.Equal(presentation.SlideSize.Width.ToPoints() - 128D, table.Width.ToPoints(), 3);
         Assert.Equal("Term", table.GetCell(0, 0).Text);
         Assert.Equal("Definition", table.GetCell(0, 1).Text);
         Assert.Equal("Basic water service level", table.GetCell(1, 0).Text);
@@ -56,7 +56,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Contains(presentation.Slides.Skip(1), slide => slide.Tables.Contains(table));
         Assert.Equal(30D, table.Top.ToPoints(), 3);
         Assert.Equal("Surface water", table.GetCell(5, 0).Text);
-        Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.HeightPoints - 30D);
+        Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Equal(300D, table.Width.ToPoints(), 3);
         Assert.True(table.GetRowHeightPoints(1) > table.GetRowHeightPoints(0));
         Assert.True(table.Top.ToPoints() + table.GetRowHeightPoints(0) + table.GetRowHeightPoints(1)
-            <= presentation.SlideSize.HeightPoints - 30D);
+            <= presentation.SlideSize.Height.ToPoints() - 30D);
         Assert.Equal(definition, table.GetCell(1, 1).Text);
     }
 
@@ -115,7 +115,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
         Assert.All(tables, table =>
-            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D));
+            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.Height.ToPoints() - 30D));
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             PowerPointTable table = Assert.Single(slide.Tables);
             Assert.Equal("Contaminant", table.GetCell(0, 0).Text);
             Assert.Equal("Secondary Standard", table.GetCell(0, 1).Text);
-            Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.HeightPoints - 30D);
+            Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
         });
         PowerPointTable lastTable = tableSlides.Last().Tables.Single();
         Assert.Equal("Contaminant 15", lastTable.GetCell(lastTable.Rows - 1, 0).Text);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ExplicitNoFillCellShowsSlideBackgroundInsteadOfTableTheme() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(180, 100);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             var slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFF00";
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_RendersTableStyleColumnsAndCorners() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(180, 120);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000101}";
             AddImageExportTableStyle(slide, styleId);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_RendersTableStyleBandedColumns() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(180, 100);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
             AddImageExportTableStyle(slide, styleId);
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_RendersMergedTableStyleOuterBorders() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(140, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(140),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000102}";
             AddImageExportMergedBorderTableStyle(slide, styleId);

@@ -30,365 +30,76 @@ namespace OfficeIMO.PowerPoint {
             }
             return (int)value;
         }
-
-        /// <summary>
-        ///     Slide width in EMUs.
-        /// </summary>
-        public long WidthEmus {
-            get => EnsureSlideSize().Cx?.Value ?? 0;
-            set => EnsureSlideSize().Cx = EnsureEmuFitsInt(value, nameof(WidthEmus));
+        /// <summary>Slide width.</summary>
+        public OfficeLength Width {
+            get => OfficeLength.Emus(EnsureSlideSize().Cx?.Value ?? 0);
+            set => EnsureSlideSize().Cx = EnsureEmuFitsInt(value.ToEmus(), nameof(Width));
         }
 
-        /// <summary>
-        ///     Slide height in EMUs.
-        /// </summary>
-        public long HeightEmus {
-            get => EnsureSlideSize().Cy?.Value ?? 0;
-            set => EnsureSlideSize().Cy = EnsureEmuFitsInt(value, nameof(HeightEmus));
+        /// <summary>Slide height.</summary>
+        public OfficeLength Height {
+            get => OfficeLength.Emus(EnsureSlideSize().Cy?.Value ?? 0);
+            set => EnsureSlideSize().Cy = EnsureEmuFitsInt(value.ToEmus(), nameof(Height));
         }
 
-        /// <summary>
-        ///     Slide width in centimeters.
-        /// </summary>
-        public double WidthCm {
-            get => PowerPointUnits.ToCentimeters(WidthEmus);
-            set => WidthEmus = PowerPointUnits.FromCentimeters(value);
-        }
+        /// <summary>Gets the slide width divided by its height.</summary>
+        public double AspectRatio => Height == OfficeLength.Zero ? 0 : Width.ToEmus() / (double)Height.ToEmus();
+        /// <summary>Gets whether the slide is in portrait orientation.</summary>
+        public bool IsPortrait => Height > Width;
+        /// <summary>Gets whether the slide is in landscape orientation.</summary>
+        public bool IsLandscape => Width >= Height;
 
-        /// <summary>
-        ///     Slide height in centimeters.
-        /// </summary>
-        public double HeightCm {
-            get => PowerPointUnits.ToCentimeters(HeightEmus);
-            set => HeightEmus = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Slide width in inches.
-        /// </summary>
-        public double WidthInches {
-            get => PowerPointUnits.ToInches(WidthEmus);
-            set => WidthEmus = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Slide height in inches.
-        /// </summary>
-        public double HeightInches {
-            get => PowerPointUnits.ToInches(HeightEmus);
-            set => HeightEmus = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Slide width in points.
-        /// </summary>
-        public double WidthPoints {
-            get => PowerPointUnits.ToPoints(WidthEmus);
-            set => WidthEmus = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Slide height in points.
-        /// </summary>
-        public double HeightPoints {
-            get => PowerPointUnits.ToPoints(HeightEmus);
-            set => HeightEmus = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Gets the slide aspect ratio (width / height).
-        /// </summary>
-        public double AspectRatio => HeightEmus == 0 ? 0 : WidthEmus / (double)HeightEmus;
-
-        /// <summary>
-        ///     Gets a value indicating whether the slide is in portrait orientation.
-        /// </summary>
-        public bool IsPortrait => HeightEmus > WidthEmus;
-
-        /// <summary>
-        ///     Gets a value indicating whether the slide is in landscape orientation.
-        /// </summary>
-        public bool IsLandscape => WidthEmus >= HeightEmus;
-
-        /// <summary>
-        ///     Slide size preset type.
-        /// </summary>
+        /// <summary>Slide size preset type.</summary>
         public PowerPointSlideSizeType? Type {
             get => EnsureSlideSize().Type?.Value.ToOfficeEnum();
             set => EnsureSlideSize().Type = value?.ToOpenXml();
         }
 
-        /// <summary>
-        ///     Sets a slide size preset.
-        /// </summary>
+        /// <summary>Sets a slide size preset.</summary>
         public void SetPreset(PowerPointSlideSizePreset preset, bool portrait = false) {
-            (long width, long height, PowerPointSlideSizeType type) = preset switch {
+            (OfficeLength width, OfficeLength height, PowerPointSlideSizeType type) = preset switch {
                 PowerPointSlideSizePreset.Screen4x3 =>
-                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(7.5), PowerPointSlideSizeType.Screen4x3),
+                    (OfficeLength.Inches(10), OfficeLength.Inches(7.5), PowerPointSlideSizeType.Screen4x3),
                 PowerPointSlideSizePreset.Screen16x9 =>
-                    (PowerPointUnits.FromInches(13.333), PowerPointUnits.FromInches(7.5), PowerPointSlideSizeType.Screen16x9),
+                    (OfficeLength.Inches(13.333), OfficeLength.Inches(7.5), PowerPointSlideSizeType.Screen16x9),
                 PowerPointSlideSizePreset.Screen16x10 =>
-                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(6.25), PowerPointSlideSizeType.Screen16x10),
+                    (OfficeLength.Inches(10), OfficeLength.Inches(6.25), PowerPointSlideSizeType.Screen16x10),
                 _ => throw new ArgumentOutOfRangeException(nameof(preset))
             };
-
-            if (portrait) {
-                (width, height) = (height, width);
-            }
-
-            SetSizeEmus(width, height, type);
+            if (portrait) (width, height) = (height, width);
+            SetSize(width, height, type);
         }
 
-        /// <summary>
-        ///     Sets the slide size in EMUs.
-        /// </summary>
-        public void SetSizeEmus(long widthEmus, long heightEmus) {
-            SetSizeEmus(widthEmus, heightEmus, PowerPointSlideSizeType.Custom);
-        }
+        /// <summary>Sets a custom slide size with explicit lengths.</summary>
+        public void SetSize(OfficeLength width, OfficeLength height) => SetSize(width, height, PowerPointSlideSizeType.Custom);
 
-        /// <summary>
-        ///     Sets the slide size in EMUs with an explicit slide size type.
-        /// </summary>
-        public void SetSizeEmus(long widthEmus, long heightEmus, PowerPointSlideSizeType type) {
-            if (widthEmus <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(widthEmus));
-            }
-            if (heightEmus <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(heightEmus));
-            }
-
-            WidthEmus = widthEmus;
-            HeightEmus = heightEmus;
+        /// <summary>Sets the slide size and its preset type.</summary>
+        public void SetSize(OfficeLength width, OfficeLength height, PowerPointSlideSizeType type) {
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
+            Width = width;
+            Height = height;
             Type = type;
         }
 
-        /// <summary>
-        ///     Sets the slide size in centimeters.
-        /// </summary>
-        public void SetSizeCm(double widthCm, double heightCm) {
-            SetSizeCm(widthCm, heightCm, PowerPointSlideSizeType.Custom);
+        /// <summary>Gets a content region that respects the specified margin.</summary>
+        public PowerPointLayoutBox GetContentBox(OfficeLength margin) {
+            if (margin < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(margin));
+            if (margin.ToEmus() > Width.ToEmus() / 2 || margin.ToEmus() > Height.ToEmus() / 2)
+                throw new ArgumentOutOfRangeException(nameof(margin), "Margin exceeds slide size.");
+            return new PowerPointLayoutBox(margin, margin, Width - margin * 2, Height - margin * 2);
         }
 
-        /// <summary>
-        ///     Sets the slide size in centimeters with an explicit slide size type.
-        /// </summary>
-        public void SetSizeCm(double widthCm, double heightCm, PowerPointSlideSizeType type) {
-            SetSizeEmus(PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm), type);
+        /// <summary>Creates equal columns inside the slide's content region.</summary>
+        public PowerPointLayoutBox[] GetColumns(int columnCount, OfficeLength margin, OfficeLength gutter) {
+            if (columnCount <= 0) throw new ArgumentOutOfRangeException(nameof(columnCount));
+            return GetContentBox(margin).SplitColumns(columnCount, gutter);
         }
 
-        /// <summary>
-        ///     Sets the slide size in inches.
-        /// </summary>
-        public void SetSizeInches(double widthInches, double heightInches) {
-            SetSizeInches(widthInches, heightInches, PowerPointSlideSizeType.Custom);
-        }
-
-        /// <summary>
-        ///     Sets the slide size in inches with an explicit slide size type.
-        /// </summary>
-        public void SetSizeInches(double widthInches, double heightInches, PowerPointSlideSizeType type) {
-            SetSizeEmus(PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches), type);
-        }
-
-        /// <summary>
-        ///     Sets the slide size in points.
-        /// </summary>
-        public void SetSizePoints(double widthPoints, double heightPoints) {
-            SetSizePoints(widthPoints, heightPoints, PowerPointSlideSizeType.Custom);
-        }
-
-        /// <summary>
-        ///     Sets the slide size in points with an explicit slide size type.
-        /// </summary>
-        public void SetSizePoints(double widthPoints, double heightPoints, PowerPointSlideSizeType type) {
-            SetSizeEmus(PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints), type);
-        }
-
-        /// <summary>
-        ///     Gets a content box that respects the specified margin (EMU units).
-        /// </summary>
-        /// <param name="marginEmus">Margin in EMUs.</param>
-        public PowerPointLayoutBox GetContentBox(long marginEmus) {
-            if (marginEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(marginEmus));
-            }
-
-            if (marginEmus * 2 > WidthEmus || marginEmus * 2 > HeightEmus) {
-                throw new ArgumentOutOfRangeException(nameof(marginEmus), "Margin exceeds slide size.");
-            }
-
-            long width = WidthEmus - (2 * marginEmus);
-            long height = HeightEmus - (2 * marginEmus);
-            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(width),OfficeIMO.OfficeLength.Emus(height));
-        }
-
-        /// <summary>
-        ///     Gets a content box that respects the specified margin in centimeters.
-        /// </summary>
-        /// <param name="marginCm">Margin in centimeters.</param>
-        public PowerPointLayoutBox GetContentBoxCm(double marginCm) {
-            return GetContentBox(PowerPointUnits.FromCentimeters(marginCm));
-        }
-
-        /// <summary>
-        ///     Gets a content box that respects the specified margin in inches.
-        /// </summary>
-        /// <param name="marginInches">Margin in inches.</param>
-        public PowerPointLayoutBox GetContentBoxInches(double marginInches) {
-            return GetContentBox(PowerPointUnits.FromInches(marginInches));
-        }
-
-        /// <summary>
-        ///     Gets a content box that respects the specified margin in points.
-        /// </summary>
-        /// <param name="marginPoints">Margin in points.</param>
-        public PowerPointLayoutBox GetContentBoxPoints(double marginPoints) {
-            return GetContentBox(PowerPointUnits.FromPoints(marginPoints));
-        }
-
-        /// <summary>
-        ///     Creates column layout boxes inside a content area (EMU units).
-        /// </summary>
-        /// <param name="columnCount">Number of columns to create.</param>
-        /// <param name="marginEmus">Margin in EMUs.</param>
-        /// <param name="gutterEmus">Gutter between columns in EMUs.</param>
-        public PowerPointLayoutBox[] GetColumns(int columnCount, long marginEmus, long gutterEmus) {
-            if (columnCount <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(columnCount));
-            }
-            if (gutterEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(gutterEmus));
-            }
-
-            PowerPointLayoutBox content = GetContentBox(marginEmus);
-            long totalGutter = gutterEmus * (columnCount - 1);
-            if (totalGutter > content.Width.ToEmus()) {
-                throw new ArgumentOutOfRangeException(nameof(gutterEmus), "Gutter exceeds available width.");
-            }
-
-            long columnWidth = (content.Width.ToEmus() - totalGutter) / columnCount;
-            if (columnWidth <= 0) {
-                throw new InvalidOperationException("Column width is not positive.");
-            }
-
-            var columns = new PowerPointLayoutBox[columnCount];
-            long left = content.Left.ToEmus();
-            for (int i = 0; i < columnCount; i++) {
-                columns[i] = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(left),OfficeIMO.OfficeLength.Emus(content.Top.ToEmus()),OfficeIMO.OfficeLength.Emus(columnWidth),OfficeIMO.OfficeLength.Emus(content.Height.ToEmus()));
-                left += columnWidth + gutterEmus;
-            }
-
-            return columns;
-        }
-
-        /// <summary>
-        ///     Creates column layout boxes inside a content area in centimeters.
-        /// </summary>
-        /// <param name="columnCount">Number of columns to create.</param>
-        /// <param name="marginCm">Margin in centimeters.</param>
-        /// <param name="gutterCm">Gutter between columns in centimeters.</param>
-        public PowerPointLayoutBox[] GetColumnsCm(int columnCount, double marginCm, double gutterCm) {
-            return GetColumns(columnCount,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterCm));
-        }
-
-        /// <summary>
-        ///     Creates column layout boxes inside a content area in inches.
-        /// </summary>
-        /// <param name="columnCount">Number of columns to create.</param>
-        /// <param name="marginInches">Margin in inches.</param>
-        /// <param name="gutterInches">Gutter between columns in inches.</param>
-        public PowerPointLayoutBox[] GetColumnsInches(int columnCount, double marginInches, double gutterInches) {
-            return GetColumns(columnCount,
-                PowerPointUnits.FromInches(marginInches),
-                PowerPointUnits.FromInches(gutterInches));
-        }
-
-        /// <summary>
-        ///     Creates column layout boxes inside a content area in points.
-        /// </summary>
-        /// <param name="columnCount">Number of columns to create.</param>
-        /// <param name="marginPoints">Margin in points.</param>
-        /// <param name="gutterPoints">Gutter between columns in points.</param>
-        public PowerPointLayoutBox[] GetColumnsPoints(int columnCount, double marginPoints, double gutterPoints) {
-            return GetColumns(columnCount,
-                PowerPointUnits.FromPoints(marginPoints),
-                PowerPointUnits.FromPoints(gutterPoints));
-        }
-
-        /// <summary>
-        ///     Creates row layout boxes inside a content area (EMU units).
-        /// </summary>
-        /// <param name="rowCount">Number of rows to create.</param>
-        /// <param name="marginEmus">Margin in EMUs.</param>
-        /// <param name="gutterEmus">Gutter between rows in EMUs.</param>
-        public PowerPointLayoutBox[] GetRows(int rowCount, long marginEmus, long gutterEmus) {
-            if (rowCount <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(rowCount));
-            }
-            if (gutterEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(gutterEmus));
-            }
-
-            PowerPointLayoutBox content = GetContentBox(marginEmus);
-            long totalGutter = gutterEmus * (rowCount - 1);
-            if (totalGutter > content.Height.ToEmus()) {
-                throw new ArgumentOutOfRangeException(nameof(gutterEmus), "Gutter exceeds available height.");
-            }
-
-            long rowHeight = (content.Height.ToEmus() - totalGutter) / rowCount;
-            if (rowHeight <= 0) {
-                throw new InvalidOperationException("Row height is not positive.");
-            }
-
-            var rows = new PowerPointLayoutBox[rowCount];
-            long top = content.Top.ToEmus();
-            for (int i = 0; i < rowCount; i++) {
-                rows[i] = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(content.Left.ToEmus()),OfficeIMO.OfficeLength.Emus(top),OfficeIMO.OfficeLength.Emus(content.Width.ToEmus()),OfficeIMO.OfficeLength.Emus(rowHeight));
-                top += rowHeight + gutterEmus;
-            }
-
-            return rows;
-        }
-
-        /// <summary>
-        ///     Creates row layout boxes inside a content area in centimeters.
-        /// </summary>
-        /// <param name="rowCount">Number of rows to create.</param>
-        /// <param name="marginCm">Margin in centimeters.</param>
-        /// <param name="gutterCm">Gutter between rows in centimeters.</param>
-        public PowerPointLayoutBox[] GetRowsCm(int rowCount, double marginCm, double gutterCm) {
-            return GetRows(rowCount,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterCm));
-        }
-
-        /// <summary>
-        ///     Creates row layout boxes inside a content area in inches.
-        /// </summary>
-        /// <param name="rowCount">Number of rows to create.</param>
-        /// <param name="marginInches">Margin in inches.</param>
-        /// <param name="gutterInches">Gutter between rows in inches.</param>
-        public PowerPointLayoutBox[] GetRowsInches(int rowCount, double marginInches, double gutterInches) {
-            return GetRows(rowCount,
-                PowerPointUnits.FromInches(marginInches),
-                PowerPointUnits.FromInches(gutterInches));
-        }
-
-        /// <summary>
-        ///     Creates row layout boxes inside a content area in points.
-        /// </summary>
-        /// <param name="rowCount">Number of rows to create.</param>
-        /// <param name="marginPoints">Margin in points.</param>
-        /// <param name="gutterPoints">Gutter between rows in points.</param>
-        public PowerPointLayoutBox[] GetRowsPoints(int rowCount, double marginPoints, double gutterPoints) {
-            return GetRows(rowCount,
-                PowerPointUnits.FromPoints(marginPoints),
-                PowerPointUnits.FromPoints(gutterPoints));
+        /// <summary>Creates equal rows inside the slide's content region.</summary>
+        public PowerPointLayoutBox[] GetRows(int rowCount, OfficeLength margin, OfficeLength gutter) {
+            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+            return GetContentBox(margin).SplitRows(rowCount, gutter);
         }
     }
 }

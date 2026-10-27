@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
         public void DesktopReferenceLaneTreatsSkippedVisibleOleObjectAsExpectedContent() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
-            presentation.SlideSize.SetSizePoints(640, 360);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
             using var storage = new MemoryStream(
                 CreateOleTestStorage("Desktop reference OLE"),

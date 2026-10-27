@@ -12,7 +12,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
     [InlineData(true)]
     public void LayoutPlaceholderPromptsAreNotContentAndConcreteSlidePlaceholdersStillRender(bool concrete) {
         using var deck = PowerPointDocument.Create();
-        deck.SlideSize.SetSizePoints(400, 250);
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(250));
         var slide = deck.AddSlide();
         var tree = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
         PlaceholderValues?[] types = { PlaceholderValues.DateAndTime, PlaceholderValues.Footer, PlaceholderValues.SlideNumber, null };
@@ -53,7 +53,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
     public void TitleWithoutSlideOrLayoutTransformUsesMasterBoundsAfterReopen() {
         using var bytes = new MemoryStream();
         using (var deck = PowerPointDocument.Create()) {
-            deck.SlideSize.SetSizePoints(400, 250);
+            deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(250));
             var slide = deck.AddSlide();
             var title = slide.AddTextBoxPoints("MASTER INHERITED TITLE", 10, 10, 200, 50);
             title.PlaceholderType = PowerPointPlaceholderType.Title;

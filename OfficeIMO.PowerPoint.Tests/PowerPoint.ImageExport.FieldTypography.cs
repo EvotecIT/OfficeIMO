@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ImageExportPreservesFieldOnlyTypographyForTextBoxesAndTableCells() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(340, 150);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(340),OfficeIMO.OfficeLength.Points(150));
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("seed", 20, 20, 135, 60).Paragraphs[0];
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ImageExportMaterializesNativeCapsForTextBoxesAndTableCells() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(320, 140);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 130, 60).Paragraphs[0];
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ImageExportResolvesParagraphCapsAndReportsNoncanonicalBaselines() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(360, 150);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(150));
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointParagraph textParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 140, 50).Paragraphs[0];

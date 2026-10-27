@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     box.Text == "30 Sep 2026" || box.Text == "Synthetic data")) {
                     Assert.True(footer.Height.ToCentimeters() * 72 / 2.54 >= footer.FontSize * 1.2,
                         "The footer box does not contain a complete line at its declared font size.");
-                    Assert.True(footer.Bottom.ToEmus() <= presentation.SlideSize.HeightEmus);
+                    Assert.True(footer.Bottom.ToEmus() <= presentation.SlideSize.Height.ToEmus());
                 }
             });
         }

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ProjectsTextBoxLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 190, 80);

@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             const double marginCm = 1.5;
             const double titleHeightCm = 1.4;
             const double bodyGapCm = 0.8;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
             double bodyTopCm = content.Top.ToCentimeters() + titleHeightCm + bodyGapCm;
             double bodyHeightCm = content.Height.ToCentimeters() - titleHeightCm - bodyGapCm;
 

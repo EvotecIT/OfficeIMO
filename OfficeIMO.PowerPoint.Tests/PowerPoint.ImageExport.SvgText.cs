@@ -17,7 +17,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(OfficeImageExportFormat.Svg)]
     public void PowerPointSlide_ImageExportPreservesTextTableThemeAndClippedContent(OfficeImageExportFormat format) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(320, 180);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "146C94");
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFF9E8";

@@ -24,8 +24,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointLogoItem> logoList = NormalizeLogoItems(logos);
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
 
             AddSubtleLightBackground(slide, resolvedTheme, width, height);
@@ -65,8 +65,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointCoverageLocation> locationList = NormalizeLocations(locations);
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
 
             AddSubtleLightBackground(slide, resolvedTheme, width, height);
@@ -112,8 +112,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointCapabilitySection> sectionList = NormalizeCapabilitySections(sections);
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
 
             AddSubtleLightBackground(slide, resolvedTheme, width, height);

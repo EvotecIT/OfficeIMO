@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointCardContent("Card " + index, new[] { "One", "Two" })),
                     options: new PowerPointCardGridSlideOptions { MaxColumns = 3 });
 
-                PowerPointLayoutBox slideBounds = new(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.WidthEmus),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.HeightEmus));
+                PowerPointLayoutBox slideBounds = new(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.Width.ToEmus()),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.Height.ToEmus()));
                 for (int i = 1; i <= 7; i++) {
                     PowerPointShape? card = slide.GetShape("Designer Card " + i);
                     Assert.NotNull(card);

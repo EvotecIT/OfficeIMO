@@ -13,7 +13,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(true)]
     public void PresetFrameFlipsAsymmetricGeometryExactlyOnce(bool flipH) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(120, 90);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
         PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.RightTriangle, 20, 20, 80, 40);
@@ -45,7 +45,7 @@ public partial class PowerPointImageExportTests {
     public void PresetFrameTransformsPaintTogetherWithGeometry(bool flipH, bool flipV, int gradientAngle,
         int rotation, bool rotateWithShape, bool textBox) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(120, 90);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
         PowerPointShape shape = textBox ? slide.AddTextBoxPoints("", 20, 20, 80, 40) : slide.AddRectanglePoints(20, 20, 80, 40);

@@ -180,7 +180,7 @@ namespace OfficeIMO.PowerPoint {
                 ClearGuides();
             }
 
-            PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount, marginEmus, gutterEmus);
+            PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount,OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(gutterEmus));
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox column in columns) {
                 positions.Add(column.Left.ToEmus());
@@ -219,7 +219,7 @@ namespace OfficeIMO.PowerPoint {
                 ClearGuides();
             }
 
-            PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount, marginEmus, gutterEmus);
+            PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount,OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(gutterEmus));
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox row in rows) {
                 positions.Add(row.Top.ToEmus());

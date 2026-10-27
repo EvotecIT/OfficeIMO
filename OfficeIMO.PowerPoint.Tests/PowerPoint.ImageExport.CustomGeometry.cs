@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
             using var stream = new System.IO.MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-                presentation.SlideSize.SetSizePoints(180, 140);
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(140));
                 PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
                     sharedPath, 30, 20, 120, 100, "Shared freeform");
                 Assert.Equal("Shared freeform", shape.Name);

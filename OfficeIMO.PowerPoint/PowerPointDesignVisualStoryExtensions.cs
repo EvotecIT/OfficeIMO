@@ -18,8 +18,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointScreenshotStorySlideOptions resolved = options ?? new PowerPointScreenshotStorySlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             PowerPointScreenshotStoryLayoutVariant variant = ResolveScreenshotVariant(resolved, image, points);
             if (variant == PowerPointScreenshotStoryLayoutVariant.SplitNarrative) {
@@ -44,8 +44,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointArchitectureSlideOptions resolved = options ?? new PowerPointArchitectureSlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             PowerPointArchitectureLayoutVariant variant = ResolveArchitectureVariant(resolved, content);
             if (variant == PowerPointArchitectureLayoutVariant.HubSpoke) {

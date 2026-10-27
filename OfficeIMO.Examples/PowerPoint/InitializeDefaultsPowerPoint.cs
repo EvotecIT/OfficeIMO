@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "InitializeDefaults.pptx");
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitleCm("Defaults & Theme",
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             string summary = $"Theme: {presentation.ThemeName}\n" +
-                             $"Slide size: {presentation.SlideSize.WidthCm:0.0} cm × {presentation.SlideSize.HeightCm:0.0} cm";
+                             $"Slide size: {presentation.SlideSize.Width.ToCentimeters():0.0} cm × {presentation.SlideSize.Height.ToCentimeters():0.0} cm";
             PowerPointTextBox body = slide.AddTextBoxCm(summary,
                 content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.6);
             body.ApplyTextStyle(PowerPointTextStyle.Body);

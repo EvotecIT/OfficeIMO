@@ -38,7 +38,7 @@ internal static class PowerPointBenchmarkCorpus {
 
     internal static void Populate(PowerPointDocument presentation,
         PowerPointBenchmarkFixture fixture) {
-        presentation.SlideSize.SetSizePoints(960, 540);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(960),OfficeIMO.OfficeLength.Points(540));
         for (int index = 0; index < fixture.SlideCount; index++) {
             AddSlide(presentation, index, fixture.SlideCount);
         }

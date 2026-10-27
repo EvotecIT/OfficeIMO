@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "Slides Management.pptx");
             using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             PowerPointSlide slide1 = presentation.AddSlide();
             ConfigureSlide(slide1, content, "Original Slide 1", "This slide is created first.");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             string sourcePath = Path.Combine(folderPath, "Slides Management - Source.pptx");
             using (PowerPointDocument sourcePresentation = PowerPointDocument.Create(sourcePath)) {
-                PowerPointLayoutBox sourceContent = sourcePresentation.SlideSize.GetContentBoxCm(marginCm);
+                PowerPointLayoutBox sourceContent = sourcePresentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
                 PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
                 ConfigureSlide(sourceSlide, sourceContent, "Imported Slide", "This slide is imported from another presentation.");
                 PowerPointTextBox sourceBadge = sourceSlide.AddTextBoxCm(

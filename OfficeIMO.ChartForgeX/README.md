@@ -44,7 +44,7 @@ Use the same artifact in each format. Worksheet ranges and slide layout boxes pr
 ```csharp
 paragraph.AddVisualArtifact(artifact);
 sheet.AddVisualArtifact("B4:I18", artifact);
-slide.AddVisualArtifact(artifact, presentation.SlideSize.GetContentBoxPoints(36));
+slide.AddVisualArtifact(artifact, presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Points(36)));
 content.AddVisualArtifact(artifact, spacingAfter: 12);
 ```
 

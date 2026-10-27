@@ -60,8 +60,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointDesignerSlideOptions resolvedOptions = options ?? new PowerPointDesignerSlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PowerPointSectionLayoutVariant variant = ResolveSectionVariant(resolvedOptions);
 
             if (variant == PowerPointSectionLayoutVariant.EditorialRail) {
@@ -96,8 +96,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointMetric> metricList = (metrics ?? Enumerable.Empty<PowerPointMetric>()).Where(m => m != null).ToList();
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
 
             PowerPointCaseStudyLayoutVariant variant = ResolveCaseStudyVariant(resolvedOptions, sectionList, metricList);
@@ -137,8 +137,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointCardContent> cardList = NormalizeCards(cards);
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
 
             AddSubtleLightBackground(slide, resolvedTheme, width, height);
@@ -175,8 +175,8 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointProcessStep> stepList = NormalizeSteps(steps);
 
             PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             slide.BackgroundColor = resolvedTheme.AccentDarkColor;
 
             if (resolvedOptions.ShowDiagonalPlanes) {

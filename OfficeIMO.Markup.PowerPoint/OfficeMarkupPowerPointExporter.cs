@@ -58,7 +58,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
         PowerPointDocument presentation = PowerPointDocument.Create();
         try {
-            presentation.SlideSize.SetSizeInches(metrics.Width, metrics.Height);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Inches(metrics.Width),OfficeIMO.OfficeLength.Inches(metrics.Height));
             var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
             string? activeSection = null;
             foreach (var slideBlock in GetSlides(document)) {

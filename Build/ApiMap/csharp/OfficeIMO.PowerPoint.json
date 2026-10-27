@@ -881,33 +881,33 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTable.AddRow(...) : PowerPointTableRow",
+      "new": "OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null) : PowerPointTableRow",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointTable.RowsColumns.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the model for the exact inserted native row or grid column, including insertion before existing items."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTable.AddColumn(...) : PowerPointTableColumn",
+      "new": "OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null) : PowerPointTableColumn",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointTable.RowsColumns.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the model for the exact inserted native row or grid column, including insertion before existing items."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(PowerPointGuideOrientation orientation, long positionEmus)",
@@ -3520,11 +3520,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsInches(int columnCount, double marginInches, double gutterInches)",
@@ -3537,11 +3537,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsPoints(int columnCount, double marginPoints, double gutterPoints)",
@@ -3554,11 +3554,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxCm(double marginCm)",
@@ -3571,11 +3571,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxInches(double marginInches)",
@@ -3588,11 +3588,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxPoints(double marginPoints)",
@@ -3605,11 +3605,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBoxPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsCm(int rowCount, double marginCm, double gutterCm)",
@@ -3622,11 +3622,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsInches(int rowCount, double marginInches, double gutterInches)",
@@ -3639,11 +3639,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsPoints(int rowCount, double marginPoints, double gutterPoints)",
@@ -3656,11 +3656,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.GetRowsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeCm(double widthCm, double heightCm)",
@@ -3673,11 +3673,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeCm(double widthCm, double heightCm, PowerPointSlideSizeType type)",
@@ -3690,11 +3690,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeEmus(long widthEmus, long heightEmus)",
@@ -3707,11 +3707,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeEmus(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeEmus(long widthEmus, long heightEmus, PowerPointSlideSizeType type)",
@@ -3724,11 +3724,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeEmus(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeInches(double widthInches, double heightInches)",
@@ -3741,11 +3741,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeInches(double widthInches, double heightInches, PowerPointSlideSizeType type)",
@@ -3758,11 +3758,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizeInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizePoints(double widthPoints, double heightPoints)",
@@ -3775,11 +3775,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizePoints(double widthPoints, double heightPoints, PowerPointSlideSizeType type)",
@@ -3792,11 +3792,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlideSize.SetSizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthCm(int columnIndex)",
@@ -6737,11 +6737,11 @@
       "notes": "Numeric parameters with unit-suffixed names: gutterEmus, marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetContentBox(long marginEmus)",
@@ -6754,11 +6754,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetRows(int rowCount, long marginEmus, long gutterEmus)",
@@ -6771,11 +6771,11 @@
       "notes": "Numeric parameters with unit-suffixed names: gutterEmus, marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null)",
@@ -8027,11 +8027,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.HeightEmus",
@@ -8043,11 +8043,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.HeightInches",
@@ -8059,11 +8059,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.HeightPoints",
@@ -8075,11 +8075,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.WidthCm",
@@ -8091,11 +8091,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.WidthEmus",
@@ -8107,11 +8107,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.WidthInches",
@@ -8123,11 +8123,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.WidthPoints",
@@ -8139,11 +8139,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide size exposes Width/Height as OfficeLength, SetSize accepts explicit lengths, and content regions/rows/columns use the same typed layout engine. Native EMU range checks and preset dimensions are preserved."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTabStop.PositionPoints",
@@ -9559,6 +9559,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "PowerPoint chart fixture data lists the 17 shared-composition families that the engine supports instead of enumerating the cross-format OfficeChartType union and its duplicate enum aliases. Native chart, point-color, data-update and saved summary contracts remain tested. Remaining Google Slides live-test consumers use the renamed Document result property; the typed-table sizing fixture supplies its existing explicit projection configuration."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerPointSlideSize replaces raw EMU dimensions and centimeter/inch/point twins with OfficeLength Width/Height, SetSize and typed content/grid methods. GetContentBox guards large margins before multiplication; row/column splitting delegates to PowerPointLayoutBox. AddRow and AddColumn return attached native models whose indices follow later insertions. All C# consumers and direct PowerShell geometry reads are migrated; PowerShell command parameter names and aliases are unchanged."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

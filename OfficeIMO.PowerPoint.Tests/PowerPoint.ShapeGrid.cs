@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 2, rows: 1,
                     marginEmus: margin);
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 long cellWidth = content.Width.ToEmus() / 2;
 
                 Assert.Equal(content.Left.ToEmus(), a.Left.ToEmus());
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
                 slide.ArrangeShapesInGridAutoToSlideContent(slide.Shapes, margin,
                     new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 2 });
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 long cellWidth = content.Width.ToEmus() / 2;
                 long cellHeight = content.Height.ToEmus() / 2;
 

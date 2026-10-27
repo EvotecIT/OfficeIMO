@@ -13,8 +13,8 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             PowerPointDeckPreflightOptions resolved = options?.Clone() ?? new PowerPointDeckPreflightOptions();
             var findings = new List<PowerPointDeckPreflightFinding>();
-            long slideWidth = SlideSize.WidthEmus;
-            long slideHeight = SlideSize.HeightEmus;
+            long slideWidth = SlideSize.Width.ToEmus();
+            long slideHeight = SlideSize.Height.ToEmus();
             int inspectedShapeCount = 0;
 
             for (int slideIndex = 0; slideIndex < Slides.Count; slideIndex++) {

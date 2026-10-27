@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
         private static IReadOnlyDictionary<string, string> Hashes(PowerPointDocument presentation) {
-            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{presentation.SlideSize.WidthPoints}|{presentation.SlideSize.HeightPoints}")) };
+            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{presentation.SlideSize.Width.ToPoints()}|{presentation.SlideSize.Height.ToPoints()}")) };
             for (int index = 0; index < presentation.Slides.Count; index++) {
                 PowerPointSlide slide = presentation.Slides[index]; string root = GoogleWorkspaceCheckpointFormat.Format($"slide/{index + 1}");
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{slide.Hidden}|{BackgroundFingerprint(background)}"));

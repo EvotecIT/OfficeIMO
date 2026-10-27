@@ -13,7 +13,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
         var firstSlideIndexes = new List<int>();
-        double slideBottom = presentation.SlideSize.HeightPoints - 30D;
+        double slideBottom = presentation.SlideSize.Height.ToPoints() - 30D;
         bool slideLimitReached = false;
         foreach (HtmlSemanticSection section in document.Sections) {
             if (!TryAddGenericSlide(presentation, result, budget, out PptCore.PowerPointSlide slide)) break;
@@ -41,7 +41,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         break;
                     }
                 } else if (importTable) {
-                    double tableWidth = presentation.SlideSize.WidthPoints - 128D;
+                    double tableWidth = presentation.SlideSize.Width.ToPoints() - 128D;
                     double? authoredWidth = ReadOptionalDoubleAttribute(block.SourceElement, "data-officeimo-width");
                     if (authoredWidth >= 1D && authoredWidth <= budget.Limits.MaxAbsoluteGeometry) {
                         tableWidth = authoredWidth.Value;
@@ -278,8 +278,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         double maximum = budget.Limits.MaxAbsoluteGeometry;
         width = ReadGenericResourceDimension(resource.WidthPixels, 160D, maximum);
         height = ReadGenericResourceDimension(resource.HeightPixels, 90D, maximum);
-        double widthLimit = Math.Max(1D, presentation.SlideSize.WidthPoints - 128D);
-        double heightLimit = Math.Max(1D, presentation.SlideSize.HeightPoints - 60D);
+        double widthLimit = Math.Max(1D, presentation.SlideSize.Width.ToPoints() - 128D);
+        double heightLimit = Math.Max(1D, presentation.SlideSize.Height.ToPoints() - 60D);
         double scale = Math.Min(1D, Math.Min(widthLimit / width, heightLimit / height));
         fitted = scale < 1D;
         width *= scale;
@@ -315,8 +315,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             PptCore.PowerPointLayoutBox? bounds = finding.Bounds;
             bool whollyOutside = bounds.HasValue && (bounds.Value.Right.ToEmus() <= 0L || bounds.Value.Bottom.ToEmus() <= 0L
-                || bounds.Value.Left.ToEmus() >= presentation.SlideSize.WidthEmus
-                || bounds.Value.Top.ToEmus() >= presentation.SlideSize.HeightEmus);
+                || bounds.Value.Left.ToEmus() >= presentation.SlideSize.Width.ToEmus()
+                || bounds.Value.Top.ToEmus() >= presentation.SlideSize.Height.ToEmus());
             AddImportDiagnostic(result,
                 whollyOutside ? HtmlConversionDiagnosticCodes.ContentOmitted : HtmlConversionDiagnosticCodes.ContentApproximated,
                 whollyOutside

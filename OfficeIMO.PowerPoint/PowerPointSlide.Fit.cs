@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var slideSize = new PowerPointSlideSize(presentationPart);
-            return slideSize.GetContentBox(marginEmus);
+            return slideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(marginEmus));
         }
     }
 }

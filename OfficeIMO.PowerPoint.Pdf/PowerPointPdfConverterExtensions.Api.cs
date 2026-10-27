@@ -61,12 +61,12 @@ public static partial class PowerPointPdfConverterExtensions {
                 pdf.PageBreak();
             }
 
-            RenderSlide(pdf, slide, slideIndex + 1, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints, options);
+            RenderSlide(pdf, slide, slideIndex + 1, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints(), options);
             renderedSlides++;
         }
 
         if (renderedSlides == 0) {
-            RenderEmptySlide(pdf, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints);
+            RenderEmptySlide(pdf, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints());
         }
 
         cancellationToken.ThrowIfCancellationRequested();

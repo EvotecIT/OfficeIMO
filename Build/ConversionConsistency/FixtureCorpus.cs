@@ -49,8 +49,8 @@ internal static partial class FixtureCorpus {
             excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
         }
         using (var presentation = PowerPointDocument.Create()) {
-            presentation.SlideSize.WidthCm = 12.7;
-            presentation.SlideSize.HeightCm = 8.4666666667;
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(12.7);
+            presentation.SlideSize.Height= OfficeIMO.OfficeLength.Centimeters(8.4666666667);
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
                 var heading = slide.AddTextBoxPoints("SERVICE REVIEW " + page, 18, 18, 320, 30);

@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
                 slide.DistributeShapesWithSpacingToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal,
                     spacingEmus: spacing, marginEmus: margin);
 
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 double current = content.Left.ToEmus();
                 long expectedA = (long)Math.Round(current);
                 current += a.Width.ToEmus() + spacing;

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_RoundTripsExplicitNoFillTableCell() {
             using var source = PowerPointDocument.Create();
-            source.SlideSize.SetSizePoints(180, 100);
+            source.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             var slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             slide.BackgroundColor = "FFFF00";
             var table = slide.AddTablePoints(1, 2, 20, 20, 120, 48);

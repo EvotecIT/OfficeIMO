@@ -17,7 +17,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(-50D, 20D, 40D, 160D, true)]
     public void RotatedGroupsAtSlideEdgeRetainTextAndPageSpaceClip(double x, double y, double width, double height, bool nested) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("EDGE", x, y, width, height);
         box.FontName = "Helvetica";
@@ -44,7 +44,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
     public void GroupLocalFontDiscoveryReportsMappedVisibleText(bool nested) {
         const string family = "OfficeIMO Missing Group Font 81C2";
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("MAPPED", 1000, 1000, 160, 50);
         box.FontName = family;
@@ -70,7 +70,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         var profile = new OfficeRenderingProfile("group-text", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(600, 500);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(500));
         PowerPointSlide slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("INK", 40, 40, 200, 60);
         box.FontName = "Fixture";
@@ -114,7 +114,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         var profile = new OfficeRenderingProfile("group-transform", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         var box = slide.AddTextBoxPoints("TRANSFORM", 40, 40, 200, 60);
         box.FontName = "Fixture";

@@ -75,8 +75,7 @@ public static partial class PowerPointIWorkConverter {
             if (useSourceSlideSize && sourceSlideSize != null) {
                 canvasWidth = sourceSlideSize.WidthPoints;
                 canvasHeight = sourceSlideSize.HeightPoints;
-                presentation.SlideSize.SetSizePoints(sourceSlideSize.WidthPoints,
-                    sourceSlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(sourceSlideSize.WidthPoints),                    OfficeIMO.OfficeLength.Points(sourceSlideSize.HeightPoints),PowerPointSlideSizeType.Custom);
             }
             if (editable) {
                 var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(

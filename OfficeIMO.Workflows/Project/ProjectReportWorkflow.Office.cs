@@ -69,7 +69,7 @@ public static partial class ProjectReportWorkflow {
         var presentation = PowerPointDocument.Create();
         try {
             if (view.PageWidth > 4032 || view.PageHeight > 4032) throw new ArgumentOutOfRangeException(nameof(view), "PowerPoint pages cannot exceed 56 inches.");
-            presentation.SlideSize.WidthPoints = view.PageWidth; presentation.SlideSize.HeightPoints = view.PageHeight;
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Points(view.PageWidth); presentation.SlideSize.Height= OfficeIMO.OfficeLength.Points(view.PageHeight);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddPowerPointCharts(presentation, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return presentation;
             var measurement = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));

@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 var configuredPages = new List<int>();
 
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    presentation.SlideSize.SetSizePoints(400, 225);
+                    presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
                     PowerPointPaginatedTableResult result = presentation.AddTableSlides(source, columns,
                         new PowerPointTablePaginationOptions {
                             TableBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(40),OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(100)),

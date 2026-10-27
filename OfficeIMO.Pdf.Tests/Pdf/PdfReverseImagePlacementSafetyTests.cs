@@ -991,7 +991,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using OfficeIMO.PowerPoint.PowerPointDocument presentation =
             OfficeIMO.PowerPoint.PowerPointDocument.Load(presentationStream);
         OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
-        double scale = presentation.SlideSize.WidthPoints / 160D;
+        double scale = presentation.SlideSize.Width.ToPoints() / 160D;
         Assert.Equal(pageRotation, picture.Rotation);
         Assert.Equal(80D * scale, picture.Width.ToPoints(), 4);
         Assert.Equal(40D * scale, picture.Height.ToPoints(), 4);

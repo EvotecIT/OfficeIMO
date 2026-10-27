@@ -401,8 +401,8 @@ public static partial class PdfPowerPointConverterExtensions {
             data,
             segment,
             headerRowIncluded,
-            presentation.SlideSize.WidthPoints,
-            presentation.SlideSize.HeightPoints);
+            presentation.SlideSize.Width.ToPoints(),
+            presentation.SlideSize.Height.ToPoints());
         PptCore.PowerPointTable table = slide.AddTable(
             rowCount,
             segment.ColumnCount,
@@ -448,7 +448,7 @@ public static partial class PdfPowerPointConverterExtensions {
             double height = reference.Height >= reference.Width
                 ? maximumSlideDimensionPoints
                 : maximumSlideDimensionPoints * reference.Height / Math.Max(1D, reference.Width);
-            presentation.SlideSize.SetSizePoints(width, height);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         }
     }
 
@@ -460,8 +460,8 @@ public static partial class PdfPowerPointConverterExtensions {
         if (bytes != null && page.Width > 0 && page.Height > 0) {
             VisualPagePlacement placement = GetVisualPagePlacement(
                 page,
-                presentation.SlideSize.WidthPoints,
-                presentation.SlideSize.HeightPoints);
+                presentation.SlideSize.Width.ToPoints(),
+                presentation.SlideSize.Height.ToPoints());
             using var image = new MemoryStream(bytes, writable: false);
             slide.AddImagePoints(image, OfficeImageFormat.Png, placement.Left, placement.Top, placement.Width, placement.Height);
         } else {

@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         private static PowerPointDocument CreateDashboardFixture() {
             var stream = new MemoryStream();
             PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(320, 180);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
         private static PowerPointDocument CreateProcessDiagramFixture() {
             var stream = new MemoryStream();
             PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(320, 180);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("EFF6FF", "F8FAFC", 0D);
 

@@ -11,7 +11,7 @@ public partial class PowerPointImageExportTests {
     public void PowerPointRasterExport_ReachesTheSharedTextShapingProvider() {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-        presentation.SlideSize.SetSizePoints(240D, 160D);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(160D));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox textBox = slide.AddTextBoxPoints("A", 20D, 20D, 100D, 30D);
         textBox.Paragraphs[0].SetFontName(ManagedTextShapingTestAssets.FamilyName);

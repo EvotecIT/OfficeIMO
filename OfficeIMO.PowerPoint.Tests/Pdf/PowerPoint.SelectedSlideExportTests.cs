@@ -10,7 +10,7 @@ public sealed class PowerPointSelectedSlideExportTests {
     [InlineData(true)]
     public void ExhaustedImageBudgetRetainsFollowingSolidAndGradientBackgrounds(bool gradient) {
         using var deck = PowerPointDocument.Create();
-        deck.SlideSize.SetSizePoints(100, 60);
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
         deck.AddSlide().AddImage(new MemoryStream(picture), OfficeImageFormat.Png,
             PowerPointUnits.FromPoints(10), PowerPointUnits.FromPoints(10),
@@ -33,7 +33,7 @@ public sealed class PowerPointSelectedSlideExportTests {
     [Fact]
     public void MissingSlideBackgroundUsesTheSharedImageExportBackground() {
         using var deck = PowerPointDocument.Create();
-        deck.SlideSize.SetSizePoints(100, 60);
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         var slide = deck.AddSlide();
         byte[] bytes = slide.ToPng(new PowerPointImageExportOptions {
             IncludeSlideBackground = false, IncludeSlideContent = false, BackgroundColor = OfficeColor.AliceBlue
@@ -45,7 +45,7 @@ public sealed class PowerPointSelectedSlideExportTests {
     [Fact]
     public void PartlyOffSlideFixedFrameKeepsOverflowVisibleBelowItsOriginalHeight() {
         using var deck = PowerPointDocument.Create();
-        deck.SlideSize.SetSizePoints(220, 180);
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(180));
         var slide = deck.AddSlide();
         var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTAIL", -5, 20, 100, 12);
         box.FontName = "Helvetica";

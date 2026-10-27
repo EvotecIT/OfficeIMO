@@ -49,7 +49,7 @@ public sealed class ImageExportConformanceContracts {
 
         using (var presentationStream = new MemoryStream())
         using (PowerPointDocument presentation = PowerPointDocument.Create(presentationStream)) {
-            presentation.SlideSize.SetSizePoints(240D, 160D);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(160D));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "336699";
             results.Add(slide.ExportImage(

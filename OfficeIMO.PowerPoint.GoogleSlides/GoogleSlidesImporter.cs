@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             var stream = new MemoryStream();
             PowerPointDocument presentation = PowerPointDocument.Create(stream);
             try {
-                if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSizePoints(ToPoints(source.PageSize.Width), ToPoints(source.PageSize.Height));
+                if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Width)),OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Height)));
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Hidden = sourceSlide.SlideProperties?.IsSkipped == true;

@@ -66,7 +66,7 @@ internal static class DocumentDelivery {
     private static void WritePowerPoint(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var presentation = PowerPointDocument.Create(path);
         presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-        double slideWidth = presentation.SlideSize.WidthPoints, slideHeight = presentation.SlideSize.HeightPoints;
+        double slideWidth = presentation.SlideSize.Width.ToPoints(), slideHeight = presentation.SlideSize.Height.ToPoints();
         foreach (var specimen in specimens) {
             var slide = presentation.AddSlide();
             var colors = VisualTheme.Graphite().Resolve(specimen.Mode);

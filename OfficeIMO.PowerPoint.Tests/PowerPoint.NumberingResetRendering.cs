@@ -13,7 +13,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     public void Saved_PPTX_parent_items_reset_deeper_rendered_counters(bool tableCell) {
         using var saved = new MemoryStream();
         using (var presentation = PowerPointDocument.Create()) {
-            presentation.SlideSize.SetSizePoints(600, 500);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(500));
             AddNestedItems(presentation.AddSlide(), tableCell);
             presentation.Save(saved);
         }
@@ -32,7 +32,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     public void Saved_PPTX_table_number_markers_reach_PDF_text() {
         using var saved = new MemoryStream();
         using (var presentation = PowerPointDocument.Create()) {
-            presentation.SlideSize.SetSizePoints(600, 500);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(500));
             AddNestedItems(presentation.AddSlide(), tableCell: true);
             presentation.Save(saved);
         }
@@ -51,7 +51,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(true)]
     public void PDF_table_markers_retain_separate_font_and_point_size(bool characterBullet) {
         using var presentation = PowerPointDocument.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150).GetCell(0, 0);
         cell.FontSize = 12;
         cell.FontName = "Arial";

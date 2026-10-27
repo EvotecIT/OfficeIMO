@@ -70,8 +70,8 @@ public static partial class PdfPowerPointConverterExtensions {
             EditablePagePlacement placement = GetEditablePagePlacement(
                 drawing?.Width ?? page.GetVisualPageSize().Width,
                 drawing?.Height ?? page.GetVisualPageSize().Height,
-                presentation.SlideSize.WidthPoints,
-                presentation.SlideSize.HeightPoints);
+                presentation.SlideSize.Width.ToPoints(),
+                presentation.SlideSize.Height.ToPoints());
             IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables =
                 tablesByPage.TryGetValue(pageIndex, out IReadOnlyList<PdfCore.PdfLogicalTableExtraction>? pageTables)
                     ? pageTables
@@ -179,7 +179,7 @@ public static partial class PdfPowerPointConverterExtensions {
         double height = sourceHeight >= sourceWidth
             ? maximumSlideDimensionPoints
             : maximumSlideDimensionPoints * sourceHeight / sourceWidth;
-        presentation.SlideSize.SetSizePoints(width, height);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
     }
 
     private static EditablePagePlacement GetEditablePagePlacement(
@@ -689,8 +689,8 @@ public static partial class PdfPowerPointConverterExtensions {
     private static EditableBounds GetContinuationTableBounds(
         PptCore.PowerPointDocument presentation,
         PowerPointPdfImportOptions options) {
-        double slideWidth = Math.Max(1D, presentation.SlideSize.WidthPoints);
-        double slideHeight = Math.Max(1D, presentation.SlideSize.HeightPoints);
+        double slideWidth = Math.Max(1D, presentation.SlideSize.Width.ToPoints());
+        double slideHeight = Math.Max(1D, presentation.SlideSize.Height.ToPoints());
         double left = Math.Min(Math.Max(0D, options.TableLeft / 12700D), slideWidth - 1D);
         double top = Math.Min(Math.Max(0D, options.TableTop / 12700D), slideHeight - 1D);
         double width = Math.Min(Math.Max(1D, options.TableWidth / 12700D), slideWidth - left);

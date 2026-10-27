@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ProjectsOuterShadowThroughSharedDrawingImageExport() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ProjectsGlowThroughSharedDrawingImageExport() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 

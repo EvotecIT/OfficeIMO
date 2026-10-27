@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_StrictOmissionPolicyAllowsSmallCapsApproximation() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Keep this text", 20, 20, 120, 50);
             textBox.Paragraphs[0].Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnreadableBackgroundImage() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             using var emptyImage = new MemoryStream();
             slide.SetBackgroundImage(
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnsupportedBackgroundFill() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
                 new BackgroundProperties(

@@ -16,7 +16,7 @@ public sealed class PowerPointPdfFontResetTests {
     public void Explicit_regular_font_overrides_inherited_bold_and_italic_after_save(string surface) {
         using var saved = new MemoryStream();
         using (var presentation = PowerPointDocument.Create()) {
-            presentation.SlideSize.SetSizePoints(260, 180);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
             var slide = presentation.AddSlide();
             PowerPointParagraph paragraph;
             if (surface == "cell") {

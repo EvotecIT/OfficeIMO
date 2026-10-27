@@ -730,7 +730,7 @@ namespace OfficeIMO.Tests {
         public void BubbleChart_DrivesPngSvgHtmlAndPdfWithoutFallbackDiagnostics() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(480, 300);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(300));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddChartPoints(OfficeChartType.Bubble,
                 CreateBubbleData(

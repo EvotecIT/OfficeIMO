@@ -13,7 +13,7 @@ public partial class PowerPointImageExportTests {
     [InlineData(true)]
     public void SelectedSlideExportsRetainOriginalIdentityAndBatchPosition(bool streaming) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(80, 60);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(80),OfficeIMO.OfficeLength.Points(60));
         for (int i = 0; i < 3; i++) presentation.AddSlide();
         var options = new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 1, 3 } };
         var results = new List<OfficeImageExportResult>();

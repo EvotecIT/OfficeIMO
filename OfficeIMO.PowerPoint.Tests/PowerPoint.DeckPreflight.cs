@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_ReportsMeasuredTextOverflowAndSerializesStableJson() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBoxPoints(
                 "A deliberately long paragraph that cannot fit inside a tiny text frame without losing content.",
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_InspectsTextNestedInsideGroups() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBoxPoints(
                 "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_ReportsOffSlideShapesAndSignificantPeerCollisions() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(20, 30, 120, 80, "First panel");
             slide.AddRectanglePoints(80, 60, 120, 80, "Second panel");
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
-                    presentation.SlideSize.SetSizePoints(400, 225);
+                    presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
                     PowerPointSlide slide = presentation.AddSlide();
                     presentation.Save();
                     slide.AddRectanglePoints(390, 210, 30, 30, "Outside");
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_AllowsReadableContainedComposition() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(20, 20, 360, 185, "Panel");
             PowerPointTextBox text = slide.AddTextBoxPoints("Readable content", 40, 45, 250, 50);
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_AllowsBoundedDecorativeBleedButStillRejectsContentOffSlide() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(-20, 0, 220, 225, "Intentional plane");
             PowerPointTextBox outside = slide.AddTextBoxPoints("Content outside", 390, 200, 40, 30);

@@ -16,8 +16,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointChartStorySlideOptions resolved = options ?? new PowerPointChartStorySlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             PowerPointChartStoryLayoutVariant variant = ResolveChartStoryVariant(resolved, content);
             if (variant == PowerPointChartStoryLayoutVariant.InsightRail) {
@@ -39,8 +39,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointComparisonSlideOptions resolved = options ?? new PowerPointComparisonSlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             PowerPointComparisonLayoutVariant variant = ResolveComparisonVariant(resolved, values.Count);
             if (variant == PowerPointComparisonLayoutVariant.DecisionMatrix)
@@ -62,8 +62,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointAppendixTableSlideOptions resolved = options ?? new PowerPointAppendixTableSlideOptions();
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
-            double width = presentation.SlideSize.WidthCm;
-            double height = presentation.SlideSize.HeightCm;
+            double width = presentation.SlideSize.Width.ToCentimeters();
+            double height = presentation.SlideSize.Height.ToCentimeters();
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
             PowerPointAppendixTableLayoutVariant variant = ResolveAppendixVariant(resolved, data);
             if (variant == PowerPointAppendixTableLayoutVariant.NotesRail)
